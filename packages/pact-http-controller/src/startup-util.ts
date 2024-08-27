@@ -20,7 +20,10 @@ import {
 } from "cumulocity-cypress/shared/c8yctrl";
 
 import { RequestHandler } from "express";
-import { safeStringify } from "cumulocity-cypress/shared/util";
+import {
+  getPackageVersion,
+  safeStringify,
+} from "cumulocity-cypress/shared/util";
 
 import debug from "debug";
 const log = debug("c8y:ctrl:startup");
@@ -113,7 +116,7 @@ export function getConfigFromArgs(): [
     .option("accessLogFile", {
       type: "string",
       requiresArg: true,
-      description: "The pathc of the access logfile",
+      description: "The path of the access logfile",
     })
     .option("apps", {
       alias: "versions",
@@ -135,6 +138,7 @@ export function getConfigFromArgs(): [
     })
     .help()
     .wrap(120)
+    .version(getPackageVersion())
     .parseSync();
 
   const logLevelValues: string[] = Object.values(C8yPactHttpControllerLogLevel);
