@@ -13,7 +13,8 @@ export function createInitConfig(baseUrl: string): string {
 
 # The title is used to describe the screenshot run
 title: "My screenshot automation"
-# The baseUrl is the Cumulocity base URL and can be overwritten by the command line argument
+# The baseUrl is the Cumulocity URL and can be overwritten by the command line argument
+# All visit URLs are relative to this baseUrl
 baseUrl: "${baseUrl}"
 
 global:
