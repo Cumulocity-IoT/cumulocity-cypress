@@ -38,7 +38,7 @@ export interface C8yPactFileAdapter {
   getFolder: () => string;
 }
 
-const log = debug("c8y:plugin:fileadapter");
+const log = debug("c8y:fileadapter");
 
 /**
  * Default implementation of C8yPactFileAdapter which loads and saves pact objects from/to

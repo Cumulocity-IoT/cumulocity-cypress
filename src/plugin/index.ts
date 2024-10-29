@@ -45,7 +45,7 @@ export function configureC8yPlugin(
   config: Cypress.PluginConfigOptions,
   options: C8yPluginConfig = {}
 ) {
-  const log = debug("c8y:c8yscrn:plugin");
+  const log = debug("c8y:plugin");
 
   let adapter = options.pactAdapter;
   if (!adapter) {
@@ -122,7 +122,7 @@ export function configureC8yPlugin(
       "c8ypact:save": savePact,
       "c8ypact:get": getPact,
       "c8ypact:remove": removePact,
-      "c8ypact:oauthLogin": login,
+      "c8ypact:oauthLogin": login
     });
   }
 }
@@ -141,9 +141,9 @@ export function configureC8yScreenshotPlugin(
 ) {
   const log = debug("c8y:scrn:plugin");
   let configData: string | ScreenshotSetup | undefined = setup;
-  if (config.env._c8yscrnyaml != null) {
-    log(`Using config from _c8yscrnyaml`);
-    configData = config.env._c8yscrnyaml;
+  if (config.env._c8yscrnConfigYaml != null) {
+    log(`Using config from _c8yscrnConfigYaml`);
+    configData = config.env._c8yscrnConfigYaml;
   }
 
   let lookupPaths: string[] = [];
@@ -186,6 +186,9 @@ export function configureC8yScreenshotPlugin(
     );
   }
 
+  const ajv = new C8yAjvSchemaMatcher();
+  ajv.match(configData, schema, true);
+
   if (configData.global?.timeouts?.default) {
     config.defaultCommandTimeout = configData.global.timeouts.default;
     log(`Setting default command timeout to ${config.defaultCommandTimeout}`);
@@ -199,16 +202,19 @@ export function configureC8yScreenshotPlugin(
     log(`Setting screenshot timeout to ${config.responseTimeout}`);
   }
 
-  const ajv = new C8yAjvSchemaMatcher();
-  ajv.match(configData, schema, true);
   log(
     `Config validated. ${configData.screenshots?.length} screenshots configured.`
   );
 
-  config.env._c8yscrnyaml = configData;
+  const overwrite = configData.global?.overwrite ?? false;
+
+  config.env._c8yscrnConfigYaml = configData;
   config.baseUrl =
     config.baseUrl ?? configData?.baseUrl ?? "http://localhost:8080";
   log(`Using baseUrl ${config.baseUrl}`);
+
+  const screenshotsFolder = config.env._c8yscrnBrowserLaunchArgs ?? "c8yscrn";
+  log(`Using screenshotsFolder to ${screenshotsFolder}`);
 
   // https://www.cypress.io/blog/generate-high-resolution-videos-and-screenshots
   // https://github.com/cypress-io/cypress/issues/27260
@@ -271,8 +277,12 @@ export function configureC8yScreenshotPlugin(
           dimensions: details.dimensions,
         });
       }
-      log(`Moving screenshot ${details.path} to ${newPath}`);
-      fs.rename(details.path, newPath, (err) => {
+
+      // for Module API run(), overwrite option of the screenshot is not working
+      const targetPath = overwrite === true ? newPath : appendCountIfPathExists(newPath);
+      log(`Moving screenshot ${details.path} to ${targetPath} (overwrite: ${overwrite})`);
+
+      fs.rename(details.path, targetPath, (err) => {
         if (err) return reject(err);
         resolve({
           path: newPath,
@@ -284,6 +294,19 @@ export function configureC8yScreenshotPlugin(
   });
 
   return config;
+}
+
+export function appendCountIfPathExists(newPath: string): string {
+  let count = 2;
+  let adjustedPath = newPath;
+
+  while (fs.existsSync(adjustedPath)) {
+    const parsedPath = path.parse(newPath);
+    adjustedPath = path.join(parsedPath.dir, `${parsedPath.name} (${count})${parsedPath.ext}`);
+    count++;
+  }
+
+  return adjustedPath;
 }
 
 function getVersion() {

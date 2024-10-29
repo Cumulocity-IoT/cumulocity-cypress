@@ -69,7 +69,7 @@ export class C8yScreenshotRunner {
         _.isNil
       ),
       {
-        overwrite: true,
+        overwrite: false,
         scale: false,
         disableTimersAndAnimations: true,
       }
@@ -195,6 +195,8 @@ export class C8yScreenshotRunner {
               !lastAction ||
               !isScreenshotAction(lastAction)
             ) {
+              cy.task("debug", `Taking screenshot ${item.image}`);
+              cy.task("debug", `Options: ${JSON.stringify(options)}`);
               cy.screenshot(item.image, options);
             }
           },

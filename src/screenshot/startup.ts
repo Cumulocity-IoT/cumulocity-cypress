@@ -10,14 +10,19 @@ import { config as dotenv } from "dotenv";
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./../screenshot/schema.json";
-import { createInitConfig, readYamlFile } from "./helper";
+import {
+  createInitConfig,
+  readYamlFile,
+  resolveConfigOptions,
+  resolveFileExtension,
+} from "./helper";
 import {
   C8yScreenshotOptions,
   ScreenshotSetup,
 } from "./../lib/screenshots/types";
 
 import debug from "debug";
-const log = debug("c8y:c8yscrn:startup");
+const log = debug("c8y:scrn:startup");
 
 (async () => {
   try {
@@ -27,9 +32,8 @@ const log = debug("c8y:c8yscrn:startup");
         "No config file provided. Use --config option to provide the config file."
       );
     }
-
-    const baseUrl =
-      args.baseUrl ?? process.env.C8Y_BASEURL ?? "http://localhost:8080";
+    const resolvedCypressConfig = resolveConfigOptions(args);
+    const baseUrl = resolvedCypressConfig.config.e2e.baseUrl;
 
     const yamlFile = path.resolve(process.cwd(), args.config);
     if (args.init === true) {
@@ -69,57 +73,30 @@ const log = debug("c8y:c8yscrn:startup");
       throw new Error(`Invalid config file. ${error.message}`);
     }
 
-    // might run in different environments, so we need to find the correct extension
-    // this is required when running in development mode from ts files
-    let fileExtension = __filename?.split(".")?.pop();
-    if (!fileExtension || !["js", "ts", "mjs", "cjs"].includes(fileExtension)) {
-      fileExtension = "js";
-    }
     log(`Using baseUrl ${baseUrl}`);
-    const screenshotsFolder = path.resolve(
-      process.cwd(),
-      args.folder ?? "c8yscrn"
-    );
 
+    const screenshotsFolder =
+      resolvedCypressConfig.config.e2e.screenshotsFolder;
     log(`Using screenshots folder ${screenshotsFolder}`);
+
+    const fileExtension = resolveFileExtension();
     const cypressConfigFile = path.resolve(
       path.dirname(__filename),
       `config.${fileExtension}`
     );
     log(`Using cypress config file ${cypressConfigFile}`);
 
-    const browser = (args.browser ?? process.env.C8Y_BROWSER ?? "chrome")
-      .toLowerCase()
-      .trim();
-    log(`Using browser ${args.browser}`);
-    if (!["chrome", "firefox", "electron"].includes(browser)) {
-      throw new Error(
-        `Invalid browser ${browser}. Supported browsers are chrome, firefox, electron.`
-      );
-    }
+    const browser = resolvedCypressConfig.browser;
+    log(`Using browser ${browser}`);
 
     const browserLaunchArgs =
       process.env[`C8Y_${browser.toUpperCase()}_LAUNCH_ARGS`] ??
       process.env.C8Y_BROWSER_LAUNCH_ARGS ??
       "";
 
+    // https://docs.cypress.io/guides/guides/module-api
     const config = {
-      ...{
-        configFile: cypressConfigFile,
-        browser,
-        testingType: "e2e" as const,
-        quiet: args.quiet ?? true,
-        config: {
-          e2e: {
-            baseUrl,
-            screenshotsFolder,
-            specPattern: path.join(
-              path.dirname(__filename),
-              `*.cy.${fileExtension}`
-            ),
-          },
-        },
-      },
+      ...resolvedCypressConfig,
       ...{
         env: {
           ...envs,
@@ -200,6 +177,12 @@ function runOptions(yargs: Argv) {
       requiresArg: true,
       description: "The target folder for the screenshots",
     })
+    .option("clear", {
+      type: "boolean",
+      requiresArg: true,
+      description: "Clear the target folder and remove all data",
+      default: false,
+    })
     .option("browser", {
       alias: "b",
       type: "string",
@@ -210,7 +193,7 @@ function runOptions(yargs: Argv) {
     .option("quiet", {
       type: "boolean",
       default: true,
-      requiresArg: false,
+      requiresArg: true,
       hidden: true,
     })
     .option("tags", {
