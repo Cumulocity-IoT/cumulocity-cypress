@@ -13,6 +13,7 @@ import schema from "./../screenshot/schema.json";
 import {
   createInitConfig,
   readYamlFile,
+  resolveBaseUrl,
   resolveConfigOptions,
   resolveFileExtension,
 } from "./helper";
@@ -33,12 +34,16 @@ const log = debug("c8y:scrn:startup");
       );
     }
     const resolvedCypressConfig = resolveConfigOptions(args);
-    const baseUrl = resolvedCypressConfig.config.e2e.baseUrl;
+    let baseUrl = resolveBaseUrl(args);
 
     const yamlFile = path.resolve(process.cwd(), args.config);
     if (args.init === true) {
       if (!fs.existsSync(yamlFile)) {
-        fs.writeFileSync(yamlFile, createInitConfig(baseUrl), "utf8");
+        fs.writeFileSync(
+          yamlFile,
+          createInitConfig(baseUrl ?? "http://localhost:8080"),
+          "utf8"
+        );
         log(`Config file ${yamlFile} created.`);
       } else {
         throw new Error(`Config file ${yamlFile} already exists.`);
@@ -73,6 +78,8 @@ const log = debug("c8y:scrn:startup");
       throw new Error(`Invalid config file. ${error.message}`);
     }
 
+    baseUrl = baseUrl ?? configData.baseUrl ?? "http://localhost:8080";
+    resolvedCypressConfig.config.e2e.baseUrl = baseUrl;
     log(`Using baseUrl ${baseUrl}`);
 
     const screenshotsFolder =
