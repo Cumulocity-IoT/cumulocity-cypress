@@ -40,10 +40,10 @@ const log = debug("c8y:scrn:startup");
       if (!fs.existsSync(yamlFile)) {
         fs.writeFileSync(yamlFile, createInitConfig(baseUrl), "utf8");
         log(`Config file ${yamlFile} created.`);
-        return;
       } else {
-        log(`Config file ${yamlFile} already exists. Skipping init.`);
+        throw new Error(`Config file ${yamlFile} already exists.`);
       }
+      return;
     }
 
     if (!fs.existsSync(yamlFile)) {
