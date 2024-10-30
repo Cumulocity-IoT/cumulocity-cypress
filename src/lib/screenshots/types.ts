@@ -60,6 +60,12 @@ export type GlobalVisitOptions = {
    * @examples ["2024-09-26T19:17:35+02:00"]
    */
   date?: string;
+  /**
+   * The selector to wait for when visiting a page
+   * @default "c8y-drawer-outlet c8y-app-icon .c8y-icon"
+   * @examples ["c8y-drawer-outlet c8y-app-icon .c8y-icon"]
+   */
+  visitWaitSelector?: string;
 };
 
 export type Screenshot = GlobalVisitOptions &
@@ -70,7 +76,7 @@ export type Screenshot = GlobalVisitOptions &
      */
     image: string;
     /**
-     * The URI to visit
+     * The URI to visit. This typically a relative path to the baseUrl.
      * @examples ["/apps/cockpit/index.html#/"]
      */
     visit: string | Visit;
@@ -184,8 +190,7 @@ export type Visit = GlobalVisitOptions & {
   timeout?: number;
   /**
    * The selector to wait for before taking the screenshot.
-   * @examples ["c8y-navigator-outlet c8y-app-icon"]
-   * @default "c8y-navigator-outlet c8y-app-icon"
+   * @examples ["c8y-drawer-outlet c8y-app-icon .c8y-icon"]
    */
   selector?: string;
 };
@@ -371,6 +376,7 @@ export interface C8yScreenshotOptions {
   quiet: boolean;
   setup: ScreenshotSetup;
   init: boolean;
+  clear: boolean;
 }
 
 export type C8yScreenshotActionHandler = (

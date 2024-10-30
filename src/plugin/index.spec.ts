@@ -1,9 +1,16 @@
 /// <reference types="jest" />
 
-import { C8yPactDefaultFileAdapter, configureC8yPlugin } from "./index";
+import {
+  appendCountIfPathExists,
+  C8yPactDefaultFileAdapter,
+  configureC8yPlugin,
+} from "./index";
 import path from "path";
+import { vol } from "memfs";
 
 jest.spyOn(process, "cwd").mockReturnValue("/home/user/test");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+jest.mock("fs", () => require("memfs").fs);
 
 describe("plugin", () => {
   describe("configurePlugin ", () => {
@@ -59,6 +66,50 @@ describe("plugin", () => {
         path.resolve("/home/user/test/cypress/fixtures/c8ypact2")
       );
       expect((config.env as any).C8Y_PLUGIN_LOADED).toBe("true");
+    });
+  });
+
+  describe("appendCountIfPathExists", () => {
+    beforeEach(() => {
+      vol.fromNestedJSON({
+        "/home/user/test/cypress/screenshots": {
+          "my-screenshot-05.png": Buffer.from([8, 6, 7, 5, 3, 0, 9]),
+          "my-screenshot-04.png": Buffer.from([8, 6, 7, 5, 3, 0, 9]),
+          "my-screenshot-04 (2).png": Buffer.from([8, 6, 7, 5, 3, 0, 9]),
+          "my-screenshot-04 (3).png": Buffer.from([8, 6, 7, 5, 3, 0, 9]),
+        },
+      });
+    });
+
+    afterEach(() => {
+      vol.reset();
+    });
+
+    it("should append count if path exists", () => {
+      const result = appendCountIfPathExists(
+        "/home/user/test/cypress/screenshots/my-screenshot-05.png"
+      );
+      expect(result).toBe(
+        "/home/user/test/cypress/screenshots/my-screenshot-05 (2).png"
+      );
+    });
+
+    it("should not append count if path does not exists", () => {
+      const result = appendCountIfPathExists(
+        "/home/user/test/cypress/screenshots/my-screenshot-01.png"
+      );
+      expect(result).toBe(
+        "/home/user/test/cypress/screenshots/my-screenshot-01.png"
+      );
+    });
+
+    it("should increase count", () => {
+      const result = appendCountIfPathExists(
+        "/home/user/test/cypress/screenshots/my-screenshot-04.png"
+      );
+      expect(result).toBe(
+        "/home/user/test/cypress/screenshots/my-screenshot-04 (4).png"
+      );
     });
   });
 });

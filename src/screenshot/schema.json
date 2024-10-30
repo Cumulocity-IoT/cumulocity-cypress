@@ -718,10 +718,18 @@
                             "type": "string"
                         }
                     ],
-                    "description": "The URI to visit",
+                    "description": "The URI to visit. This typically a relative path to the baseUrl.",
                     "examples": [
                         "/apps/cockpit/index.html#/"
                     ]
+                },
+                "visitWaitSelector": {
+                    "default": "c8y-drawer-outlet c8y-app-icon .c8y-icon",
+                    "description": "The selector to wait for when visiting a page",
+                    "examples": [
+                        "c8y-drawer-outlet c8y-app-icon .c8y-icon"
+                    ],
+                    "type": "string"
                 }
             },
             "required": [
@@ -762,10 +770,9 @@
                     "type": "string"
                 },
                 "selector": {
-                    "default": "c8y-navigator-outlet c8y-app-icon",
                     "description": "The selector to wait for before taking the screenshot.",
                     "examples": [
-                        "c8y-navigator-outlet c8y-app-icon"
+                        "c8y-drawer-outlet c8y-app-icon .c8y-icon"
                     ],
                     "type": "string"
                 },
@@ -785,6 +792,14 @@
                     "description": "The login user alias. Configure *user*_username and *user*_password env\nvariables to set the actual user id and password.",
                     "examples": [
                         "admin"
+                    ],
+                    "type": "string"
+                },
+                "visitWaitSelector": {
+                    "default": "c8y-drawer-outlet c8y-app-icon .c8y-icon",
+                    "description": "The selector to wait for when visiting a page",
+                    "examples": [
+                        "c8y-drawer-outlet c8y-app-icon .c8y-icon"
                     ],
                     "type": "string"
                 }
@@ -913,6 +928,14 @@
                     "description": "The width in px to use for the browser window",
                     "minimum": 0,
                     "type": "integer"
+                },
+                "visitWaitSelector": {
+                    "default": "c8y-drawer-outlet c8y-app-icon .c8y-icon",
+                    "description": "The selector to wait for when visiting a page",
+                    "examples": [
+                        "c8y-drawer-outlet c8y-app-icon .c8y-icon"
+                    ],
+                    "type": "string"
                 }
             },
             "type": "object"

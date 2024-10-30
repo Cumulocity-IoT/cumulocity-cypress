@@ -69,7 +69,7 @@ export class C8yScreenshotRunner {
         _.isNil
       ),
       {
-        overwrite: true,
+        overwrite: false,
         scale: false,
         disableTimersAndAnimations: true,
       }
@@ -148,7 +148,11 @@ export class C8yScreenshotRunner {
             cy.login(visitUser);
 
             const url = visitObject?.url ?? (item.visit as string);
-            const visitSelector = visitObject?.selector;
+            const visitSelector =
+              visitObject?.selector ??
+              this.config.global?.visitWaitSelector ??
+              "c8y-drawer-outlet c8y-app-icon .c8y-icon";
+            cy.task("debug", `Visiting ${url} Selector: ${visitSelector}`);
             const visitTimeout = visitObject?.timeout;
 
             const language =
@@ -195,7 +199,10 @@ export class C8yScreenshotRunner {
               !lastAction ||
               !isScreenshotAction(lastAction)
             ) {
-              cy.screenshot(item.image, options);
+              const name = imageName(item.image);
+              cy.task("debug", `Taking screenshot ${name}`);
+              cy.task("debug", `Options: ${JSON.stringify(options)}`);
+              cy.screenshot(name, options);
             }
           },
         ]);
@@ -279,8 +286,11 @@ export class C8yScreenshotRunner {
     item: Screenshot,
     options: any
   ) {
-    const name = action.screenshot?.path || item.image;
+    let name = action.screenshot?.path || item.image
     const selector = getSelector(action.screenshot?.selector);
+    cy.task("debug", `Taking screenshot ${name} Selector: ${selector}`);
+    cy.task("debug", `Options: ${JSON.stringify(options)}`);
+    name = imageName(name);
     if (selector != null) {
       cy.get(selector).screenshot(name, options);
     } else {
@@ -352,4 +362,8 @@ export function getSelector(
     }
   }
   return undefined;
+}
+
+function imageName(name: string): string {
+  return name.replace(/.png$/i, "");
 }
