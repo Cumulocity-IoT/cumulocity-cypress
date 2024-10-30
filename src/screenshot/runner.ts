@@ -199,9 +199,10 @@ export class C8yScreenshotRunner {
               !lastAction ||
               !isScreenshotAction(lastAction)
             ) {
-              cy.task("debug", `Taking screenshot ${item.image}`);
+              const name = imageName(item.image);
+              cy.task("debug", `Taking screenshot ${name}`);
               cy.task("debug", `Options: ${JSON.stringify(options)}`);
-              cy.screenshot(item.image, options);
+              cy.screenshot(name, options);
             }
           },
         ]);
@@ -285,8 +286,11 @@ export class C8yScreenshotRunner {
     item: Screenshot,
     options: any
   ) {
-    const name = action.screenshot?.path || item.image;
+    let name = action.screenshot?.path || item.image
     const selector = getSelector(action.screenshot?.selector);
+    cy.task("debug", `Taking screenshot ${name} Selector: ${selector}`);
+    cy.task("debug", `Options: ${JSON.stringify(options)}`);
+    name = imageName(name);
     if (selector != null) {
       cy.get(selector).screenshot(name, options);
     } else {
@@ -358,4 +362,8 @@ export function getSelector(
     }
   }
   return undefined;
+}
+
+function imageName(name: string): string {
+  return name.replace(/.png$/i, "");
 }
