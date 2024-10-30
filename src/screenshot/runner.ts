@@ -148,7 +148,11 @@ export class C8yScreenshotRunner {
             cy.login(visitUser);
 
             const url = visitObject?.url ?? (item.visit as string);
-            const visitSelector = visitObject?.selector;
+            const visitSelector =
+              visitObject?.selector ??
+              this.config.global?.visitWaitSelector ??
+              "c8y-drawer-outlet c8y-app-icon .c8y-icon";
+            cy.task("debug", `Visiting ${url} Selector: ${visitSelector}`);
             const visitTimeout = visitObject?.timeout;
 
             const language =
