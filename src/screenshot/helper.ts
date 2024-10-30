@@ -99,6 +99,6 @@ export function resolveFileExtension(): string {
   return fileExtension;
 }
 
-export function resolveBaseUrl(args: Partial<C8yScreenshotOptions>): string {
-  return args.baseUrl ?? process.env.C8Y_BASEURL ?? "http://localhost:8080";
+export function resolveBaseUrl(args: Partial<C8yScreenshotOptions>): string | undefined{
+  return args.baseUrl ?? process.env.C8Y_BASEURL;
 }

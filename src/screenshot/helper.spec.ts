@@ -83,7 +83,7 @@ describe("startup", () => {
       expect(options.browser).toBe("chrome");
       expect(options.quiet).toBe(true);
       expect(options.testingType).toBe("e2e");
-      expect(options.config.e2e.baseUrl).toBe("http://localhost:8080");
+      expect(options.config.e2e.baseUrl).toBe(undefined);
       expect(options.config.e2e.screenshotsFolder).toBe(
         "/home/user/test/c8yscrn"
       );
