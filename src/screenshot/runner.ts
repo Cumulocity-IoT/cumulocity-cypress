@@ -78,6 +78,7 @@ export class C8yScreenshotRunner {
         overwrite: false,
         scale: false,
         disableTimersAndAnimations: true,
+        capture: "viewport" as const,
       }
     );
 
@@ -128,12 +129,12 @@ export class C8yScreenshotRunner {
               this.config.global?.viewportWidth ??
               item.settings?.viewportWidth ??
               Cypress.config("viewportWidth") ??
-              1920;
+              1440;
             const height =
               this.config.global?.viewportHeight ??
               item.settings?.viewportWidth ??
               Cypress.config("viewportHeight") ??
-              1080;
+              900;
             cy.viewport(width, height);
 
             const options = _.defaults(

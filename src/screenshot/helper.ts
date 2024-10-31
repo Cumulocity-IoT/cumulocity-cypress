@@ -21,8 +21,8 @@ title: "My screenshot automation"
 baseUrl: "${baseUrl}"
 
 global:
-  viewportWidth: 1920
-  viewportHeight: 1080
+  viewportWidth: 1440
+  viewportHeight: 900
   language: en
   # For user "admin", set environment variables admin_username and admin_password
   user: admin
