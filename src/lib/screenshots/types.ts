@@ -66,6 +66,11 @@ export type GlobalVisitOptions = {
    * @examples ["c8y-drawer-outlet c8y-app-icon .c8y-icon"]
    */
   visitWaitSelector?: string;
+  /**
+   * The defaulft style to highlight elements. By default, an organge border of 2px width is used to highlight elements.
+   * @examples [{ "outline": "2px", "outline-style": "solid", "outline-offset": "-2px", "outline-color": "#FF9300" }, { "border": "2px solid red" }]
+   */
+  highlightStyle?: any;
 };
 
 export type Screenshot = GlobalVisitOptions &
@@ -149,7 +154,7 @@ type ScreenshotSettings = {
    */
   timeouts?: {
     /**
-     * The time, in milliseconds, to wait until most DOM based commands are 
+     * The time, in milliseconds, to wait until most DOM based commands are
      * considered timed out.
      * @examples [10000]
      * @default 4000
@@ -172,12 +177,12 @@ type ScreenshotSettings = {
      * @TJS-type integer
      */
     screenshot?: number;
-  }
+  };
 };
 
 export type Visit = GlobalVisitOptions & {
   /**
-   * The URL to visit. Currently only an URI relative to the base URL is 
+   * The URL to visit. Currently only an URI relative to the base URL is
    * supported.
    * @format uri-reference
    */
@@ -246,40 +251,44 @@ export type WaitAction = {
    * chainer assertion.
    * @examples [1000, 10000]
    */
-  wait?: number | {
-    /**
-     * The selector of the DOM element to wait for
-     */
-    selector: Selector;
-    /**
-     * The timeout in ms to wait for
-     * @TJS-type integer
-     * @default 4000
-     */
-    timeout?: number;
-    /**
-     * The chainer assertion to wait for. This translates to a Cypress get().should(). 
-     * See https://docs.cypress.io/api/commands/should
-     */
-    assert?: string | {
-      /**
-       * The chainer assertion to. Could be any valid Cypress chainer. The chainer is
-       * not validated and may or may not have a value to assert.
-       * @examples ["have.length", "eq", "be.visible"]
-       */
-      chainer: string;
-      /**
-       * The value to assert. The value is optional and may not be required by the
-       * chainer assertion.
-       */
-      value?: string | string[];
-    };
-  };
+  wait?:
+    | number
+    | {
+        /**
+         * The selector of the DOM element to wait for
+         */
+        selector: Selector;
+        /**
+         * The timeout in ms to wait for
+         * @TJS-type integer
+         * @default 4000
+         */
+        timeout?: number;
+        /**
+         * The chainer assertion to wait for. This translates to a Cypress get().should().
+         * See https://docs.cypress.io/api/commands/should
+         */
+        assert?:
+          | string
+          | {
+              /**
+               * The chainer assertion to. Could be any valid Cypress chainer. The chainer is
+               * not validated and may or may not have a value to assert.
+               * @examples ["have.length", "eq", "be.visible"]
+               */
+              chainer: string;
+              /**
+               * The value to assert. The value is optional and may not be required by the
+               * chainer assertion.
+               */
+              value?: string | string[];
+            };
+      };
 };
 
 export type HighlightActionProperties = {
   /**
-   * The selector of the DOM element
+   * The selector of the DOM element to highlight
    */
   selector: Selector;
   /**
@@ -288,14 +297,17 @@ export type HighlightActionProperties = {
    */
   border?: string;
   /**
-   * The CSS styles to apply to the selected  element. Use any valid CSS styles.
+   * The CSS styles to apply to the DOM element. Use any valid CSS styles.
    * @examples ["background-color: yellow", "outline: dashed", "outline-offset: +3px"]
    */
   styles?: any;
 };
 
 export type HighlightAction = {
-  highlight?: HighlightActionProperties | HighlightActionProperties[];
+  /**
+   * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
+   */
+  highlight?: HighlightActionProperties | HighlightActionProperties[] | string;
 };
 
 export type ScreenshotClipArea = {
@@ -378,9 +390,3 @@ export interface C8yScreenshotOptions {
   init: boolean;
   clear: boolean;
 }
-
-export type C8yScreenshotActionHandler = (
-  action: any,
-  item: Screenshot,
-  options: any
-) => void;
