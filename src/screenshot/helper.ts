@@ -61,45 +61,25 @@ export function resolveConfigOptions(args: Partial<C8yScreenshotOptions>): any {
     );
   }
 
-  // might run in different environments, so we need to find the correct extension
-  // this is required when running in development mode from ts files
-  const fileExtension = resolveFileExtension();
-  const cypressConfigFile = path.resolve(
-    path.dirname(__filename),
-    "cypress",
-    `config.${fileExtension}`
-  );
-
   const screenshotsFolder = resolveScreenshotFolder(args);
   const baseUrl = resolveBaseUrl(args);
-
+  const cypressFolder = path.join(path.dirname(__filename), "cypress");
   return {
-    configFile: cypressConfigFile,
+    configFile: path.resolve(cypressFolder, `config.js`),
     browser,
     testingType: "e2e" as const,
     quiet: args.quiet ?? true,
-    project: path.join(path.dirname(__filename), "cypress"),
+    project: cypressFolder,
     config: {
       e2e: {
         baseUrl,
         screenshotsFolder,
         trashAssetsBeforeRuns: args.clear ?? false,
-        specPattern: path.join(
-          path.dirname(__filename),
-          "cypress",
-          `*.cy.${fileExtension}`
-        ),
+        spec: path.join(cypressFolder, "screenshots.cy.js"),
+        specPattern: path.resolve(cypressFolder, `*.cy.js`),
       },
     },
   };
-}
-
-export function resolveFileExtension(): string {
-  let fileExtension = __filename?.split(".")?.pop();
-  if (!fileExtension || !["js", "ts", "mjs", "cjs"].includes(fileExtension)) {
-    fileExtension = "js";
-  }
-  return fileExtension;
 }
 
 export function resolveBaseUrl(

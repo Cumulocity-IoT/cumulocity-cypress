@@ -88,8 +88,10 @@ describe("startup", () => {
         "/home/user/test/c8yscrn"
       );
       expect(options.config.e2e.trashAssetsBeforeRuns).toBe(false);
-      expect(options.config.e2e.specPattern.endsWith(".ts")).toBe(true);
-      expect(options.configFile.endsWith(".ts")).toBe(true);
+      expect(options.config.e2e.specPattern).not.toBeNull();
+      expect(options.config.e2e.specPattern.endsWith("*.cy.js")).toBe(true);
+      expect(options.config.e2e.spec).not.toBeNull();
+      expect(options.configFile.endsWith(".js")).toBe(true);
     });
 
     it("should return custom options", () => {
@@ -108,8 +110,10 @@ describe("startup", () => {
         "/home/user/test/my/c8yscrn/folder"
       );
       expect(options.config.e2e.trashAssetsBeforeRuns).toBe(true);
-      expect(options.config.e2e.specPattern.endsWith(".ts")).toBe(true);
-      expect(options.configFile.endsWith(".ts")).toBe(true);
+      expect(options.config.e2e.specPattern).not.toBeNull();
+      expect(options.config.e2e.specPattern.endsWith("*.cy.js")).toBe(true);
+      expect(options.config.e2e.spec).not.toBeNull();
+      expect(options.configFile.endsWith("config.js")).toBe(true);
     });
   });
 
