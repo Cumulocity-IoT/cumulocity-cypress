@@ -7,6 +7,7 @@ Contribute by raising pull requests. All commands must be documented and, if pos
 # Content
 <!-- set markdown.extension.toc.levels 2..6 - level 1 is ignored in auto generated toc -->
 - [Overview of commands](#overview-of-commands)
+- [Screenshot automation](#screenshot-automation)
 - [Installation and setup](#installation-and-setup)
   - [Peer dependencies](#peer-dependencies)
   - [Load plugin](#load-plugin)
@@ -74,15 +75,16 @@ Component testing
 
 See [Integration and API testing](./doc/API%20and%20Integration%20Testing.md) for more information.
 
-Screenshot automation
-See [Screenshot automation](./doc/Screenshot%20automation.md) for more information.
+## Screenshot automation
+
+With the `c8yscrn` command, `cumulocity-cypress` provides a tool to automate taking screenshots of your Cumulocity IoT applications as part of your test suite or CI/CD workflows. See [Screenshot automation](./doc/Screenshot%20Automation.md) for more information.
 
 ## Installation and setup
 
 Add dependency to your package.json and install via npm or yarn.
 
 ```bash
-npm install cumulocity-cypress ---dev
+npm install --save-dev cumulocity-cypress
 ```
 or 
 

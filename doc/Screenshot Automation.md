@@ -120,11 +120,12 @@ Options:
   -c, --config   The yaml config file                      [string] [default: "c8yscrn.config.yaml"]
   -f, --folder   The target folder for the screenshots                                      [string]
   -u, --baseUrl  The Cumulocity base url                                                    [string]
+      --clear    Clear the target folder and remove all data              [boolean] [default: false]
   -b, --browser  Browser to use                                         [string] [default: "chrome"]
   -t, --tags     Run only screenshot workflows with the given tags                           [array]
 ```
 
-When using `open` instead of `run`, the Cypress test runner will open in Cypress open mode. This can be useful for debugging and developing new screenshot workflows.
+When using `open` instead of `run`, the Cypress test runner will open in Cypress application. This can be useful for debugging and developing new screenshot workflows.
 
 To get started, run the `init` command to create a new configuration file. This is important to create the config file including the correct location of the schema used for code completion and validation in VSC.
 
@@ -164,10 +165,7 @@ import { configureC8yScreenshotPlugin } from "cumulocity-cypress/plugin";
 
 export default defineConfig({
   e2e: {
-    baseUrl: "http://localhost:4200",
-    supportFile: false,
-    video: false,
-    videosFolder: "videos",
+    baseUrl: "http://localhost:8080",
     screenshotsFolder: "screenshots",
     setupNodeEvents(on, config) {
       configureC8yScreenshotPlugin(on, config);
@@ -186,19 +184,19 @@ The `configureC8yScreenshotPlugin` function sets up the necessary event handlers
 By default, the plugin looks for a configuration file named `c8yscrn.config.yaml` in the root of your project. You can customize the configuration file path by passing the name of the config file as an argument to the `configureC8yScreenshotPlugin` function:
 
 ```typescript
+try {
+  configureC8yScreenshotPlugin(on, config, "my-screenshot-config.yaml");
+} catch (error: any) {
+  throw new Error(`Error reading config file. ${error.message}`);
+}
 configureC8yScreenshotPlugin(on, config, "my-screenshot-config.yaml");
 ```
 
 As an alternative you can also read the yaml configuration in `cypress.config.ts` and pass it to the plugin:
 
 ```typescript
-let myYamlConfig: ScreenshotSetup;
-try {
-  configureC8yScreenshotPlugin(on, config, "my-screenshot-config.yaml");
-} catch (error: any) {
-  throw new Error(`Error reading config file. ${error.message}`);
-}
-
+import { readYamlFile } from "cumulocity-cypress/plugin";
+const myYamlConfig: ScreenshotSetup = readYamlFile("my-screenshot-config.yaml");
 configureC8yScreenshotPlugin(on, config, myYamlConfig);
 ```
 
@@ -207,7 +205,7 @@ configureC8yScreenshotPlugin(on, config, myYamlConfig);
 Create a new file, e.g. `screenshot.cy.ts`, in your Cypress project folder to host `C8yScreenshotRunner`:
 
 ```typescript
-import { C8yScreenshotRunner } from 'cumulocity-cypress';
+import { C8yScreenshotRunner } from "cumulocity-cypress/screenshot";
 
 describe('My Custom Screenshot Automation', () => {
   const runner = new C8yScreenshotRunner();
@@ -408,6 +406,8 @@ global:
     pageLoad: number
     screenshot: number
   date: string
+  visitWaitSelector: string
+  highlightStyle: object
 ```
 
 **viewportWidth**
@@ -451,7 +451,7 @@ global:
 **capture**
 - **Type**: string
 - **Allowed Values**: `"viewport"` or `"fullPage"`
-- **Default**: `"fullPage"`
+- **Default**: `"viewport"`
 - **Description**: Determines how the screenshot is captured. `"viewport"` captures only the visible area, while `"fullPage"` captures the entire scrollable page.
 - **Note**: This setting is ignored for screenshots of DOM elements.
 
@@ -498,6 +498,16 @@ global:
 - **Type**: string
 - **Format**: date-time (e.g., "2024-09-26T19:17:35+02:00")
 - **Description**: The date to simulate when running the screenshot workflows. This can be useful for capturing screenshots of date-dependent UI elements.
+
+**visitWaitSelector**
+- **Type**: string
+- **Default**: "c8y-drawer-outlet c8y-app-icon .c8y-icon"
+- **Description**: The default selector to wait for when visiting an URL. Use to overwrite internal default selector.
+
+**highlightStyle**
+- **Type**: object
+- **Default**: `{ "outline": "2px", "outline-style": "solid", "outline-offset": "-2px", "outline-color": "#FF9300" }`
+- **Description**: Custom styles for the highlight action. This can be used to change the appearance of highlighted elements and override the default styles.
 
 Some of this options correspond directly to Cypress's screenshot command options. For more detailed information, refer to the [Cypress screenshot documentation](https://docs.cypress.io/api/commands/screenshot).
 
