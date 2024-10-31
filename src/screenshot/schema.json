@@ -131,10 +131,10 @@
                                         },
                                         "selector": {
                                             "$ref": "#/definitions/Selector",
-                                            "description": "The selector of the DOM element"
+                                            "description": "The selector of the DOM element to highlight"
                                         },
                                         "styles": {
-                                            "description": "The CSS styles to apply to the selected  element. Use any valid CSS styles.",
+                                            "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                                             "examples": [
                                                 "background-color: yellow",
                                                 "outline: dashed",
@@ -160,10 +160,10 @@
                                             },
                                             "selector": {
                                                 "$ref": "#/definitions/Selector",
-                                                "description": "The selector of the DOM element"
+                                                "description": "The selector of the DOM element to highlight"
                                             },
                                             "styles": {
-                                                "description": "The CSS styles to apply to the selected  element. Use any valid CSS styles.",
+                                                "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                                                 "examples": [
                                                     "background-color: yellow",
                                                     "outline: dashed",
@@ -177,8 +177,12 @@
                                         "type": "object"
                                     },
                                     "type": "array"
+                                },
+                                {
+                                    "type": "string"
                                 }
-                            ]
+                            ],
+                            "description": "Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element."
                         }
                     },
                     "type": "object"
@@ -253,7 +257,7 @@
                                                     "type": "string"
                                                 }
                                             ],
-                                            "description": "The chainer assertion to wait for. This translates to a Cypress get().should(). \nSee https://docs.cypress.io/api/commands/should"
+                                            "description": "The chainer assertion to wait for. This translates to a Cypress get().should().\nSee https://docs.cypress.io/api/commands/should"
                                         },
                                         "selector": {
                                             "$ref": "#/definitions/Selector",
@@ -417,10 +421,10 @@
                                                 },
                                                 "selector": {
                                                     "$ref": "#/definitions/Selector",
-                                                    "description": "The selector of the DOM element"
+                                                    "description": "The selector of the DOM element to highlight"
                                                 },
                                                 "styles": {
-                                                    "description": "The CSS styles to apply to the selected  element. Use any valid CSS styles.",
+                                                    "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                                                     "examples": [
                                                         "background-color: yellow",
                                                         "outline: dashed",
@@ -446,10 +450,10 @@
                                                     },
                                                     "selector": {
                                                         "$ref": "#/definitions/Selector",
-                                                        "description": "The selector of the DOM element"
+                                                        "description": "The selector of the DOM element to highlight"
                                                     },
                                                     "styles": {
-                                                        "description": "The CSS styles to apply to the selected  element. Use any valid CSS styles.",
+                                                        "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                                                         "examples": [
                                                             "background-color: yellow",
                                                             "outline: dashed",
@@ -463,8 +467,12 @@
                                                 "type": "object"
                                             },
                                             "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
                                         }
-                                    ]
+                                    ],
+                                    "description": "Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element."
                                 }
                             },
                             "type": "object"
@@ -539,7 +547,7 @@
                                                             "type": "string"
                                                         }
                                                     ],
-                                                    "description": "The chainer assertion to wait for. This translates to a Cypress get().should(). \nSee https://docs.cypress.io/api/commands/should"
+                                                    "description": "The chainer assertion to wait for. This translates to a Cypress get().should().\nSee https://docs.cypress.io/api/commands/should"
                                                 },
                                                 "selector": {
                                                     "$ref": "#/definitions/Selector",
@@ -585,6 +593,20 @@
                     ],
                     "format": "date-time",
                     "type": "string"
+                },
+                "highlightStyle": {
+                    "description": "The defaulft style to highlight elements. By default, an organge border of 2px width is used to highlight elements.",
+                    "examples": [
+                        {
+                            "outline": "2px",
+                            "outline-color": "#FF9300",
+                            "outline-offset": "-2px",
+                            "outline-style": "solid"
+                        },
+                        {
+                            "border": "2px solid red"
+                        }
+                    ]
                 },
                 "image": {
                     "description": "The name of the screenshot image as relative path",
@@ -644,7 +666,7 @@
                             "properties": {
                                 "default": {
                                     "default": 4000,
-                                    "description": "The time, in milliseconds, to wait until most DOM based commands are \nconsidered timed out.",
+                                    "description": "The time, in milliseconds, to wait until most DOM based commands are\nconsidered timed out.",
                                     "examples": [
                                         10000
                                     ],
@@ -765,6 +787,20 @@
                     "format": "date-time",
                     "type": "string"
                 },
+                "highlightStyle": {
+                    "description": "The defaulft style to highlight elements. By default, an organge border of 2px width is used to highlight elements.",
+                    "examples": [
+                        {
+                            "outline": "2px",
+                            "outline-color": "#FF9300",
+                            "outline-offset": "-2px",
+                            "outline-style": "solid"
+                        },
+                        {
+                            "border": "2px solid red"
+                        }
+                    ]
+                },
                 "language": {
                     "description": "Load Cumulocity with the given language",
                     "type": "string"
@@ -784,7 +820,7 @@
                     "type": "integer"
                 },
                 "url": {
-                    "description": "The URL to visit. Currently only an URI relative to the base URL is \nsupported.",
+                    "description": "The URL to visit. Currently only an URI relative to the base URL is\nsupported.",
                     "format": "uri-reference",
                     "type": "string"
                 },
@@ -840,6 +876,20 @@
                     "description": "When true, prevents JavaScript timers (setTimeout, setInterval, etc)\nand CSS animations from running while the screenshot is taken.",
                     "type": "boolean"
                 },
+                "highlightStyle": {
+                    "description": "The defaulft style to highlight elements. By default, an organge border of 2px width is used to highlight elements.",
+                    "examples": [
+                        {
+                            "outline": "2px",
+                            "outline-color": "#FF9300",
+                            "outline-offset": "-2px",
+                            "outline-style": "solid"
+                        },
+                        {
+                            "border": "2px solid red"
+                        }
+                    ]
+                },
                 "language": {
                     "description": "Load Cumulocity with the given language",
                     "type": "string"
@@ -885,7 +935,7 @@
                     "properties": {
                         "default": {
                             "default": 4000,
-                            "description": "The time, in milliseconds, to wait until most DOM based commands are \nconsidered timed out.",
+                            "description": "The time, in milliseconds, to wait until most DOM based commands are\nconsidered timed out.",
                             "examples": [
                                 10000
                             ],
