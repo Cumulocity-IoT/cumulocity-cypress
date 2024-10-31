@@ -66,6 +66,7 @@ export function resolveConfigOptions(args: Partial<C8yScreenshotOptions>): any {
   const fileExtension = resolveFileExtension();
   const cypressConfigFile = path.resolve(
     path.dirname(__filename),
+    "cypress",
     `config.${fileExtension}`
   );
 
@@ -77,6 +78,7 @@ export function resolveConfigOptions(args: Partial<C8yScreenshotOptions>): any {
     browser,
     testingType: "e2e" as const,
     quiet: args.quiet ?? true,
+    project: path.join(path.dirname(__filename), "cypress"),
     config: {
       e2e: {
         baseUrl,
@@ -84,6 +86,7 @@ export function resolveConfigOptions(args: Partial<C8yScreenshotOptions>): any {
         trashAssetsBeforeRuns: args.clear ?? false,
         specPattern: path.join(
           path.dirname(__filename),
+          "cypress",
           `*.cy.${fileExtension}`
         ),
       },
@@ -99,6 +102,8 @@ export function resolveFileExtension(): string {
   return fileExtension;
 }
 
-export function resolveBaseUrl(args: Partial<C8yScreenshotOptions>): string | undefined{
+export function resolveBaseUrl(
+  args: Partial<C8yScreenshotOptions>
+): string | undefined {
   return args.baseUrl ?? process.env.C8Y_BASEURL;
 }
