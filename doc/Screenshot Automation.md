@@ -22,8 +22,6 @@ The yaml based screenshot workflows typically begin with a visit of a specific U
 Example of a screenshot workflow:
 ```yaml
 global:
-  viewportWidth: 1920
-  viewportHeight: 1080
   language: en
   user: admin
 
@@ -323,8 +321,8 @@ The configuration file (`c8yscrn.config.yaml`) is the heart of your screenshot a
 
 ```yaml
 global:
-  viewportWidth: 1920
-  viewportHeight: 1080
+  viewportWidth: 1440
+  viewportHeight: 900
   language: en
   user: admin
   shell: "example"
@@ -412,13 +410,13 @@ global:
 
 **viewportWidth**
 - **Type**: number
-- **Default**: 1920
+- **Default**: 1440
 - **Description**: The width of the browser viewport in pixels and with this the width of the screenshot image. This corresponds to Cypress's `viewportWidth` configuration. 
 - **Example**: `1280`
 
 **viewportHeight**
 - **Type**: number
-- **Default**: 1080
+- **Default**: 900
 - **Description**: The height of the browser viewport in pixels and with this the height of the screenshot image. This corresponds to Cypress's `viewportHeight` configuration.
 - **Example**: `720`
 
@@ -687,8 +685,6 @@ screenshots:
 
 ```yaml
 global:
-  viewportWidth: 1920
-  viewportHeight: 1080
   language: en
   user: admin
   shell: "oee"
