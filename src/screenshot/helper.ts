@@ -2,7 +2,7 @@ import * as yaml from "yaml";
 import * as fs from "fs";
 import * as path from "path";
 
-import { C8yScreenshotOptions } from "cumulocity-cypress/lib/screenshots/types";
+import { C8yScreenshotOptions } from "../lib/screenshots/types";
 
 export function readYamlFile(filePath: string): any {
   const fileContent = fs.readFileSync(filePath, "utf-8");
@@ -21,8 +21,8 @@ title: "My screenshot automation"
 baseUrl: "${baseUrl}"
 
 global:
-  viewportWidth: 1920
-  viewportHeight: 1080
+  viewportWidth: 1440
+  viewportHeight: 900
   language: en
   # For user "admin", set environment variables admin_username and admin_password
   user: admin
@@ -61,44 +61,29 @@ export function resolveConfigOptions(args: Partial<C8yScreenshotOptions>): any {
     );
   }
 
-  // might run in different environments, so we need to find the correct extension
-  // this is required when running in development mode from ts files
-  const fileExtension = resolveFileExtension();
-  const cypressConfigFile = path.resolve(
-    path.dirname(__filename),
-    `config.${fileExtension}`
-  );
-
   const screenshotsFolder = resolveScreenshotFolder(args);
   const baseUrl = resolveBaseUrl(args);
-
+  const cypressFolder = path.join(path.dirname(__filename), "cypress");
   return {
-    configFile: cypressConfigFile,
+    configFile: path.resolve(cypressFolder, `config.js`),
     browser,
     testingType: "e2e" as const,
     quiet: args.quiet ?? true,
+    project: cypressFolder,
     config: {
       e2e: {
         baseUrl,
         screenshotsFolder,
         trashAssetsBeforeRuns: args.clear ?? false,
-        specPattern: path.join(
-          path.dirname(__filename),
-          `*.cy.${fileExtension}`
-        ),
+        spec: path.join(cypressFolder, "screenshots.cy.js"),
+        specPattern: path.resolve(cypressFolder, `*.cy.js`),
       },
     },
   };
 }
 
-export function resolveFileExtension(): string {
-  let fileExtension = __filename?.split(".")?.pop();
-  if (!fileExtension || !["js", "ts", "mjs", "cjs"].includes(fileExtension)) {
-    fileExtension = "js";
-  }
-  return fileExtension;
-}
-
-export function resolveBaseUrl(args: Partial<C8yScreenshotOptions>): string | undefined{
+export function resolveBaseUrl(
+  args: Partial<C8yScreenshotOptions>
+): string | undefined {
   return args.baseUrl ?? process.env.C8Y_BASEURL;
 }

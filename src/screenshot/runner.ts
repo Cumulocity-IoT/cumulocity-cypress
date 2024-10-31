@@ -5,7 +5,6 @@ import { pactId } from "../shared/c8ypact";
 
 import {
   Action,
-  C8yScreenshotActionHandler,
   ClickAction,
   HighlightAction,
   Screenshot,
@@ -22,6 +21,13 @@ import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
 
 const { _ } = Cypress;
+
+export type C8yScreenshotActionHandler = (
+  action: any,
+  that: C8yScreenshotRunner,
+  item: Screenshot,
+  options: any
+) => void;
 
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
@@ -72,6 +78,7 @@ export class C8yScreenshotRunner {
         overwrite: false,
         scale: false,
         disableTimersAndAnimations: true,
+        capture: "viewport" as const,
       }
     );
 
@@ -122,12 +129,12 @@ export class C8yScreenshotRunner {
               this.config.global?.viewportWidth ??
               item.settings?.viewportWidth ??
               Cypress.config("viewportWidth") ??
-              1920;
+              1440;
             const height =
               this.config.global?.viewportHeight ??
               item.settings?.viewportWidth ??
               Cypress.config("viewportHeight") ??
-              1080;
+              900;
             cy.viewport(width, height);
 
             const options = _.defaults(
@@ -189,7 +196,7 @@ export class C8yScreenshotRunner {
                     };
                   }
                 }
-                handler(action, item, options);
+                handler(action, this, item, options);
               }
             });
 
@@ -222,22 +229,38 @@ export class C8yScreenshotRunner {
     cy.get(selector).type(action.type.value);
   }
 
-  protected highlight(action: HighlightAction) {
+  protected highlight(action: HighlightAction, that: C8yScreenshotRunner) {
     const highlights = _.isArray(action.highlight)
       ? action.highlight
       : [action.highlight];
 
     highlights?.forEach((highlight) => {
-      const selector = getSelector(highlight?.selector);
-      if (selector != null) {
-        cy.get(selector).then(($element) => {
+      const selector = getSelector(
+        _.isString(highlight) ? highlight : highlight?.selector
+      );
+      if (selector == null) return;
+      
+      cy.get(selector).then(($element) => {
+        if (!_.isString(highlight)) {
           if (highlight?.styles != null) {
             $element.css(highlight.styles);
+            return;
           } else if (highlight?.border != null) {
-            $element.css("border", highlight.border || "2px solid red");
+            $element.css("border", highlight.border);
+            return;
           }
-        });
-      }
+        }
+        if (that?.config.global?.highlightStyle != null) {
+          $element.css(that.config.global?.highlightStyle);
+        } else {
+          $element.css({
+            "outline": "2px",
+            "outline-style": "solid",
+            "outline-offset": "-2px",
+            "outline-color": "#FF9300",
+          });
+        }
+      });
     });
   }
 
@@ -283,10 +306,11 @@ export class C8yScreenshotRunner {
 
   protected screenshot(
     action: ScreenshotAction,
+    _that: C8yScreenshotRunner,
     item: Screenshot,
     options: any
   ) {
-    let name = action.screenshot?.path || item.image
+    let name = action.screenshot?.path || item.image;
     const selector = getSelector(action.screenshot?.selector);
     cy.task("debug", `Taking screenshot ${name} Selector: ${selector}`);
     cy.task("debug", `Options: ${JSON.stringify(options)}`);

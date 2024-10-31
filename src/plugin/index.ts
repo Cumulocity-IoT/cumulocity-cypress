@@ -15,6 +15,7 @@ import { ScreenshotSetup } from "../lib/screenshots/types";
 import { readYamlFile } from "../screenshot/helper";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
+export { readYamlFile } from "../screenshot/helper";
 
 /**
  * Configuration options for the Cumulocity Cypress plugin.
@@ -213,9 +214,6 @@ export function configureC8yScreenshotPlugin(
     config.baseUrl ?? configData?.baseUrl ?? "http://localhost:8080";
   log(`Using baseUrl ${config.baseUrl}`);
 
-  const screenshotsFolder = config.env._c8yscrnBrowserLaunchArgs ?? "c8yscrn";
-  log(`Using screenshotsFolder to ${screenshotsFolder}`);
-
   // https://www.cypress.io/blog/generate-high-resolution-videos-and-screenshots
   // https://github.com/cypress-io/cypress/issues/27260
   on("before:browser:launch", (browser, launchOptions) => {
@@ -225,8 +223,8 @@ export function configureC8yScreenshotPlugin(
       } mode`
     );
 
-    const viewportWidth = configData?.global?.viewportWidth ?? 1920;
-    const viewportHeight = configData?.global?.viewportHeight ?? 1080;
+    const viewportWidth = configData?.global?.viewportWidth ?? 1440;
+    const viewportHeight = configData?.global?.viewportHeight ?? 900;
     log(`Setting viewport to ${viewportWidth}x${viewportHeight}`);
     if (browser.name === "chrome") {
       launchOptions.args.push(

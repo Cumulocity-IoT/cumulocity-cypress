@@ -7,7 +7,7 @@
       "request": "launch",
       "name": "Screenshot",
       "program": "${workspaceFolder}/src/screenshot/startup.ts",
-      "args": ["--config", "/Users/twi/Projects/cumulocity-screenshots/c8yscreenshot.config.yml"],
+      "args": ["--config", "${workspaceFolder}/c8yscrn.config.yaml"],
       "internalConsoleOptions": "neverOpen",
       "console": "integratedTerminal",
       "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",

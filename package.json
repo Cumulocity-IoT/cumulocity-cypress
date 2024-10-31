@@ -12,7 +12,7 @@
     "jest": "npm run jest:run",
     "jest:run": "jest --config jest.config.js",
     "clean": "rimraf dist/ && rimraf packages/pactrunner/dist/ && rimraf packages/pactrunner/.yalc && rimraf packages/pactrunner/yalc.lock",
-    "copy-files": "copyfiles --up 1 -V './src/lib/**/*.js' './src/lib/**/*.d.ts' dist/ && copyfiles '*.md' package.json dist/",
+    "copy-files": "copyfiles --up 1 -V './src/**/*.js' './src/**/*.d.ts' dist/ && copyfiles '*.md' package.json dist/",
     "build": "npm run clean && npm run screenshot:schema && npm run copy-files && tsc -b -v src/ && npm run build:plugin",
     "build:plugin": "rollup -c rollup.config.mjs",
     "package": "npm run build && npm run clean:package:folder && cd dist/ && npm run clean:package:json",
