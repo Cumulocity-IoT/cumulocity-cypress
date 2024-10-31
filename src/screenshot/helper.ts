@@ -2,7 +2,7 @@ import * as yaml from "yaml";
 import * as fs from "fs";
 import * as path from "path";
 
-import { C8yScreenshotOptions } from "cumulocity-cypress/lib/screenshots/types";
+import { C8yScreenshotOptions } from "../lib/screenshots/types";
 
 export function readYamlFile(filePath: string): any {
   const fileContent = fs.readFileSync(filePath, "utf-8");

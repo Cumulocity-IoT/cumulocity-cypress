@@ -15,6 +15,7 @@ import { ScreenshotSetup } from "../lib/screenshots/types";
 import { readYamlFile } from "../screenshot/helper";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
+export { readYamlFile } from "../screenshot/helper";
 
 /**
  * Configuration options for the Cumulocity Cypress plugin.
