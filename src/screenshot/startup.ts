@@ -15,7 +15,6 @@ import {
   readYamlFile,
   resolveBaseUrl,
   resolveConfigOptions,
-  resolveFileExtension,
 } from "./helper";
 import {
   C8yScreenshotOptions,
@@ -86,11 +85,7 @@ const log = debug("c8y:scrn:startup");
       resolvedCypressConfig.config.e2e.screenshotsFolder;
     log(`Using screenshots folder ${screenshotsFolder}`);
 
-    const fileExtension = resolveFileExtension();
-    const cypressConfigFile = path.resolve(
-      path.dirname(__filename),
-      `config.${fileExtension}`
-    );
+    const cypressConfigFile = resolvedCypressConfig.configFile;
     log(`Using cypress config file ${cypressConfigFile}`);
 
     const browser = resolvedCypressConfig.browser;
