@@ -111,21 +111,22 @@ type ScreenshotSettings = {
   /**
    * The width in px to use for the browser window
    * @minimum 0
-   * @default 1920
+   * @default 1440
    * @TJS-type integer
    */
   viewportWidth?: number;
   /**
    * The height in px to use for the browser window
    * @minimum 0
-   * @default 1080
+   * @default 900
    * @TJS-type integer
    */
   viewportHeight?: number;
   /**
-   * The type of capturing the screenshot. When fullPage is used,
-   * the application is captured in its entirety from top to bottom.
-   * Setting is ignored when screenshots are taken for a selected element.
+   * The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'. 
+   * Note that 'fullPage' screenshots will have a different height than specified in 'viewportHeight'.
+   * @examples [["viewport", "fullPage"]]
+   * @default "viewport"
    */
   capture?: "viewport" | "fullPage";
   /**

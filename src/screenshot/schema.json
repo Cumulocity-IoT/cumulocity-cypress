@@ -636,10 +636,17 @@
                     "description": "The configuration and settings of the screenshot",
                     "properties": {
                         "capture": {
-                            "description": "The type of capturing the screenshot. When fullPage is used,\nthe application is captured in its entirety from top to bottom.\nSetting is ignored when screenshots are taken for a selected element.",
+                            "default": "viewport",
+                            "description": "The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'. \nNote that 'fullPage' screenshots will have a different height than specified in 'viewportHeight'.",
                             "enum": [
                                 "fullPage",
                                 "viewport"
+                            ],
+                            "examples": [
+                                [
+                                    "viewport",
+                                    "fullPage"
+                                ]
                             ],
                             "type": "string"
                         },
@@ -692,13 +699,13 @@
                             "type": "object"
                         },
                         "viewportHeight": {
-                            "default": 1080,
+                            "default": 900,
                             "description": "The height in px to use for the browser window",
                             "minimum": 0,
                             "type": "integer"
                         },
                         "viewportWidth": {
-                            "default": 1920,
+                            "default": 1440,
                             "description": "The width in px to use for the browser window",
                             "minimum": 0,
                             "type": "integer"
@@ -857,10 +864,17 @@
             "description": "The global settings for all screenshots",
             "properties": {
                 "capture": {
-                    "description": "The type of capturing the screenshot. When fullPage is used,\nthe application is captured in its entirety from top to bottom.\nSetting is ignored when screenshots are taken for a selected element.",
+                    "default": "viewport",
+                    "description": "The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'. \nNote that 'fullPage' screenshots will have a different height than specified in 'viewportHeight'.",
                     "enum": [
                         "fullPage",
                         "viewport"
+                    ],
+                    "examples": [
+                        [
+                            "viewport",
+                            "fullPage"
+                        ]
                     ],
                     "type": "string"
                 },
@@ -968,13 +982,13 @@
                     "type": "string"
                 },
                 "viewportHeight": {
-                    "default": 1080,
+                    "default": 900,
                     "description": "The height in px to use for the browser window",
                     "minimum": 0,
                     "type": "integer"
                 },
                 "viewportWidth": {
-                    "default": 1920,
+                    "default": 1440,
                     "description": "The width in px to use for the browser window",
                     "minimum": 0,
                     "type": "integer"
