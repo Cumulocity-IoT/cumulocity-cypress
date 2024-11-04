@@ -11,6 +11,16 @@
                             "additionalProperties": false,
                             "description": "A click action triggers a click event on the selected DOM element.",
                             "properties": {
+                                "force": {
+                                    "default": false,
+                                    "description": "If true, the click event is triggered even if the element is not visible. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "multiple": {
+                                    "default": false,
+                                    "description": "If true, the click event is triggered on all matching elements. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "selector": {
                                     "$ref": "#/definitions/Selector",
                                     "description": "The selector to click"
@@ -301,6 +311,16 @@
                                     "additionalProperties": false,
                                     "description": "A click action triggers a click event on the selected DOM element.",
                                     "properties": {
+                                        "force": {
+                                            "default": false,
+                                            "description": "If true, the click event is triggered even if the element is not visible. The default is false.",
+                                            "type": "boolean"
+                                        },
+                                        "multiple": {
+                                            "default": false,
+                                            "description": "If true, the click event is triggered on all matching elements. The default is false.",
+                                            "type": "boolean"
+                                        },
                                         "selector": {
                                             "$ref": "#/definitions/Selector",
                                             "description": "The selector to click"
