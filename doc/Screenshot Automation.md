@@ -588,8 +588,10 @@ Actions allow you to interact with the page before taking a screenshot. Availabl
 ```yaml
 - click:
     selector: string or object
+    multiple: boolean
+    force: boolean
 ```
-Clicks on the specified element.
+Clicks on the specified element. Use the `multiple` option to click on all matching elements, and the `force` option to bypass the element's visibility check.
 
 **type**
 ```yaml

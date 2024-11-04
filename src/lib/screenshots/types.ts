@@ -210,6 +210,16 @@ export type ClickAction = {
      * The selector to click
      */
     selector: Selector;
+    /**
+     * If true, the click event is triggered on all matching elements. The default is false.
+     * @default false
+     */
+    multiple?: boolean;
+    /**
+     * If true, the click event is triggered even if the element is not visible. The default is false.
+     * @default false
+     */
+    force?: boolean;
   };
 };
 

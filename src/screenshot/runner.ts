@@ -29,6 +29,8 @@ export type C8yScreenshotActionHandler = (
   options: any
 ) => void;
 
+const taskLog = { log: false };
+
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
 
@@ -159,7 +161,7 @@ export class C8yScreenshotRunner {
               visitObject?.selector ??
               this.config.global?.visitWaitSelector ??
               "c8y-drawer-outlet c8y-app-icon .c8y-icon";
-            cy.task("debug", `Visiting ${url} Selector: ${visitSelector}`);
+            cy.task("debug", `Visiting ${url} Selector: ${visitSelector}`, taskLog);
             const visitTimeout = visitObject?.timeout;
 
             const language =
@@ -207,8 +209,8 @@ export class C8yScreenshotRunner {
               !isScreenshotAction(lastAction)
             ) {
               const name = imageName(item.image);
-              cy.task("debug", `Taking screenshot ${name}`);
-              cy.task("debug", `Options: ${JSON.stringify(options)}`);
+              cy.task("debug", `Taking screenshot ${name}`, taskLog);
+              cy.task("debug", `Options: ${JSON.stringify(options)}`, taskLog);
               cy.screenshot(name, options);
             }
           },
@@ -220,7 +222,10 @@ export class C8yScreenshotRunner {
   protected click(action: ClickAction) {
     const selector = getSelector(action.click?.selector);
     if (selector == null) return;
-    cy.get(selector).click();
+
+    const multiple = action.click?.multiple ?? false;
+    const force = action.click?.force ?? false;
+    cy.get(selector).click(_.omitBy({ multiple, force }, (v) => v === false));
   }
 
   protected type(action: TypeAction) {
@@ -239,7 +244,7 @@ export class C8yScreenshotRunner {
         _.isString(highlight) ? highlight : highlight?.selector
       );
       if (selector == null) return;
-      
+
       cy.get(selector).then(($element) => {
         if (!_.isString(highlight)) {
           if (highlight?.styles != null) {
@@ -254,7 +259,7 @@ export class C8yScreenshotRunner {
           $element.css(that.config.global?.highlightStyle);
         } else {
           $element.css({
-            "outline": "2px",
+            outline: "2px",
             "outline-style": "solid",
             "outline-offset": "-2px",
             "outline-color": "#FF9300",
@@ -312,8 +317,8 @@ export class C8yScreenshotRunner {
   ) {
     let name = action.screenshot?.path || item.image;
     const selector = getSelector(action.screenshot?.selector);
-    cy.task("debug", `Taking screenshot ${name} Selector: ${selector}`);
-    cy.task("debug", `Options: ${JSON.stringify(options)}`);
+    cy.task("debug", `Taking screenshot ${name} Selector: ${selector}`, taskLog);
+    cy.task("debug", `Options: ${JSON.stringify(options)}`, taskLog);
     name = imageName(name);
     if (selector != null) {
       cy.get(selector).screenshot(name, options);
