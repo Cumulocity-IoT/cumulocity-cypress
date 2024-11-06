@@ -4,6 +4,7 @@ import {
   appendCountIfPathExists,
   C8yPactDefaultFileAdapter,
   configureC8yPlugin,
+  getFileUploadOptions,
 } from "./index";
 import path from "path";
 import { vol } from "memfs";
@@ -110,6 +111,62 @@ describe("plugin", () => {
       expect(result).toBe(
         "/home/user/test/cypress/screenshots/my-screenshot-04 (4).png"
       );
+    });
+  });
+
+  describe("getFileUploadOptions", () => {
+    beforeEach(() => {
+      vol.fromNestedJSON({
+        "/home/user/test/": {
+          "c8yscrn.config.yaml": Buffer.from([8, 6, 7, 5, 3, 0, 9]),
+          "file.json": Buffer.from(JSON.stringify({ test: "value" })),
+          "file.myjson": Buffer.from(JSON.stringify({ test: "myjson" })),
+        },
+      });
+    });
+
+    afterEach(() => {
+      vol.reset();
+    });
+
+    it("should return null for unsupported file extension", () => {
+      const result = getFileUploadOptions(
+        { path: "/home/user/test/cypress/fixtures/c8ypact/my-file.html" },
+        "/home/user/test/c8yscrn.config.yaml",
+        "/home/user/test"
+      );
+      expect(result).toBe(null);
+    });
+
+    it("should return null if path does not exist", () => {
+      const result = getFileUploadOptions(
+        { path: "/home/user/test/cypress/fixtures/c8ypact/my-file.json" },
+        "/home/user/test/c8yscrn.config.yaml",
+        "/home/user/test"
+      );
+      expect(result).toBe(null);
+    });
+
+    it("should return object for json file", () => {
+      const result = getFileUploadOptions(
+        { path: "/home/user/test/file.json" },
+        "/home/user/test/c8yscrn.config.yaml",
+        "/home/user/test"
+      );
+      expect(result?.data).toEqual({ test: "value" });
+      expect(result?.filename).toBe("file.json");
+      expect(result?.path).toBe("/home/user/test/file.json");
+    });
+
+    it("should allow overwriting name of file with filename", () => {
+      const result = getFileUploadOptions(
+        { path: "/home/user/test/file.myjson", fileName: "my-file.json" },
+        "/home/user/test/c8yscrn.config.yaml",
+        "/home/user/test"
+      );
+      expect(result?.data).toEqual({ test: "myjson" });
+      expect(result?.filename).toBe("my-file.json");
+      expect(result?.path).toBe("/home/user/test/file.myjson");
     });
   });
 });
