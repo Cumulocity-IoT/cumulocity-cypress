@@ -381,31 +381,37 @@ export function getFileUploadOptions(
   const extension = [file.fileName, file.path]
     .filter((p) => p != null)
     .map((p) => path.extname(p).toLowerCase() ?? null)[0];
-  log(`Parsed extension ${extension}`);
+  log(`Found extension ${extension}`);
   if (extension == null) {
     log(`Required extension to upload file. Skipping ${p}`);
     return null;
   }
+  let encoding = file.encoding;
 
-  let data: any;
+  let data: any = undefined;
   if (extension === ".json") {
-    log(`Parsed json file ${p}`);
-    data = JSON.parse(fs.readFileSync(p, file.encoding ?? "utf8"));
+    encoding = encoding ?? "utf8";
+    data = JSON.parse(fs.readFileSync(p, encoding));
   } else if (textFileExtensions.includes(extension)) {
-    data = fs.readFileSync(p, file.encoding ?? "utf8");
+    encoding = encoding ?? "utf8";
   } else if (binaryFileExtensions.includes(extension)) {
-    data = fs.readFileSync(p, file.encoding ?? "binary");
+    encoding = encoding ?? "binary";
   } else {
     log(`Unsupported file type ${extension}`);
     return null;
   }
+  if (data == null) {
+    data = fs.readFileSync(p, encoding);
+    log(`Read ${encoding} file ${p}`);
+  }
 
   const stats = fs.statSync(p);
   const fileSizeInBytes = stats.size;
-  log(`File size: ${fileSizeInBytes} bytes`);
+  log(`Read ${encoding} file ${p} with ${fileSizeInBytes} bytes`);
 
   const result: C8yScreenshotFileUploadOptions = {
     data,
+    encoding,
     path: p,
     filename: file.fileName ?? path.basename(p),
   };

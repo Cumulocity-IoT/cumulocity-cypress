@@ -17,6 +17,7 @@ import {
   TextAction,
   TypeAction,
   UploadFileAction,
+  UploadFileOptions,
   Visit,
   WaitAction,
 } from "../lib/screenshots/types";
@@ -319,8 +320,16 @@ export class C8yScreenshotRunner {
   }
 
   protected fileUpload(action: UploadFileAction) {
-    const selector = getSelector(action.fileUpload?.selector);
-    const filePath = action.fileUpload?.file;
+    const defaultSelector = '[type$="file"]';
+    let fileUpload: UploadFileOptions | undefined = undefined;
+    if (_.isString(action.fileUpload)) {
+      fileUpload = { selector: defaultSelector, file: action.fileUpload };
+    } else if (action.fileUpload != null) {
+      fileUpload = action.fileUpload;
+    }
+
+    const selector = getSelector(fileUpload?.selector);
+    const filePath = fileUpload?.file;
     if (selector == null || filePath == null) {
       cy.task("debug", `File upload selector or file path is missing`, taskLog);
       return;
@@ -328,23 +337,25 @@ export class C8yScreenshotRunner {
 
     cy.task<C8yScreenshotFileUploadOptions>("c8yscrn:file", {
       path: filePath,
-      ..._.pick(action.fileUpload, ["encoding", "fileName"]),
+      ..._.pick(fileUpload, ["encoding", "fileName"]),
     })
-      // .then(Cypress.Blob.binaryStringToBlob)
-      .then((data) => {
-        if (data == null) {
+      .then((file) => {
+        if (file == null) {
           cy.task("debug", `File ${filePath} not found`, taskLog);
           return;
         }
 
         cy.task("debug", `Uploading file ${filePath} to ${selector}`, taskLog);
 
-        const attachData = data.data;
+        const attachData =
+          file.encoding === "binary"
+            ? Cypress.Blob.binaryStringToBlob(file.data)
+            : file.data;
         const fixtureData = _.omitBy(
           {
             fileContent: attachData,
-            fileName: action.fileUpload?.fileName ?? data.filename,
-            ..._.pick(action.fileUpload, ["encoding", "lastModified"]),
+            fileName: fileUpload?.fileName ?? file.filename,
+            ..._.pick(fileUpload, ["encoding", "lastModified"]),
           },
           _.isNil
         );

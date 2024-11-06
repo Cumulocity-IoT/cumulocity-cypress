@@ -297,49 +297,41 @@ export type WaitAction = {
       };
 };
 
+export type UploadFileOptions = {
+  /**
+   * The selector of the DOM element to upload the file
+   * @examples [["input[type=file]", "[type$=\"file\"]"]]
+   */
+  selector?: Selector;
+  /**
+   * The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.
+   */
+  file: string;
+  /**
+   * The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.
+   * @examples ["file.txt"]
+   */
+  fileName?: string;
+  /**
+   * The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.
+   * @examples [["binary", "utf8"]]
+   */
+  encoding?: "binary" | "utf8" | "utf-8";
+
+  /**
+   * The type of the file input element. The default is 'input'.
+   * @default "input"
+   */
+  subjectType?: "input" | "drag-n-drop";
+  /**
+   * If true, the file is uploaded even if the element is not visible. The default is false.
+   * @default false
+   */
+  force?: boolean;
+};
+
 export type UploadFileAction = {
-  fileUpload?: {
-    /**
-     * The selector of the DOM element to upload the file
-     * @examples [["input[type=file]", "[type$=\"file\"]"]]
-     */
-    selector: Selector;
-    /**
-     * The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.
-     */
-    file: string;
-    /**
-     * The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.
-     * @examples ["file.txt"]
-     */
-    fileName?: string;
-    /**
-     * The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.
-     * @examples [["base64", "binary", "hex", "utf8"]]
-     */
-    encoding?:
-      | "ascii"
-      | "base64"
-      | "binary"
-      | "hex"
-      | "latin1"
-      | "utf8"
-      | "utf-8"
-      | "ucs2"
-      | "ucs-2"
-      | "utf16le"
-      | "utf-16le";
-    /**
-     * The type of the file input element. The default is 'input'.
-     * @default "input"
-     */
-    subjectType?: "input" | "drag-n-drop";
-    /**
-     * If true, the file is uploaded even if the element is not visible. The default is false.
-     * @default false
-     */
-    force?: boolean;
-  };
+  fileUpload?: string | UploadFileOptions;
 };
 
 export type HighlightActionProperties = {
@@ -449,7 +441,8 @@ export interface C8yScreenshotOptions {
 }
 
 export interface C8yScreenshotFileUploadOptions {
-  data: any,
-  path: string,
-  filename: string,
+  data: any;
+  path: string;
+  filename: string;
+  encoding: string;
 }
