@@ -3,7 +3,6 @@ const { defineConfig } = require("cypress");
 const { configureC8yScreenshotPlugin } = require("../../plugin");
 
 const { debug } = require("debug");
-const log = debug("c8y:scrn:cypress");
 
 module.exports = defineConfig({
   e2e: {
