@@ -12,13 +12,6 @@ module.exports = defineConfig({
     video: false,
     setupNodeEvents(on, config) {
       configureC8yScreenshotPlugin(on, config);
-      on("task", {
-        debug: (message) => {
-          log(message);
-          return null;
-        },
-      });
-
       return config;
     },
   },
