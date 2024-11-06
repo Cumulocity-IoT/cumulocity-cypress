@@ -11,7 +11,10 @@ import { C8yAuthOptions, oauthLogin } from "../shared/c8yclient";
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./../screenshot/schema.json";
-import { ScreenshotSetup } from "../lib/screenshots/types";
+import {
+  C8yScreenshotFileUploadOptions,
+  ScreenshotSetup,
+} from "../lib/screenshots/types";
 import { readYamlFile } from "../screenshot/helper";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
@@ -123,7 +126,7 @@ export function configureC8yPlugin(
       "c8ypact:save": savePact,
       "c8ypact:get": getPact,
       "c8ypact:remove": removePact,
-      "c8ypact:oauthLogin": login
+      "c8ypact:oauthLogin": login,
     });
   }
 }
@@ -153,17 +156,17 @@ export function configureC8yScreenshotPlugin(
     configData = undefined;
   }
 
+  const projectRoot =
+    path.dirname(config.configFile) ?? config.fileServerFolder ?? process.cwd();
+  log(`Using project root ${projectRoot}`);
+
+  let configFilePath: string | undefined = undefined;
   if (configData == null) {
     if (config.env._c8yscrnConfigFile != null) {
       lookupPaths.push(config.env._c8yscrnConfigFile);
     }
     lookupPaths.push("c8yscrn.config.yaml");
     log(`Looking for config file in [${lookupPaths.join(", ")}]`);
-    const projectRoot =
-      path.dirname(config.configFile) ??
-      config.fileServerFolder ??
-      process.cwd();
-    log(`Using project root ${projectRoot}`);
 
     lookupPaths = lookupPaths
       .map((p) => path.resolve(projectRoot, p))
@@ -177,8 +180,9 @@ export function configureC8yScreenshotPlugin(
       );
     }
 
-    log(`Using config file ${lookupPaths[0]}`);
-    configData = readYamlFile(lookupPaths[0]);
+    configFilePath = lookupPaths[0];
+    log(`Using config file ${configFilePath}`);
+    configData = readYamlFile(configFilePath);
   }
 
   if (!configData || typeof configData === "string") {
@@ -245,7 +249,7 @@ export function configureC8yScreenshotPlugin(
       launchOptions.args.push(`--height=${viewportHeight}`);
       log(`Setting firefox launch options: ${launchOptions.args.slice(-2)}`);
     }
-    const launchArgs = config.env._c8yscrnBrowserLaunchArgs
+    const launchArgs = config.env._c8yscrnBrowserLaunchArgs;
     if (launchArgs != null && launchArgs !== "") {
       log(`Adding additional launch options ${launchArgs}`);
       launchOptions.args.push(launchArgs);
@@ -277,8 +281,11 @@ export function configureC8yScreenshotPlugin(
       }
 
       // for Module API run(), overwrite option of the screenshot is not working
-      const targetPath = overwrite === true ? newPath : appendCountIfPathExists(newPath);
-      log(`Moving screenshot ${details.path} to ${targetPath} (overwrite: ${overwrite})`);
+      const targetPath =
+        overwrite === true ? newPath : appendCountIfPathExists(newPath);
+      log(
+        `Moving screenshot ${details.path} to ${targetPath} (overwrite: ${overwrite})`
+      );
 
       fs.rename(details.path, targetPath, (err) => {
         if (err) return reject(err);
@@ -291,6 +298,67 @@ export function configureC8yScreenshotPlugin(
     });
   });
 
+  on("task", {
+    debug: (message: string) => {
+      log(message.slice(0, 100));
+      return null;
+    },
+    "c8yscrn:file": (file: {
+      path: string;
+      fileName: string;
+      encoding: BufferEncoding;
+    }) => {
+      const p = path.resolve(
+        configFilePath != null ? path.dirname(configFilePath) : projectRoot,
+        file.path
+      );
+      log(`Reading file ${p} with encoding ${file.encoding}`);
+      if (!fs.existsSync(p)) {
+        log(`File ${p} not found`);
+        return null;
+      }
+
+      const textFileExtensions = [".csv", ".txt", ".json"];
+      const binaryFileExtensions = [".png", ".jpg", ".jpeg", ".gif"];
+      const extension = [file.fileName, file.path]
+        .filter((p) => p != null)
+        .map((p) => path.extname(p).toLowerCase() ?? null)[0];
+      log(`Parsed extension ${extension}`);
+      if (extension == null) {
+        log(`Required extension to upload file. Skipping ${p}`);
+        return null;
+      }
+
+      let data: any;
+      if (path.extname(file.path) === ".json") {
+        log(`Pparsed json file ${p}`);
+        data = JSON.parse(fs.readFileSync(p, file.encoding ?? "utf8"));
+      } else if (
+        textFileExtensions.includes(path.extname(file.path).toLowerCase())
+      ) {
+        data = fs.readFileSync(p, file.encoding ?? "utf8");
+      } else if (
+        binaryFileExtensions.includes(path.extname(file.path).toLowerCase())
+      ) {
+        data = fs.readFileSync(p, file.encoding ?? "binary");
+      } else {
+        log(`Unsupported file type ${path.extname(file.path).toLowerCase()}`);
+        return null;
+      }
+
+      const stats = fs.statSync(p);
+      const fileSizeInBytes = stats.size;
+      log(`File size: ${fileSizeInBytes} bytes`);
+  
+      const result: C8yScreenshotFileUploadOptions = {
+        data,
+        path: p,
+        filename: path.basename(p),
+      };
+      return result;
+    },
+  });
+
   return config;
 }
 
@@ -300,7 +368,10 @@ export function appendCountIfPathExists(newPath: string): string {
 
   while (fs.existsSync(adjustedPath)) {
     const parsedPath = path.parse(newPath);
-    adjustedPath = path.join(parsedPath.dir, `${parsedPath.name} (${count})${parsedPath.ext}`);
+    adjustedPath = path.join(
+      parsedPath.dir,
+      `${parsedPath.name} (${count})${parsedPath.ext}`
+    );
     count++;
   }
 
