@@ -308,54 +308,7 @@ export function configureC8yScreenshotPlugin(
       fileName: string;
       encoding: BufferEncoding;
     }) => {
-      const p = path.resolve(
-        configFilePath != null ? path.dirname(configFilePath) : projectRoot,
-        file.path
-      );
-      log(`Reading file ${p} with encoding ${file.encoding}`);
-      if (!fs.existsSync(p)) {
-        log(`File ${p} not found`);
-        return null;
-      }
-
-      const textFileExtensions = [".csv", ".txt", ".json"];
-      const binaryFileExtensions = [".png", ".jpg", ".jpeg", ".gif"];
-      const extension = [file.fileName, file.path]
-        .filter((p) => p != null)
-        .map((p) => path.extname(p).toLowerCase() ?? null)[0];
-      log(`Parsed extension ${extension}`);
-      if (extension == null) {
-        log(`Required extension to upload file. Skipping ${p}`);
-        return null;
-      }
-
-      let data: any;
-      if (path.extname(file.path) === ".json") {
-        log(`Pparsed json file ${p}`);
-        data = JSON.parse(fs.readFileSync(p, file.encoding ?? "utf8"));
-      } else if (
-        textFileExtensions.includes(path.extname(file.path).toLowerCase())
-      ) {
-        data = fs.readFileSync(p, file.encoding ?? "utf8");
-      } else if (
-        binaryFileExtensions.includes(path.extname(file.path).toLowerCase())
-      ) {
-        data = fs.readFileSync(p, file.encoding ?? "binary");
-      } else {
-        log(`Unsupported file type ${path.extname(file.path).toLowerCase()}`);
-        return null;
-      }
-
-      const stats = fs.statSync(p);
-      const fileSizeInBytes = stats.size;
-      log(`File size: ${fileSizeInBytes} bytes`);
-  
-      const result: C8yScreenshotFileUploadOptions = {
-        data,
-        path: p,
-        filename: path.basename(p),
-      };
-      return result;
+      return getFileUploadOptions(file, configFilePath, projectRoot);
     },
   });
 
@@ -400,4 +353,61 @@ function getVersion() {
     );
   }
   return "unknown";
+}
+
+export function getFileUploadOptions(
+  file: {
+    path: string;
+    fileName?: string;
+    encoding?: BufferEncoding;
+  },
+  configFilePath: string | undefined,
+  projectRoot: string
+): C8yScreenshotFileUploadOptions | null {
+  const log = debug("c8y:scrn:plugin:upload");
+
+  const p = path.resolve(
+    configFilePath != null ? path.dirname(configFilePath) : projectRoot,
+    file.path
+  );
+  log(`Reading file ${p} with encoding ${file.encoding}`);
+  if (!fs.existsSync(p)) {
+    log(`File ${p} not found`);
+    return null;
+  }
+
+  const textFileExtensions = [".csv", ".txt", ".json"];
+  const binaryFileExtensions = [".png", ".jpg", ".jpeg", ".gif"];
+  const extension = [file.fileName, file.path]
+    .filter((p) => p != null)
+    .map((p) => path.extname(p).toLowerCase() ?? null)[0];
+  log(`Parsed extension ${extension}`);
+  if (extension == null) {
+    log(`Required extension to upload file. Skipping ${p}`);
+    return null;
+  }
+
+  let data: any;
+  if (extension === ".json") {
+    log(`Parsed json file ${p}`);
+    data = JSON.parse(fs.readFileSync(p, file.encoding ?? "utf8"));
+  } else if (textFileExtensions.includes(extension)) {
+    data = fs.readFileSync(p, file.encoding ?? "utf8");
+  } else if (binaryFileExtensions.includes(extension)) {
+    data = fs.readFileSync(p, file.encoding ?? "binary");
+  } else {
+    log(`Unsupported file type ${extension}`);
+    return null;
+  }
+
+  const stats = fs.statSync(p);
+  const fileSizeInBytes = stats.size;
+  log(`File size: ${fileSizeInBytes} bytes`);
+
+  const result: C8yScreenshotFileUploadOptions = {
+    data,
+    path: p,
+    filename: file.fileName ?? path.basename(p),
+  };
+  return result;
 }

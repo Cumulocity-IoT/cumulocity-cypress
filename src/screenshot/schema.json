@@ -296,6 +296,82 @@
                         }
                     },
                     "type": "object"
+                },
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "fileUpload": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "encoding": {
+                                    "description": "The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.",
+                                    "enum": [
+                                        "ascii",
+                                        "base64",
+                                        "binary",
+                                        "hex",
+                                        "latin1",
+                                        "ucs-2",
+                                        "ucs2",
+                                        "utf-16le",
+                                        "utf-8",
+                                        "utf16le",
+                                        "utf8"
+                                    ],
+                                    "examples": [
+                                        [
+                                            "base64",
+                                            "binary",
+                                            "hex",
+                                            "utf8"
+                                        ]
+                                    ],
+                                    "type": "string"
+                                },
+                                "file": {
+                                    "description": "The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.",
+                                    "type": "string"
+                                },
+                                "fileName": {
+                                    "description": "The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.",
+                                    "examples": [
+                                        "file.txt"
+                                    ],
+                                    "type": "string"
+                                },
+                                "force": {
+                                    "default": false,
+                                    "description": "If true, the file is uploaded even if the element is not visible. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "selector": {
+                                    "$ref": "#/definitions/Selector",
+                                    "description": "The selector of the DOM element to upload the file",
+                                    "examples": [
+                                        [
+                                            "input[type=file]",
+                                            "[type$=\"file\"]"
+                                        ]
+                                    ]
+                                },
+                                "subjectType": {
+                                    "default": "input",
+                                    "description": "The type of the file input element. The default is 'input'.",
+                                    "enum": [
+                                        "drag-n-drop",
+                                        "input"
+                                    ],
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "file",
+                                "selector"
+                            ],
+                            "type": "object"
+                        }
+                    },
+                    "type": "object"
                 }
             ]
         },
@@ -598,6 +674,82 @@
                             "type": "object"
                         },
                         {
+                            "additionalProperties": false,
+                            "properties": {
+                                "fileUpload": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "encoding": {
+                                            "description": "The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.",
+                                            "enum": [
+                                                "ascii",
+                                                "base64",
+                                                "binary",
+                                                "hex",
+                                                "latin1",
+                                                "ucs-2",
+                                                "ucs2",
+                                                "utf-16le",
+                                                "utf-8",
+                                                "utf16le",
+                                                "utf8"
+                                            ],
+                                            "examples": [
+                                                [
+                                                    "base64",
+                                                    "binary",
+                                                    "hex",
+                                                    "utf8"
+                                                ]
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "file": {
+                                            "description": "The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.",
+                                            "type": "string"
+                                        },
+                                        "fileName": {
+                                            "description": "The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.",
+                                            "examples": [
+                                                "file.txt"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "force": {
+                                            "default": false,
+                                            "description": "If true, the file is uploaded even if the element is not visible. The default is false.",
+                                            "type": "boolean"
+                                        },
+                                        "selector": {
+                                            "$ref": "#/definitions/Selector",
+                                            "description": "The selector of the DOM element to upload the file",
+                                            "examples": [
+                                                [
+                                                    "input[type=file]",
+                                                    "[type$=\"file\"]"
+                                                ]
+                                            ]
+                                        },
+                                        "subjectType": {
+                                            "default": "input",
+                                            "description": "The type of the file input element. The default is 'input'.",
+                                            "enum": [
+                                                "drag-n-drop",
+                                                "input"
+                                            ],
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "file",
+                                        "selector"
+                                    ],
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
                             "items": {
                                 "$ref": "#/definitions/Action"
                             },
@@ -657,7 +809,7 @@
                     "properties": {
                         "capture": {
                             "default": "viewport",
-                            "description": "The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'. \nNote that 'fullPage' screenshots will have a different height than specified in 'viewportHeight'.",
+                            "description": "The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'.\nNote that 'fullPage' screenshots will have a different height than specified in 'viewportHeight'.",
                             "enum": [
                                 "fullPage",
                                 "viewport"
@@ -885,7 +1037,7 @@
             "properties": {
                 "capture": {
                     "default": "viewport",
-                    "description": "The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'. \nNote that 'fullPage' screenshots will have a different height than specified in 'viewportHeight'.",
+                    "description": "The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'.\nNote that 'fullPage' screenshots will have a different height than specified in 'viewportHeight'.",
                     "enum": [
                         "fullPage",
                         "viewport"
