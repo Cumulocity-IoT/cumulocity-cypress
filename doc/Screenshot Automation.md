@@ -608,6 +608,7 @@ Types the specified value into the selected input field.
     border: string
     styles: object
 ```
+
 Highlights the specified element. Useful for drawing attention to specific parts of the UI in documentation screenshots. `border` is a shorthand for setting the border style, and `styles` allows for more advanced styling. Values can be any valid CSS border or style property.
 
 ```yaml
@@ -619,6 +620,21 @@ Highlights the specified element. Useful for drawing attention to specific parts
 - selector: "#main-content"
   border: 2px solid green
 ```
+
+**fileUpload**
+```yaml
+- fileUpload: string or object
+    selector: string or object
+    file: string
+    fileName: string
+    encoding: binary or utf8 or utf-8
+    subjectType: input or drag-n-drop
+    force: boolean
+```
+
+Uploads a file to the specified input field. The `file` property should be the path to the file to upload. Use `encoding` to specify the file encoding, and `subjectType` to choose between input or drag-and-drop file upload. The `force` option can be used to bypass the element's visibility check.
+
+If no selector is provided, the file will be uploaded to the first file input field found on the page.
 
 **screenshot**
 ```yaml

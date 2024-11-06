@@ -1,10 +1,13 @@
 import "../lib/commands";
 import "../lib/commands/c8ypact";
 
+import "cypress-file-upload";
+
 import { pactId } from "../shared/c8ypact";
 
 import {
   Action,
+  C8yScreenshotFileUploadOptions,
   ClickAction,
   HighlightAction,
   Screenshot,
@@ -13,6 +16,8 @@ import {
   Selector,
   TextAction,
   TypeAction,
+  UploadFileAction,
+  UploadFileOptions,
   Visit,
   WaitAction,
 } from "../lib/screenshots/types";
@@ -29,7 +34,7 @@ export type C8yScreenshotActionHandler = (
   options: any
 ) => void;
 
-const taskLog = { log: false };
+const taskLog = { log: true };
 
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
@@ -53,6 +58,7 @@ export class C8yScreenshotRunner {
     this.registerActionHandler("screenshot", this.screenshot);
     this.registerActionHandler("text", this.text);
     this.registerActionHandler("wait", this.wait);
+    this.registerActionHandler("fileUpload", this.fileUpload);
   }
 
   registerActionHandler(key: string, handler: C8yScreenshotActionHandler) {
@@ -161,7 +167,11 @@ export class C8yScreenshotRunner {
               visitObject?.selector ??
               this.config.global?.visitWaitSelector ??
               "c8y-drawer-outlet c8y-app-icon .c8y-icon";
-            cy.task("debug", `Visiting ${url} Selector: ${visitSelector}`, taskLog);
+            cy.task(
+              "debug",
+              `Visiting ${url} Selector: ${visitSelector}`,
+              taskLog
+            );
             const visitTimeout = visitObject?.timeout;
 
             const language =
@@ -309,6 +319,69 @@ export class C8yScreenshotRunner {
     }
   }
 
+  protected fileUpload(action: UploadFileAction) {
+    const defaultSelector = '[type$="file"]';
+    let fileUpload: UploadFileOptions | undefined = undefined;
+    if (_.isString(action.fileUpload)) {
+      fileUpload = { selector: defaultSelector, file: action.fileUpload };
+    } else if (action.fileUpload != null) {
+      fileUpload = action.fileUpload;
+    }
+
+    const selector = getSelector(fileUpload?.selector);
+    const filePath = fileUpload?.file;
+    if (selector == null || filePath == null) {
+      cy.task("debug", `File upload selector or file path is missing`, taskLog);
+      return;
+    }
+
+    cy.task<C8yScreenshotFileUploadOptions>("c8yscrn:file", {
+      path: filePath,
+      ..._.pick(fileUpload, ["encoding", "fileName"]),
+    })
+      .then((file) => {
+        if (file == null) {
+          cy.task("debug", `File ${filePath} not found`, taskLog);
+          return;
+        }
+
+        cy.task("debug", `Uploading file ${filePath} to ${selector}`, taskLog);
+
+        const attachData =
+          file.encoding === "binary"
+            ? Cypress.Blob.binaryStringToBlob(file.data)
+            : file.data;
+        const fixtureData = _.omitBy(
+          {
+            fileContent: attachData,
+            fileName: fileUpload?.fileName ?? file.filename,
+            ..._.pick(fileUpload, ["encoding", "lastModified"]),
+          },
+          _.isNil
+        );
+        const fileProcessingOptions = _.omitBy(
+          _.pick(action.fileUpload, ["subjectType", "force", "allowEmpty"]),
+          _.isNil
+        );
+
+        cy.task(
+          "debug",
+          `Fixture data: ${JSON.stringify({
+            ...fixtureData,
+            fileContent: "...",
+          })}`,
+          taskLog
+        );
+        cy.task(
+          "debug",
+          `File processing options: ${JSON.stringify(fileProcessingOptions)}`,
+          taskLog
+        );
+
+        cy.get(selector).attachFile(fixtureData, fileProcessingOptions);
+      });
+  }
+
   protected screenshot(
     action: ScreenshotAction,
     _that: C8yScreenshotRunner,
@@ -317,7 +390,11 @@ export class C8yScreenshotRunner {
   ) {
     let name = action.screenshot?.path || item.image;
     const selector = getSelector(action.screenshot?.selector);
-    cy.task("debug", `Taking screenshot ${name} Selector: ${selector}`, taskLog);
+    cy.task(
+      "debug",
+      `Taking screenshot ${name} Selector: ${selector}`,
+      taskLog
+    );
     cy.task("debug", `Options: ${JSON.stringify(options)}`, taskLog);
     name = imageName(name);
     if (selector != null) {

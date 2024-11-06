@@ -123,7 +123,7 @@ type ScreenshotSettings = {
    */
   viewportHeight?: number;
   /**
-   * The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'. 
+   * The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'.
    * Note that 'fullPage' screenshots will have a different height than specified in 'viewportHeight'.
    * @examples [["viewport", "fullPage"]]
    * @default "viewport"
@@ -297,6 +297,43 @@ export type WaitAction = {
       };
 };
 
+export type UploadFileOptions = {
+  /**
+   * The selector of the DOM element to upload the file
+   * @examples [["input[type=file]", "[type$=\"file\"]"]]
+   */
+  selector?: Selector;
+  /**
+   * The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.
+   */
+  file: string;
+  /**
+   * The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.
+   * @examples ["file.txt"]
+   */
+  fileName?: string;
+  /**
+   * The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.
+   * @examples [["binary", "utf8"]]
+   */
+  encoding?: "binary" | "utf8" | "utf-8";
+
+  /**
+   * The type of the file input element. The default is 'input'.
+   * @default "input"
+   */
+  subjectType?: "input" | "drag-n-drop";
+  /**
+   * If true, the file is uploaded even if the element is not visible. The default is false.
+   * @default false
+   */
+  force?: boolean;
+};
+
+export type UploadFileAction = {
+  fileUpload?: string | UploadFileOptions;
+};
+
 export type HighlightActionProperties = {
   /**
    * The selector of the DOM element to highlight
@@ -383,7 +420,8 @@ export type Action =
   | ScreenshotAction
   | HighlightAction
   | TextAction
-  | WaitAction;
+  | WaitAction
+  | UploadFileAction;
 
 // Internal types used within C8yScreenshotRunner
 // This will not be exposed to schema.json
@@ -400,4 +438,11 @@ export interface C8yScreenshotOptions {
   setup: ScreenshotSetup;
   init: boolean;
   clear: boolean;
+}
+
+export interface C8yScreenshotFileUploadOptions {
+  data: any;
+  path: string;
+  filename: string;
+  encoding: string;
 }
