@@ -3,386 +3,148 @@
     "additionalProperties": false,
     "definitions": {
         "Action": {
-            "anyOf": [
-                {
-                    "additionalProperties": false,
-                    "properties": {
-                        "click": {
-                            "additionalProperties": false,
-                            "description": "A click action triggers a click event on the selected DOM element.",
-                            "properties": {
-                                "force": {
-                                    "default": false,
-                                    "description": "If true, the click event is triggered even if the element is not visible. The default is false.",
-                                    "type": "boolean"
-                                },
-                                "multiple": {
-                                    "default": false,
-                                    "description": "If true, the click event is triggered on all matching elements. The default is false.",
-                                    "type": "boolean"
-                                },
-                                "selector": {
-                                    "$ref": "#/definitions/Selector",
-                                    "description": "The selector to click"
-                                }
+            "additionalProperties": false,
+            "properties": {
+                "click": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/ClickAction"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "A click action triggers a click event on the selected DOM element."
+                },
+                "fileUpload": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/UploadFileAction"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "Use the file upload action to upload a file using the file input element. Currently supported file types are .json, .txt, .csv, .png, .jpg, .jpeg, .gif."
+                },
+                "highlight": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/HighlightAction"
+                        },
+                        {
+                            "items": {
+                                "$ref": "#/definitions/HighlightAction"
                             },
-                            "required": [
-                                "selector"
-                            ],
-                            "type": "object"
+                            "type": "array"
+                        },
+                        {
+                            "type": "string"
                         }
-                    },
-                    "type": "object"
+                    ],
+                    "description": "Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element."
                 },
-                {
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "additionalProperties": false,
-                            "description": "A type action triggers a type event on the selected DOM element. Use to\nsimulate typing in an input field.",
-                            "properties": {
-                                "selector": {
-                                    "$ref": "#/definitions/Selector",
-                                    "description": "The selector to type"
-                                },
-                                "value": {
-                                    "description": "The value to type",
-                                    "type": "string"
-                                }
-                            },
-                            "required": [
-                                "selector",
-                                "value"
-                            ],
-                            "type": "object"
-                        }
-                    },
-                    "type": "object"
+                "screenshot": {
+                    "$ref": "#/definitions/ScreenshotAction",
+                    "description": "The screenshot action triggers a screenshot of the current state of the\napplication."
                 },
-                {
-                    "additionalProperties": false,
-                    "properties": {
-                        "screenshot": {
-                            "additionalProperties": false,
-                            "description": "The screenshot action triggers a screenshot of the current state of the\napplication.",
-                            "properties": {
-                                "clip": {
-                                    "additionalProperties": false,
-                                    "description": "The clip area within the screenshot image. The clip area is defined\nby the top-left corner (x, y) and the width and height of the clip area.",
-                                    "properties": {
-                                        "height": {
-                                            "description": "The height of the clip area. If negative, the height is subtracted from the\nviewport height.",
-                                            "type": "integer"
-                                        },
-                                        "width": {
-                                            "description": "The width of the clip area. If negative, the width is subtracted from the\nviewport width.",
-                                            "type": "integer"
-                                        },
-                                        "x": {
-                                            "description": "The x-coordinate of the top-left corner of the clip area",
-                                            "minimum": 0,
-                                            "type": "integer"
-                                        },
-                                        "y": {
-                                            "description": "The y-coordinate of the top-left corner of the clip area",
-                                            "minimum": 0,
-                                            "type": "integer"
-                                        }
-                                    },
-                                    "required": [
-                                        "height",
-                                        "width",
-                                        "x",
-                                        "y"
-                                    ],
-                                    "type": "object"
-                                },
-                                "path": {
-                                    "description": "The path to store the screenshot. This is the relative path used\nwithin the screenshot folder.",
-                                    "type": "string"
-                                },
-                                "selector": {
-                                    "anyOf": [
-                                        {
-                                            "additionalProperties": false,
-                                            "properties": {
-                                                "data-cy": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "type": "object"
-                                        },
-                                        {
-                                            "type": "string"
-                                        }
-                                    ],
-                                    "description": "The selector of the DOM element to capture"
-                                }
-                            },
-                            "type": "object"
-                        }
-                    },
-                    "type": "object"
+                "text": {
+                    "$ref": "#/definitions/TextAction",
+                    "description": "A text action modifies the text value of selected DOM element."
                 },
-                {
-                    "additionalProperties": false,
-                    "properties": {
-                        "highlight": {
-                            "anyOf": [
-                                {
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        "border": {
-                                            "description": "The border style. Use any valid CSS border style.",
-                                            "examples": [
-                                                "1px solid red"
-                                            ],
-                                            "type": "string"
-                                        },
-                                        "selector": {
-                                            "$ref": "#/definitions/Selector",
-                                            "description": "The selector of the DOM element to highlight"
-                                        },
-                                        "styles": {
-                                            "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
-                                            "examples": [
-                                                "background-color: yellow",
-                                                "outline: dashed",
-                                                "outline-offset: +3px"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "selector"
-                                    ],
-                                    "type": "object"
-                                },
-                                {
-                                    "items": {
-                                        "additionalProperties": false,
-                                        "properties": {
-                                            "border": {
-                                                "description": "The border style. Use any valid CSS border style.",
-                                                "examples": [
-                                                    "1px solid red"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            "selector": {
-                                                "$ref": "#/definitions/Selector",
-                                                "description": "The selector of the DOM element to highlight"
-                                            },
-                                            "styles": {
-                                                "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
-                                                "examples": [
-                                                    "background-color: yellow",
-                                                    "outline: dashed",
-                                                    "outline-offset: +3px"
-                                                ]
-                                            }
-                                        },
-                                        "required": [
-                                            "selector"
-                                        ],
-                                        "type": "object"
-                                    },
-                                    "type": "array"
-                                },
-                                {
-                                    "type": "string"
-                                }
-                            ],
-                            "description": "Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element."
-                        }
-                    },
-                    "type": "object"
+                "type": {
+                    "$ref": "#/definitions/TypeAction",
+                    "description": "A type action triggers a type event on the selected DOM element. Use to\nsimulate typing in an input field."
                 },
-                {
-                    "additionalProperties": false,
-                    "properties": {
-                        "text": {
-                            "additionalProperties": false,
-                            "description": "A text action modifies the text value of selected DOM element.",
-                            "properties": {
-                                "selector": {
-                                    "$ref": "#/definitions/Selector"
-                                },
-                                "value": {
-                                    "description": "The value to set",
-                                    "type": "string"
-                                }
-                            },
-                            "required": [
-                                "selector",
-                                "value"
-                            ],
-                            "type": "object"
+                "wait": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/WaitAction"
+                        },
+                        {
+                            "type": "number"
                         }
-                    },
-                    "type": "object"
-                },
-                {
-                    "additionalProperties": false,
-                    "properties": {
-                        "wait": {
-                            "anyOf": [
-                                {
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        "assert": {
-                                            "anyOf": [
-                                                {
-                                                    "additionalProperties": false,
-                                                    "properties": {
-                                                        "chainer": {
-                                                            "description": "The chainer assertion to. Could be any valid Cypress chainer. The chainer is\nnot validated and may or may not have a value to assert.",
-                                                            "examples": [
-                                                                "have.length",
-                                                                "eq",
-                                                                "be.visible"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        "value": {
-                                                            "anyOf": [
-                                                                {
-                                                                    "items": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "type": "array"
-                                                                },
-                                                                {
-                                                                    "type": "string"
-                                                                }
-                                                            ],
-                                                            "description": "The value to assert. The value is optional and may not be required by the\nchainer assertion."
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "chainer"
-                                                    ],
-                                                    "type": "object"
-                                                },
-                                                {
-                                                    "type": "string"
-                                                }
-                                            ],
-                                            "description": "The chainer assertion to wait for. This translates to a Cypress get().should().\nSee https://docs.cypress.io/api/commands/should"
-                                        },
-                                        "selector": {
-                                            "$ref": "#/definitions/Selector",
-                                            "description": "The selector of the DOM element to wait for"
-                                        },
-                                        "timeout": {
-                                            "default": 4000,
-                                            "description": "The timeout in ms to wait for",
-                                            "type": "integer"
-                                        }
-                                    },
-                                    "required": [
-                                        "selector"
-                                    ],
-                                    "type": "object"
-                                },
-                                {
-                                    "type": "number"
-                                }
-                            ],
-                            "description": "A wait action waits for the given time in ms or for a given\nchainer assertion.",
-                            "examples": [
-                                1000,
-                                10000
-                            ]
-                        }
-                    },
-                    "type": "object"
-                },
-                {
-                    "additionalProperties": false,
-                    "properties": {
-                        "fileUpload": {
-                            "anyOf": [
-                                {
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        "encoding": {
-                                            "description": "The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.",
-                                            "enum": [
-                                                "binary",
-                                                "utf-8",
-                                                "utf8"
-                                            ],
-                                            "examples": [
-                                                [
-                                                    "binary",
-                                                    "utf8"
-                                                ]
-                                            ],
-                                            "type": "string"
-                                        },
-                                        "file": {
-                                            "description": "The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.",
-                                            "type": "string"
-                                        },
-                                        "fileName": {
-                                            "description": "The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.",
-                                            "examples": [
-                                                "file.txt"
-                                            ],
-                                            "type": "string"
-                                        },
-                                        "force": {
-                                            "default": false,
-                                            "description": "If true, the file is uploaded even if the element is not visible. The default is false.",
-                                            "type": "boolean"
-                                        },
-                                        "selector": {
-                                            "anyOf": [
-                                                {
-                                                    "additionalProperties": false,
-                                                    "properties": {
-                                                        "data-cy": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                {
-                                                    "type": "string"
-                                                }
-                                            ],
-                                            "description": "The selector of the DOM element to upload the file",
-                                            "examples": [
-                                                [
-                                                    "input[type=file]",
-                                                    "[type$=\"file\"]"
-                                                ]
-                                            ]
-                                        },
-                                        "subjectType": {
-                                            "default": "input",
-                                            "description": "The type of the file input element. The default is 'input'.",
-                                            "enum": [
-                                                "drag-n-drop",
-                                                "input"
-                                            ],
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "file"
-                                    ],
-                                    "type": "object"
-                                },
-                                {
-                                    "type": "string"
-                                }
-                            ]
-                        }
-                    },
-                    "type": "object"
+                    ],
+                    "description": "A wait action waits for the given time in ms or for a given\nchainer assertion.",
+                    "examples": [
+                        1000,
+                        10000
+                    ]
                 }
-            ]
+            },
+            "type": "object"
+        },
+        "ClickAction": {
+            "additionalProperties": false,
+            "properties": {
+                "data-cy": {
+                    "type": "string"
+                },
+                "force": {
+                    "default": false,
+                    "description": "If true, the click event is triggered even if the element is not visible. The default is false.",
+                    "type": "boolean"
+                },
+                "multiple": {
+                    "default": false,
+                    "description": "If true, the click event is triggered on all matching elements. The default is false.",
+                    "type": "boolean"
+                },
+                "selector": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/DataCySelector"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "DataCySelector": {
+            "additionalProperties": false,
+            "properties": {
+                "data-cy": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "HighlightAction": {
+            "additionalProperties": false,
+            "properties": {
+                "border": {
+                    "description": "The border style. Use any valid CSS border style.",
+                    "examples": [
+                        "1px solid red"
+                    ],
+                    "type": "string"
+                },
+                "data-cy": {
+                    "type": "string"
+                },
+                "selector": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/DataCySelector"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "styles": {
+                    "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
+                    "examples": [
+                        "background-color: yellow",
+                        "outline: dashed",
+                        "outline-offset: +3px"
+                    ]
+                }
+            },
+            "type": "object"
         },
         "Screenshot": {
             "additionalProperties": false,
@@ -390,382 +152,7 @@
                 "actions": {
                     "anyOf": [
                         {
-                            "additionalProperties": false,
-                            "properties": {
-                                "click": {
-                                    "additionalProperties": false,
-                                    "description": "A click action triggers a click event on the selected DOM element.",
-                                    "properties": {
-                                        "force": {
-                                            "default": false,
-                                            "description": "If true, the click event is triggered even if the element is not visible. The default is false.",
-                                            "type": "boolean"
-                                        },
-                                        "multiple": {
-                                            "default": false,
-                                            "description": "If true, the click event is triggered on all matching elements. The default is false.",
-                                            "type": "boolean"
-                                        },
-                                        "selector": {
-                                            "$ref": "#/definitions/Selector",
-                                            "description": "The selector to click"
-                                        }
-                                    },
-                                    "required": [
-                                        "selector"
-                                    ],
-                                    "type": "object"
-                                }
-                            },
-                            "type": "object"
-                        },
-                        {
-                            "additionalProperties": false,
-                            "properties": {
-                                "type": {
-                                    "additionalProperties": false,
-                                    "description": "A type action triggers a type event on the selected DOM element. Use to\nsimulate typing in an input field.",
-                                    "properties": {
-                                        "selector": {
-                                            "$ref": "#/definitions/Selector",
-                                            "description": "The selector to type"
-                                        },
-                                        "value": {
-                                            "description": "The value to type",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "selector",
-                                        "value"
-                                    ],
-                                    "type": "object"
-                                }
-                            },
-                            "type": "object"
-                        },
-                        {
-                            "additionalProperties": false,
-                            "properties": {
-                                "screenshot": {
-                                    "additionalProperties": false,
-                                    "description": "The screenshot action triggers a screenshot of the current state of the\napplication.",
-                                    "properties": {
-                                        "clip": {
-                                            "additionalProperties": false,
-                                            "description": "The clip area within the screenshot image. The clip area is defined\nby the top-left corner (x, y) and the width and height of the clip area.",
-                                            "properties": {
-                                                "height": {
-                                                    "description": "The height of the clip area. If negative, the height is subtracted from the\nviewport height.",
-                                                    "type": "integer"
-                                                },
-                                                "width": {
-                                                    "description": "The width of the clip area. If negative, the width is subtracted from the\nviewport width.",
-                                                    "type": "integer"
-                                                },
-                                                "x": {
-                                                    "description": "The x-coordinate of the top-left corner of the clip area",
-                                                    "minimum": 0,
-                                                    "type": "integer"
-                                                },
-                                                "y": {
-                                                    "description": "The y-coordinate of the top-left corner of the clip area",
-                                                    "minimum": 0,
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "height",
-                                                "width",
-                                                "x",
-                                                "y"
-                                            ],
-                                            "type": "object"
-                                        },
-                                        "path": {
-                                            "description": "The path to store the screenshot. This is the relative path used\nwithin the screenshot folder.",
-                                            "type": "string"
-                                        },
-                                        "selector": {
-                                            "anyOf": [
-                                                {
-                                                    "additionalProperties": false,
-                                                    "properties": {
-                                                        "data-cy": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                {
-                                                    "type": "string"
-                                                }
-                                            ],
-                                            "description": "The selector of the DOM element to capture"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            },
-                            "type": "object"
-                        },
-                        {
-                            "additionalProperties": false,
-                            "properties": {
-                                "highlight": {
-                                    "anyOf": [
-                                        {
-                                            "additionalProperties": false,
-                                            "properties": {
-                                                "border": {
-                                                    "description": "The border style. Use any valid CSS border style.",
-                                                    "examples": [
-                                                        "1px solid red"
-                                                    ],
-                                                    "type": "string"
-                                                },
-                                                "selector": {
-                                                    "$ref": "#/definitions/Selector",
-                                                    "description": "The selector of the DOM element to highlight"
-                                                },
-                                                "styles": {
-                                                    "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
-                                                    "examples": [
-                                                        "background-color: yellow",
-                                                        "outline: dashed",
-                                                        "outline-offset: +3px"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "selector"
-                                            ],
-                                            "type": "object"
-                                        },
-                                        {
-                                            "items": {
-                                                "additionalProperties": false,
-                                                "properties": {
-                                                    "border": {
-                                                        "description": "The border style. Use any valid CSS border style.",
-                                                        "examples": [
-                                                            "1px solid red"
-                                                        ],
-                                                        "type": "string"
-                                                    },
-                                                    "selector": {
-                                                        "$ref": "#/definitions/Selector",
-                                                        "description": "The selector of the DOM element to highlight"
-                                                    },
-                                                    "styles": {
-                                                        "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
-                                                        "examples": [
-                                                            "background-color: yellow",
-                                                            "outline: dashed",
-                                                            "outline-offset: +3px"
-                                                        ]
-                                                    }
-                                                },
-                                                "required": [
-                                                    "selector"
-                                                ],
-                                                "type": "object"
-                                            },
-                                            "type": "array"
-                                        },
-                                        {
-                                            "type": "string"
-                                        }
-                                    ],
-                                    "description": "Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element."
-                                }
-                            },
-                            "type": "object"
-                        },
-                        {
-                            "additionalProperties": false,
-                            "properties": {
-                                "text": {
-                                    "additionalProperties": false,
-                                    "description": "A text action modifies the text value of selected DOM element.",
-                                    "properties": {
-                                        "selector": {
-                                            "$ref": "#/definitions/Selector"
-                                        },
-                                        "value": {
-                                            "description": "The value to set",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "selector",
-                                        "value"
-                                    ],
-                                    "type": "object"
-                                }
-                            },
-                            "type": "object"
-                        },
-                        {
-                            "additionalProperties": false,
-                            "properties": {
-                                "wait": {
-                                    "anyOf": [
-                                        {
-                                            "additionalProperties": false,
-                                            "properties": {
-                                                "assert": {
-                                                    "anyOf": [
-                                                        {
-                                                            "additionalProperties": false,
-                                                            "properties": {
-                                                                "chainer": {
-                                                                    "description": "The chainer assertion to. Could be any valid Cypress chainer. The chainer is\nnot validated and may or may not have a value to assert.",
-                                                                    "examples": [
-                                                                        "have.length",
-                                                                        "eq",
-                                                                        "be.visible"
-                                                                    ],
-                                                                    "type": "string"
-                                                                },
-                                                                "value": {
-                                                                    "anyOf": [
-                                                                        {
-                                                                            "items": {
-                                                                                "type": "string"
-                                                                            },
-                                                                            "type": "array"
-                                                                        },
-                                                                        {
-                                                                            "type": "string"
-                                                                        }
-                                                                    ],
-                                                                    "description": "The value to assert. The value is optional and may not be required by the\nchainer assertion."
-                                                                }
-                                                            },
-                                                            "required": [
-                                                                "chainer"
-                                                            ],
-                                                            "type": "object"
-                                                        },
-                                                        {
-                                                            "type": "string"
-                                                        }
-                                                    ],
-                                                    "description": "The chainer assertion to wait for. This translates to a Cypress get().should().\nSee https://docs.cypress.io/api/commands/should"
-                                                },
-                                                "selector": {
-                                                    "$ref": "#/definitions/Selector",
-                                                    "description": "The selector of the DOM element to wait for"
-                                                },
-                                                "timeout": {
-                                                    "default": 4000,
-                                                    "description": "The timeout in ms to wait for",
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "selector"
-                                            ],
-                                            "type": "object"
-                                        },
-                                        {
-                                            "type": "number"
-                                        }
-                                    ],
-                                    "description": "A wait action waits for the given time in ms or for a given\nchainer assertion.",
-                                    "examples": [
-                                        1000,
-                                        10000
-                                    ]
-                                }
-                            },
-                            "type": "object"
-                        },
-                        {
-                            "additionalProperties": false,
-                            "properties": {
-                                "fileUpload": {
-                                    "anyOf": [
-                                        {
-                                            "additionalProperties": false,
-                                            "properties": {
-                                                "encoding": {
-                                                    "description": "The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.",
-                                                    "enum": [
-                                                        "binary",
-                                                        "utf-8",
-                                                        "utf8"
-                                                    ],
-                                                    "examples": [
-                                                        [
-                                                            "binary",
-                                                            "utf8"
-                                                        ]
-                                                    ],
-                                                    "type": "string"
-                                                },
-                                                "file": {
-                                                    "description": "The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.",
-                                                    "type": "string"
-                                                },
-                                                "fileName": {
-                                                    "description": "The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.",
-                                                    "examples": [
-                                                        "file.txt"
-                                                    ],
-                                                    "type": "string"
-                                                },
-                                                "force": {
-                                                    "default": false,
-                                                    "description": "If true, the file is uploaded even if the element is not visible. The default is false.",
-                                                    "type": "boolean"
-                                                },
-                                                "selector": {
-                                                    "anyOf": [
-                                                        {
-                                                            "additionalProperties": false,
-                                                            "properties": {
-                                                                "data-cy": {
-                                                                    "type": "string"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        },
-                                                        {
-                                                            "type": "string"
-                                                        }
-                                                    ],
-                                                    "description": "The selector of the DOM element to upload the file",
-                                                    "examples": [
-                                                        [
-                                                            "input[type=file]",
-                                                            "[type$=\"file\"]"
-                                                        ]
-                                                    ]
-                                                },
-                                                "subjectType": {
-                                                    "default": "input",
-                                                    "description": "The type of the file input element. The default is 'input'.",
-                                                    "enum": [
-                                                        "drag-n-drop",
-                                                        "input"
-                                                    ],
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "file"
-                                            ],
-                                            "type": "object"
-                                        },
-                                        {
-                                            "type": "string"
-                                        }
-                                    ]
-                                }
-                            },
-                            "type": "object"
+                            "$ref": "#/definitions/Action"
                         },
                         {
                             "items": {
@@ -957,21 +344,176 @@
             ],
             "type": "object"
         },
-        "Selector": {
-            "anyOf": [
-                {
-                    "additionalProperties": false,
-                    "properties": {
-                        "data-cy": {
+        "ScreenshotAction": {
+            "additionalProperties": false,
+            "properties": {
+                "clip": {
+                    "$ref": "#/definitions/ScreenshotClipArea",
+                    "description": "The clip area within the screenshot image. The clip area is defined\nby the top-left corner (x, y) and the width and height of the clip area."
+                },
+                "data-cy": {
+                    "type": "string"
+                },
+                "path": {
+                    "description": "The path to store the screenshot. This is the relative path used\nwithin the screenshot folder.",
+                    "type": "string"
+                },
+                "selector": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/DataCySelector"
+                        },
+                        {
                             "type": "string"
                         }
-                    },
-                    "type": "object"
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "ScreenshotClipArea": {
+            "additionalProperties": false,
+            "properties": {
+                "height": {
+                    "description": "The height of the clip area. If negative, the height is subtracted from the\nviewport height.",
+                    "type": "integer"
                 },
-                {
+                "width": {
+                    "description": "The width of the clip area. If negative, the width is subtracted from the\nviewport width.",
+                    "type": "integer"
+                },
+                "x": {
+                    "description": "The x-coordinate of the top-left corner of the clip area",
+                    "minimum": 0,
+                    "type": "integer"
+                },
+                "y": {
+                    "description": "The y-coordinate of the top-left corner of the clip area",
+                    "minimum": 0,
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "height",
+                "width",
+                "x",
+                "y"
+            ],
+            "type": "object"
+        },
+        "TextAction": {
+            "additionalProperties": false,
+            "properties": {
+                "data-cy": {
+                    "type": "string"
+                },
+                "selector": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/DataCySelector"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "The value to set",
                     "type": "string"
                 }
-            ]
+            },
+            "required": [
+                "value"
+            ],
+            "type": "object"
+        },
+        "TypeAction": {
+            "additionalProperties": false,
+            "properties": {
+                "data-cy": {
+                    "type": "string"
+                },
+                "selector": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/DataCySelector"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "The value to type",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "value"
+            ],
+            "type": "object"
+        },
+        "UploadFileAction": {
+            "additionalProperties": false,
+            "properties": {
+                "data-cy": {
+                    "type": "string"
+                },
+                "encoding": {
+                    "description": "The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.",
+                    "enum": [
+                        "binary",
+                        "utf-8",
+                        "utf8"
+                    ],
+                    "examples": [
+                        [
+                            "binary",
+                            "utf8"
+                        ]
+                    ],
+                    "type": "string"
+                },
+                "file": {
+                    "description": "The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.",
+                    "type": "string"
+                },
+                "fileName": {
+                    "description": "The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.",
+                    "examples": [
+                        "file.txt"
+                    ],
+                    "type": "string"
+                },
+                "force": {
+                    "default": false,
+                    "description": "If true, the file is uploaded even if the element is not visible. The default is false.",
+                    "type": "boolean"
+                },
+                "selector": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/DataCySelector"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "subjectType": {
+                    "default": "input",
+                    "description": "The type of the file input element. The default is 'input'.",
+                    "enum": [
+                        "drag-n-drop",
+                        "input"
+                    ],
+                    "type": "string"
+                }
+            },
+            "required": [
+                "file"
+            ],
+            "type": "object"
         },
         "Visit": {
             "additionalProperties": false,
@@ -1040,6 +582,70 @@
             "required": [
                 "url"
             ],
+            "type": "object"
+        },
+        "WaitAction": {
+            "additionalProperties": false,
+            "properties": {
+                "assert": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "chainer": {
+                                    "description": "The chainer assertion to. Could be any valid Cypress chainer. The chainer is\nnot validated and may or may not have a value to assert.",
+                                    "examples": [
+                                        "have.length",
+                                        "eq",
+                                        "be.visible"
+                                    ],
+                                    "type": "string"
+                                },
+                                "value": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The value to assert. The value is optional and may not be required by the\nchainer assertion."
+                                }
+                            },
+                            "required": [
+                                "chainer"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "The chainer assertion to wait for. This translates to a Cypress get().should().\nSee https://docs.cypress.io/api/commands/should"
+                },
+                "data-cy": {
+                    "type": "string"
+                },
+                "selector": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/DataCySelector"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "timeout": {
+                    "default": 4000,
+                    "description": "The timeout in ms to wait for",
+                    "type": "integer"
+                }
+            },
             "type": "object"
         }
     },
