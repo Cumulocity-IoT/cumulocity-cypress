@@ -830,7 +830,7 @@ describe("c8yclient", () => {
         });
     });
 
-    // https://github.com/SoftwareAG/cumulocity-cypress/issues/1
+    // https://github.com/Cumulocity-IoT/cumulocity-cypress/issues/1
     it("should wrap client authentication errors into CypressError", (done) => {
       stubResponse(
         new window.Response(

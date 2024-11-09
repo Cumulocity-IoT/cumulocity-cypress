@@ -22,12 +22,12 @@
     "clean:package:json": "npm pkg delete 'devDependencies' && npm pkg delete 'scripts'",
     "lint": "eslint ./",
     "release": "semantic-release",
-    "release:test": "semantic-release --debug --dry-run --no-ci --repositoryUrl git@github.com:SoftwareAG/cumulocity-cypress.git",
+    "release:test": "semantic-release --debug --dry-run --no-ci --repositoryUrl git@github.com:Cumulocity-IoT/cumulocity-cypress.git",
     "screenshot:schema": "npx typescript-json-schema --required --noExtraProps --excludePrivate -o src/screenshot/schema.json src/tsconfig.schematypes.json ScreenshotSetup"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SoftwareAG/cumulocity-cypress.git"
+    "url": "git+https://github.com/Cumulocity-IoT/cumulocity-cypress.git"
   },
   "keywords": [
     "Cypress",
@@ -35,10 +35,10 @@
     "IoT",
     "Test"
   ],
-  "author": "twi@softwareag.com",
+  "author": "thomas.winkler@cumulocity.com",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/SoftwareAG/cumulocity-cypress/issues"
+    "url": "https://github.com/Cumulocity-IoT/cumulocity-cypress/issues"
   },
   "workspaces": [
     "packages/*"
