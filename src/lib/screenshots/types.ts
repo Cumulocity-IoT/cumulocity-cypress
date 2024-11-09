@@ -201,108 +201,62 @@ export type Visit = GlobalVisitOptions & {
   selector?: string;
 };
 
-export type ClickAction = {
+export interface ClickAction {
   /**
-   * A click action triggers a click event on the selected DOM element.
+   * If true, the click event is triggered on all matching elements. The default is false.
+   * @default false
    */
-  click?: {
-    /**
-     * The selector to click
-     */
-    selector: Selector;
-    /**
-     * If true, the click event is triggered on all matching elements. The default is false.
-     * @default false
-     */
-    multiple?: boolean;
-    /**
-     * If true, the click event is triggered even if the element is not visible. The default is false.
-     * @default false
-     */
-    force?: boolean;
-  };
-};
+  multiple?: boolean;
+  /**
+   * If true, the click event is triggered even if the element is not visible. The default is false.
+   * @default false
+   */
+  force?: boolean;
+}
 
-export type TypeAction = {
+export interface TypeAction {
   /**
-   * A type action triggers a type event on the selected DOM element. Use to
-   * simulate typing in an input field.
+   * The value to type
    */
-  type?: {
-    /**
-     * The selector to type
-     */
-    selector: Selector;
-    /**
-     * The value to type
-     */
-    value: string;
-  };
-};
+  value: string;
+}
 
-export type TextAction = {
+export interface TextAction {
   /**
-   * A text action modifies the text value of selected DOM element.
+   * The value to set
    */
-  text?: {
-    /*
-     * The selector to modify
-     */
-    selector: Selector;
-    /**
-     * The value to set
-     */
-    value: string;
-  };
-};
+  value: string;
+}
 
-export type WaitAction = {
+export interface WaitAction {
   /**
-   * A wait action waits for the given time in ms or for a given
-   * chainer assertion.
-   * @examples [1000, 10000]
+   * The timeout in ms to wait for
+   * @TJS-type integer
+   * @default 4000
    */
-  wait?:
-    | number
+  timeout?: number;
+  /**
+   * The chainer assertion to wait for. This translates to a Cypress get().should().
+   * See https://docs.cypress.io/api/commands/should
+   */
+  assert?:
+    | string
     | {
         /**
-         * The selector of the DOM element to wait for
+         * The chainer assertion to. Could be any valid Cypress chainer. The chainer is
+         * not validated and may or may not have a value to assert.
+         * @examples ["have.length", "eq", "be.visible"]
          */
-        selector: Selector;
+        chainer: string;
         /**
-         * The timeout in ms to wait for
-         * @TJS-type integer
-         * @default 4000
+         * The value to assert. The value is optional and may not be required by the
+         * chainer assertion.
          */
-        timeout?: number;
-        /**
-         * The chainer assertion to wait for. This translates to a Cypress get().should().
-         * See https://docs.cypress.io/api/commands/should
-         */
-        assert?:
-          | string
-          | {
-              /**
-               * The chainer assertion to. Could be any valid Cypress chainer. The chainer is
-               * not validated and may or may not have a value to assert.
-               * @examples ["have.length", "eq", "be.visible"]
-               */
-              chainer: string;
-              /**
-               * The value to assert. The value is optional and may not be required by the
-               * chainer assertion.
-               */
-              value?: string | string[];
-            };
+        value?: string | string[];
       };
-};
+}
 
-export type UploadFileOptions = {
-  /**
-   * The selector of the DOM element to upload the file
-   * @examples [["input[type=file]", "[type$=\"file\"]"]]
-   */
-  selector?: Selector;
+export interface UploadFileAction {
   /**
    * The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.
    */
@@ -317,7 +271,6 @@ export type UploadFileOptions = {
    * @examples [["binary", "utf8"]]
    */
   encoding?: "binary" | "utf8" | "utf-8";
-
   /**
    * The type of the file input element. The default is 'input'.
    * @default "input"
@@ -328,17 +281,9 @@ export type UploadFileOptions = {
    * @default false
    */
   force?: boolean;
-};
+}
 
-export type UploadFileAction = {
-  fileUpload?: string | UploadFileOptions;
-};
-
-export type HighlightActionProperties = {
-  /**
-   * The selector of the DOM element to highlight
-   */
-  selector: Selector;
+export interface HighlightAction {
   /**
    * The border style. Use any valid CSS border style.
    * @examples ["1px solid red"]
@@ -349,16 +294,11 @@ export type HighlightActionProperties = {
    * @examples ["background-color: yellow", "outline: dashed", "outline-offset: +3px"]
    */
   styles?: any;
-};
+}
 
-export type HighlightAction = {
-  /**
-   * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
-   */
-  highlight?: HighlightActionProperties | HighlightActionProperties[] | string;
-};
+export type SelectableHighlightAction = HighlightAction & Selectable
 
-export type ScreenshotClipArea = {
+export interface ScreenshotClipArea {
   /**
    * The x-coordinate of the top-left corner of the clip area
    * @minimum 0
@@ -383,45 +323,65 @@ export type ScreenshotClipArea = {
    * @TJS-type integer
    */
   height: number;
-};
+}
 
-export type Selector =
-  | string
-  | {
-      "data-cy"?: string;
-    };
+export interface ScreenshotAction {
+  /**
+   * The path to store the screenshot. This is the relative path used
+   * within the screenshot folder.
+   */
+  path?: string;
+  /**
+   * The clip area within the screenshot image. The clip area is defined
+   * by the top-left corner (x, y) and the width and height of the clip area.
+   */
+  clip?: ScreenshotClipArea;
+}
 
-export type ScreenshotAction = {
+export interface Action {
+  /**
+   * A click action triggers a click event on the selected DOM element.
+   */
+  click?: string | ClickAction & Selectable;
+  /**
+   * Use the file upload action to upload a file using the file input element. Currently supported file types are .json, .txt, .csv, .png, .jpg, .jpeg, .gif.
+   */
+  fileUpload?: string | UploadFileAction & Selectable;
+  /**
+   * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
+   */
+  highlight?: string | SelectableHighlightAction | SelectableHighlightAction[];
   /**
    * The screenshot action triggers a screenshot of the current state of the
    * application.
    */
-  screenshot?: {
-    /**
-     * The path to store the screenshot. This is the relative path used
-     * within the screenshot folder.
-     */
-    path?: string;
-    /**
-     * The clip area within the screenshot image. The clip area is defined
-     * by the top-left corner (x, y) and the width and height of the clip area.
-     */
-    clip?: ScreenshotClipArea;
-    /**
-     * The selector of the DOM element to capture
-     */
-    selector?: Selector;
-  };
-};
+  screenshot?: ScreenshotAction & Partial<Selectable>;
+  /**
+   * A text action modifies the text value of selected DOM element.
+   */
+  text?: TextAction & Selectable;
+  /**
+   * A type action triggers a type event on the selected DOM element. Use to
+   * simulate typing in an input field.
+   */
+  type?: TypeAction & Selectable;
+  /**
+   * A wait action waits for the given time in ms or for a given
+   * chainer assertion.
+   * @examples [1000, 10000]
+   */
+  wait?: number | WaitAction;
+}
 
-export type Action =
-  | ClickAction
-  | TypeAction
-  | ScreenshotAction
-  | HighlightAction
-  | TextAction
-  | WaitAction
-  | UploadFileAction;
+export type DataCySelector = {
+  "data-cy": string;
+}
+
+export type Selector = {
+  selector: string | DataCySelector;
+}
+
+export type Selectable = Selector | DataCySelector;
 
 // Internal types used within C8yScreenshotRunner
 // This will not be exposed to schema.json

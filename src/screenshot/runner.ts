@@ -8,18 +8,10 @@ import { pactId } from "../shared/c8ypact";
 import {
   Action,
   C8yScreenshotFileUploadOptions,
-  ClickAction,
-  HighlightAction,
   Screenshot,
-  ScreenshotAction,
   ScreenshotSetup,
   Selector,
-  TextAction,
-  TypeAction,
-  UploadFileAction,
-  UploadFileOptions,
   Visit,
-  WaitAction,
 } from "../lib/screenshots/types";
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
@@ -189,7 +181,8 @@ export class C8yScreenshotRunner {
             let actions = item.actions == null ? [] : item.actions;
             actions = _.isArray(actions) ? actions : [actions];
             actions.forEach((action) => {
-              const handler = this.actionHandlers[Object.keys(action)[0]];
+              const handlerKey = Object.keys(action)[0];
+              const handler = this.actionHandlers[handlerKey];
               if (handler) {
                 if (isScreenshotAction(action)) {
                   const clipArea = action.screenshot?.clip;
@@ -208,7 +201,7 @@ export class C8yScreenshotRunner {
                     };
                   }
                 }
-                handler(action, this, item, options);
+                handler(_.get(action, handlerKey), this, item, options);
               }
             });
 
@@ -229,30 +222,31 @@ export class C8yScreenshotRunner {
     });
   }
 
-  protected click(action: ClickAction) {
-    const selector = getSelector(action.click?.selector);
+
+  protected click(action: Action["click"]) {
+    const click = _.isString(action) ? { selector: action } : action;
+    const selector = getSelector(click);
     if (selector == null) return;
 
-    const multiple = action.click?.multiple ?? false;
-    const force = action.click?.force ?? false;
+    const multiple = click?.multiple ?? false;
+    const force = click?.force ?? false;
     cy.get(selector).click(_.omitBy({ multiple, force }, (v) => v === false));
   }
 
-  protected type(action: TypeAction) {
-    const selector = getSelector(action.type?.selector);
-    if (selector == null || action.type == null) return;
-    cy.get(selector).type(action.type.value);
+  protected type(action: Action["type"]) {
+    const selector = getSelector(action);
+    if (selector == null || action == null) return;
+    cy.get(selector).type(action.value);
   }
 
-  protected highlight(action: HighlightAction, that: C8yScreenshotRunner) {
-    const highlights = _.isArray(action.highlight)
-      ? action.highlight
-      : [action.highlight];
+  protected highlight(
+    action: Action["highlight"],
+    that: C8yScreenshotRunner
+  ) {
+    const highlights = _.isArray(action) ? action : [action];
 
     highlights?.forEach((highlight) => {
-      const selector = getSelector(
-        _.isString(highlight) ? highlight : highlight?.selector
-      );
+      const selector = getSelector(highlight);
       if (selector == null) return;
 
       cy.get(selector).then(($element) => {
@@ -279,24 +273,24 @@ export class C8yScreenshotRunner {
     });
   }
 
-  protected text(action: TextAction) {
-    const selector = getSelector(action.text?.selector);
-    const value = action.text?.value;
+  protected text(action: Action["text"]) {
+    const selector = getSelector(action);
+    const value = action?.value;
     if (selector == null || value == null) return;
     cy.get(selector).then(($element) => {
       $element.text(value);
     });
   }
 
-  protected wait(action: WaitAction) {
-    if (action.wait == null) return;
-    if (_.isNumber(action.wait)) {
-      cy.wait(action.wait);
-    } else if (_.isObjectLike(action.wait)) {
-      const selector = getSelector(action.wait.selector);
+  protected wait(action: Action["wait"]) {
+    if (action == null) return;
+    if (_.isNumber(action)) {
+      cy.wait(action);
+    } else if (_.isObjectLike(action)) {
+      const selector = getSelector(action);
       if (selector != null) {
-        const timeout = action.wait.timeout ?? 4000;
-        const chainer = action.wait.assert;
+        const timeout = action.timeout ?? 4000;
+        const chainer = action.assert;
         if (chainer != null) {
           if (_.isString(chainer)) {
             cy.get(selector, { timeout }).should(chainer);
@@ -319,16 +313,16 @@ export class C8yScreenshotRunner {
     }
   }
 
-  protected fileUpload(action: UploadFileAction) {
+  protected fileUpload(action: Action["fileUpload"]) {
     const defaultSelector = '[type$="file"]';
-    let fileUpload: UploadFileOptions | undefined = undefined;
-    if (_.isString(action.fileUpload)) {
-      fileUpload = { selector: defaultSelector, file: action.fileUpload };
-    } else if (action.fileUpload != null) {
-      fileUpload = action.fileUpload;
+    let fileUpload: Action["fileUpload"] = undefined;
+    if (_.isString(action)) {
+      fileUpload = { selector: defaultSelector, file: action };
+    } else if (action != null) {
+      fileUpload = action;
     }
 
-    const selector = getSelector(fileUpload?.selector);
+    const selector = getSelector(fileUpload);
     const filePath = fileUpload?.file;
     if (selector == null || filePath == null) {
       cy.task("debug", `File upload selector or file path is missing`, taskLog);
@@ -338,58 +332,57 @@ export class C8yScreenshotRunner {
     cy.task<C8yScreenshotFileUploadOptions>("c8yscrn:file", {
       path: filePath,
       ..._.pick(fileUpload, ["encoding", "fileName"]),
-    })
-      .then((file) => {
-        if (file == null) {
-          cy.task("debug", `File ${filePath} not found`, taskLog);
-          return;
-        }
+    }).then((file) => {
+      if (file == null) {
+        cy.task("debug", `File ${filePath} not found`, taskLog);
+        return;
+      }
 
-        cy.task("debug", `Uploading file ${filePath} to ${selector}`, taskLog);
+      cy.task("debug", `Uploading file ${filePath} to ${selector}`, taskLog);
 
-        const attachData =
-          file.encoding === "binary"
-            ? Cypress.Blob.binaryStringToBlob(file.data)
-            : file.data;
-        const fixtureData = _.omitBy(
-          {
-            fileContent: attachData,
-            fileName: fileUpload?.fileName ?? file.filename,
-            ..._.pick(fileUpload, ["encoding", "lastModified"]),
-          },
-          _.isNil
-        );
-        const fileProcessingOptions = _.omitBy(
-          _.pick(action.fileUpload, ["subjectType", "force", "allowEmpty"]),
-          _.isNil
-        );
+      const attachData =
+        file.encoding === "binary"
+          ? Cypress.Blob.binaryStringToBlob(file.data)
+          : file.data;
+      const fixtureData = _.omitBy(
+        {
+          fileContent: attachData,
+          fileName: fileUpload?.fileName ?? file.filename,
+          ..._.pick(fileUpload, ["encoding", "lastModified"]),
+        },
+        _.isNil
+      );
+      const fileProcessingOptions = _.omitBy(
+        _.pick(fileUpload, ["subjectType", "force", "allowEmpty"]),
+        _.isNil
+      );
 
-        cy.task(
-          "debug",
-          `Fixture data: ${JSON.stringify({
-            ...fixtureData,
-            fileContent: "...",
-          })}`,
-          taskLog
-        );
-        cy.task(
-          "debug",
-          `File processing options: ${JSON.stringify(fileProcessingOptions)}`,
-          taskLog
-        );
+      cy.task(
+        "debug",
+        `Fixture data: ${JSON.stringify({
+          ...fixtureData,
+          fileContent: "...",
+        })}`,
+        taskLog
+      );
+      cy.task(
+        "debug",
+        `File processing options: ${JSON.stringify(fileProcessingOptions)}`,
+        taskLog
+      );
 
-        cy.get(selector).attachFile(fixtureData, fileProcessingOptions);
-      });
+      cy.get(selector).attachFile(fixtureData, fileProcessingOptions);
+    });
   }
 
   protected screenshot(
-    action: ScreenshotAction,
+    action: Action["screenshot"],
     _that: C8yScreenshotRunner,
     item: Screenshot,
     options: any
   ) {
-    let name = action.screenshot?.path || item.image;
-    const selector = getSelector(action.screenshot?.selector);
+    let name = action?.path || item.image;
+    const selector = getSelector(action);
     cy.task(
       "debug",
       `Taking screenshot ${name} Selector: ${selector}`,
@@ -437,34 +430,34 @@ export function isRecording(): boolean {
   return Cypress.env("C8Y_CTRL_MODE") === "recording";
 }
 
-export function isClickAction(action: Action): action is ClickAction {
+export function isClickAction(action: Action): boolean {
   return "click" in action;
 }
 
-export function isTypeAction(action: Action): action is TypeAction {
+export function isTypeAction(action: Action): boolean {
   return "type" in action;
 }
 
-export function isHighlightAction(action: Action): action is HighlightAction {
+export function isHighlightAction(action: Action): boolean {
   return "highlight" in action;
 }
 
-export function isScreenshotAction(action: Action): action is ScreenshotAction {
+export function isScreenshotAction(action: Action): boolean {
   return "screenshot" in action;
 }
 
 export function getSelector(
-  selector: Selector | undefined
+  selector: any | string | undefined
 ): string | undefined {
-  if (!selector) {
-    return undefined;
-  }
-  if (_.isString(selector)) {
-    return selector;
-  }
+  if (!selector) return undefined;
+  if (_.isString(selector)) return selector;
+
   if (_.isPlainObject(selector)) {
     if ("data-cy" in selector) {
       return `[data-cy=${_.get(selector, "data-cy")}]`;
+    }
+    if ("selector" in selector) {
+      return getSelector(selector.selector as Selector);
     }
   }
   return undefined;
