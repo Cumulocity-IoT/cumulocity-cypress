@@ -11,7 +11,6 @@ import {
   Screenshot,
   ScreenshotSetup,
   Selector,
-  UploadFileAction,
   Visit,
 } from "../lib/screenshots/types";
 
@@ -316,7 +315,7 @@ export class C8yScreenshotRunner {
 
   protected fileUpload(action: Action["fileUpload"]) {
     const defaultSelector = '[type$="file"]';
-    let fileUpload: UploadFileAction | undefined = undefined;
+    let fileUpload: Action["fileUpload"] = undefined;
     if (_.isString(action)) {
       fileUpload = { selector: defaultSelector, file: action };
     } else if (action != null) {

@@ -201,7 +201,7 @@ export type Visit = GlobalVisitOptions & {
   selector?: string;
 };
 
-export interface ClickAction extends Selector {
+export interface ClickAction {
   /**
    * If true, the click event is triggered on all matching elements. The default is false.
    * @default false
@@ -214,21 +214,21 @@ export interface ClickAction extends Selector {
   force?: boolean;
 }
 
-export interface TypeAction extends Selector {
+export interface TypeAction {
   /**
    * The value to type
    */
   value: string;
 }
 
-export interface TextAction extends Selector {
+export interface TextAction {
   /**
    * The value to set
    */
   value: string;
 }
 
-export interface WaitAction extends Selector {
+export interface WaitAction {
   /**
    * The timeout in ms to wait for
    * @TJS-type integer
@@ -256,7 +256,7 @@ export interface WaitAction extends Selector {
       };
 }
 
-export interface UploadFileAction extends Selector {
+export interface UploadFileAction {
   /**
    * The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.
    */
@@ -271,7 +271,6 @@ export interface UploadFileAction extends Selector {
    * @examples [["binary", "utf8"]]
    */
   encoding?: "binary" | "utf8" | "utf-8";
-
   /**
    * The type of the file input element. The default is 'input'.
    * @default "input"
@@ -284,7 +283,7 @@ export interface UploadFileAction extends Selector {
   force?: boolean;
 }
 
-export interface HighlightAction extends Selector {
+export interface HighlightAction {
   /**
    * The border style. Use any valid CSS border style.
    * @examples ["1px solid red"]
@@ -296,6 +295,8 @@ export interface HighlightAction extends Selector {
    */
   styles?: any;
 }
+
+export type SelectableHighlightAction = HighlightAction & Selectable
 
 export interface ScreenshotClipArea {
   /**
@@ -324,7 +325,7 @@ export interface ScreenshotClipArea {
   height: number;
 }
 
-export interface ScreenshotAction extends Selector {
+export interface ScreenshotAction {
   /**
    * The path to store the screenshot. This is the relative path used
    * within the screenshot folder.
@@ -341,29 +342,29 @@ export interface Action {
   /**
    * A click action triggers a click event on the selected DOM element.
    */
-  click?: string | ClickAction;
+  click?: string | ClickAction & Selectable;
   /**
    * Use the file upload action to upload a file using the file input element. Currently supported file types are .json, .txt, .csv, .png, .jpg, .jpeg, .gif.
    */
-  fileUpload?: UploadFileAction | string;
+  fileUpload?: string | UploadFileAction & Selectable;
   /**
    * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
    */
-  highlight?: HighlightAction | HighlightAction[] | string;
+  highlight?: string | SelectableHighlightAction | SelectableHighlightAction[];
   /**
    * The screenshot action triggers a screenshot of the current state of the
    * application.
    */
-  screenshot?: ScreenshotAction;
+  screenshot?: ScreenshotAction & Partial<Selectable>;
   /**
    * A text action modifies the text value of selected DOM element.
    */
-  text?: TextAction;
+  text?: TextAction & Selectable;
   /**
    * A type action triggers a type event on the selected DOM element. Use to
    * simulate typing in an input field.
    */
-  type?: TypeAction;
+  type?: TypeAction & Selectable;
   /**
    * A wait action waits for the given time in ms or for a given
    * chainer assertion.
@@ -372,13 +373,15 @@ export interface Action {
   wait?: number | WaitAction;
 }
 
-export interface DataCySelector {
-  "data-cy"?: string;
+export type DataCySelector = {
+  "data-cy": string;
 }
 
-export interface Selector extends DataCySelector {
-  selector?: string | DataCySelector;
+export type Selector = {
+  selector: string | DataCySelector;
 }
+
+export type Selectable = Selector | DataCySelector;
 
 // Internal types used within C8yScreenshotRunner
 // This will not be exposed to schema.json
