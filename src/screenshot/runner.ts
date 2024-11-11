@@ -131,13 +131,13 @@ export class C8yScreenshotRunner {
             }
 
             const width =
-              this.config.global?.viewportWidth ??
               item.settings?.viewportWidth ??
+              this.config.global?.viewportWidth ??
               Cypress.config("viewportWidth") ??
               1440;
             const height =
-              this.config.global?.viewportHeight ??
               item.settings?.viewportWidth ??
+              this.config.global?.viewportHeight ??
               Cypress.config("viewportHeight") ??
               900;
             cy.viewport(width, height);
