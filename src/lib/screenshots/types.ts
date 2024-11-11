@@ -1,3 +1,9 @@
+// See https://github.com/json-schema-org/json-schema-spec/issues/1087
+// for details on intersections and types with JSON schema. Basically,
+// using & to combine types is not supported by JSON schema and will
+// result in copying the properties of the intersection into the resulting
+// subschemas.
+
 export type ScreenshotSetup = {
   /**
    * The base URL used for all relative requests.
@@ -11,14 +17,30 @@ export type ScreenshotSetup = {
   /**
    * The global settings for all screenshots
    */
-  global?: ScreenshotSettings & TestcaseOptions & GlobalVisitOptions;
+  global?: GlobalOptions & ScreenshotSettings & ScreenshotOptions;
   /**
    * The screensht workflows
    */
-  screenshots: Screenshot[];
+  screenshots: (Screenshot & ScreenshotOptions)[];
 };
 
-export type TestcaseOptions = {
+export interface GlobalOptions {
+  /**
+   * The selector to wait for when visiting a page
+   * @default "c8y-drawer-outlet c8y-app-icon .c8y-icon"
+   * @examples ["c8y-drawer-outlet c8y-app-icon .c8y-icon"]
+   */
+  visitWaitSelector?: string;
+  /**
+   * The defaulft style to highlight elements. By default, an organge border of 2px width is used to highlight elements.
+   * @examples [{ "outline": "2px", "outline-style": "solid", "outline-offset": "-2px", "outline-color": "#FF9300" }, { "border": "2px solid red" }]
+   */
+  highlightStyle?: any;
+}
+
+export type SemverRange = string;
+
+export interface ScreenshotOptions {
   /**
    * Tags allow grouping and filtering of screenshots (optional)
    */
@@ -38,76 +60,64 @@ export type TestcaseOptions = {
    * @examples ["1.x, ^1.0.0, >=1.0.0 <2.0.0"]
    */
   requires?: SemverRange;
-};
-
-export type SemverRange = string;
-
-export type GlobalVisitOptions = {
   /**
    * Load Cumulocity with the given language
    * @example "en"
    */
   language?: "en" | "de" | string;
   /**
+   * Use login instead of user
+   * @deprecated Use login instead
+   */
+  user?: string;
+  /**
    * The login user alias. Configure *user*_username and *user*_password env
    * variables to set the actual user id and password.
    * @examples ["admin"]
    */
-  user?: string;
+  login?: string;
   /**
    * The date to simulate when running the screenshot workflows
    * @format date-time
    * @examples ["2024-09-26T19:17:35+02:00"]
    */
   date?: string;
-  /**
-   * The selector to wait for when visiting a page
-   * @default "c8y-drawer-outlet c8y-app-icon .c8y-icon"
-   * @examples ["c8y-drawer-outlet c8y-app-icon .c8y-icon"]
-   */
-  visitWaitSelector?: string;
-  /**
-   * The defaulft style to highlight elements. By default, an organge border of 2px width is used to highlight elements.
-   * @examples [{ "outline": "2px", "outline-style": "solid", "outline-offset": "-2px", "outline-color": "#FF9300" }, { "border": "2px solid red" }]
-   */
-  highlightStyle?: any;
-};
+}
 
-export type Screenshot = GlobalVisitOptions &
-  TestcaseOptions & {
-    /**
-     * The name of the screenshot image as relative path
-     * @examples ["/images/cockpit/dashboard.png"]
-     */
-    image: string;
-    /**
-     * The URI to visit. This typically a relative path to the baseUrl.
-     * @examples ["/apps/cockpit/index.html#/"]
-     */
-    visit: string | Visit;
-    /**
-     * The actions to perform in the screenshot workflow. The last action
-     * is always a screenshot action. If no actions are defined or last actions is
-     * not a screenshot action, a screenshot is taken of the current state of
-     * the application.
-     */
-    actions?: Action[] | Action;
-    /**
-     * Run only this screenshot workflow and all other workflows that
-     * have only setting enabled
-     */
-    only?: boolean;
-    /**
-     * Skip this screenshot workflow
-     */
-    skip?: boolean;
-    /**
-     * The configuration and settings of the screenshot
-     */
-    settings?: ScreenshotSettings;
-  };
+export interface Screenshot {
+  /**
+   * The name of the screenshot image as relative path
+   * @examples ["/images/cockpit/dashboard.png"]
+   */
+  image: string;
+  /**
+   * The URI to visit. This typically a relative path to the baseUrl.
+   * @examples ["/apps/cockpit/index.html#/"]
+   */
+  visit: string | Visit;
+  /**
+   * The actions to perform in the screenshot workflow. The last action
+   * is always a screenshot action. If no actions are defined or last actions is
+   * not a screenshot action, a screenshot is taken of the current state of
+   * the application.
+   */
+  actions?: Action[] | Action;
+  /**
+   * Run only this screenshot workflow and all other workflows that
+   * have only setting enabled
+   */
+  only?: boolean;
+  /**
+   * Skip this screenshot workflow
+   */
+  skip?: boolean;
+  /**
+   * The configuration and settings of the screenshot
+   */
+  settings?: ScreenshotSettings;
+}
 
-type ScreenshotSettings = {
+export interface ScreenshotSettings {
   /**
    * The width in px to use for the browser window
    * @minimum 0
@@ -179,9 +189,9 @@ type ScreenshotSettings = {
      */
     screenshot?: number;
   };
-};
+}
 
-export type Visit = GlobalVisitOptions & {
+export interface Visit {
   /**
    * The URL to visit. Currently only an URI relative to the base URL is
    * supported.
@@ -199,7 +209,7 @@ export type Visit = GlobalVisitOptions & {
    * @examples ["c8y-drawer-outlet c8y-app-icon .c8y-icon"]
    */
   selector?: string;
-};
+}
 
 export interface ClickAction {
   /**
@@ -296,7 +306,7 @@ export interface HighlightAction {
   styles?: any;
 }
 
-export type SelectableHighlightAction = HighlightAction & Selectable
+export type SelectableHighlightAction = HighlightAction & Selectable;
 
 export interface ScreenshotClipArea {
   /**
@@ -342,11 +352,11 @@ export interface Action {
   /**
    * A click action triggers a click event on the selected DOM element.
    */
-  click?: string | ClickAction & Selectable;
+  click?: string | (ClickAction & Selectable);
   /**
    * Use the file upload action to upload a file using the file input element. Currently supported file types are .json, .txt, .csv, .png, .jpg, .jpeg, .gif.
    */
-  fileUpload?: string | UploadFileAction & Selectable;
+  fileUpload?: string | (UploadFileAction & Selectable);
   /**
    * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
    */
@@ -375,11 +385,11 @@ export interface Action {
 
 export type DataCySelector = {
   "data-cy": string;
-}
+};
 
 export type Selector = {
   selector: string | DataCySelector;
-}
+};
 
 export type Selectable = Selector | DataCySelector;
 

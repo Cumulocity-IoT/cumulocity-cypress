@@ -425,9 +425,9 @@ global:
 - **Description**: The language to use when loading the Cumulocity application. This can be useful for capturing screenshots in different locales. Default language is `en`.
 - **Example**: `"en"` or `"de"`
 
-**user**
+**login**
 - **Type**: string
-- **Description**: The login user alias. Configure `*user*_username` and `*user*_password` environment variables to set the actual user ID and password. See the [Authentication](#authentication) section for more details.
+- **Description**: The login user alias to use for logging into Cumulocity. Configure `*login*_username` and `*login*_password` environment variables to set the actual user ID and password. See the [Authentication](#authentication) section for more details.
 - **Example**: `"admin"`
 
 **shell**
@@ -704,7 +704,7 @@ screenshots:
 ```yaml
 global:
   language: en
-  user: admin
+  login: admin
   shell: "oee"
   requires: "1017"
   tags: 

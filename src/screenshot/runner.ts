@@ -88,8 +88,6 @@ export class C8yScreenshotRunner {
           cy.getAuth(this.config.global?.user).getShellVersion(
             this.config.global?.shell
           );
-        } else {
-          cy.getShellVersion(this.config.global?.shell);
         }
       });
 
@@ -122,8 +120,15 @@ export class C8yScreenshotRunner {
           annotations,
           // @ts-expect-error
           () => {
-            const user = item.user ?? this.config.global?.user ?? "admin";
-            cy.getAuth(user).getTenantId();
+            const user =
+              item.login ??
+              this.config.global?.login ??
+              item.user ??
+              this.config.global?.user;
+
+            if (user != null) {
+              cy.getAuth(user).getTenantId();
+            }
 
             const width =
               this.config.global?.viewportWidth ??
@@ -150,10 +155,11 @@ export class C8yScreenshotRunner {
               cy.clock(new Date(visitDate));
             }
 
-            const visitObject = this.getVisitObject(item.visit);
-            const visitUser = visitObject?.user ?? user;
-            cy.login(visitUser);
+            if (user != null) {
+              cy.login(user);
+            }
 
+            const visitObject = this.getVisitObject(item.visit);
             const url = visitObject?.url ?? (item.visit as string);
             const visitSelector =
               visitObject?.selector ??
@@ -167,10 +173,7 @@ export class C8yScreenshotRunner {
             const visitTimeout = visitObject?.timeout;
 
             const language =
-              visitObject?.language ??
-              item.language ??
-              this.config.global?.language ??
-              "en";
+              item.language ?? this.config.global?.language ?? "en";
             cy.visitAndWaitForSelector(
               url,
               language as any,
@@ -222,7 +225,6 @@ export class C8yScreenshotRunner {
     });
   }
 
-
   protected click(action: Action["click"]) {
     const click = _.isString(action) ? { selector: action } : action;
     const selector = getSelector(click);
@@ -239,10 +241,7 @@ export class C8yScreenshotRunner {
     cy.get(selector).type(action.value);
   }
 
-  protected highlight(
-    action: Action["highlight"],
-    that: C8yScreenshotRunner
-  ) {
+  protected highlight(action: Action["highlight"], that: C8yScreenshotRunner) {
     const highlights = _.isArray(action) ? action : [action];
 
     highlights?.forEach((highlight) => {
