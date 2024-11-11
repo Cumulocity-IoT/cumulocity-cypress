@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/SoftwareAG/cumulocity-cypress.git"
+    "url": "https://github.com/Cumulocity-IoT/cumulocity-cypress.git"
   },
   "keywords": [
     "Cypress",
@@ -18,10 +18,10 @@
     "IoT",
     "Test"
   ],
-  "author": "twi@softwareag.com",
+  "author": "thomas.winkler@cumulocity.com",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "git+https://github.com/SoftwareAG/cumulocity-cypress/issues"
+    "url": "git+https://github.com/Cumulocity-IoT/cumulocity-cypress/issues"
   },
   "dependencies": {
     "@angular/common": "^16.2.0",

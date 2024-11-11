@@ -425,9 +425,9 @@ global:
 - **Description**: The language to use when loading the Cumulocity application. This can be useful for capturing screenshots in different locales. Default language is `en`.
 - **Example**: `"en"` or `"de"`
 
-**user**
+**login**
 - **Type**: string
-- **Description**: The login user alias. Configure `*user*_username` and `*user*_password` environment variables to set the actual user ID and password. See the [Authentication](#authentication) section for more details.
+- **Description**: The login user alias to use for logging into Cumulocity. Configure `*login*_username` and `*login*_password` environment variables to set the actual user ID and password. See the [Authentication](#authentication) section for more details.
 - **Example**: `"admin"`
 
 **shell**
@@ -588,8 +588,10 @@ Actions allow you to interact with the page before taking a screenshot. Availabl
 ```yaml
 - click:
     selector: string or object
+    multiple: boolean
+    force: boolean
 ```
-Clicks on the specified element.
+Clicks on the specified element. Use the `multiple` option to click on all matching elements, and the `force` option to bypass the element's visibility check.
 
 **type**
 ```yaml
@@ -606,6 +608,7 @@ Types the specified value into the selected input field.
     border: string
     styles: object
 ```
+
 Highlights the specified element. Useful for drawing attention to specific parts of the UI in documentation screenshots. `border` is a shorthand for setting the border style, and `styles` allows for more advanced styling. Values can be any valid CSS border or style property.
 
 ```yaml
@@ -617,6 +620,21 @@ Highlights the specified element. Useful for drawing attention to specific parts
 - selector: "#main-content"
   border: 2px solid green
 ```
+
+**fileUpload**
+```yaml
+- fileUpload: string or object
+    selector: string or object
+    file: string
+    fileName: string
+    encoding: binary or utf8 or utf-8
+    subjectType: input or drag-n-drop
+    force: boolean
+```
+
+Uploads a file to the specified input field. The `file` property should be the path to the file to upload. Use `encoding` to specify the file encoding, and `subjectType` to choose between input or drag-and-drop file upload. The `force` option can be used to bypass the element's visibility check.
+
+If no selector is provided, the file will be uploaded to the first file input field found on the page.
 
 **screenshot**
 ```yaml
@@ -686,7 +704,7 @@ screenshots:
 ```yaml
 global:
   language: en
-  user: admin
+  login: admin
   shell: "oee"
   requires: "1017"
   tags: 

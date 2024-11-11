@@ -3,7 +3,6 @@ const { defineConfig } = require("cypress");
 const { configureC8yScreenshotPlugin } = require("../../plugin");
 
 const { debug } = require("debug");
-const log = debug("c8y:scrn:cypress");
 
 module.exports = defineConfig({
   e2e: {
@@ -12,13 +11,6 @@ module.exports = defineConfig({
     video: false,
     setupNodeEvents(on, config) {
       configureC8yScreenshotPlugin(on, config);
-      on("task", {
-        debug: (message) => {
-          log(message);
-          return null;
-        },
-      });
-
       return config;
     },
   },

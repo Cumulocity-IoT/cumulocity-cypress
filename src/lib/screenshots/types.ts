@@ -1,3 +1,9 @@
+// See https://github.com/json-schema-org/json-schema-spec/issues/1087
+// for details on intersections and types with JSON schema. Basically,
+// using & to combine types is not supported by JSON schema and will
+// result in copying the properties of the intersection into the resulting
+// subschemas.
+
 export type ScreenshotSetup = {
   /**
    * The base URL used for all relative requests.
@@ -11,14 +17,30 @@ export type ScreenshotSetup = {
   /**
    * The global settings for all screenshots
    */
-  global?: ScreenshotSettings & TestcaseOptions & GlobalVisitOptions;
+  global?: GlobalOptions & ScreenshotSettings & ScreenshotOptions;
   /**
    * The screensht workflows
    */
-  screenshots: Screenshot[];
+  screenshots: (Screenshot & ScreenshotOptions)[];
 };
 
-export type TestcaseOptions = {
+export interface GlobalOptions {
+  /**
+   * The selector to wait for when visiting a page
+   * @default "c8y-drawer-outlet c8y-app-icon .c8y-icon"
+   * @examples ["c8y-drawer-outlet c8y-app-icon .c8y-icon"]
+   */
+  visitWaitSelector?: string;
+  /**
+   * The defaulft style to highlight elements. By default, an organge border of 2px width is used to highlight elements.
+   * @examples [{ "outline": "2px", "outline-style": "solid", "outline-offset": "-2px", "outline-color": "#FF9300" }, { "border": "2px solid red" }]
+   */
+  highlightStyle?: any;
+}
+
+export type SemverRange = string;
+
+export interface ScreenshotOptions {
   /**
    * Tags allow grouping and filtering of screenshots (optional)
    */
@@ -38,76 +60,64 @@ export type TestcaseOptions = {
    * @examples ["1.x, ^1.0.0, >=1.0.0 <2.0.0"]
    */
   requires?: SemverRange;
-};
-
-export type SemverRange = string;
-
-export type GlobalVisitOptions = {
   /**
    * Load Cumulocity with the given language
    * @example "en"
    */
   language?: "en" | "de" | string;
   /**
+   * Use login instead of user
+   * @deprecated Use login instead
+   */
+  user?: string;
+  /**
    * The login user alias. Configure *user*_username and *user*_password env
    * variables to set the actual user id and password.
    * @examples ["admin"]
    */
-  user?: string;
+  login?: string;
   /**
    * The date to simulate when running the screenshot workflows
    * @format date-time
    * @examples ["2024-09-26T19:17:35+02:00"]
    */
   date?: string;
-  /**
-   * The selector to wait for when visiting a page
-   * @default "c8y-drawer-outlet c8y-app-icon .c8y-icon"
-   * @examples ["c8y-drawer-outlet c8y-app-icon .c8y-icon"]
-   */
-  visitWaitSelector?: string;
-  /**
-   * The defaulft style to highlight elements. By default, an organge border of 2px width is used to highlight elements.
-   * @examples [{ "outline": "2px", "outline-style": "solid", "outline-offset": "-2px", "outline-color": "#FF9300" }, { "border": "2px solid red" }]
-   */
-  highlightStyle?: any;
-};
+}
 
-export type Screenshot = GlobalVisitOptions &
-  TestcaseOptions & {
-    /**
-     * The name of the screenshot image as relative path
-     * @examples ["/images/cockpit/dashboard.png"]
-     */
-    image: string;
-    /**
-     * The URI to visit. This typically a relative path to the baseUrl.
-     * @examples ["/apps/cockpit/index.html#/"]
-     */
-    visit: string | Visit;
-    /**
-     * The actions to perform in the screenshot workflow. The last action
-     * is always a screenshot action. If no actions are defined or last actions is
-     * not a screenshot action, a screenshot is taken of the current state of
-     * the application.
-     */
-    actions?: Action[] | Action;
-    /**
-     * Run only this screenshot workflow and all other workflows that
-     * have only setting enabled
-     */
-    only?: boolean;
-    /**
-     * Skip this screenshot workflow
-     */
-    skip?: boolean;
-    /**
-     * The configuration and settings of the screenshot
-     */
-    settings?: ScreenshotSettings;
-  };
+export interface Screenshot {
+  /**
+   * The name of the screenshot image as relative path
+   * @examples ["/images/cockpit/dashboard.png"]
+   */
+  image: string;
+  /**
+   * The URI to visit. This typically a relative path to the baseUrl.
+   * @examples ["/apps/cockpit/index.html#/"]
+   */
+  visit: string | Visit;
+  /**
+   * The actions to perform in the screenshot workflow. The last action
+   * is always a screenshot action. If no actions are defined or last actions is
+   * not a screenshot action, a screenshot is taken of the current state of
+   * the application.
+   */
+  actions?: Action[] | Action;
+  /**
+   * Run only this screenshot workflow and all other workflows that
+   * have only setting enabled
+   */
+  only?: boolean;
+  /**
+   * Skip this screenshot workflow
+   */
+  skip?: boolean;
+  /**
+   * The configuration and settings of the screenshot
+   */
+  settings?: ScreenshotSettings;
+}
 
-type ScreenshotSettings = {
+export interface ScreenshotSettings {
   /**
    * The width in px to use for the browser window
    * @minimum 0
@@ -123,7 +133,7 @@ type ScreenshotSettings = {
    */
   viewportHeight?: number;
   /**
-   * The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'. 
+   * The capturing type for the screenshot. When 'fullPage' is used, the application is captured in its entirety from top to bottom. Setting is ignored when screenshots are taken for a selected DOM element. The default is 'viewport'.
    * Note that 'fullPage' screenshots will have a different height than specified in 'viewportHeight'.
    * @examples [["viewport", "fullPage"]]
    * @default "viewport"
@@ -179,9 +189,9 @@ type ScreenshotSettings = {
      */
     screenshot?: number;
   };
-};
+}
 
-export type Visit = GlobalVisitOptions & {
+export interface Visit {
   /**
    * The URL to visit. Currently only an URI relative to the base URL is
    * supported.
@@ -199,99 +209,91 @@ export type Visit = GlobalVisitOptions & {
    * @examples ["c8y-drawer-outlet c8y-app-icon .c8y-icon"]
    */
   selector?: string;
-};
+}
 
-export type ClickAction = {
+export interface ClickAction {
   /**
-   * A click action triggers a click event on the selected DOM element.
+   * If true, the click event is triggered on all matching elements. The default is false.
+   * @default false
    */
-  click?: {
-    /**
-     * The selector to click
-     */
-    selector: Selector;
-  };
-};
+  multiple?: boolean;
+  /**
+   * If true, the click event is triggered even if the element is not visible. The default is false.
+   * @default false
+   */
+  force?: boolean;
+}
 
-export type TypeAction = {
+export interface TypeAction {
   /**
-   * A type action triggers a type event on the selected DOM element. Use to
-   * simulate typing in an input field.
+   * The value to type
    */
-  type?: {
-    /**
-     * The selector to type
-     */
-    selector: Selector;
-    /**
-     * The value to type
-     */
-    value: string;
-  };
-};
+  value: string;
+}
 
-export type TextAction = {
+export interface TextAction {
   /**
-   * A text action modifies the text value of selected DOM element.
+   * The value to set
    */
-  text?: {
-    /*
-     * The selector to modify
-     */
-    selector: Selector;
-    /**
-     * The value to set
-     */
-    value: string;
-  };
-};
+  value: string;
+}
 
-export type WaitAction = {
+export interface WaitAction {
   /**
-   * A wait action waits for the given time in ms or for a given
-   * chainer assertion.
-   * @examples [1000, 10000]
+   * The timeout in ms to wait for
+   * @TJS-type integer
+   * @default 4000
    */
-  wait?:
-    | number
+  timeout?: number;
+  /**
+   * The chainer assertion to wait for. This translates to a Cypress get().should().
+   * See https://docs.cypress.io/api/commands/should
+   */
+  assert?:
+    | string
     | {
         /**
-         * The selector of the DOM element to wait for
+         * The chainer assertion to. Could be any valid Cypress chainer. The chainer is
+         * not validated and may or may not have a value to assert.
+         * @examples ["have.length", "eq", "be.visible"]
          */
-        selector: Selector;
+        chainer: string;
         /**
-         * The timeout in ms to wait for
-         * @TJS-type integer
-         * @default 4000
+         * The value to assert. The value is optional and may not be required by the
+         * chainer assertion.
          */
-        timeout?: number;
-        /**
-         * The chainer assertion to wait for. This translates to a Cypress get().should().
-         * See https://docs.cypress.io/api/commands/should
-         */
-        assert?:
-          | string
-          | {
-              /**
-               * The chainer assertion to. Could be any valid Cypress chainer. The chainer is
-               * not validated and may or may not have a value to assert.
-               * @examples ["have.length", "eq", "be.visible"]
-               */
-              chainer: string;
-              /**
-               * The value to assert. The value is optional and may not be required by the
-               * chainer assertion.
-               */
-              value?: string | string[];
-            };
+        value?: string | string[];
       };
-};
+}
 
-export type HighlightActionProperties = {
+export interface UploadFileAction {
   /**
-   * The selector of the DOM element to highlight
+   * The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.
    */
-  selector: Selector;
+  file: string;
+  /**
+   * The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.
+   * @examples ["file.txt"]
+   */
+  fileName?: string;
+  /**
+   * The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.
+   * @examples [["binary", "utf8"]]
+   */
+  encoding?: "binary" | "utf8" | "utf-8";
+  /**
+   * The type of the file input element. The default is 'input'.
+   * @default "input"
+   */
+  subjectType?: "input" | "drag-n-drop";
+  /**
+   * If true, the file is uploaded even if the element is not visible. The default is false.
+   * @default false
+   */
+  force?: boolean;
+}
+
+export interface HighlightAction {
   /**
    * The border style. Use any valid CSS border style.
    * @examples ["1px solid red"]
@@ -302,16 +304,11 @@ export type HighlightActionProperties = {
    * @examples ["background-color: yellow", "outline: dashed", "outline-offset: +3px"]
    */
   styles?: any;
-};
+}
 
-export type HighlightAction = {
-  /**
-   * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
-   */
-  highlight?: HighlightActionProperties | HighlightActionProperties[] | string;
-};
+export type SelectableHighlightAction = HighlightAction & Selectable;
 
-export type ScreenshotClipArea = {
+export interface ScreenshotClipArea {
   /**
    * The x-coordinate of the top-left corner of the clip area
    * @minimum 0
@@ -336,44 +333,65 @@ export type ScreenshotClipArea = {
    * @TJS-type integer
    */
   height: number;
-};
+}
 
-export type Selector =
-  | string
-  | {
-      "data-cy"?: string;
-    };
+export interface ScreenshotAction {
+  /**
+   * The path to store the screenshot. This is the relative path used
+   * within the screenshot folder.
+   */
+  path?: string;
+  /**
+   * The clip area within the screenshot image. The clip area is defined
+   * by the top-left corner (x, y) and the width and height of the clip area.
+   */
+  clip?: ScreenshotClipArea;
+}
 
-export type ScreenshotAction = {
+export interface Action {
+  /**
+   * A click action triggers a click event on the selected DOM element.
+   */
+  click?: string | (ClickAction & Selectable);
+  /**
+   * Use the file upload action to upload a file using the file input element. Currently supported file types are .json, .txt, .csv, .png, .jpg, .jpeg, .gif.
+   */
+  fileUpload?: string | (UploadFileAction & Selectable);
+  /**
+   * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
+   */
+  highlight?: string | SelectableHighlightAction | SelectableHighlightAction[];
   /**
    * The screenshot action triggers a screenshot of the current state of the
    * application.
    */
-  screenshot?: {
-    /**
-     * The path to store the screenshot. This is the relative path used
-     * within the screenshot folder.
-     */
-    path?: string;
-    /**
-     * The clip area within the screenshot image. The clip area is defined
-     * by the top-left corner (x, y) and the width and height of the clip area.
-     */
-    clip?: ScreenshotClipArea;
-    /**
-     * The selector of the DOM element to capture
-     */
-    selector?: Selector;
-  };
+  screenshot?: ScreenshotAction & Partial<Selectable>;
+  /**
+   * A text action modifies the text value of selected DOM element.
+   */
+  text?: TextAction & Selectable;
+  /**
+   * A type action triggers a type event on the selected DOM element. Use to
+   * simulate typing in an input field.
+   */
+  type?: TypeAction & Selectable;
+  /**
+   * A wait action waits for the given time in ms or for a given
+   * chainer assertion.
+   * @examples [1000, 10000]
+   */
+  wait?: number | WaitAction;
+}
+
+export type DataCySelector = {
+  "data-cy": string;
 };
 
-export type Action =
-  | ClickAction
-  | TypeAction
-  | ScreenshotAction
-  | HighlightAction
-  | TextAction
-  | WaitAction;
+export type Selector = {
+  selector: string | DataCySelector;
+};
+
+export type Selectable = Selector | DataCySelector;
 
 // Internal types used within C8yScreenshotRunner
 // This will not be exposed to schema.json
@@ -390,4 +408,11 @@ export interface C8yScreenshotOptions {
   setup: ScreenshotSetup;
   init: boolean;
   clear: boolean;
+}
+
+export interface C8yScreenshotFileUploadOptions {
+  data: any;
+  path: string;
+  filename: string;
+  encoding: string;
 }

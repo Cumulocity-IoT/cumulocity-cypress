@@ -1,20 +1,17 @@
 import "../lib/commands";
 import "../lib/commands/c8ypact";
 
+import "cypress-file-upload";
+
 import { pactId } from "../shared/c8ypact";
 
 import {
   Action,
-  ClickAction,
-  HighlightAction,
+  C8yScreenshotFileUploadOptions,
   Screenshot,
-  ScreenshotAction,
   ScreenshotSetup,
   Selector,
-  TextAction,
-  TypeAction,
   Visit,
-  WaitAction,
 } from "../lib/screenshots/types";
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
@@ -28,6 +25,8 @@ export type C8yScreenshotActionHandler = (
   item: Screenshot,
   options: any
 ) => void;
+
+const taskLog = { log: true };
 
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
@@ -51,6 +50,7 @@ export class C8yScreenshotRunner {
     this.registerActionHandler("screenshot", this.screenshot);
     this.registerActionHandler("text", this.text);
     this.registerActionHandler("wait", this.wait);
+    this.registerActionHandler("fileUpload", this.fileUpload);
   }
 
   registerActionHandler(key: string, handler: C8yScreenshotActionHandler) {
@@ -88,8 +88,6 @@ export class C8yScreenshotRunner {
           cy.getAuth(this.config.global?.user).getShellVersion(
             this.config.global?.shell
           );
-        } else {
-          cy.getShellVersion(this.config.global?.shell);
         }
       });
 
@@ -122,17 +120,24 @@ export class C8yScreenshotRunner {
           annotations,
           // @ts-expect-error
           () => {
-            const user = item.user ?? this.config.global?.user ?? "admin";
-            cy.getAuth(user).getTenantId();
+            const user =
+              item.login ??
+              this.config.global?.login ??
+              item.user ??
+              this.config.global?.user;
+
+            if (user != null) {
+              cy.getAuth(user).getTenantId();
+            }
 
             const width =
-              this.config.global?.viewportWidth ??
               item.settings?.viewportWidth ??
+              this.config.global?.viewportWidth ??
               Cypress.config("viewportWidth") ??
               1440;
             const height =
-              this.config.global?.viewportHeight ??
               item.settings?.viewportWidth ??
+              this.config.global?.viewportHeight ??
               Cypress.config("viewportHeight") ??
               900;
             cy.viewport(width, height);
@@ -150,23 +155,25 @@ export class C8yScreenshotRunner {
               cy.clock(new Date(visitDate));
             }
 
-            const visitObject = this.getVisitObject(item.visit);
-            const visitUser = visitObject?.user ?? user;
-            cy.login(visitUser);
+            if (user != null) {
+              cy.login(user);
+            }
 
+            const visitObject = this.getVisitObject(item.visit);
             const url = visitObject?.url ?? (item.visit as string);
             const visitSelector =
               visitObject?.selector ??
               this.config.global?.visitWaitSelector ??
               "c8y-drawer-outlet c8y-app-icon .c8y-icon";
-            cy.task("debug", `Visiting ${url} Selector: ${visitSelector}`);
+            cy.task(
+              "debug",
+              `Visiting ${url} Selector: ${visitSelector}`,
+              taskLog
+            );
             const visitTimeout = visitObject?.timeout;
 
             const language =
-              visitObject?.language ??
-              item.language ??
-              this.config.global?.language ??
-              "en";
+              item.language ?? this.config.global?.language ?? "en";
             cy.visitAndWaitForSelector(
               url,
               language as any,
@@ -177,7 +184,8 @@ export class C8yScreenshotRunner {
             let actions = item.actions == null ? [] : item.actions;
             actions = _.isArray(actions) ? actions : [actions];
             actions.forEach((action) => {
-              const handler = this.actionHandlers[Object.keys(action)[0]];
+              const handlerKey = Object.keys(action)[0];
+              const handler = this.actionHandlers[handlerKey];
               if (handler) {
                 if (isScreenshotAction(action)) {
                   const clipArea = action.screenshot?.clip;
@@ -196,7 +204,7 @@ export class C8yScreenshotRunner {
                     };
                   }
                 }
-                handler(action, this, item, options);
+                handler(_.get(action, handlerKey), this, item, options);
               }
             });
 
@@ -207,8 +215,8 @@ export class C8yScreenshotRunner {
               !isScreenshotAction(lastAction)
             ) {
               const name = imageName(item.image);
-              cy.task("debug", `Taking screenshot ${name}`);
-              cy.task("debug", `Options: ${JSON.stringify(options)}`);
+              cy.task("debug", `Taking screenshot ${name}`, taskLog);
+              cy.task("debug", `Options: ${JSON.stringify(options)}`, taskLog);
               cy.screenshot(name, options);
             }
           },
@@ -217,29 +225,29 @@ export class C8yScreenshotRunner {
     });
   }
 
-  protected click(action: ClickAction) {
-    const selector = getSelector(action.click?.selector);
+  protected click(action: Action["click"]) {
+    const click = _.isString(action) ? { selector: action } : action;
+    const selector = getSelector(click);
     if (selector == null) return;
-    cy.get(selector).click();
+
+    const multiple = click?.multiple ?? false;
+    const force = click?.force ?? false;
+    cy.get(selector).click(_.omitBy({ multiple, force }, (v) => v === false));
   }
 
-  protected type(action: TypeAction) {
-    const selector = getSelector(action.type?.selector);
-    if (selector == null || action.type == null) return;
-    cy.get(selector).type(action.type.value);
+  protected type(action: Action["type"]) {
+    const selector = getSelector(action);
+    if (selector == null || action == null) return;
+    cy.get(selector).type(action.value);
   }
 
-  protected highlight(action: HighlightAction, that: C8yScreenshotRunner) {
-    const highlights = _.isArray(action.highlight)
-      ? action.highlight
-      : [action.highlight];
+  protected highlight(action: Action["highlight"], that: C8yScreenshotRunner) {
+    const highlights = _.isArray(action) ? action : [action];
 
     highlights?.forEach((highlight) => {
-      const selector = getSelector(
-        _.isString(highlight) ? highlight : highlight?.selector
-      );
+      const selector = getSelector(highlight);
       if (selector == null) return;
-      
+
       cy.get(selector).then(($element) => {
         if (!_.isString(highlight)) {
           if (highlight?.styles != null) {
@@ -254,7 +262,7 @@ export class C8yScreenshotRunner {
           $element.css(that.config.global?.highlightStyle);
         } else {
           $element.css({
-            "outline": "2px",
+            outline: "2px",
             "outline-style": "solid",
             "outline-offset": "-2px",
             "outline-color": "#FF9300",
@@ -264,24 +272,24 @@ export class C8yScreenshotRunner {
     });
   }
 
-  protected text(action: TextAction) {
-    const selector = getSelector(action.text?.selector);
-    const value = action.text?.value;
+  protected text(action: Action["text"]) {
+    const selector = getSelector(action);
+    const value = action?.value;
     if (selector == null || value == null) return;
     cy.get(selector).then(($element) => {
       $element.text(value);
     });
   }
 
-  protected wait(action: WaitAction) {
-    if (action.wait == null) return;
-    if (_.isNumber(action.wait)) {
-      cy.wait(action.wait);
-    } else if (_.isObjectLike(action.wait)) {
-      const selector = getSelector(action.wait.selector);
+  protected wait(action: Action["wait"]) {
+    if (action == null) return;
+    if (_.isNumber(action)) {
+      cy.wait(action);
+    } else if (_.isObjectLike(action)) {
+      const selector = getSelector(action);
       if (selector != null) {
-        const timeout = action.wait.timeout ?? 4000;
-        const chainer = action.wait.assert;
+        const timeout = action.timeout ?? 4000;
+        const chainer = action.assert;
         if (chainer != null) {
           if (_.isString(chainer)) {
             cy.get(selector, { timeout }).should(chainer);
@@ -304,16 +312,82 @@ export class C8yScreenshotRunner {
     }
   }
 
+  protected fileUpload(action: Action["fileUpload"]) {
+    const defaultSelector = '[type$="file"]';
+    let fileUpload: Action["fileUpload"] = undefined;
+    if (_.isString(action)) {
+      fileUpload = { selector: defaultSelector, file: action };
+    } else if (action != null) {
+      fileUpload = action;
+    }
+
+    const selector = getSelector(fileUpload);
+    const filePath = fileUpload?.file;
+    if (selector == null || filePath == null) {
+      cy.task("debug", `File upload selector or file path is missing`, taskLog);
+      return;
+    }
+
+    cy.task<C8yScreenshotFileUploadOptions>("c8yscrn:file", {
+      path: filePath,
+      ..._.pick(fileUpload, ["encoding", "fileName"]),
+    }).then((file) => {
+      if (file == null) {
+        cy.task("debug", `File ${filePath} not found`, taskLog);
+        return;
+      }
+
+      cy.task("debug", `Uploading file ${filePath} to ${selector}`, taskLog);
+
+      const attachData =
+        file.encoding === "binary"
+          ? Cypress.Blob.binaryStringToBlob(file.data)
+          : file.data;
+      const fixtureData = _.omitBy(
+        {
+          fileContent: attachData,
+          fileName: fileUpload?.fileName ?? file.filename,
+          ..._.pick(fileUpload, ["encoding", "lastModified"]),
+        },
+        _.isNil
+      );
+      const fileProcessingOptions = _.omitBy(
+        _.pick(fileUpload, ["subjectType", "force", "allowEmpty"]),
+        _.isNil
+      );
+
+      cy.task(
+        "debug",
+        `Fixture data: ${JSON.stringify({
+          ...fixtureData,
+          fileContent: "...",
+        })}`,
+        taskLog
+      );
+      cy.task(
+        "debug",
+        `File processing options: ${JSON.stringify(fileProcessingOptions)}`,
+        taskLog
+      );
+
+      cy.get(selector).attachFile(fixtureData, fileProcessingOptions);
+    });
+  }
+
   protected screenshot(
-    action: ScreenshotAction,
+    action: Action["screenshot"],
     _that: C8yScreenshotRunner,
     item: Screenshot,
     options: any
   ) {
-    let name = action.screenshot?.path || item.image;
-    const selector = getSelector(action.screenshot?.selector);
-    cy.task("debug", `Taking screenshot ${name} Selector: ${selector}`);
-    cy.task("debug", `Options: ${JSON.stringify(options)}`);
+    let name = action?.path || item.image;
+    const selector = getSelector(action);
+    cy.task(
+      "debug",
+      `Taking screenshot ${name} Selector: ${selector}`,
+      taskLog
+    );
+    cy.task("debug", `Options: ${JSON.stringify(options)}`, taskLog);
     name = imageName(name);
     if (selector != null) {
       cy.get(selector).screenshot(name, options);
@@ -355,34 +429,34 @@ export function isRecording(): boolean {
   return Cypress.env("C8Y_CTRL_MODE") === "recording";
 }
 
-export function isClickAction(action: Action): action is ClickAction {
+export function isClickAction(action: Action): boolean {
   return "click" in action;
 }
 
-export function isTypeAction(action: Action): action is TypeAction {
+export function isTypeAction(action: Action): boolean {
   return "type" in action;
 }
 
-export function isHighlightAction(action: Action): action is HighlightAction {
+export function isHighlightAction(action: Action): boolean {
   return "highlight" in action;
 }
 
-export function isScreenshotAction(action: Action): action is ScreenshotAction {
+export function isScreenshotAction(action: Action): boolean {
   return "screenshot" in action;
 }
 
 export function getSelector(
-  selector: Selector | undefined
+  selector: any | string | undefined
 ): string | undefined {
-  if (!selector) {
-    return undefined;
-  }
-  if (_.isString(selector)) {
-    return selector;
-  }
+  if (!selector) return undefined;
+  if (_.isString(selector)) return selector;
+
   if (_.isPlainObject(selector)) {
     if ("data-cy" in selector) {
       return `[data-cy=${_.get(selector, "data-cy")}]`;
+    }
+    if ("selector" in selector) {
+      return getSelector(selector.selector as Selector);
     }
   }
   return undefined;

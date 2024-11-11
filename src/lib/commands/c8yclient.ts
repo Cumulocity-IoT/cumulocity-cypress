@@ -511,7 +511,7 @@ _.extend(Cypress.errorMessages.request, {
       message: makeErrorMessage(obj),
       docsUrl: `${
         (err.body && err.body.info) ||
-        "https://github.com/SoftwareAG/cumulocity-cypress"
+        "https://github.com/Cumulocity-IoT/cumulocity-cypress"
       }`,
     };
   },
@@ -529,7 +529,7 @@ function makeErrorMessage(obj: any) {
     `For more information check:`,
     `${
       (err.body && err.body.info) ||
-      "https://github.com/SoftwareAG/cumulocity-cypress"
+      "https://github.com/Cumulocity-IoT/cumulocity-cypress"
     }`,
     `\n`,
   ].join(`\n`);
