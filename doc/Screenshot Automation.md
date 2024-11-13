@@ -607,9 +607,13 @@ Types the specified value into the selected input field.
     selector: string or object
     border: string
     styles: object
+    width: number
+    height: number
 ```
 
 Highlights the specified element. Useful for drawing attention to specific parts of the UI in documentation screenshots. `border` is a shorthand for setting the border style, and `styles` allows for more advanced styling. Values can be any valid CSS border or style property.
+
+Highlighting works differently depending if the selector returns one or multiple elements. If the selector returns a single DOM element, the style or border is applied directly to the element. In case selector returns multiple elements, the surrounding bounding box for all elements is calculated and the style is applied to a new element that is created to represent the bounding box. Make sure animations are finished before highlighting multiple elements as positions are calculated based on the current state of the elements.
 
 ```yaml
 - selector: .c8y-right-drawer__header > .d-flex
