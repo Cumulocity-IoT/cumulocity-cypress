@@ -230,23 +230,27 @@ export function configureC8yScreenshotPlugin(
     const viewportWidth = configData?.global?.viewportWidth ?? 1440;
     const viewportHeight = configData?.global?.viewportHeight ?? 900;
     log(`Setting viewport to ${viewportWidth}x${viewportHeight}`);
+
+    // adding 500px height in headless mode for viewport and browser controls
+    // see https://github.com/cypress-io/cypress/issues/27260#issuecomment-2127940718
+    // see https://github.com/cypress-io/cypress/issues/3324
     if (browser.name === "chrome") {
       launchOptions.args.push(
-        `--window-size=${viewportWidth},${viewportHeight}`
+        `--window-size=${viewportWidth},${viewportHeight + 500}`
       );
       log(`Setting chrome launch options: ${launchOptions.args.slice(-1)}`);
     }
     if (browser.name === "electron") {
       launchOptions.preferences.width = viewportWidth;
-      launchOptions.preferences.height = viewportHeight;
+      launchOptions.preferences.height = viewportHeight + 500;
       launchOptions.preferences.resizable = false;
       log(
-        `Setting electron perferences width=${viewportWidth}, height=${viewportHeight}`
+        `Setting electron perferences width=${viewportWidth}, height=${viewportHeight + 500}`
       );
     }
     if (browser.name === "firefox") {
       launchOptions.args.push(`--width=${viewportWidth}`);
-      launchOptions.args.push(`--height=${viewportHeight}`);
+      launchOptions.args.push(`--height=${viewportHeight + 500}`);
       log(`Setting firefox launch options: ${launchOptions.args.slice(-2)}`);
     }
     const launchArgs = config.env._c8yscrnBrowserLaunchArgs;
