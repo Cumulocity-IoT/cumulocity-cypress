@@ -181,6 +181,19 @@ export class C8yScreenshotRunner {
               visitTimeout
             );
 
+            if (this.config.global?.disableTimersAndAnimations === true) {
+              cy.document().then((doc) => {
+                const style = doc.createElement("style");
+                style.innerHTML = `
+                * {
+                 animation: none !important;
+                 transition: none !important;
+                }
+                `;
+                doc.head.appendChild(style);
+              });
+            }
+
             let actions = item.actions == null ? [] : item.actions;
             actions = _.isArray(actions) ? actions : [actions];
             actions.forEach((action) => {
@@ -265,33 +278,40 @@ export class C8yScreenshotRunner {
           (!_.isString(highlight) &&
             (highlight?.width != null || highlight?.height != null))
         ) {
-          const firstElement = $element[0].getBoundingClientRect();
-          const lastElement =
-            $element[$element.length - 1].getBoundingClientRect();
+          // we need to wait for the element to transition and animate into final
+          // position before we can calculate the absolute highlight area
+          // eslint-disable-next-line cypress/no-unnecessary-waiting
+          cy.wait(500, { log: false }).then(() => {
+            const firstElement = $element[0].getBoundingClientRect();
+            const lastElement =
+              $element[$element.length - 1].getBoundingClientRect();
 
-          let width = lastElement.right - firstElement.left;
-          if (!_.isString(highlight) && highlight?.width != null) {
-            width =
-              highlight.width <= 1 ? width * highlight.width : highlight.width;
-          }
+            let width = lastElement.right - firstElement.left;
+            if (!_.isString(highlight) && highlight?.width != null) {
+              width =
+                highlight.width <= 1
+                  ? width * highlight.width
+                  : highlight.width;
+            }
 
-          let height = lastElement.bottom - firstElement.top;
-          if (!_.isString(highlight) && highlight?.height != null) {
-            height =
-              highlight.height <= 1
-                ? height * highlight.height
-                : highlight.height;
-          }
-          const $container = Cypress.$("<div id=\"c8yscn-highlight\"></div>").css({
-            position: "absolute",
-            top: `${firstElement.top}px`,
-            left: `${firstElement.left}px`,
-            width: `${width}px`,
-            height: `${height}px`,
-            zIndex: 9999,
-            ...styles,
+            let height = lastElement.bottom - firstElement.top;
+            if (!_.isString(highlight) && highlight?.height != null) {
+              height =
+                highlight.height <= 1
+                  ? height * highlight.height
+                  : highlight.height;
+            }
+            const $container = Cypress.$("<div></div>").css({
+              position: "absolute",
+              top: `${firstElement.top}px`,
+              left: `${firstElement.left}px`,
+              width: `${width}px`,
+              height: `${height}px`,
+              zIndex: 9999,
+              ...styles,
+            });
+            Cypress.$("body").append($container);
           });
-          Cypress.$("body").append($container);
         } else {
           $element.css(styles);
         }
