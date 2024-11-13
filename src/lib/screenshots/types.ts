@@ -295,10 +295,10 @@ export interface UploadFileAction {
 
 export interface HighlightAction {
   /**
-   * The border style. Use any valid CSS border style.
+   * The border style. Use any valid CSS border style. If provided an object, keys override the default border style.
    * @examples ["1px solid red"]
    */
-  border?: string;
+  border?: string | any;
   /**
    * The CSS styles to apply to the DOM element. Use any valid CSS styles.
    * @examples ["background-color: yellow", "outline: dashed", "outline-offset: +3px"]

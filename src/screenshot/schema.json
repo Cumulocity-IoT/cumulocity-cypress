@@ -212,8 +212,7 @@
                                     "description": "The border style. Use any valid CSS border style.",
                                     "examples": [
                                         "1px solid red"
-                                    ],
-                                    "type": "string"
+                                    ]
                                 },
                                 "selector": {
                                     "anyOf": [
@@ -255,8 +254,7 @@
                                     "description": "The border style. Use any valid CSS border style.",
                                     "examples": [
                                         "1px solid red"
-                                    ],
-                                    "type": "string"
+                                    ]
                                 },
                                 "data-cy": {
                                     "type": "string"
@@ -590,8 +588,7 @@
                             "description": "The border style. Use any valid CSS border style.",
                             "examples": [
                                 "1px solid red"
-                            ],
-                            "type": "string"
+                            ]
                         },
                         "selector": {
                             "anyOf": [
@@ -633,8 +630,7 @@
                             "description": "The border style. Use any valid CSS border style.",
                             "examples": [
                                 "1px solid red"
-                            ],
-                            "type": "string"
+                            ]
                         },
                         "data-cy": {
                             "type": "string"

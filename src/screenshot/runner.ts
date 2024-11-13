@@ -248,25 +248,54 @@ export class C8yScreenshotRunner {
       const selector = getSelector(highlight);
       if (selector == null) return;
 
+      const highlightStyle = that?.config.global?.highlightStyle ?? {
+        outline: "2px",
+        "outline-style": "solid",
+        "outline-offset": "-2px",
+        "outline-color": "#FF9300",
+      };
+
+      const applyHighlightStyle = (
+        $element: JQuery<HTMLElement>,
+        styles: any
+      ) => {
+        if ($element.length === 0) return;
+        if ($element.length > 1) {
+          const firstElement = $element[0].getBoundingClientRect();
+          const lastElement =
+            $element[$element.length - 1].getBoundingClientRect();
+          const $container = Cypress.$("<div></div>").css({
+            position: "absolute",
+            top: `${firstElement.top}px`,
+            left: `${firstElement.left}px`,
+            width: `${lastElement.right - firstElement.left}px`,
+            height: `${lastElement.bottom - firstElement.top}px`,
+            zIndex: 9999,
+            ...styles,
+          });
+          Cypress.$("body").append($container);
+        } else {
+          $element.css(styles);
+        }
+      };
+
       cy.get(selector).then(($element) => {
         if (!_.isString(highlight)) {
           if (highlight?.styles != null) {
-            $element.css(highlight.styles);
-            return;
-          } else if (highlight?.border != null) {
-            $element.css("border", highlight.border);
-            return;
+            applyHighlightStyle($element, highlight?.styles);
           }
-        }
-        if (that?.config.global?.highlightStyle != null) {
-          $element.css(that.config.global?.highlightStyle);
+          if (highlight?.border != null) {
+            if (_.isString(highlight.border)) {
+              applyHighlightStyle($element, { border: highlight.border });
+            } else {
+              applyHighlightStyle($element, {
+                ...highlightStyle,
+                ...highlight.border,
+              });
+            }
+          }
         } else {
-          $element.css({
-            outline: "2px",
-            "outline-style": "solid",
-            "outline-offset": "-2px",
-            "outline-color": "#FF9300",
-          });
+          applyHighlightStyle($element, highlightStyle);
         }
       });
     });
