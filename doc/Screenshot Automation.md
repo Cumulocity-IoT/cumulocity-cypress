@@ -605,7 +605,7 @@ Types the specified value into the selected input field.
 ```yaml
 - highlight:
     selector: string or object
-    border: string
+    border: string or object
     styles: object
     width: number
     height: number
