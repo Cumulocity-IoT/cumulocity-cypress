@@ -260,16 +260,34 @@ export class C8yScreenshotRunner {
         styles: any
       ) => {
         if ($element.length === 0) return;
-        if ($element.length > 1) {
+        if (
+          $element.length > 1 ||
+          (!_.isString(highlight) &&
+            (highlight?.width != null || highlight?.height != null))
+        ) {
           const firstElement = $element[0].getBoundingClientRect();
           const lastElement =
             $element[$element.length - 1].getBoundingClientRect();
-          const $container = Cypress.$("<div></div>").css({
+
+          let width = lastElement.right - firstElement.left;
+          if (!_.isString(highlight) && highlight?.width != null) {
+            width =
+              highlight.width <= 1 ? width * highlight.width : highlight.width;
+          }
+
+          let height = lastElement.bottom - firstElement.top;
+          if (!_.isString(highlight) && highlight?.height != null) {
+            height =
+              highlight.height <= 1
+                ? height * highlight.height
+                : highlight.height;
+          }
+          const $container = Cypress.$("<div id=\"c8yscn-highlight\"></div>").css({
             position: "absolute",
             top: `${firstElement.top}px`,
             left: `${firstElement.left}px`,
-            width: `${lastElement.right - firstElement.left}px`,
-            height: `${lastElement.bottom - firstElement.top}px`,
+            width: `${width}px`,
+            height: `${height}px`,
             zIndex: 9999,
             ...styles,
           });
@@ -280,20 +298,28 @@ export class C8yScreenshotRunner {
       };
 
       cy.get(selector).then(($element) => {
+        const style = {};
         if (!_.isString(highlight)) {
           if (highlight?.styles != null) {
-            applyHighlightStyle($element, highlight?.styles);
+            _.extend(style, highlight.styles);
           }
           if (highlight?.border != null) {
             if (_.isString(highlight.border)) {
-              applyHighlightStyle($element, { border: highlight.border });
+              _.extend(style, { border: highlight.border });
             } else {
-              applyHighlightStyle($element, {
+              _.extend(style, {
                 ...highlightStyle,
                 ...highlight.border,
               });
             }
           }
+          if (
+            _.isEmpty(style) &&
+            (highlight?.width != null || highlight?.height != null)
+          ) {
+            _.extend(style, highlightStyle);
+          }
+          applyHighlightStyle($element, style);
         } else {
           applyHighlightStyle($element, highlightStyle);
         }

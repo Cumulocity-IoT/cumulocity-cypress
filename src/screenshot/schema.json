@@ -209,10 +209,13 @@
                             "additionalProperties": false,
                             "properties": {
                                 "border": {
-                                    "description": "The border style. Use any valid CSS border style.",
+                                    "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
                                     "examples": [
                                         "1px solid red"
                                     ]
+                                },
+                                "height": {
+                                    "type": "number"
                                 },
                                 "selector": {
                                     "anyOf": [
@@ -240,6 +243,9 @@
                                         "outline: dashed",
                                         "outline-offset: +3px"
                                     ]
+                                },
+                                "width": {
+                                    "type": "number"
                                 }
                             },
                             "required": [
@@ -251,13 +257,16 @@
                             "additionalProperties": false,
                             "properties": {
                                 "border": {
-                                    "description": "The border style. Use any valid CSS border style.",
+                                    "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
                                     "examples": [
                                         "1px solid red"
                                     ]
                                 },
                                 "data-cy": {
                                     "type": "string"
+                                },
+                                "height": {
+                                    "type": "number"
                                 },
                                 "styles": {
                                     "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
@@ -266,6 +275,9 @@
                                         "outline: dashed",
                                         "outline-offset: +3px"
                                     ]
+                                },
+                                "width": {
+                                    "type": "number"
                                 }
                             },
                             "required": [
@@ -585,10 +597,13 @@
                     "additionalProperties": false,
                     "properties": {
                         "border": {
-                            "description": "The border style. Use any valid CSS border style.",
+                            "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
                             "examples": [
                                 "1px solid red"
                             ]
+                        },
+                        "height": {
+                            "type": "number"
                         },
                         "selector": {
                             "anyOf": [
@@ -616,6 +631,9 @@
                                 "outline: dashed",
                                 "outline-offset: +3px"
                             ]
+                        },
+                        "width": {
+                            "type": "number"
                         }
                     },
                     "required": [
@@ -627,13 +645,16 @@
                     "additionalProperties": false,
                     "properties": {
                         "border": {
-                            "description": "The border style. Use any valid CSS border style.",
+                            "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
                             "examples": [
                                 "1px solid red"
                             ]
                         },
                         "data-cy": {
                             "type": "string"
+                        },
+                        "height": {
+                            "type": "number"
                         },
                         "styles": {
                             "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
@@ -642,6 +663,9 @@
                                 "outline: dashed",
                                 "outline-offset: +3px"
                             ]
+                        },
+                        "width": {
+                            "type": "number"
                         }
                     },
                     "required": [

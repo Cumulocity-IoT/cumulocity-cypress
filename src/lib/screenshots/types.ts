@@ -304,6 +304,14 @@ export interface HighlightAction {
    * @examples ["background-color: yellow", "outline: dashed", "outline-offset: +3px"]
    */
   styles?: any;
+  /**
+   * Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.
+   */
+  width?: number;
+  /**
+   * Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.
+   */
+  height?: number;
 }
 
 export type SelectableHighlightAction = HighlightAction & Selectable;
