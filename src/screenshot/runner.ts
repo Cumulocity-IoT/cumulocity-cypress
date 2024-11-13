@@ -133,12 +133,10 @@ export class C8yScreenshotRunner {
             const width =
               item.settings?.viewportWidth ??
               this.config.global?.viewportWidth ??
-              Cypress.config("viewportWidth") ??
               1440;
             const height =
               item.settings?.viewportWidth ??
               this.config.global?.viewportHeight ??
-              Cypress.config("viewportHeight") ??
               900;
             cy.viewport(width, height);
 
@@ -180,6 +178,19 @@ export class C8yScreenshotRunner {
               visitSelector,
               visitTimeout
             );
+
+            if (this.config.global?.disableTimersAndAnimations === true) {
+              cy.document().then((doc) => {
+                const style = doc.createElement("style");
+                style.innerHTML = `
+                * {
+                 animation: none !important;
+                 transition: none !important;
+                }
+                `;
+                doc.head.appendChild(style);
+              });
+            }
 
             let actions = item.actions == null ? [] : item.actions;
             actions = _.isArray(actions) ? actions : [actions];
@@ -248,25 +259,87 @@ export class C8yScreenshotRunner {
       const selector = getSelector(highlight);
       if (selector == null) return;
 
+      const highlightStyle = that?.config.global?.highlightStyle ?? {
+        outline: "2px",
+        "outline-style": "solid",
+        "outline-offset": "-2px",
+        "outline-color": "#FF9300",
+      };
+
+      const applyHighlightStyle = (
+        $element: JQuery<HTMLElement>,
+        styles: any
+      ) => {
+        if ($element.length === 0) return;
+        if (
+          $element.length > 1 ||
+          (!_.isString(highlight) &&
+            (highlight?.width != null || highlight?.height != null))
+        ) {
+          // we need to wait for the element to transition and animate into final
+          // position before we can calculate the absolute highlight area
+          // eslint-disable-next-line cypress/no-unnecessary-waiting
+          cy.wait(500, { log: false }).then(() => {
+            const firstElement = $element[0].getBoundingClientRect();
+            const lastElement =
+              $element[$element.length - 1].getBoundingClientRect();
+
+            let width = lastElement.right - firstElement.left;
+            if (!_.isString(highlight) && highlight?.width != null) {
+              width =
+                highlight.width <= 1
+                  ? width * highlight.width
+                  : highlight.width;
+            }
+
+            let height = lastElement.bottom - firstElement.top;
+            if (!_.isString(highlight) && highlight?.height != null) {
+              height =
+                highlight.height <= 1
+                  ? height * highlight.height
+                  : highlight.height;
+            }
+            const $container = Cypress.$("<div></div>").css({
+              position: "absolute",
+              top: `${firstElement.top}px`,
+              left: `${firstElement.left}px`,
+              width: `${width}px`,
+              height: `${height}px`,
+              zIndex: 9999,
+              ...styles,
+            });
+            Cypress.$("body").append($container);
+          });
+        } else {
+          $element.css(styles);
+        }
+      };
+
       cy.get(selector).then(($element) => {
+        const style = {};
         if (!_.isString(highlight)) {
           if (highlight?.styles != null) {
-            $element.css(highlight.styles);
-            return;
-          } else if (highlight?.border != null) {
-            $element.css("border", highlight.border);
-            return;
+            _.extend(style, highlight.styles);
           }
-        }
-        if (that?.config.global?.highlightStyle != null) {
-          $element.css(that.config.global?.highlightStyle);
+          if (highlight?.border != null) {
+            if (_.isString(highlight.border)) {
+              _.extend(style, { border: highlight.border });
+            } else {
+              _.extend(style, {
+                ...highlightStyle,
+                ...highlight.border,
+              });
+            }
+          }
+          if (
+            _.isEmpty(style) &&
+            (highlight?.width != null || highlight?.height != null)
+          ) {
+            _.extend(style, highlightStyle);
+          }
+          applyHighlightStyle($element, style);
         } else {
-          $element.css({
-            outline: "2px",
-            "outline-style": "solid",
-            "outline-offset": "-2px",
-            "outline-color": "#FF9300",
-          });
+          applyHighlightStyle($element, highlightStyle);
         }
       });
     });
