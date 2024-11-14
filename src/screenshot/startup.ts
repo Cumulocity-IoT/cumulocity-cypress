@@ -181,7 +181,7 @@ function runOptions(yargs: Argv) {
     })
     .option("clear", {
       type: "boolean",
-      requiresArg: true,
+      requiresArg: false,
       description: "Clear the target folder and remove all data",
       default: false,
     })
@@ -201,7 +201,7 @@ function runOptions(yargs: Argv) {
     .option("tags", {
       alias: "t",
       type: "array",
-      requiresArg: false,
+      requiresArg: true,
       description: "Run only screenshot workflows with the given tags",
       coerce: (arg) => {
         const result: string[] = [];
