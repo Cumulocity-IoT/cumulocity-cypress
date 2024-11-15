@@ -36,11 +36,11 @@ screenshots:
 }
 
 export function resolveScreenshotFolder(
-  args: Partial<C8yScreenshotOptions>
+  args: Partial<C8yScreenshotOptions> | string
 ): string {
   const screenshotsFolder = path.resolve(
     process.cwd(),
-    args.folder ?? "c8yscrn"
+    (typeof args === "string" ? args : args?.folder) ?? "c8yscrn"
   );
   if (screenshotsFolder == process.cwd()) {
     throw new Error(

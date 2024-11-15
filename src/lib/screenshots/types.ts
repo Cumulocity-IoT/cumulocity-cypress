@@ -3,6 +3,7 @@
 // using & to combine types is not supported by JSON schema and will
 // result in copying the properties of the intersection into the resulting
 // subschemas.
+import { ODiffOptions } from "odiff-bin";
 
 export type ScreenshotSetup = {
   /**
@@ -161,6 +162,10 @@ export interface ScreenshotSettings {
    */
   disableTimersAndAnimations?: boolean;
   /**
+   * Options to configure the diffing of screenshots.
+   */
+  diff?: Omit<DiffOptions, "targetFolder" | "skipMove">;
+  /**
    * The timeouts supported by Cypress.
    */
   timeouts?: {
@@ -189,6 +194,19 @@ export interface ScreenshotSettings {
      */
     screenshot?: number;
   };
+}
+
+export interface DiffOptions
+  extends Pick<
+    ODiffOptions,
+    | "threshold"
+    | "ignoreRegions"
+    | "antialiasing"
+    | "diffColor"
+    | "outputDiffMask"
+  > {
+    targetFolder?: string;
+    skipMove?: boolean;
 }
 
 export interface Visit {
@@ -416,6 +434,9 @@ export interface C8yScreenshotOptions {
   setup: ScreenshotSetup;
   init: boolean;
   clear: boolean;
+  diff: boolean;
+  diffFolder: string;
+  diffSkip: boolean;
 }
 
 export interface C8yScreenshotFileUploadOptions {
