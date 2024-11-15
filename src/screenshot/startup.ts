@@ -7,6 +7,7 @@ import yargs from "yargs/yargs";
 import { Argv } from "yargs";
 import { hideBin } from "yargs/helpers";
 import { config as dotenv } from "dotenv";
+import { ODiffOptions } from "odiff-bin";
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./../screenshot/schema.json";
@@ -15,9 +16,11 @@ import {
   readYamlFile,
   resolveBaseUrl,
   resolveConfigOptions,
+  resolveScreenshotFolder,
 } from "./helper";
 import {
   C8yScreenshotOptions,
+  DiffOptions,
   ScreenshotSetup,
 } from "./../lib/screenshots/types";
 
@@ -96,6 +99,25 @@ const log = debug("c8y:scrn:startup");
       process.env.C8Y_BROWSER_LAUNCH_ARGS ??
       "";
 
+    const diffFolder =
+      args.diffFolder != null
+        ? resolveScreenshotFolder(args.diffFolder)
+        : undefined;
+
+    let diffOptions: (DiffOptions & ODiffOptions) | undefined = undefined;
+    if (args.diff === true) {
+      diffOptions = {
+        ...{
+          antialiasing: true,
+          noFailOnFsErrors: true,
+          reduceRamUsage: true,
+        },
+        ...(configData.global?.diff ?? {}),
+        targetFolder: diffFolder,
+        skipMove: args.diffSkip,
+      };
+    }
+
     // https://docs.cypress.io/guides/guides/module-api
     const config = {
       ...resolvedCypressConfig,
@@ -106,6 +128,7 @@ const log = debug("c8y:scrn:startup");
             _c8yscrnConfigFile: yamlFile,
             _c8yscrnyaml: configData,
             _c8yscrnBrowserLaunchArgs: browserLaunchArgs,
+            _c8yscrnDiffOptions: diffOptions,
           },
         },
       },
@@ -197,6 +220,23 @@ function runOptions(yargs: Argv) {
       default: true,
       requiresArg: true,
       hidden: true,
+    })
+    .option("diff", {
+      type: "boolean",
+      default: false,
+      requiresArg: false,
+      description: "Enable image diffing",
+    })
+    .option("diffFolder", {
+      type: "string",
+      requiresArg: true,
+      description: "Optional target folder for the diff images",
+    })
+    .option("diffSkip", {
+      type: "boolean",
+      default: true,
+      requiresArg: false,
+      description: "Skip screenshots without difference",
     })
     .option("tags", {
       alias: "t",
