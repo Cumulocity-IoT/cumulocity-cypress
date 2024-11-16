@@ -7,6 +7,7 @@ import yargs from "yargs/yargs";
 import { Argv } from "yargs";
 import { hideBin } from "yargs/helpers";
 import { config as dotenv } from "dotenv";
+import { ODiffOptions } from "odiff-bin";
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./../screenshot/schema.json";
@@ -15,9 +16,11 @@ import {
   readYamlFile,
   resolveBaseUrl,
   resolveConfigOptions,
+  resolveScreenshotFolder,
 } from "./helper";
 import {
   C8yScreenshotOptions,
+  DiffOptions,
   ScreenshotSetup,
 } from "./../lib/screenshots/types";
 
@@ -69,12 +72,11 @@ const log = debug("c8y:scrn:startup");
       throw new Error(`Error reading config file. ${error.message}`);
     }
 
-    try {
-      log(`Validating config file ${yamlFile}`);
-      const ajv = new C8yAjvSchemaMatcher();
-      ajv.match(configData, schema, true);
-    } catch (error: any) {
-      throw new Error(`Invalid config file. ${error.message}`);
+    log(`Validating config file ${yamlFile}`);
+    const schemaMatcher = new C8yAjvSchemaMatcher();
+    const valid = schemaMatcher.ajv.validate(schema, configData);
+    if (!valid) {
+      throw new Error(`Invalid config file. ${schemaMatcher.ajv.errorsText()}`);
     }
 
     baseUrl = baseUrl ?? configData.baseUrl ?? "http://localhost:8080";
@@ -96,6 +98,25 @@ const log = debug("c8y:scrn:startup");
       process.env.C8Y_BROWSER_LAUNCH_ARGS ??
       "";
 
+    const diffFolder =
+      args.diffFolder != null
+        ? resolveScreenshotFolder(args.diffFolder)
+        : undefined;
+
+    let diffOptions: (DiffOptions & ODiffOptions) | undefined = undefined;
+    if (args.diff === true) {
+      diffOptions = {
+        ...{
+          antialiasing: true,
+          noFailOnFsErrors: true,
+          reduceRamUsage: true,
+        },
+        ...(configData.global?.diff ?? {}),
+        targetFolder: diffFolder,
+        skipMove: args.diffSkip,
+      };
+    }
+
     // https://docs.cypress.io/guides/guides/module-api
     const config = {
       ...resolvedCypressConfig,
@@ -106,6 +127,7 @@ const log = debug("c8y:scrn:startup");
             _c8yscrnConfigFile: yamlFile,
             _c8yscrnyaml: configData,
             _c8yscrnBrowserLaunchArgs: browserLaunchArgs,
+            _c8yscrnDiffOptions: diffOptions,
           },
         },
       },
@@ -181,7 +203,7 @@ function runOptions(yargs: Argv) {
     })
     .option("clear", {
       type: "boolean",
-      requiresArg: true,
+      requiresArg: false,
       description: "Clear the target folder and remove all data",
       default: false,
     })
@@ -198,10 +220,27 @@ function runOptions(yargs: Argv) {
       requiresArg: true,
       hidden: true,
     })
+    .option("diff", {
+      type: "boolean",
+      default: false,
+      requiresArg: false,
+      description: "Enable image diffing",
+    })
+    .option("diffFolder", {
+      type: "string",
+      requiresArg: true,
+      description: "Optional target folder for the diff images",
+    })
+    .option("diffSkip", {
+      type: "boolean",
+      default: true,
+      requiresArg: false,
+      description: "Skip screenshots without difference",
+    })
     .option("tags", {
       alias: "t",
       type: "array",
-      requiresArg: false,
+      requiresArg: true,
       description: "Run only screenshot workflows with the given tags",
       coerce: (arg) => {
         const result: string[] = [];

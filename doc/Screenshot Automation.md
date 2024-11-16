@@ -8,8 +8,9 @@ Summary of capabilities:
 * Configuration of screenshot workflows in yaml format
 * Actions to apply before taking screenshots (click, type, highlight, wait, etc.)
 * Screenshots of the entire viewport, specific DOM elements, or custom-defined areas
-* Login, language and date/time settings per screenshot
+* Login, language and date/time settings per screenshot workflow
 * Configuration of viewport size, image padding and scaling, timeouts, and more
+* Diffing of screenshots and diff image generation
 * Tagging of screenshots and version requirements for filtering and grouping
 * Standalone and integrated modes to run without or within existing Cypress projects
 * Supported browsers (Chrome, Firefox, Electron)
@@ -59,6 +60,7 @@ Contents of this document:
 - [Environment Variables](#environment-variables)
 - [Authentication](#authentication)
 - [Selectors](#selectors)
+- [Diffing](#diffing)
 - [Tags](#tags)
 - [Version Requirements](#version-requirements)
 - [Worlflow File](#worlflow-file)
@@ -115,12 +117,15 @@ c8yscrn run
 Run workflows in headless mode
 
 Options:
-  -c, --config   The yaml config file                      [string] [default: "c8yscrn.config.yaml"]
-  -f, --folder   The target folder for the screenshots                                      [string]
-  -u, --baseUrl  The Cumulocity base url                                                    [string]
-      --clear    Clear the target folder and remove all data              [boolean] [default: false]
-  -b, --browser  Browser to use                                         [string] [default: "chrome"]
-  -t, --tags     Run only screenshot workflows with the given tags                           [array]
+  -c, --config      The yaml config file                   [string] [default: "c8yscrn.config.yaml"]
+  -f, --folder      The target folder for the screenshots                                   [string]
+  -u, --baseUrl     The Cumulocity base url                                                 [string]
+      --clear       Clear the target folder and remove all data           [boolean] [default: false]
+  -b, --browser     Browser to use                                      [string] [default: "chrome"]
+      --diff        Enable image diffing                                  [boolean] [default: false]
+      --diffFolder  Optional target folder for the diff images                              [string]
+      --diffSkip    Skip screenshots without difference                    [boolean] [default: true]
+  -t, --tags        Run only screenshot workflows with the given tags                        [array]
 ```
 
 When using `open` instead of `run`, the Cypress test runner will open in Cypress application. This can be useful for debugging and developing new screenshot workflows.
@@ -285,7 +290,58 @@ Examples of selectors:
     data-cy: right-drawer-toggle-button
 ```
 
-Please note, a selector can match multiple elements. In this case, all elements will be affected by the action. If you want to target a specific element, make sure the selector is unique.
+Please note, a selector can match multiple elements. In this case, all elements will be affected by the action. If you want to target a specific element, make sure the selector returns a the target DOM element and not an array of elements. You might want to use `:first` or `:nth-child` to target a specific element.
+
+To keep your selectors consistent and maintainable, consider using `data-cy` attributes for your tests. This allows you to target elements without relying on the structure or class names of your application. 
+
+Another option to keep your workflow readably and maintainable is to use the definition of shared selectors in the global settings of your configuration file. Follow whatever naming convention you prefer, e.g., `rightDrawerHeader`, `treeview.collapse.first`, `treeview.collapse.first.checkbox`. `selectors` can be defined as a single object or an array of objects to help keep your configuration file even more organized and readable.
+
+```yaml
+selectors:
+  rightDrawerHeader: .c8y-right-drawer__header > .d-flex
+  treeview.collapse.first: ".c8y-tree-view-node .collapse-btn:first"
+  treeview.collapse.first.checkbox: "c8y-tree-view-node:has(.collapse-btn:visible:first) .c8y-checkbox:first"
+```
+
+or 
+
+```yaml
+selectors:
+  - rightDrawerHeader: .c8y-right-drawer__header > .d-flex
+  - treeview.collapse.first: ".c8y-tree-view-node .collapse-btn:first"
+  - treeview.collapse.first.checkbox: "c8y-tree-view-node:has(.collapse-btn:visible:first) .c8y-checkbox:first"
+```
+
+The names can be used for any `selector` property in the screenshot configuration:
+
+```yaml
+- click:
+  selector: rightDrawerHeader
+```
+
+## Diffing
+
+When diffing is enabled, `c8yscrn` compares the new screenshots with the existing ones in the target folder and generates diff images that highlight the differences. Please note, diffing might only work as expected when overwriting existing screenshots. If there is no screenshot at the target location, diffing obviously won't work.
+
+The diff images can be stored in a separate folder, which can be configured using the `--diffFolder` option. If no folder is specified, the diff images will be stored in the same folder as the screenshot. By using the `--diffSkip` option, you can skip screenshots that don't have any differences. This can be useful when automatically running the screenshot workflows in CI/CD pipelines and possibly only processing the screenshots with differences (e.g. for a git commit and pull request).
+
+To configure diffing options, use the `global.diff` property in the configuration file:
+
+```yaml
+global:
+  diff:
+    antialiasing: true
+    threshold: 0.1
+    diffColor: "#ff00ff"
+    ignoreRegions:
+      - x1: 0
+        x2: 0
+        y1: 100
+        y2: 100
+    outputDiffMask: true
+```
+
+See [odiff](https://github.com/dmtrKovalenko/odiff) documentation for more information on the available options.
 
 ## Tags
 
@@ -325,21 +381,21 @@ global:
   viewportHeight: 900
   language: en
   user: admin
-  shell: "example"
-  requires: "1017"
+  shell: "cockpit"
+  requires: "1020"
   tags: 
-    - screenshot
+    - export
 
 screenshots:
   - image: /images/example1
-    visit: "/apps/example/index.html#/"
+    visit: "/apps/cockpit/index.html#/"
     tags: 
-      - "example"
+      - "dashboard"
 
   - image: /images/example2
     requires: ">=1019.0.0"
     visit:
-      url: "/apps/example/index.html#/"
+      url: "/apps/cockpit/index.html#/"
     actions:
       - screenshot:          
           clip:
@@ -406,6 +462,7 @@ global:
   date: string
   visitWaitSelector: string
   highlightStyle: object
+  diff: object
 ```
 
 **viewportWidth**
@@ -506,6 +563,10 @@ global:
 - **Type**: object
 - **Default**: `{ "outline": "2px", "outline-style": "solid", "outline-offset": "-2px", "outline-color": "#FF9300" }`
 - **Description**: Custom styles for the highlight action. This can be used to change the appearance of highlighted elements and override the default styles.
+
+**diff**
+- **Type**: object
+- **Description**: Configuration for image diffing. See the [Diffing](#diffing) section for more details.
 
 Some of this options correspond directly to Cypress's screenshot command options. For more detailed information, refer to the [Cypress screenshot documentation](https://docs.cypress.io/api/commands/screenshot).
 

@@ -3,6 +3,7 @@
 // using & to combine types is not supported by JSON schema and will
 // result in copying the properties of the intersection into the resulting
 // subschemas.
+import { ODiffOptions } from "odiff-bin";
 
 export type ScreenshotSetup = {
   /**
@@ -18,6 +19,10 @@ export type ScreenshotSetup = {
    * The global settings for all screenshots
    */
   global?: GlobalOptions & ScreenshotSettings & ScreenshotOptions;
+  /**
+   * Definition of shared selectors to use in the screenshot workflows
+   */
+  selectors?: SharedSelector | SharedSelector[];
   /**
    * The screensht workflows
    */
@@ -161,6 +166,10 @@ export interface ScreenshotSettings {
    */
   disableTimersAndAnimations?: boolean;
   /**
+   * Options to configure the diffing of screenshots.
+   */
+  diff?: ForwardedOdiffOptions;
+  /**
    * The timeouts supported by Cypress.
    */
   timeouts?: {
@@ -189,6 +198,21 @@ export interface ScreenshotSettings {
      */
     screenshot?: number;
   };
+}
+
+interface ForwardedOdiffOptions
+  extends Pick<
+    ODiffOptions,
+    | "threshold"
+    | "ignoreRegions"
+    | "antialiasing"
+    | "diffColor"
+    | "outputDiffMask"
+  > {}
+
+export interface DiffOptions extends ForwardedOdiffOptions {
+  targetFolder?: string;
+  skipMove?: boolean;
 }
 
 export interface Visit {
@@ -401,6 +425,10 @@ export type Selector = {
 
 export type Selectable = Selector | DataCySelector;
 
+export type SharedSelector = {
+  [key: string]: string;
+};
+
 // Internal types used within C8yScreenshotRunner
 // This will not be exposed to schema.json
 
@@ -416,6 +444,9 @@ export interface C8yScreenshotOptions {
   setup: ScreenshotSetup;
   init: boolean;
   clear: boolean;
+  diff: boolean;
+  diffFolder: string;
+  diffSkip: boolean;
 }
 
 export interface C8yScreenshotFileUploadOptions {

@@ -215,6 +215,7 @@
                                     ]
                                 },
                                 "height": {
+                                    "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
                                     "type": "number"
                                 },
                                 "selector": {
@@ -245,6 +246,7 @@
                                     ]
                                 },
                                 "width": {
+                                    "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
                                     "type": "number"
                                 }
                             },
@@ -266,6 +268,7 @@
                                     "type": "string"
                                 },
                                 "height": {
+                                    "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
                                     "type": "number"
                                 },
                                 "styles": {
@@ -277,6 +280,7 @@
                                     ]
                                 },
                                 "width": {
+                                    "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
                                     "type": "number"
                                 }
                             },
@@ -480,6 +484,56 @@
             },
             "type": "object"
         },
+        "ForwardedOdiffOptions": {
+            "additionalProperties": false,
+            "properties": {
+                "antialiasing": {
+                    "description": "If this is true, antialiased pixels are not counted to the diff of an image",
+                    "type": "boolean"
+                },
+                "diffColor": {
+                    "description": "Color used to highlight different pixels in the output (in hex format e.g. #cd2cc9).",
+                    "type": "string"
+                },
+                "ignoreRegions": {
+                    "description": "An array of regions to ignore in the diff.",
+                    "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "x1": {
+                                "type": "number"
+                            },
+                            "x2": {
+                                "type": "number"
+                            },
+                            "y1": {
+                                "type": "number"
+                            },
+                            "y2": {
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "x1",
+                            "x2",
+                            "y1",
+                            "y2"
+                        ],
+                        "type": "object"
+                    },
+                    "type": "array"
+                },
+                "outputDiffMask": {
+                    "description": "Output full diff image.",
+                    "type": "boolean"
+                },
+                "threshold": {
+                    "description": "Color difference threshold (from 0 to 1). Less more precise.",
+                    "type": "number"
+                }
+            },
+            "type": "object"
+        },
         "ScreenshotClipArea": {
             "additionalProperties": false,
             "properties": {
@@ -527,6 +581,10 @@
                         ]
                     ],
                     "type": "string"
+                },
+                "diff": {
+                    "$ref": "#/definitions/ForwardedOdiffOptions",
+                    "description": "Options to configure the diffing of screenshots."
                 },
                 "disableTimersAndAnimations": {
                     "description": "When true, prevents JavaScript timers (setTimeout, setInterval, etc)\nand CSS animations from running while the screenshot is taken.",
@@ -603,6 +661,7 @@
                             ]
                         },
                         "height": {
+                            "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
                             "type": "number"
                         },
                         "selector": {
@@ -633,6 +692,7 @@
                             ]
                         },
                         "width": {
+                            "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
                             "type": "number"
                         }
                     },
@@ -654,6 +714,7 @@
                             "type": "string"
                         },
                         "height": {
+                            "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
                             "type": "number"
                         },
                         "styles": {
@@ -665,6 +726,7 @@
                             ]
                         },
                         "width": {
+                            "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
                             "type": "number"
                         }
                     },
@@ -787,6 +849,10 @@
                     ],
                     "format": "date-time",
                     "type": "string"
+                },
+                "diff": {
+                    "$ref": "#/definitions/ForwardedOdiffOptions",
+                    "description": "Options to configure the diffing of screenshots."
                 },
                 "disableTimersAndAnimations": {
                     "description": "When true, prevents JavaScript timers (setTimeout, setInterval, etc)\nand CSS animations from running while the screenshot is taken.",
@@ -1015,6 +1081,26 @@
                 "type": "object"
             },
             "type": "array"
+        },
+        "selectors": {
+            "anyOf": [
+                {
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "type": "object"
+                },
+                {
+                    "items": {
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "type": "object"
+                    },
+                    "type": "array"
+                }
+            ],
+            "description": "Definition of shared selectors to use in the screenshot workflows"
         },
         "title": {
             "description": "The title used for root group of screenshot workflows",

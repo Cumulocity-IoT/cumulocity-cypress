@@ -92,6 +92,7 @@
     "date-fns": "^2.30.0",
     "dotenv": "^16.4.5",
     "lodash": "^4.17.21",
+    "odiff-bin": "^3.1.2",
     "quicktype": "^23.0.81",
     "semver": "^7.5.2",
     "set-cookie-parser": "^2.6.0",

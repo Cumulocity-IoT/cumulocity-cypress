@@ -75,6 +75,12 @@ describe("startup", () => {
         "/home/user/test/my/c8yscrn/folder"
       );
     });
+
+    it("should return folder for string argument", () => {
+      expect(resolveScreenshotFolder("my/c8yscrn/folder")).toBe(
+        "/home/user/test/my/c8yscrn/folder"
+      );
+    });
   });
 
   describe("resolveConfigOptions", () => {
@@ -128,7 +134,7 @@ describe("startup", () => {
     afterAll(() => {
       process.env = originalEnv;
     });
-    
+
     it("should return custom base url", () => {
       expect(
         resolveConfigOptions({ baseUrl: "http://localhost:4200" }).config.e2e

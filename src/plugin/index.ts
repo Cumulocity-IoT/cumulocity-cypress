@@ -2,6 +2,8 @@ import * as path from "path";
 import * as fs from "fs";
 import debug from "debug";
 
+import { compare } from "odiff-bin";
+
 import {
   C8yPactFileAdapter,
   C8yPactDefaultFileAdapter,
@@ -13,6 +15,7 @@ import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./../screenshot/schema.json";
 import {
   C8yScreenshotFileUploadOptions,
+  DiffOptions,
   ScreenshotSetup,
 } from "../lib/screenshots/types";
 import { readYamlFile } from "../screenshot/helper";
@@ -191,8 +194,11 @@ export function configureC8yScreenshotPlugin(
     );
   }
 
-  const ajv = new C8yAjvSchemaMatcher();
-  ajv.match(configData, schema, true);
+  const schemaMatcher = new C8yAjvSchemaMatcher();
+  const valid = schemaMatcher.ajv.validate(schema, configData);
+  if (!valid) {
+    throw new Error(`Invalid config file. ${schemaMatcher.ajv.errorsText()}`);
+  }
 
   if (configData.global?.timeouts?.default) {
     config.defaultCommandTimeout = configData.global.timeouts.default;
@@ -218,6 +224,13 @@ export function configureC8yScreenshotPlugin(
     config.baseUrl ?? configData?.baseUrl ?? "http://localhost:8080";
   log(`Using baseUrl ${config.baseUrl}`);
 
+  const diffOptions: DiffOptions | undefined = config.env._c8yscrnDiffOptions;
+  if (diffOptions != null) {
+    log(`Using diff options ${JSON.stringify(diffOptions)}`);
+  } else {
+    log(`No diff options provided. Image diffing disabled.`);
+  }
+
   // https://www.cypress.io/blog/generate-high-resolution-videos-and-screenshots
   // https://github.com/cypress-io/cypress/issues/27260
   on("before:browser:launch", (browser, launchOptions) => {
@@ -230,23 +243,29 @@ export function configureC8yScreenshotPlugin(
     const viewportWidth = configData?.global?.viewportWidth ?? 1440;
     const viewportHeight = configData?.global?.viewportHeight ?? 900;
     log(`Setting viewport to ${viewportWidth}x${viewportHeight}`);
+
+    // adding 500px height in headless mode for viewport and browser controls
+    // see https://github.com/cypress-io/cypress/issues/27260#issuecomment-2127940718
+    // see https://github.com/cypress-io/cypress/issues/3324
     if (browser.name === "chrome") {
       launchOptions.args.push(
-        `--window-size=${viewportWidth},${viewportHeight}`
+        `--window-size=${viewportWidth},${viewportHeight + 500}`
       );
       log(`Setting chrome launch options: ${launchOptions.args.slice(-1)}`);
     }
     if (browser.name === "electron") {
       launchOptions.preferences.width = viewportWidth;
-      launchOptions.preferences.height = viewportHeight;
+      launchOptions.preferences.height = viewportHeight + 500;
       launchOptions.preferences.resizable = false;
       log(
-        `Setting electron perferences width=${viewportWidth}, height=${viewportHeight}`
+        `Setting electron perferences width=${viewportWidth}, height=${
+          viewportHeight + 500
+        }`
       );
     }
     if (browser.name === "firefox") {
       launchOptions.args.push(`--width=${viewportWidth}`);
-      launchOptions.args.push(`--height=${viewportHeight}`);
+      launchOptions.args.push(`--height=${viewportHeight + 500}`);
       log(`Setting firefox launch options: ${launchOptions.args.slice(-2)}`);
     }
     const launchArgs = config.env._c8yscrnBrowserLaunchArgs;
@@ -259,42 +278,92 @@ export function configureC8yScreenshotPlugin(
   });
 
   on("after:screenshot", (details) => {
+    log(`Starting screenshot ${JSON.stringify(details)}`);
     return new Promise((resolve, reject) => {
+      const finish = (result: Cypress.AfterScreenshotReturnObject | string) => {
+        const resolveObject: Cypress.AfterScreenshotReturnObject = {
+          ...details,
+          ...(typeof result === "string" && { path: result }),
+        };
+        log(`Finished screenshot ${JSON.stringify(resolveObject)}`);
+        resolve(resolveObject);
+      };
+
+      const moveFile = (source: string, target: string) => {
+        fs.rename(source, target, (err) => {
+          if (err) {
+            log(`Error moving file: ${err}`);
+            return reject(err);
+          }
+          log(`Moved file to ${target}`);
+        });
+      };
+      
+      // path contains spec name, remove it. might only be required for run() mode however
       const newPath =
         details.specName.trim() == ""
           ? details.path
           : details.path?.replace(`${details.specName}${path.sep}`, "");
+      log(`details.path: ${details.path} -> newPath: ${newPath}`);
 
-      const folder = newPath?.split(path.sep).slice(0, -1).join(path.sep);
-      if (folder && !fs.existsSync(folder)) {
-        const result = fs.mkdirSync(folder, { recursive: true });
-        if (!result) {
-          reject(`Failed to create folder ${folder}`);
-        }
+      const screenshotTarget = path.dirname(newPath);
+      const diffTarget =
+        diffOptions?.targetFolder ??
+        (config.screenshotsFolder as string) ??
+        (config.e2e.screenshotsFolder as string);
+
+      const isDiffEnabled = diffOptions != null;
+      if (isDiffEnabled && !diffTarget) {
+        log(`Diffing enabled but no target folder found`);
+        finish(details);
       }
-      if (!folder) {
-        resolve({
-          path: details.path,
-          size: details.size,
-          dimensions: details.dimensions,
-        });
+
+      const folders = [screenshotTarget];
+      if (isDiffEnabled && diffTarget)
+        folders.push(
+          path.join(diffTarget, ...details.name.split("/").slice(0, -1))
+        );
+
+      folders.forEach((f) => {
+        if (!fs.existsSync(f)) {
+          const result = fs.mkdirSync(f, { recursive: true });
+          if (!result) {
+            reject(`Failed to create folder ${f}`);
+          }
+        }
+      });
+
+      if (!screenshotTarget) {
+        log(`No screenshot target folder found`);
+        finish(details);
       }
 
       // for Module API run(), overwrite option of the screenshot is not working
-      const targetPath =
+      const screenshotFile =
         overwrite === true ? newPath : appendCountIfPathExists(newPath);
-      log(
-        `Moving screenshot ${details.path} to ${targetPath} (overwrite: ${overwrite})`
-      );
+      const diffFile = path.join(diffTarget, `${details.name}.diff.png`);
+      log(`Diff file: ${diffFile}`);
 
-      fs.rename(details.path, targetPath, (err) => {
-        if (err) return reject(err);
-        resolve({
-          path: newPath,
-          size: details.size,
-          dimensions: details.dimensions,
-        });
-      });
+      log(`Move ${details.path} to ${screenshotFile} (${overwrite})`);
+
+      if (!isDiffEnabled) {
+        moveFile(details.path, screenshotFile);
+        finish(newPath);
+      } else {
+        compare(details.path, screenshotFile, diffFile, diffOptions).then(
+          (diffResult) => {
+            log(`Diff result: ${JSON.stringify(diffResult)}`);
+            if (diffResult.match === false && diffOptions.skipMove === false) {
+              moveFile(details.path, screenshotFile);
+            } else {
+              log(
+                `Skipping ${screenshotFile} (skipMove: ${diffOptions.skipMove})`
+              );
+            }
+            finish(newPath);
+          }
+        );
+      }
     });
   });
 
