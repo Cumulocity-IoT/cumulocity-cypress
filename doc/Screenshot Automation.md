@@ -290,7 +290,34 @@ Examples of selectors:
     data-cy: right-drawer-toggle-button
 ```
 
-Please note, a selector can match multiple elements. In this case, all elements will be affected by the action. If you want to target a specific element, make sure the selector is unique.
+Please note, a selector can match multiple elements. In this case, all elements will be affected by the action. If you want to target a specific element, make sure the selector returns a the target DOM element and not an array of elements. You might want to use `:first` or `:nth-child` to target a specific element.
+
+To keep your selectors consistent and maintainable, consider using `data-cy` attributes for your tests. This allows you to target elements without relying on the structure or class names of your application. 
+
+Another option to keep your workflow readably and maintainable is to use the definition of shared selectors in the global settings of your configuration file. Follow whatever naming convention you prefer, e.g., `rightDrawerHeader`, `treeview.collapse.first`, `treeview.collapse.first.checkbox`. `selectors` can be defined as a single object or an array of objects to help keep your configuration file even more organized and readable.
+
+```yaml
+selectors:
+  rightDrawerHeader: .c8y-right-drawer__header > .d-flex
+  treeview.collapse.first: ".c8y-tree-view-node .collapse-btn:first"
+  treeview.collapse.first.checkbox: "c8y-tree-view-node:has(.collapse-btn:visible:first) .c8y-checkbox:first"
+```
+
+or 
+
+```yaml
+selectors:
+  - rightDrawerHeader: .c8y-right-drawer__header > .d-flex
+  - treeview.collapse.first: ".c8y-tree-view-node .collapse-btn:first"
+  - treeview.collapse.first.checkbox: "c8y-tree-view-node:has(.collapse-btn:visible:first) .c8y-checkbox:first"
+```
+
+The names can be used for any `selector` property in the screenshot configuration:
+
+```yaml
+- click:
+  selector: rightDrawerHeader
+```
 
 ## Diffing
 
