@@ -10,12 +10,12 @@ import {
   C8yScreenshotFileUploadOptions,
   Screenshot,
   ScreenshotSetup,
-  Selector,
   Visit,
 } from "../lib/screenshots/types";
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
+import { getSelector, imageName } from "./runner-helper";
 
 const { _ } = Cypress;
 
@@ -43,6 +43,12 @@ export class C8yScreenshotRunner {
       );
     }
 
+    const schemaMatcher = new C8yAjvSchemaMatcher();
+    const valid = schemaMatcher.ajv.validate(schema, this.config);
+    if (!valid) {
+      throw new Error(`Invalid config file. ${schemaMatcher.ajv.errorsText()}`);
+    }
+
     this.actionHandlers = {};
     this.registerActionHandler("click", this.click);
     this.registerActionHandler("type", this.type);
@@ -54,13 +60,10 @@ export class C8yScreenshotRunner {
   }
 
   registerActionHandler(key: string, handler: C8yScreenshotActionHandler) {
-    this.actionHandlers[key] = handler;
+    this.actionHandlers[key] = handler.bind(this);
   }
 
   run() {
-    const ajv = new C8yAjvSchemaMatcher();
-    ajv.match(this.config, schema, true);
-
     const CyScreenshotSettingsKeys = [
       "capture",
       "scale",
@@ -238,7 +241,7 @@ export class C8yScreenshotRunner {
 
   protected click(action: Action["click"]) {
     const click = _.isString(action) ? { selector: action } : action;
-    const selector = getSelector(click);
+    const selector = getSelector(click, this.config.selectors);
     if (selector == null) return;
 
     const multiple = click?.multiple ?? false;
@@ -247,7 +250,7 @@ export class C8yScreenshotRunner {
   }
 
   protected type(action: Action["type"]) {
-    const selector = getSelector(action);
+    const selector = getSelector(action, this.config.selectors);
     if (selector == null || action == null) return;
     cy.get(selector).type(action.value);
   }
@@ -256,7 +259,7 @@ export class C8yScreenshotRunner {
     const highlights = _.isArray(action) ? action : [action];
 
     highlights?.forEach((highlight) => {
-      const selector = getSelector(highlight);
+      const selector = getSelector(highlight, this.config.selectors);
       if (selector == null) return;
 
       const highlightStyle = that?.config.global?.highlightStyle ?? {
@@ -346,7 +349,7 @@ export class C8yScreenshotRunner {
   }
 
   protected text(action: Action["text"]) {
-    const selector = getSelector(action);
+    const selector = getSelector(action, this.config.selectors);
     const value = action?.value;
     if (selector == null || value == null) return;
     cy.get(selector).then(($element) => {
@@ -359,7 +362,7 @@ export class C8yScreenshotRunner {
     if (_.isNumber(action)) {
       cy.wait(action);
     } else if (_.isObjectLike(action)) {
-      const selector = getSelector(action);
+      const selector = getSelector(action, this.config.selectors);
       if (selector != null) {
         const timeout = action.timeout ?? 4000;
         const chainer = action.assert;
@@ -394,7 +397,7 @@ export class C8yScreenshotRunner {
       fileUpload = action;
     }
 
-    const selector = getSelector(fileUpload);
+    const selector = getSelector(fileUpload, this.config.selectors);
     const filePath = fileUpload?.file;
     if (selector == null || filePath == null) {
       cy.task("debug", `File upload selector or file path is missing`, taskLog);
@@ -454,7 +457,7 @@ export class C8yScreenshotRunner {
     options: any
   ) {
     let name = action?.path || item.image;
-    const selector = getSelector(action);
+    const selector = getSelector(action, this.config.selectors);
     cy.task(
       "debug",
       `Taking screenshot ${name} Selector: ${selector}`,
@@ -516,25 +519,4 @@ export function isHighlightAction(action: Action): boolean {
 
 export function isScreenshotAction(action: Action): boolean {
   return "screenshot" in action;
-}
-
-export function getSelector(
-  selector: any | string | undefined
-): string | undefined {
-  if (!selector) return undefined;
-  if (_.isString(selector)) return selector;
-
-  if (_.isPlainObject(selector)) {
-    if ("data-cy" in selector) {
-      return `[data-cy=${_.get(selector, "data-cy")}]`;
-    }
-    if ("selector" in selector) {
-      return getSelector(selector.selector as Selector);
-    }
-  }
-  return undefined;
-}
-
-function imageName(name: string): string {
-  return name.replace(/.png$/i, "");
 }

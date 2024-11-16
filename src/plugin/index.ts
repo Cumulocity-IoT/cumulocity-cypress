@@ -194,8 +194,11 @@ export function configureC8yScreenshotPlugin(
     );
   }
 
-  const ajv = new C8yAjvSchemaMatcher();
-  ajv.match(configData, schema, true);
+  const schemaMatcher = new C8yAjvSchemaMatcher();
+  const valid = schemaMatcher.ajv.validate(schema, configData);
+  if (!valid) {
+    throw new Error(`Invalid config file. ${schemaMatcher.ajv.errorsText()}`);
+  }
 
   if (configData.global?.timeouts?.default) {
     config.defaultCommandTimeout = configData.global.timeouts.default;

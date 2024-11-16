@@ -72,12 +72,11 @@ const log = debug("c8y:scrn:startup");
       throw new Error(`Error reading config file. ${error.message}`);
     }
 
-    try {
-      log(`Validating config file ${yamlFile}`);
-      const ajv = new C8yAjvSchemaMatcher();
-      ajv.match(configData, schema, true);
-    } catch (error: any) {
-      throw new Error(`Invalid config file. ${error.message}`);
+    log(`Validating config file ${yamlFile}`);
+    const schemaMatcher = new C8yAjvSchemaMatcher();
+    const valid = schemaMatcher.ajv.validate(schema, configData);
+    if (!valid) {
+      throw new Error(`Invalid config file. ${schemaMatcher.ajv.errorsText()}`);
     }
 
     baseUrl = baseUrl ?? configData.baseUrl ?? "http://localhost:8080";
