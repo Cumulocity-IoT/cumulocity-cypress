@@ -20,6 +20,10 @@ export type ScreenshotSetup = {
    */
   global?: GlobalOptions & ScreenshotSettings & ScreenshotOptions;
   /**
+   * Definition of shared selectors to use in the screenshot workflows
+   */
+  selectors?: SharedSelector | SharedSelector[];
+  /**
    * The screensht workflows
    */
   screenshots: (Screenshot & ScreenshotOptions)[];
@@ -164,7 +168,7 @@ export interface ScreenshotSettings {
   /**
    * Options to configure the diffing of screenshots.
    */
-  diff?: Omit<DiffOptions, "targetFolder" | "skipMove">;
+  diff?: ForwardedOdiffOptions;
   /**
    * The timeouts supported by Cypress.
    */
@@ -196,7 +200,7 @@ export interface ScreenshotSettings {
   };
 }
 
-export interface DiffOptions
+interface ForwardedOdiffOptions
   extends Pick<
     ODiffOptions,
     | "threshold"
@@ -204,9 +208,11 @@ export interface DiffOptions
     | "antialiasing"
     | "diffColor"
     | "outputDiffMask"
-  > {
-    targetFolder?: string;
-    skipMove?: boolean;
+  > {}
+
+export interface DiffOptions extends ForwardedOdiffOptions {
+  targetFolder?: string;
+  skipMove?: boolean;
 }
 
 export interface Visit {
@@ -418,6 +424,10 @@ export type Selector = {
 };
 
 export type Selectable = Selector | DataCySelector;
+
+export type SharedSelector = {
+  [key: string]: string;
+};
 
 // Internal types used within C8yScreenshotRunner
 // This will not be exposed to schema.json

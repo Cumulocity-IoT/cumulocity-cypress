@@ -484,7 +484,7 @@
             },
             "type": "object"
         },
-        "Omit<DiffOptions,\"targetFolder\"|\"skipMove\">": {
+        "ForwardedOdiffOptions": {
             "additionalProperties": false,
             "properties": {
                 "antialiasing": {
@@ -583,7 +583,7 @@
                     "type": "string"
                 },
                 "diff": {
-                    "$ref": "#/definitions/Omit<DiffOptions,\"targetFolder\"|\"skipMove\">",
+                    "$ref": "#/definitions/ForwardedOdiffOptions",
                     "description": "Options to configure the diffing of screenshots."
                 },
                 "disableTimersAndAnimations": {
@@ -851,7 +851,7 @@
                     "type": "string"
                 },
                 "diff": {
-                    "$ref": "#/definitions/Omit<DiffOptions,\"targetFolder\"|\"skipMove\">",
+                    "$ref": "#/definitions/ForwardedOdiffOptions",
                     "description": "Options to configure the diffing of screenshots."
                 },
                 "disableTimersAndAnimations": {
@@ -1081,6 +1081,26 @@
                 "type": "object"
             },
             "type": "array"
+        },
+        "selectors": {
+            "anyOf": [
+                {
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "type": "object"
+                },
+                {
+                    "items": {
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "type": "object"
+                    },
+                    "type": "array"
+                }
+            ],
+            "description": "Definition of shared selectors to use in the screenshot workflows"
         },
         "title": {
             "description": "The title used for root group of screenshot workflows",
