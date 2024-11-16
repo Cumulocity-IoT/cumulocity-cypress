@@ -295,10 +295,10 @@ export function configureC8yScreenshotPlugin(
             log(`Error moving file: ${err}`);
             return reject(err);
           }
-          log(`Moved file to ${target}`);
+          log(`Moved ${details.path} to ${screenshotFile} (${overwrite})`);
         });
       };
-      
+
       // path contains spec name, remove it. might only be required for run() mode however
       const newPath =
         details.specName.trim() == ""
@@ -344,8 +344,6 @@ export function configureC8yScreenshotPlugin(
       const diffFile = path.join(diffTarget, `${details.name}.diff.png`);
       log(`Diff file: ${diffFile}`);
 
-      log(`Move ${details.path} to ${screenshotFile} (${overwrite})`);
-
       if (!isDiffEnabled) {
         moveFile(details.path, screenshotFile);
         finish(newPath);
@@ -353,12 +351,12 @@ export function configureC8yScreenshotPlugin(
         compare(details.path, screenshotFile, diffFile, diffOptions).then(
           (diffResult) => {
             log(`Diff result: ${JSON.stringify(diffResult)}`);
-            if (diffResult.match === false && diffOptions.skipMove === false) {
-              moveFile(details.path, screenshotFile);
-            } else {
+            if (diffOptions.skipMove === true && diffResult.match === true) {
               log(
                 `Skipping ${screenshotFile} (skipMove: ${diffOptions.skipMove})`
               );
+            } else {
+              moveFile(details.path, screenshotFile);
             }
             finish(newPath);
           }
