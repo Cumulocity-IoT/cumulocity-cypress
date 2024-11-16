@@ -9,7 +9,7 @@ export function getSelector(
   if (!selector) return undefined;
   if (_.isString(selector)) {
     const sharedSelector = _.isArrayLike(predefined)
-      ? _.first(predefined.filter((s) => s.name === selector))?.selector
+      ? _.get(_.first(predefined.filter((s) => selector in s)), selector)
       : _.get(predefined, selector);
     return sharedSelector ?? selector;
   }
