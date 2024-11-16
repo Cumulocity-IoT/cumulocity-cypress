@@ -2,13 +2,14 @@
 
 import {
   getSelector,
+  imageName,
 } from "./runner-helper";
 import { ScreenshotSetup } from "../lib/screenshots/types";
 
 describe("startup", () => {
   describe("getSelector", () => {
     const predefinedSelectors: ScreenshotSetup["selectors"] = [
-      { name: "testSelector", selector: ".test-class" },
+      { "testSelector": ".test-class" },
     ];
 
     it("should return the selector string if input is a string", () => {
@@ -37,6 +38,28 @@ describe("startup", () => {
       const selector = "nonExistentSelector";
       const result = getSelector(selector, predefinedSelectors);
       expect(result).toBe("nonExistentSelector");
+    });
+  });
+
+  describe("imageName", () => {
+    it("should remove the file extension", () => {
+      const result = imageName("my-test-image.png");
+      expect(result).toBe("my-test-image");
+    });
+
+    it("should not remove the file extension if it is not present", () => {
+      const result = imageName("my-test-image");
+      expect(result).toBe("my-test-image");
+    });
+
+    it("should remove the file extension if it is uppercase", () => {
+      const result = imageName("my-test-image.PNG");
+      expect(result).toBe("my-test-image");
+    });
+
+    it("should remove the file extension if it is mixed case", () => {
+      const result = imageName("my-test-image.png.png");
+      expect(result).toBe("my-test-image.png");
     });
   });
 });
