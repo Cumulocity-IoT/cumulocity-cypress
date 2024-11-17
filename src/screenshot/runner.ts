@@ -88,7 +88,9 @@ export class C8yScreenshotRunner {
       before(() => {
         const login = global?.login ?? global?.user;
         cy.getAuth(login as any).then((auth) => {
-          cy.wrap(auth, { log: false }).getShellVersion(global?.shell);
+          if (auth != null && login !== false) {
+            cy.wrap(auth, { log: false }).getShellVersion(global?.shell);
+          }
         });
       });
 
