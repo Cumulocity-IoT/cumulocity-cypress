@@ -51,16 +51,12 @@ export interface ScreenshotOptions {
    */
   tags?: string[];
   /**
-   * The shell is used to dermine the version of the application used by
-   * "requires" (optional)
+   * The shell is used to dermine the version of the application used by "requires" (optional)
    * @examples ["cockpit, devicemanagement, oee"]
    */
   shell?: string;
   /**
-   * Requires the shell application to have the a version in the given range.
-   * The range must be a valid semver range. If requires is configured and shell
-   * version does not fullfill the version requirement, the screenshot workflow
-   * will be skipped.
+   * Requires the shell application to have the a version in the given range. The range must be a valid semver range. If requires is configured and shell version does not fullfill the version requirement, the screenshot workflow will be skipped.
    * @format semver-range
    * @examples ["1.x, ^1.0.0, >=1.0.0 <2.0.0"]
    */
@@ -76,11 +72,10 @@ export interface ScreenshotOptions {
    */
   user?: string;
   /**
-   * The login user alias. Configure *user*_username and *user*_password env
-   * variables to set the actual user id and password.
-   * @examples ["admin"]
+   * The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.
+   * @examples [["admin", false]]
    */
-  login?: string;
+  login?: string | false;
   /**
    * The date to simulate when running the screenshot workflows
    * @format date-time
@@ -101,15 +96,11 @@ export interface Screenshot {
    */
   visit: string | Visit;
   /**
-   * The actions to perform in the screenshot workflow. The last action
-   * is always a screenshot action. If no actions are defined or last actions is
-   * not a screenshot action, a screenshot is taken of the current state of
-   * the application.
+   * The actions to perform in the screenshot workflow. The last actioncis always a screenshot action. If no actions are defined or last actions is not a screenshot action, a screenshot is taken of the current state of the application.
    */
   actions?: Action[] | Action;
   /**
-   * Run only this screenshot workflow and all other workflows that
-   * have only setting enabled
+   * Run only this screenshot workflow and all other workflows that have only setting enabled
    */
   only?: boolean;
   /**
@@ -145,8 +136,7 @@ export interface ScreenshotSettings {
    */
   capture?: "viewport" | "fullPage";
   /**
-   * The padding in px used to alter the dimensions of a screenshot of an
-   * element.
+   * The padding in px used to alter the dimensions of a screenshot of an element.
    * @minimum 0
    * @TJS-type integer
    */
@@ -156,13 +146,11 @@ export interface ScreenshotSettings {
    */
   scale?: boolean;
   /**
-   * Overwrite existing screenshots. By enabling this setting, existing
-   * screenshots might be deleted before running the screenshot workflow.
+   * Overwrite existing screenshots. By enabling this setting, existing screenshots might be deleted before running the screenshot workflow.
    */
   overwrite?: boolean;
   /**
-   * When true, prevents JavaScript timers (setTimeout, setInterval, etc)
-   * and CSS animations from running while the screenshot is taken.
+   * When true, prevents JavaScript timers (setTimeout, setInterval, etc) and CSS animations from running while the screenshot is taken.
    */
   disableTimersAndAnimations?: boolean;
   /**
@@ -174,24 +162,21 @@ export interface ScreenshotSettings {
    */
   timeouts?: {
     /**
-     * The time, in milliseconds, to wait until most DOM based commands are
-     * considered timed out.
+     * The time, in milliseconds, to wait until most DOM based commands are considered timed out.
      * @examples [10000]
      * @default 4000
      * @TJS-type integer
      */
     default?: number;
     /**
-     * The time, in milliseconds, to wait for the page to load. This is used
-     * for visit actions.
+     * The time, in milliseconds, to wait for the page to load. This is used for visit actions.
      * @examples [30000]
      * @default 60000
      * @TJS-type integer
      */
     pageLoad?: number;
     /**
-     * The time, in milliseconds, to wait for a response from a network request.
-     * Also applies to screenshot action.
+     * The time, in milliseconds, to wait for a response from a network request. Also applies to screenshot action.
      * @examples [60000]
      * @default 30000
      * @TJS-type integer
@@ -217,8 +202,7 @@ export interface DiffOptions extends ForwardedOdiffOptions {
 
 export interface Visit {
   /**
-   * The URL to visit. Currently only an URI relative to the base URL is
-   * supported.
+   * The URL to visit. Currently only an URI relative to the base URL is supported.
    * @format uri-reference
    */
   url: string;
@@ -277,14 +261,12 @@ export interface WaitAction {
     | string
     | {
         /**
-         * The chainer assertion to. Could be any valid Cypress chainer. The chainer is
-         * not validated and may or may not have a value to assert.
+         * The chainer assertion to. Could be any valid Cypress chainer. The chainer is not validated and may or may not have a value to assert.
          * @examples ["have.length", "eq", "be.visible"]
          */
         chainer: string;
         /**
-         * The value to assert. The value is optional and may not be required by the
-         * chainer assertion.
+         * The value to assert. The value is optional and may not be required by the chainer assertion.
          */
         value?: string | string[];
       };
@@ -325,7 +307,7 @@ export interface HighlightAction {
   border?: string | any;
   /**
    * The CSS styles to apply to the DOM element. Use any valid CSS styles.
-   * @examples ["background-color: yellow", "outline: dashed", "outline-offset: +3px"]
+   * @examples [["background-color: yellow", "outline: dashed", "outline-offset: +3px"]]
    */
   styles?: any;
   /**
@@ -354,14 +336,12 @@ export interface ScreenshotClipArea {
    */
   y: number;
   /**
-   * The width of the clip area. If negative, the width is subtracted from the
-   * viewport width.
+   * The width of the clip area. If negative, the width is subtracted from the viewport width.
    * @TJS-type integer
    */
   width: number;
   /**
-   * The height of the clip area. If negative, the height is subtracted from the
-   * viewport height.
+   * The height of the clip area. If negative, the height is subtracted from the viewport height.
    * @TJS-type integer
    */
   height: number;
@@ -369,13 +349,11 @@ export interface ScreenshotClipArea {
 
 export interface ScreenshotAction {
   /**
-   * The path to store the screenshot. This is the relative path used
-   * within the screenshot folder.
+   * The path to store the screenshot. This is the relative path used within the screenshot folder.
    */
   path?: string;
   /**
-   * The clip area within the screenshot image. The clip area is defined
-   * by the top-left corner (x, y) and the width and height of the clip area.
+   * The clip area within the screenshot image. The clip area is defined by the top-left corner (x, y) and the width and height of the clip area.
    */
   clip?: ScreenshotClipArea;
 }
@@ -394,8 +372,7 @@ export interface Action {
    */
   highlight?: string | SelectableHighlightAction | SelectableHighlightAction[];
   /**
-   * The screenshot action triggers a screenshot of the current state of the
-   * application.
+   * The screenshot action triggers a screenshot of the current state of the application.
    */
   screenshot?: ScreenshotAction & Partial<Selectable>;
   /**
@@ -403,13 +380,11 @@ export interface Action {
    */
   text?: TextAction & Selectable;
   /**
-   * A type action triggers a type event on the selected DOM element. Use to
-   * simulate typing in an input field.
+   * A type action triggers a type event on the selected DOM element. Use to simulate typing in an input field.
    */
   type?: TypeAction & Selectable;
   /**
-   * A wait action waits for the given time in ms or for a given
-   * chainer assertion.
+   * A wait action waits for the given time in ms or for a given chainer assertion.
    * @examples [1000, 10000]
    */
   wait?: number | WaitAction;

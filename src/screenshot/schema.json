@@ -240,9 +240,11 @@
                                 "styles": {
                                     "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                                     "examples": [
-                                        "background-color: yellow",
-                                        "outline: dashed",
-                                        "outline-offset: +3px"
+                                        [
+                                            "background-color: yellow",
+                                            "outline: dashed",
+                                            "outline-offset: +3px"
+                                        ]
                                     ]
                                 },
                                 "width": {
@@ -274,9 +276,11 @@
                                 "styles": {
                                     "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                                     "examples": [
-                                        "background-color: yellow",
-                                        "outline: dashed",
-                                        "outline-offset: +3px"
+                                        [
+                                            "background-color: yellow",
+                                            "outline: dashed",
+                                            "outline-offset: +3px"
+                                        ]
                                     ]
                                 },
                                 "width": {
@@ -308,10 +312,10 @@
                             "properties": {
                                 "clip": {
                                     "$ref": "#/definitions/ScreenshotClipArea",
-                                    "description": "The clip area within the screenshot image. The clip area is defined\nby the top-left corner (x, y) and the width and height of the clip area."
+                                    "description": "The clip area within the screenshot image. The clip area is defined by the top-left corner (x, y) and the width and height of the clip area."
                                 },
                                 "path": {
-                                    "description": "The path to store the screenshot. This is the relative path used\nwithin the screenshot folder.",
+                                    "description": "The path to store the screenshot. This is the relative path used within the screenshot folder.",
                                     "type": "string"
                                 },
                                 "selector": {
@@ -341,20 +345,20 @@
                             "properties": {
                                 "clip": {
                                     "$ref": "#/definitions/ScreenshotClipArea",
-                                    "description": "The clip area within the screenshot image. The clip area is defined\nby the top-left corner (x, y) and the width and height of the clip area."
+                                    "description": "The clip area within the screenshot image. The clip area is defined by the top-left corner (x, y) and the width and height of the clip area."
                                 },
                                 "data-cy": {
                                     "type": "string"
                                 },
                                 "path": {
-                                    "description": "The path to store the screenshot. This is the relative path used\nwithin the screenshot folder.",
+                                    "description": "The path to store the screenshot. This is the relative path used within the screenshot folder.",
                                     "type": "string"
                                 }
                             },
                             "type": "object"
                         }
                     ],
-                    "description": "The screenshot action triggers a screenshot of the current state of the\napplication."
+                    "description": "The screenshot action triggers a screenshot of the current state of the application."
                 },
                 "text": {
                     "anyOf": [
@@ -464,7 +468,7 @@
                             "type": "object"
                         }
                     ],
-                    "description": "A type action triggers a type event on the selected DOM element. Use to\nsimulate typing in an input field."
+                    "description": "A type action triggers a type event on the selected DOM element. Use to simulate typing in an input field."
                 },
                 "wait": {
                     "anyOf": [
@@ -475,7 +479,7 @@
                             "type": "number"
                         }
                     ],
-                    "description": "A wait action waits for the given time in ms or for a given\nchainer assertion.",
+                    "description": "A wait action waits for the given time in ms or for a given chainer assertion.",
                     "examples": [
                         1000,
                         10000
@@ -538,11 +542,11 @@
             "additionalProperties": false,
             "properties": {
                 "height": {
-                    "description": "The height of the clip area. If negative, the height is subtracted from the\nviewport height.",
+                    "description": "The height of the clip area. If negative, the height is subtracted from the viewport height.",
                     "type": "integer"
                 },
                 "width": {
-                    "description": "The width of the clip area. If negative, the width is subtracted from the\nviewport width.",
+                    "description": "The width of the clip area. If negative, the width is subtracted from the viewport width.",
                     "type": "integer"
                 },
                 "x": {
@@ -587,15 +591,15 @@
                     "description": "Options to configure the diffing of screenshots."
                 },
                 "disableTimersAndAnimations": {
-                    "description": "When true, prevents JavaScript timers (setTimeout, setInterval, etc)\nand CSS animations from running while the screenshot is taken.",
+                    "description": "When true, prevents JavaScript timers (setTimeout, setInterval, etc) and CSS animations from running while the screenshot is taken.",
                     "type": "boolean"
                 },
                 "overwrite": {
-                    "description": "Overwrite existing screenshots. By enabling this setting, existing\nscreenshots might be deleted before running the screenshot workflow.",
+                    "description": "Overwrite existing screenshots. By enabling this setting, existing screenshots might be deleted before running the screenshot workflow.",
                     "type": "boolean"
                 },
                 "padding": {
-                    "description": "The padding in px used to alter the dimensions of a screenshot of an\nelement.",
+                    "description": "The padding in px used to alter the dimensions of a screenshot of an element.",
                     "minimum": 0,
                     "type": "integer"
                 },
@@ -609,7 +613,7 @@
                     "properties": {
                         "default": {
                             "default": 4000,
-                            "description": "The time, in milliseconds, to wait until most DOM based commands are\nconsidered timed out.",
+                            "description": "The time, in milliseconds, to wait until most DOM based commands are considered timed out.",
                             "examples": [
                                 10000
                             ],
@@ -617,7 +621,7 @@
                         },
                         "pageLoad": {
                             "default": 60000,
-                            "description": "The time, in milliseconds, to wait for the page to load. This is used\nfor visit actions.",
+                            "description": "The time, in milliseconds, to wait for the page to load. This is used for visit actions.",
                             "examples": [
                                 30000
                             ],
@@ -625,7 +629,7 @@
                         },
                         "screenshot": {
                             "default": 30000,
-                            "description": "The time, in milliseconds, to wait for a response from a network request.\nAlso applies to screenshot action.",
+                            "description": "The time, in milliseconds, to wait for a response from a network request. Also applies to screenshot action.",
                             "examples": [
                                 60000
                             ],
@@ -686,9 +690,11 @@
                         "styles": {
                             "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                             "examples": [
-                                "background-color: yellow",
-                                "outline: dashed",
-                                "outline-offset: +3px"
+                                [
+                                    "background-color: yellow",
+                                    "outline: dashed",
+                                    "outline-offset: +3px"
+                                ]
                             ]
                         },
                         "width": {
@@ -720,9 +726,11 @@
                         "styles": {
                             "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                             "examples": [
-                                "background-color: yellow",
-                                "outline: dashed",
-                                "outline-offset: +3px"
+                                [
+                                    "background-color: yellow",
+                                    "outline: dashed",
+                                    "outline-offset: +3px"
+                                ]
                             ]
                         },
                         "width": {
@@ -755,7 +763,7 @@
                     "type": "integer"
                 },
                 "url": {
-                    "description": "The URL to visit. Currently only an URI relative to the base URL is\nsupported.",
+                    "description": "The URL to visit. Currently only an URI relative to the base URL is supported.",
                     "format": "uri-reference",
                     "type": "string"
                 }
@@ -774,7 +782,7 @@
                             "additionalProperties": false,
                             "properties": {
                                 "chainer": {
-                                    "description": "The chainer assertion to. Could be any valid Cypress chainer. The chainer is\nnot validated and may or may not have a value to assert.",
+                                    "description": "The chainer assertion to. Could be any valid Cypress chainer. The chainer is not validated and may or may not have a value to assert.",
                                     "examples": [
                                         "have.length",
                                         "eq",
@@ -794,7 +802,7 @@
                                             "type": "string"
                                         }
                                     ],
-                                    "description": "The value to assert. The value is optional and may not be required by the\nchainer assertion."
+                                    "description": "The value to assert. The value is optional and may not be required by the chainer assertion."
                                 }
                             },
                             "required": [
@@ -855,7 +863,7 @@
                     "description": "Options to configure the diffing of screenshots."
                 },
                 "disableTimersAndAnimations": {
-                    "description": "When true, prevents JavaScript timers (setTimeout, setInterval, etc)\nand CSS animations from running while the screenshot is taken.",
+                    "description": "When true, prevents JavaScript timers (setTimeout, setInterval, etc) and CSS animations from running while the screenshot is taken.",
                     "type": "boolean"
                 },
                 "highlightStyle": {
@@ -873,27 +881,35 @@
                     ]
                 },
                 "language": {
-                    "description": "Load Cumulocity with the given language",
+                    "description": "Load dddCumulocity with the given language",
                     "type": "string"
                 },
                 "login": {
-                    "description": "The login user alias. Configure *user*_username and *user*_password env\nvariables to set the actual user id and password.",
+                    "anyOf": [
+                        {
+                            "const": false,
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password. If set to false, login is disabled and visit is performed unauthenticated.",
                     "examples": [
                         "admin"
-                    ],
-                    "type": "string"
+                    ]
                 },
                 "overwrite": {
-                    "description": "Overwrite existing screenshots. By enabling this setting, existing\nscreenshots might be deleted before running the screenshot workflow.",
+                    "description": "Overwrite existing screenshots. By enabling this setting, existing screenshots might be deleted before running the screenshot workflow.",
                     "type": "boolean"
                 },
                 "padding": {
-                    "description": "The padding in px used to alter the dimensions of a screenshot of an\nelement.",
+                    "description": "The padding in px used to alter the dimensions of a screenshot of an element.",
                     "minimum": 0,
                     "type": "integer"
                 },
                 "requires": {
-                    "description": "Requires the shell application to have the a version in the given range.\nThe range must be a valid semver range. If requires is configured and shell\nversion does not fullfill the version requirement, the screenshot workflow\nwill be skipped.",
+                    "description": "Requires the shell application to have the a version in the given range. The range must be a valid semver range. If requires is configured and shell version does not fullfill the version requirement, the screenshot workflow will be skipped.",
                     "examples": [
                         "1.x, ^1.0.0, >=1.0.0 <2.0.0"
                     ],
@@ -905,7 +921,7 @@
                     "type": "boolean"
                 },
                 "shell": {
-                    "description": "The shell is used to dermine the version of the application used by\n\"requires\" (optional)",
+                    "description": "The shell is used to dermine the version of the application used by \"requires\" (optional)",
                     "examples": [
                         "cockpit, devicemanagement, oee"
                     ],
@@ -924,7 +940,7 @@
                     "properties": {
                         "default": {
                             "default": 4000,
-                            "description": "The time, in milliseconds, to wait until most DOM based commands are\nconsidered timed out.",
+                            "description": "The time, in milliseconds, to wait until most DOM based commands are considered timed out.",
                             "examples": [
                                 10000
                             ],
@@ -932,7 +948,7 @@
                         },
                         "pageLoad": {
                             "default": 60000,
-                            "description": "The time, in milliseconds, to wait for the page to load. This is used\nfor visit actions.",
+                            "description": "The time, in milliseconds, to wait for the page to load. This is used for visit actions.",
                             "examples": [
                                 30000
                             ],
@@ -940,7 +956,7 @@
                         },
                         "screenshot": {
                             "default": 30000,
-                            "description": "The time, in milliseconds, to wait for a response from a network request.\nAlso applies to screenshot action.",
+                            "description": "The time, in milliseconds, to wait for a response from a network request. Also applies to screenshot action.",
                             "examples": [
                                 60000
                             ],
@@ -993,7 +1009,7 @@
                                 "type": "array"
                             }
                         ],
-                        "description": "The actions to perform in the screenshot workflow. The last action\nis always a screenshot action. If no actions are defined or last actions is\nnot a screenshot action, a screenshot is taken of the current state of\nthe application."
+                        "description": "The actions to perform in the screenshot workflow. The last actioncis always a screenshot action. If no actions are defined or last actions is not a screenshot action, a screenshot is taken of the current state of the application."
                     },
                     "date": {
                         "description": "The date to simulate when running the screenshot workflows",
@@ -1011,22 +1027,30 @@
                         "type": "string"
                     },
                     "language": {
-                        "description": "Load Cumulocity with the given language",
+                        "description": "Load dddCumulocity with the given language",
                         "type": "string"
                     },
                     "login": {
-                        "description": "The login user alias. Configure *user*_username and *user*_password env\nvariables to set the actual user id and password.",
+                        "anyOf": [
+                            {
+                                "const": false,
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ],
+                        "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password. If set to false, login is disabled and visit is performed unauthenticated.",
                         "examples": [
                             "admin"
-                        ],
-                        "type": "string"
+                        ]
                     },
                     "only": {
-                        "description": "Run only this screenshot workflow and all other workflows that\nhave only setting enabled",
+                        "description": "Run only this screenshot workflow and all other workflows that have only setting enabled",
                         "type": "boolean"
                     },
                     "requires": {
-                        "description": "Requires the shell application to have the a version in the given range.\nThe range must be a valid semver range. If requires is configured and shell\nversion does not fullfill the version requirement, the screenshot workflow\nwill be skipped.",
+                        "description": "Requires the shell application to have the a version in the given range. The range must be a valid semver range. If requires is configured and shell version does not fullfill the version requirement, the screenshot workflow will be skipped.",
                         "examples": [
                             "1.x, ^1.0.0, >=1.0.0 <2.0.0"
                         ],
@@ -1038,7 +1062,7 @@
                         "description": "The configuration and settings of the screenshot"
                     },
                     "shell": {
-                        "description": "The shell is used to dermine the version of the application used by\n\"requires\" (optional)",
+                        "description": "The shell is used to dermine the version of the application used by \"requires\" (optional)",
                         "examples": [
                             "cockpit, devicemanagement, oee"
                         ],
