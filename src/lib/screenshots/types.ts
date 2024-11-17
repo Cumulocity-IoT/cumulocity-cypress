@@ -76,11 +76,10 @@ export interface ScreenshotOptions {
    */
   user?: string;
   /**
-   * The login user alias. Configure *user*_username and *user*_password env
-   * variables to set the actual user id and password.
-   * @examples ["admin"]
+   * The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.
+   * @examples [["admin", false]]
    */
-  login?: string;
+  login?: string | false;
   /**
    * The date to simulate when running the screenshot workflows
    * @format date-time

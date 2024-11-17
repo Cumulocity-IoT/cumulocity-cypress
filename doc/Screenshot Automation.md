@@ -245,25 +245,23 @@ When using the screenshot automation in an existing Cypress project, you can set
 
 To authenticate with Cumulocity, you can 
 - use `C8Y_USERNAME` and `C8Y_PASSWORD` environment variables
-- set the `user` property in the global settings of your configuration file
-- set the `user` property of the `visit` object (overrides global setting)
+- set the `login` property in the `global` object of your configuration file
+- set the `login` property of the `visit` object (overrides global setting)
 
-The `user` property refers to an alias that is used to look up the actual user ID and password from the `*user*_username` and `*user*_password` environment variables. 
-
-The following example defines and uses the user `admin` for authentication:
+The `login` property refers to an alias that is used to look up the actual user ID and password from the `*login*_username` and `*login*_password` environment variables. 
 
 ```yaml
 global:
-  user: admin
+  login: admin
 ```
 
-Corresponding .c8yscrn file:
+Define `admin` alias in `.c8yscrn` file:
 ```properties
 admin_username: myusername
 admin_password: mypassword
 ```
 
-Corresponding cypress.env.json file:
+Define `admin` alias in `cypress.env.json` file:
 ```json
 {
   "admin_username": "myusername",
@@ -271,7 +269,19 @@ Corresponding cypress.env.json file:
 }
 ```
 
-If all screenshot workflows use the same user, you can also use `C8Y_USERNAME` and `C8Y_PASSWORD` environment variables instead of defining a user alias.
+By providing `false` to login property, you can explicitely disable the login action for a specific screenshot workflow. The following example disables the login action for the dashboard screenshot overwriting the global setting and resulting in a redirect to the login page.
+
+```yaml
+screenshots:
+  - image: /images/dashboard
+    visit: "/apps/cockpit/index.html#/"
+    login: false
+```
+
+If not providing any authentication information, the visit action will be performed unauthenticated.
+
+> **Note:**
+> If all screenshot workflows use the same user for authentication, you can also use `C8Y_USERNAME` and `C8Y_PASSWORD` environment variables instead of defining a user alias.
 
 ## Selectors
 
@@ -483,9 +493,9 @@ global:
 - **Example**: `"en"` or `"de"`
 
 **login**
-- **Type**: string
-- **Description**: The login user alias to use for logging into Cumulocity. Configure `*login*_username` and `*login*_password` environment variables to set the actual user ID and password. See the [Authentication](#authentication) section for more details.
-- **Example**: `"admin"`
+- **Type**: string | false
+- **Description**: The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated. See the [Authentication](#authentication) section for more details.
+- **Example**: `"admin"` or `false`
 
 **shell**
 - **Type**: string

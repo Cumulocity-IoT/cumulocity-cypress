@@ -72,11 +72,10 @@ export class C8yScreenshotRunner {
       "disableTimersAndAnimations",
     ];
 
+    const global = this.config.global;
+
     const defaultOptions: Partial<Cypress.ScreenshotOptions> = _.defaults(
-      _.omitBy(
-        _.pick(this.config.global ?? {}, CyScreenshotSettingsKeys),
-        _.isNil
-      ),
+      _.omitBy(_.pick(global ?? {}, CyScreenshotSettingsKeys), _.isNil),
       {
         overwrite: false,
         scale: false,
@@ -87,11 +86,10 @@ export class C8yScreenshotRunner {
 
     describe(this.config.title ?? `screenshot workflow`, () => {
       before(() => {
-        if (this.config.global?.user != null) {
-          cy.getAuth(this.config.global?.user).getShellVersion(
-            this.config.global?.shell
-          );
-        }
+        const login = global?.login ?? global?.user;
+        cy.getAuth(login as any).then((auth) => {
+          cy.wrap(auth, { log: false }).getShellVersion(global?.shell);
+        });
       });
 
       beforeEach(() => {
@@ -103,7 +101,7 @@ export class C8yScreenshotRunner {
       this.config.screenshots?.forEach((item) => {
         const annotations: any = {};
 
-        const required = item.requires ?? this.config.global?.requires;
+        const required = item.requires ?? global?.requires;
         if (required != null) {
           annotations.requires = {
             shell: _.isArray(required) ? required : [required],
@@ -123,24 +121,20 @@ export class C8yScreenshotRunner {
           annotations,
           // @ts-expect-error
           () => {
-            const user =
-              item.login ??
-              this.config.global?.login ??
-              item.user ??
-              this.config.global?.user;
+            const login =
+              item.login ?? global?.login ?? item.user ?? global?.user;
 
-            if (user != null) {
-              cy.getAuth(user).getTenantId();
-            }
+            const user = login === false ? undefined : login;
+            cy.getAuth(user as any).then((auth) => {
+              if (auth != null && login !== false) {
+                cy.wrap(auth, { log: false }).getTenantId();
+              }
+            });
 
             const width =
-              item.settings?.viewportWidth ??
-              this.config.global?.viewportWidth ??
-              1440;
+              item.settings?.viewportWidth ?? global?.viewportWidth ?? 1440;
             const height =
-              item.settings?.viewportWidth ??
-              this.config.global?.viewportHeight ??
-              900;
+              item.settings?.viewportWidth ?? global?.viewportHeight ?? 900;
             cy.viewport(width, height);
 
             const options = _.defaults(
@@ -151,20 +145,22 @@ export class C8yScreenshotRunner {
               defaultOptions
             );
 
-            const visitDate = item.date ?? this.config.global?.date;
+            const visitDate = item.date ?? global?.date;
             if (visitDate) {
               cy.clock(new Date(visitDate));
             }
 
-            if (user != null) {
-              cy.login(user);
-            }
+            cy.getAuth(user as any).then((auth) => {
+              if (auth != null && login !== false) {
+                cy.wrap(user, { log: false }).login();
+              }
+            });
 
             const visitObject = this.getVisitObject(item.visit);
             const url = visitObject?.url ?? (item.visit as string);
             const visitSelector =
               visitObject?.selector ??
-              this.config.global?.visitWaitSelector ??
+              global?.visitWaitSelector ??
               "c8y-drawer-outlet c8y-app-icon .c8y-icon";
             cy.task(
               "debug",
@@ -173,8 +169,7 @@ export class C8yScreenshotRunner {
             );
             const visitTimeout = visitObject?.timeout;
 
-            const language =
-              item.language ?? this.config.global?.language ?? "en";
+            const language = item.language ?? global?.language ?? "en";
             cy.visitAndWaitForSelector(
               url,
               language as any,
@@ -182,7 +177,7 @@ export class C8yScreenshotRunner {
               visitTimeout
             );
 
-            if (this.config.global?.disableTimersAndAnimations === true) {
+            if (global?.disableTimersAndAnimations === true) {
               cy.document().then((doc) => {
                 const style = doc.createElement("style");
                 style.innerHTML = `
