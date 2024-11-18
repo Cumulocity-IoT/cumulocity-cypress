@@ -249,7 +249,25 @@ export class C8yScreenshotRunner {
   protected type(action: Action["type"]) {
     const selector = getSelector(action, this.config.selectors);
     if (selector == null || action == null) return;
-    cy.get(selector).type(action.value);
+    if (_.isString(action.value)) {
+      if (action.clear === true) {
+        cy.get(selector).clear();
+      }
+      cy.get(selector).type(action.value);
+    } else if (_.isArrayLike(action.value)) {
+      cy.get(selector).within(() => {
+        cy.get("input[type=text]").then(($elements) => {
+          const length = Math.min($elements.length, action.value.length);
+          (action.value as string[]).forEach((value: string, index: number) => {
+            if (index >= length) return;
+            if (action.clear === true) {
+              cy.get(selector).clear();
+            }
+            cy.get("input[type=text]").eq(index).type(value);
+          });
+        });
+      });
+    }
   }
 
   protected highlight(action: Action["highlight"], that: C8yScreenshotRunner) {
