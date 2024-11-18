@@ -420,6 +420,11 @@
                         {
                             "additionalProperties": false,
                             "properties": {
+                                "clear": {
+                                    "default": false,
+                                    "description": "If true, the text input is cleared before typing. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "selector": {
                                     "anyOf": [
                                         {
@@ -440,8 +445,18 @@
                                     ]
                                 },
                                 "value": {
-                                    "description": "The value to type",
-                                    "type": "string"
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array."
                                 }
                             },
                             "required": [
@@ -453,12 +468,27 @@
                         {
                             "additionalProperties": false,
                             "properties": {
+                                "clear": {
+                                    "default": false,
+                                    "description": "If true, the text input is cleared before typing. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "data-cy": {
                                     "type": "string"
                                 },
                                 "value": {
-                                    "description": "The value to type",
-                                    "type": "string"
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array."
                                 }
                             },
                             "required": [
@@ -881,22 +911,27 @@
                     ]
                 },
                 "language": {
-                    "description": "Load dddCumulocity with the given language",
+                    "description": "Load Cumulocity with the given language",
                     "type": "string"
                 },
                 "login": {
                     "anyOf": [
                         {
-                            "const": false,
+                            "enum": [
+                                false
+                            ],
                             "type": "boolean"
                         },
                         {
                             "type": "string"
                         }
                     ],
-                    "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password. If set to false, login is disabled and visit is performed unauthenticated.",
+                    "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.",
                     "examples": [
-                        "admin"
+                        [
+                            "admin",
+                            false
+                        ]
                     ]
                 },
                 "overwrite": {
@@ -1027,22 +1062,27 @@
                         "type": "string"
                     },
                     "language": {
-                        "description": "Load dddCumulocity with the given language",
+                        "description": "Load Cumulocity with the given language",
                         "type": "string"
                     },
                     "login": {
                         "anyOf": [
                             {
-                                "const": false,
+                                "enum": [
+                                    false
+                                ],
                                 "type": "boolean"
                             },
                             {
                                 "type": "string"
                             }
                         ],
-                        "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password. If set to false, login is disabled and visit is performed unauthenticated.",
+                        "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.",
                         "examples": [
-                            "admin"
+                            [
+                                "admin",
+                                false
+                            ]
                         ]
                     },
                     "only": {
