@@ -9,20 +9,14 @@ import { hideBin } from "yargs/helpers";
 import { config as dotenv } from "dotenv";
 import { ODiffOptions } from "odiff-bin";
 
-import { C8yAjvSchemaMatcher } from "../contrib/ajv";
-import schema from "./../screenshot/schema.json";
 import {
   createInitConfig,
-  readYamlFile,
+  loadConfigFile,
   resolveBaseUrl,
   resolveConfigOptions,
   resolveScreenshotFolder,
 } from "./helper";
-import {
-  C8yScreenshotOptions,
-  DiffOptions,
-  ScreenshotSetup,
-} from "./../lib/screenshots/types";
+import { C8yScreenshotOptions, DiffOptions } from "./../lib/screenshots/types";
 
 import debug from "debug";
 const log = debug("c8y:scrn:startup");
@@ -65,18 +59,10 @@ const log = debug("c8y:scrn:startup");
       ...(tags.length > 0 ? { grepTags: tags } : {}),
     };
 
-    let configData: ScreenshotSetup;
-    try {
-      configData = readYamlFile(yamlFile);
-    } catch (error: any) {
-      throw new Error(`Error reading config file. ${error.message}`);
-    }
-
-    log(`Validating config file ${yamlFile}`);
-    const schemaMatcher = new C8yAjvSchemaMatcher();
-    const valid = schemaMatcher.ajv.validate(schema, configData);
-    if (!valid) {
-      throw new Error(`Invalid config file. ${schemaMatcher.ajv.errorsText()}`);
+    // we need to read config here to get some config values
+    const configData = loadConfigFile(yamlFile);
+    if (configData == null) {
+      throw new Error(`Config file ${yamlFile} is empty.`);
     }
 
     baseUrl = baseUrl ?? configData.baseUrl ?? "http://localhost:8080";
@@ -124,6 +110,7 @@ const log = debug("c8y:scrn:startup");
         env: {
           ...envs,
           ...{
+            _c8yscrnCli: true,
             _c8yscrnConfigFile: yamlFile,
             _c8yscrnyaml: configData,
             _c8yscrnBrowserLaunchArgs: browserLaunchArgs,

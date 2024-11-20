@@ -1,6 +1,5 @@
 import "../lib/commands";
 import "../lib/commands/c8ypact";
-
 import "cypress-file-upload";
 
 import { pactId } from "../shared/c8ypact";
@@ -28,6 +27,11 @@ export type C8yScreenshotActionHandler = (
 
 const taskLog = { log: true };
 
+function loadDataFromLocalStorage(key: string) {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : null;
+}
+
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
 
@@ -36,7 +40,7 @@ export class C8yScreenshotRunner {
   };
 
   constructor(config?: ScreenshotSetup) {
-    this.config = config ?? Cypress.env("_c8yscrnyaml");
+    this.config = config ?? loadDataFromLocalStorage("_c8yscrnConfig") ?? Cypress.env("_c8yscrnyaml");
     if (!this.config) {
       throw new Error(
         "C8yScreenshotRunner requires configuration. You must pass a valid configuration when creating a C8yScreenshotRunner."

@@ -3,6 +3,8 @@ import * as fs from "fs";
 import debug from "debug";
 
 import { compare } from "odiff-bin";
+import WebSocket from "ws";
+import { watch, FSWatcher } from "chokidar";
 
 import {
   C8yPactFileAdapter,
@@ -11,17 +13,15 @@ import {
 import { C8yPact } from "../shared/c8ypact/c8ypact";
 import { C8yAuthOptions, oauthLogin } from "../shared/c8yclient";
 
-import { C8yAjvSchemaMatcher } from "../contrib/ajv";
-import schema from "./../screenshot/schema.json";
 import {
   C8yScreenshotFileUploadOptions,
   DiffOptions,
   ScreenshotSetup,
 } from "../lib/screenshots/types";
-import { readYamlFile } from "../screenshot/helper";
+import { loadConfigFile } from "../screenshot/helper";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
-export { readYamlFile } from "../screenshot/helper";
+export { readYamlFile, loadConfigFile } from "../screenshot/helper";
 
 /**
  * Configuration options for the Cumulocity Cypress plugin.
@@ -148,7 +148,10 @@ export function configureC8yScreenshotPlugin(
 ) {
   const log = debug("c8y:scrn:plugin");
   let configData: string | ScreenshotSetup | undefined = setup;
-  if (config.env._c8yscrnConfigYaml != null) {
+  if (typeof configData === "object") {
+    log(`Using config from object`);
+  }
+  if (configData == null && config.env._c8yscrnConfigYaml != null) {
     log(`Using config from _c8yscrnConfigYaml`);
     configData = config.env._c8yscrnConfigYaml;
   }
@@ -185,19 +188,13 @@ export function configureC8yScreenshotPlugin(
 
     configFilePath = lookupPaths[0];
     log(`Using config file ${configFilePath}`);
-    configData = readYamlFile(configFilePath);
+    configData = loadConfigFile(configFilePath);
   }
 
   if (!configData || typeof configData === "string") {
     throw new Error(
       "No config data found. Please provide config file or create c8yscrn.config.yaml."
     );
-  }
-
-  const schemaMatcher = new C8yAjvSchemaMatcher();
-  const valid = schemaMatcher.ajv.validate(schema, configData);
-  if (!valid) {
-    throw new Error(`Invalid config file. ${schemaMatcher.ajv.errorsText()}`);
   }
 
   if (configData.global?.timeouts?.default) {
@@ -378,6 +375,43 @@ export function configureC8yScreenshotPlugin(
       return getFileUploadOptions(file, configFilePath, projectRoot);
     },
   });
+
+  // there is no way to reload the config file from plugin events
+  // before:run and before:spec events can not update the config or env
+  // workaround is to use a websocket server to reload the config file
+  // on file change of the config file
+
+  // only create websocket server if not in text terminal (run) and started from c8yscrn cli
+  const fromCli = config.env._c8yscrnCli === true;
+  log(
+    `${configFilePath} textterminal: ${config.isTextTerminal} cli: ${fromCli}`
+  );
+
+  if (config.isTextTerminal === false && configFilePath != null && fromCli) {
+    let watcher: FSWatcher | undefined = undefined;
+    // socket will be recreated as the client will reload the tests
+    const socket = new WebSocket.Server({ port: 9345 });
+    socket.on("connection", function connection(conn) {
+      log(`Started websocket server on port 9345`);
+      if (watcher != null) watcher.close();
+
+      log(`Watching ${configFilePath} for change events`);
+      watcher = watch(configFilePath).on("change", () => {
+        log(`${configFilePath} has changed`);
+        const newConfig = loadConfigFile(configFilePath, false);
+        if (newConfig == null) {
+          log(`Failed to reload config file ${configFilePath}`);
+          return;
+        }
+        const message = JSON.stringify({
+          command: "reload",
+          config: newConfig,
+        });
+        log(`Sending reload message`);
+        conn?.send(message);
+      });
+    });
+  }
 
   return config;
 }
