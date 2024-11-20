@@ -9,7 +9,7 @@ import {
   C8yScreenshotOptions,
   ScreenshotSetup,
 } from "../lib/screenshots/types";
-import { C8yAjvSchemaMatcher } from "cumulocity-cypress/contrib/ajv";
+import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 
 export function readYamlFile(filePath: string): any {
   const fileContent = fs.readFileSync(filePath, "utf-8");
