@@ -381,6 +381,12 @@ export function configureC8yScreenshotPlugin(
   // workaround is to use a websocket server to reload the config file
   // on file change of the config file
 
+  const disabled = config.env.C8Y_DISABLE_WEBSOCKET;
+  if (disabled === true || disabled === "true") {
+    log(`Websocket server disabled. Config file will not be watched and reloaded.`);
+    return;
+  }
+
   // only create websocket server if not in text terminal (run) and started from c8yscrn cli
   const fromCli = config.env._c8yscrnCli === true;
   log(

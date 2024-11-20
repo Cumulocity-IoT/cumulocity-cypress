@@ -27,10 +27,6 @@ export type C8yScreenshotActionHandler = (
 
 const taskLog = { log: true };
 
-function loadDataFromLocalStorage(key: string) {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : null;
-}
 
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
@@ -538,4 +534,9 @@ export function isHighlightAction(action: Action): boolean {
 
 export function isScreenshotAction(action: Action): boolean {
   return "screenshot" in action;
+}
+
+function loadDataFromLocalStorage(key: string) {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : null;
 }

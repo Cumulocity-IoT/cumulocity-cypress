@@ -2,7 +2,7 @@ import cypress from "cypress";
 
 import * as path from "path";
 import * as fs from "fs";
-
+import _ from "lodash";
 import yargs from "yargs/yargs";
 import { Argv } from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -57,6 +57,7 @@ const log = debug("c8y:scrn:startup");
       ...(dotenv().parsed ?? {}),
       ...(dotenv({ path: ".c8yscrn" }).parsed ?? {}),
       ...(tags.length > 0 ? { grepTags: tags } : {}),
+      ..._.pickBy(process.env, (value, key) => key.startsWith("C8Y_")),
     };
 
     // we need to read config here to get some config values
