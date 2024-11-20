@@ -198,8 +198,10 @@ configureC8yScreenshotPlugin(on, config, "my-screenshot-config.yaml");
 As an alternative you can also read the yaml configuration in `cypress.config.ts` and pass it to the plugin:
 
 ```typescript
-import { readYamlFile } from "cumulocity-cypress/plugin";
-const myYamlConfig: ScreenshotSetup = readYamlFile("my-screenshot-config.yaml");
+import { loadConfigFile } from "cumulocity-cypress/plugin";
+
+// read and validate the yaml configuration file
+const myYamlConfig: ScreenshotSetup = loadConfigFile("my-screenshot-config.yaml");
 configureC8yScreenshotPlugin(on, config, myYamlConfig);
 ```
 
