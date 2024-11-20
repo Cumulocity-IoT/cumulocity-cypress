@@ -1,13 +1,58 @@
 import * as yaml from "yaml";
 import * as fs from "fs";
 import * as path from "path";
+import debug from "debug";
 
-import { C8yScreenshotOptions } from "../lib/screenshots/types";
+import schema from "./../screenshot/schema.json";
+
+import {
+  C8yScreenshotOptions,
+  ScreenshotSetup,
+} from "../lib/screenshots/types";
+import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 
 export function readYamlFile(filePath: string): any {
   const fileContent = fs.readFileSync(filePath, "utf-8");
   const data = yaml.parse(fileContent);
   return data;
+}
+
+export function loadConfigFile(
+  filePath: string,
+  throws: boolean = true
+): ScreenshotSetup | undefined {
+  const log = debug("c8y:scrn:config");
+
+  let configData: ScreenshotSetup | undefined = undefined;
+  try {
+    configData = readYamlFile(filePath);
+  } catch (error: any) {
+    const errorMessage = `Reading ${filePath} failed.\n${error}`;
+    if (throws) {
+      throw new Error(errorMessage);
+    } else {
+      console.error(errorMessage);
+    }
+  }
+
+  if (configData == null) {
+    log(`Config file is <null>. Skipping.`);
+    return undefined;
+  }
+
+  log(`Validating config file ${filePath}`);
+  const schemaMatcher = new C8yAjvSchemaMatcher();
+  const valid = schemaMatcher.ajv.validate(schema, configData);
+  if (!valid) {
+    const errorMessage = `Invalid config file.\n${schemaMatcher.ajv.errorsText()}`;
+    if (throws) {
+      throw new Error(errorMessage);
+    } else {
+      console.error(errorMessage);
+    }
+  }
+
+  return configData;
 }
 
 export function createInitConfig(baseUrl: string): string {

@@ -1,6 +1,5 @@
 import "../lib/commands";
 import "../lib/commands/c8ypact";
-
 import "cypress-file-upload";
 
 import { pactId } from "../shared/c8ypact";
@@ -28,6 +27,7 @@ export type C8yScreenshotActionHandler = (
 
 const taskLog = { log: true };
 
+
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
 
@@ -36,7 +36,7 @@ export class C8yScreenshotRunner {
   };
 
   constructor(config?: ScreenshotSetup) {
-    this.config = config ?? Cypress.env("_c8yscrnyaml");
+    this.config = config ?? loadDataFromLocalStorage("_c8yscrnConfig") ?? Cypress.env("_c8yscrnyaml");
     if (!this.config) {
       throw new Error(
         "C8yScreenshotRunner requires configuration. You must pass a valid configuration when creating a C8yScreenshotRunner."
@@ -249,7 +249,25 @@ export class C8yScreenshotRunner {
   protected type(action: Action["type"]) {
     const selector = getSelector(action, this.config.selectors);
     if (selector == null || action == null) return;
-    cy.get(selector).type(action.value);
+    if (_.isString(action.value)) {
+      if (action.clear === true) {
+        cy.get(selector).clear();
+      }
+      cy.get(selector).type(action.value);
+    } else if (_.isArrayLike(action.value)) {
+      cy.get(selector).within(() => {
+        cy.get("input[type=text]").then(($elements) => {
+          const length = Math.min($elements.length, action.value.length);
+          (action.value as string[]).forEach((value: string, index: number) => {
+            if (index >= length) return;
+            if (action.clear === true) {
+              cy.get(selector).clear();
+            }
+            cy.get("input[type=text]").eq(index).type(value);
+          });
+        });
+      });
+    }
   }
 
   protected highlight(action: Action["highlight"], that: C8yScreenshotRunner) {
@@ -516,4 +534,9 @@ export function isHighlightAction(action: Action): boolean {
 
 export function isScreenshotAction(action: Action): boolean {
   return "screenshot" in action;
+}
+
+function loadDataFromLocalStorage(key: string) {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : null;
 }

@@ -198,8 +198,10 @@ configureC8yScreenshotPlugin(on, config, "my-screenshot-config.yaml");
 As an alternative you can also read the yaml configuration in `cypress.config.ts` and pass it to the plugin:
 
 ```typescript
-import { readYamlFile } from "cumulocity-cypress/plugin";
-const myYamlConfig: ScreenshotSetup = readYamlFile("my-screenshot-config.yaml");
+import { loadConfigFile } from "cumulocity-cypress/plugin";
+
+// read and validate the yaml configuration file
+const myYamlConfig: ScreenshotSetup = loadConfigFile("my-screenshot-config.yaml");
 configureC8yScreenshotPlugin(on, config, myYamlConfig);
 ```
 
@@ -668,9 +670,28 @@ Clicks on the specified element. Use the `multiple` option to click on all match
 ```yaml
 - type:
     selector: string or object
-    value: string
+    value: string | string[]
+    clear: boolean
 ```
-Types the specified value into the selected input field.
+
+Types the specified value into the selected input field. If the `clear` option is set to true, the input field will be cleared before typing the new value. If the `value` is an array, the values will be typed in sequence into the text input fields with the selector.
+
+```yaml
+- type:
+    selector: "#search"
+    value: "Test Search"
+- type:
+    selector: ".split-view__detail"
+    value:
+      - "Windmill"
+      - "Turns wind into energy"
+- type:
+    selector: ".split-view__detail"
+    value: ["Windmill", "Turns wind into energy"]
+    clear: true
+```
+
+The array of values might have more elements than the number of text input fields with the selector. In this case, the remaining values are ignored.
 
 **highlight**
 ```yaml
