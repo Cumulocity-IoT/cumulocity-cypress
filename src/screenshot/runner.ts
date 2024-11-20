@@ -27,7 +27,6 @@ export type C8yScreenshotActionHandler = (
 
 const taskLog = { log: true };
 
-
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
 
@@ -36,7 +35,10 @@ export class C8yScreenshotRunner {
   };
 
   constructor(config?: ScreenshotSetup) {
-    this.config = config ?? loadDataFromLocalStorage("_c8yscrnConfig") ?? Cypress.env("_c8yscrnyaml");
+    this.config =
+      config ??
+      loadDataFromLocalStorage("_c8yscrnConfig") ??
+      Cypress.env("_c8yscrnyaml");
     if (!this.config) {
       throw new Error(
         "C8yScreenshotRunner requires configuration. You must pass a valid configuration when creating a C8yScreenshotRunner."
@@ -284,6 +286,20 @@ export class C8yScreenshotRunner {
         "outline-color": "#FF9300",
       };
 
+      const getPosition = ($e: HTMLElement, $p: HTMLElement) => {
+        const childRect = $e.getBoundingClientRect();
+        const parentRect = $p.getBoundingClientRect();
+
+        return {
+          top: childRect.top - parentRect.top,
+          left: childRect.left - parentRect.left,
+          bottom: childRect.bottom - parentRect.top,
+          right: childRect.right - parentRect.left,
+          width: childRect.width,
+          height: childRect.height,
+        };
+      };
+
       const applyHighlightStyle = (
         $element: JQuery<HTMLElement>,
         styles: any
@@ -297,37 +313,50 @@ export class C8yScreenshotRunner {
           // we need to wait for the element to transition and animate into final
           // position before we can calculate the absolute highlight area
           // eslint-disable-next-line cypress/no-unnecessary-waiting
-          cy.wait(500, { log: false }).then(() => {
-            const firstElement = $element[0].getBoundingClientRect();
-            const lastElement =
-              $element[$element.length - 1].getBoundingClientRect();
+          cy.wait(500, { log: false })
+            .wrap($element)
+            .parent()
+            .then(($parent) => {
+              if (!$parent || $parent.length === 0) {
+                $parent = Cypress.$("body");
+              } else {
+                // this is important to make sure the absolute positioning is correct
+                Cypress.$($parent).css("position", "relative");
+              }
 
-            let width = lastElement.right - firstElement.left;
-            if (!_.isString(highlight) && highlight?.width != null) {
-              width =
-                highlight.width <= 1
-                  ? width * highlight.width
-                  : highlight.width;
-            }
+              const firstRect = getPosition($element[0], $parent[0]);
+              const lastRect = getPosition(
+                $element[$element.length - 1],
+                $parent[0]
+              );
 
-            let height = lastElement.bottom - firstElement.top;
-            if (!_.isString(highlight) && highlight?.height != null) {
-              height =
-                highlight.height <= 1
-                  ? height * highlight.height
-                  : highlight.height;
-            }
-            const $container = Cypress.$("<div></div>").css({
-              position: "absolute",
-              top: `${firstElement.top}px`,
-              left: `${firstElement.left}px`,
-              width: `${width}px`,
-              height: `${height}px`,
-              zIndex: 9999,
-              ...styles,
+              let width = lastRect.right - firstRect.left;
+              if (!_.isString(highlight) && highlight?.width != null) {
+                width =
+                  highlight.width <= 1
+                    ? width * highlight.width
+                    : highlight.width;
+              }
+
+              let height = lastRect.bottom - firstRect.top;
+              if (!_.isString(highlight) && highlight?.height != null) {
+                height =
+                  highlight.height <= 1
+                    ? height * highlight.height
+                    : highlight.height;
+              }
+              const css = {
+                position: "absolute",
+                top: `${firstRect.top}px`,
+                left: `${firstRect.left}px`,
+                width: `${width}px`,
+                height: `${height}px`,
+                zIndex: 9999,
+                ...styles,
+              };
+              const $container = Cypress.$("<div></div>").css(css);
+              Cypress.$($parent).append($container);
             });
-            Cypress.$("body").append($container);
-          });
         } else {
           $element.css(styles);
         }
