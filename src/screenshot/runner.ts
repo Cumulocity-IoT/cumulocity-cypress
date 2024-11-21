@@ -14,7 +14,7 @@ import {
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
-import { getSelector, imageName } from "./runner-helper";
+import { findCommonParent, getSelector, imageName } from "./runner-helper";
 
 const { _ } = Cypress;
 
@@ -290,14 +290,12 @@ export class C8yScreenshotRunner {
         const childRect = $e.getBoundingClientRect();
         const parentRect = $p.getBoundingClientRect();
 
-        return {
-          top: childRect.top - parentRect.top,
-          left: childRect.left - parentRect.left,
-          bottom: childRect.bottom - parentRect.top,
-          right: childRect.right - parentRect.left,
-          width: childRect.width,
-          height: childRect.height,
-        };
+        return new DOMRectReadOnly(
+          childRect.left - parentRect.left,
+          childRect.top - parentRect.top,
+          childRect.width,
+          childRect.height
+        );
       };
 
       const applyHighlightStyle = (
@@ -313,50 +311,51 @@ export class C8yScreenshotRunner {
           // we need to wait for the element to transition and animate into final
           // position before we can calculate the absolute highlight area
           // eslint-disable-next-line cypress/no-unnecessary-waiting
-          cy.wait(500, { log: false })
-            .wrap($element)
-            .parent()
-            .then(($parent) => {
-              if (!$parent || $parent.length === 0) {
-                $parent = Cypress.$("body");
-              } else {
-                // this is important to make sure the absolute positioning is correct
-                Cypress.$($parent).css("position", "relative");
-              }
+          cy.wait(500, { log: false }).then(() => {
+            let $parent = findCommonParent($element);
+            if (!$parent) {
+              $parent = Cypress.$("body").get(0);
+            } else {
+              // make sure the new container is positioned correctly
+              Cypress.$($parent).css("position", "relative");
+            }
 
-              const firstRect = getPosition($element[0], $parent[0]);
-              const lastRect = getPosition(
-                $element[$element.length - 1],
-                $parent[0]
-              );
+            const firstRect = getPosition($element[0], $parent);
+            const lastRect = getPosition(
+              $element[$element.length - 1],
+              $parent
+            );
 
-              let width = lastRect.right - firstRect.left;
-              if (!_.isString(highlight) && highlight?.width != null) {
-                width =
-                  highlight.width <= 1
-                    ? width * highlight.width
-                    : highlight.width;
-              }
+            let width = lastRect.right - firstRect.left;
+            if (!_.isString(highlight) && highlight?.width != null) {
+              width =
+                highlight.width <= 1
+                  ? width * highlight.width
+                  : highlight.width;
+            }
 
-              let height = lastRect.bottom - firstRect.top;
-              if (!_.isString(highlight) && highlight?.height != null) {
-                height =
-                  highlight.height <= 1
-                    ? height * highlight.height
-                    : highlight.height;
-              }
-              const css = {
-                position: "absolute",
-                top: `${firstRect.top}px`,
-                left: `${firstRect.left}px`,
-                width: `${width}px`,
-                height: `${height}px`,
-                zIndex: 9999,
-                ...styles,
-              };
-              const $container = Cypress.$("<div></div>").css(css);
-              Cypress.$($parent).append($container);
-            });
+            let height = lastRect.bottom - firstRect.top;
+            if (!_.isString(highlight) && highlight?.height != null) {
+              height =
+                highlight.height <= 1
+                  ? height * highlight.height
+                  : highlight.height;
+            }
+            const css = {
+              position: "absolute",
+              top: `${firstRect.top}px`,
+              left: `${firstRect.left}px`,
+              width: `${width}px`,
+              height: `${height}px`,
+              zIndex: 9999,
+              pointerEvents: "none",
+              ...styles,
+            };
+            const $container = Cypress.$(
+              "<div _c8yscrn-highlight-container></div>"
+            ).css(css);
+            Cypress.$($parent).append($container);
+          });
         } else {
           $element.css(styles);
         }
