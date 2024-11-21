@@ -236,6 +236,7 @@ The following environment variables are supported:
 - `C8Y_CHROME_LAUNCH_ARGS`: Additional arguments to pass to the Chrome browser when launching.
 - `C8Y_FIREFOX_LAUNCH_ARGS`: Additional arguments to pass to the Firefox browser when launching.
 - `C8Y_ELECTRON_LAUNCH_ARGS`: Additional arguments to pass to the Electron browser when launching.
+- `C8Y_DISABLE_WEBSOCKET`: Disable websocket to reload changed screenshot worklow configuration.
 
 To use different credentials in your workflows, see the [Authentication](#authentication) section for more details.
 
@@ -664,7 +665,7 @@ Actions allow you to interact with the page before taking a screenshot. Availabl
     multiple: boolean
     force: boolean
 ```
-Clicks on the specified element. Use the `multiple` option to click on all matching elements, and the `force` option to bypass the element's visibility check.
+Clicks on the specified element. Use the `multiple` option to click on all matching elements, and the `force` option to bypass the element's visibility check. `force` is enabled by default.
 
 **type**
 ```yaml
