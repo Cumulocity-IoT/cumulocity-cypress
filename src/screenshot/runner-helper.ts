@@ -30,7 +30,7 @@ export function findCommonParent(
   if (!$elements || $elements.length === 0) return undefined;
 
   const getParents = (element: HTMLElement) => {
-    const parents = [];
+    const parents: HTMLElement[] = [];
     while (element.parentElement) {
       parents.push(element.parentElement);
       element = element.parentElement;
@@ -41,13 +41,50 @@ export function findCommonParent(
   const firstElementParents = getParents($elements[0]);
   for (const parent of firstElementParents) {
     const isCommonParent = Array.from($elements).every((el) =>
-      el.closest(parent.tagName.toLowerCase())
+      hasParent(el, parent)
     );
-    if (isCommonParent === true) {
+    const r = parent.getBoundingClientRect();
+    // When an element has display: contents, it is rendered as if it weren't there
+    // at all. Its children are rendered as if they were direct children of its parent. 
+    // This means that the element itself doesn't have a bounding rectangle, which is 
+    // why getBoundingClientRect() returns 0 for all values.
+    // Make sure that the parent has a width and height so the parent is actually visible
+    if (isCommonParent === true && (r.width > 0 && r.height > 0)) {
       return parent;
     }
   }
   return undefined;
+}
+
+/**
+ * Checks if an element has a specific parent element
+ * @param {HTMLElement} element - The element to check
+ * @param {HTMLElement} parent - The parent element to check for
+ * @returns {boolean} - True if the element has the parent element
+ */
+export function hasParent(element: HTMLElement, parent: HTMLElement): boolean {
+  let currentElement = element;
+
+  while (currentElement.parentElement) {
+    if (currentElement.parentElement === parent) {
+      return true;
+    }
+    currentElement = currentElement.parentElement;
+  }
+
+  return false;
+}
+
+export function getElementPositionWithinParent($e: HTMLElement, $p: HTMLElement) {
+  const childRect = $e.getBoundingClientRect();
+  const parentRect = $p.getBoundingClientRect();
+
+  return new DOMRectReadOnly(
+    childRect.left - parentRect.left,
+    childRect.top - parentRect.top,
+    childRect.width,
+    childRect.height
+  );
 }
 
 /**
