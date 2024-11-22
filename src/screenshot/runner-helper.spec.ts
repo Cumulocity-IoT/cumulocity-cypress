@@ -3,6 +3,7 @@
 import {
   getSelector,
   imageName,
+  parseSelector,
 } from "./runner-helper";
 import { ScreenshotSetup } from "../lib/screenshots/types";
 
@@ -38,6 +39,38 @@ describe("startup", () => {
       const selector = "nonExistentSelector";
       const result = getSelector(selector, predefinedSelectors);
       expect(result).toBe("nonExistentSelector");
+    });
+  });
+
+  describe("parseSelector", () => {
+    it("should return an array with single element for single selector", () => {
+      const result = parseSelector(".test-class");
+      expect(result).toEqual([".test-class"]);
+    });
+
+    it("should return an array with multiple elements if the input is a compound selector", () => {
+      const result = parseSelector(".test-class .another-class");
+      expect(result).toEqual([".test-class", ".another-class"]);
+    });
+
+    it("should ignore > in the selector", () => {
+      const result = parseSelector(".test-class > .another-class");
+      expect(result).toEqual([".test-class", ".another-class"]);
+    });
+
+    it("should not split spaces within brackets", () => {
+      const result = parseSelector(".navbar-right > :nth-child(-n + 3) > .btn");
+      expect(result).toEqual([".navbar-right", ":nth-child(-n + 3)", ".btn"]);
+    });
+
+    it("should not split spaces within []", () => {
+      const result = parseSelector(".navbar-right > [data-cy='my test'] > .btn");
+      expect(result).toEqual([".navbar-right", "[data-cy='my test']", ".btn"]);
+    });
+
+    it("should not split the selector if it is a compound selector", () => {
+      const result = parseSelector(".test-class.another-class");
+      expect(result).toEqual([".test-class.another-class"]);
     });
   });
 

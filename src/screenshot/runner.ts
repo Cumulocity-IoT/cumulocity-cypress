@@ -14,7 +14,7 @@ import {
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
-import { getSelector, imageName } from "./runner-helper";
+import { findCommonParent, getSelector, imageName } from "./runner-helper";
 
 const { _ } = Cypress;
 
@@ -27,7 +27,6 @@ export type C8yScreenshotActionHandler = (
 
 const taskLog = { log: true };
 
-
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
 
@@ -36,7 +35,10 @@ export class C8yScreenshotRunner {
   };
 
   constructor(config?: ScreenshotSetup) {
-    this.config = config ?? loadDataFromLocalStorage("_c8yscrnConfig") ?? Cypress.env("_c8yscrnyaml");
+    this.config =
+      config ??
+      loadDataFromLocalStorage("_c8yscrnConfig") ??
+      Cypress.env("_c8yscrnyaml");
     if (!this.config) {
       throw new Error(
         "C8yScreenshotRunner requires configuration. You must pass a valid configuration when creating a C8yScreenshotRunner."
@@ -198,7 +200,10 @@ export class C8yScreenshotRunner {
               const handlerKey = Object.keys(action)[0];
               const handler = this.actionHandlers[handlerKey];
               if (handler) {
-                if (isScreenshotAction(action)) {
+                if (
+                  isScreenshotAction(action) &&
+                  !_.isString(action.screenshot)
+                ) {
                   const clipArea = action.screenshot?.clip;
                   if (clipArea) {
                     options["clip"] = {
@@ -284,6 +289,18 @@ export class C8yScreenshotRunner {
         "outline-color": "#FF9300",
       };
 
+      const getPosition = ($e: HTMLElement, $p: HTMLElement) => {
+        const childRect = $e.getBoundingClientRect();
+        const parentRect = $p.getBoundingClientRect();
+
+        return new DOMRectReadOnly(
+          childRect.left - parentRect.left,
+          childRect.top - parentRect.top,
+          childRect.width,
+          childRect.height
+        );
+      };
+
       const applyHighlightStyle = (
         $element: JQuery<HTMLElement>,
         styles: any
@@ -298,11 +315,21 @@ export class C8yScreenshotRunner {
           // position before we can calculate the absolute highlight area
           // eslint-disable-next-line cypress/no-unnecessary-waiting
           cy.wait(500, { log: false }).then(() => {
-            const firstElement = $element[0].getBoundingClientRect();
-            const lastElement =
-              $element[$element.length - 1].getBoundingClientRect();
+            let $parent = findCommonParent($element);
+            if (!$parent) {
+              $parent = Cypress.$("body").get(0);
+            } else {
+              // make sure the new container is positioned correctly
+              Cypress.$($parent).css("position", "relative");
+            }
 
-            let width = lastElement.right - firstElement.left;
+            const firstRect = getPosition($element[0], $parent);
+            const lastRect = getPosition(
+              $element[$element.length - 1],
+              $parent
+            );
+
+            let width = lastRect.right - firstRect.left;
             if (!_.isString(highlight) && highlight?.width != null) {
               width =
                 highlight.width <= 1
@@ -310,23 +337,27 @@ export class C8yScreenshotRunner {
                   : highlight.width;
             }
 
-            let height = lastElement.bottom - firstElement.top;
+            let height = lastRect.bottom - firstRect.top;
             if (!_.isString(highlight) && highlight?.height != null) {
               height =
                 highlight.height <= 1
                   ? height * highlight.height
                   : highlight.height;
             }
-            const $container = Cypress.$("<div></div>").css({
+            const css = {
               position: "absolute",
-              top: `${firstElement.top}px`,
-              left: `${firstElement.left}px`,
+              top: `${firstRect.top}px`,
+              left: `${firstRect.left}px`,
               width: `${width}px`,
               height: `${height}px`,
               zIndex: 9999,
+              pointerEvents: "none",
               ...styles,
-            });
-            Cypress.$("body").append($container);
+            };
+            const $container = Cypress.$(
+              "<div _c8yscrn-highlight-container></div>"
+            ).css(css);
+            Cypress.$($parent).append($container);
           });
         } else {
           $element.css(styles);
@@ -471,19 +502,19 @@ export class C8yScreenshotRunner {
     item: Screenshot,
     options: any
   ) {
-    let name = action?.path || item.image;
-    const selector = getSelector(action, this.config.selectors);
-    cy.task(
-      "debug",
-      `Taking screenshot ${name} Selector: ${selector}`,
-      taskLog
-    );
+    const name = _.isString(action) ? action : action?.path ?? item.image;
+    const selector = !_.isString(action)
+      ? getSelector(action, this.config.selectors)
+      : undefined;
+
+    const logmessage = `Taking screenshot ${name} Selector: ${selector}`;
+    cy.task("debug", logmessage, taskLog);
     cy.task("debug", `Options: ${JSON.stringify(options)}`, taskLog);
-    name = imageName(name);
+    
     if (selector != null) {
-      cy.get(selector).screenshot(name, options);
+      cy.get(selector).screenshot(imageName(name), options);
     } else {
-      cy.screenshot(name, options);
+      cy.screenshot(imageName(name), options);
     }
   }
 

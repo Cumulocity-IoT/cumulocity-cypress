@@ -1,0 +1,2566 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>New asset / Digital twin manager</title>
+    <style>
+      [_nghost-ng-c1091297234]:empty {
+        display: none;
+      }
+    </style>
+    <style>
+      .cdk-table-fixed-layout {
+        table-layout: fixed;
+      }
+    </style>
+  </head>
+  <body class="ng-tns-0-0">
+    <c8y-bootstrap ng-version="17.3.11"
+      ><!----><!---->
+      <div>
+        <c8y-header-bar
+          ><div class="app-main-header open">
+            <div role="banner" class="header-bar">
+              <button
+                type="button"
+                data-cy="header-bar--main-header-button"
+                class="navigator-toggle main-header-button"
+                title="Toggle navigation bar"
+                aria-controls="navigator"
+                aria-expanded="true"
+              >
+                <!----><i class="c8y-icon dlt-c8y-icon-dedent-right"></i
+                ><!----></button
+              ><!---->
+              <div class="app-view">
+                <c8y-app-icon class="c8y-app-icon"
+                  ><i class="c8y-icon c8y-icon-enterprise c8y-icon-duocolor"></i
+                  ><!----><!----><!----><!----><!----></c8y-app-icon
+                ><span class="page-header"
+                  ><c8y-title-outlet
+                    ><div
+                      data-cy="c8y-title--title-outlet"
+                      class="c8y-ui-title"
+                    >
+                      <h1 class="text-truncate">New asset</h1>
+                      <!---->
+                    </div></c8y-title-outlet
+                  ><c8y-breadcrumb-outlet class="app-breadcrumbs"
+                    ><!----></c8y-breadcrumb-outlet
+                  ><!----></span
+                >
+              </div>
+              <c8y-search-outlet class="main-header-item" title="Search"
+                ><c8y-search-action
+                  ><c8y-search-input
+                    ><div
+                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                      aria-hidden="true"
+                    ></div>
+                    <div dropdown="" class="dropdown">
+                      <button
+                        type="button"
+                        dropdowntoggle=""
+                        data-cy="search-input--search-btn"
+                        class="main-header-button dropdown-toggle c8y-dropdown"
+                        title="Search"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                      >
+                        <i
+                          c8yicon="search"
+                          class="icon-2x c8y-icon dlt-c8y-icon-search"
+                        ></i></button
+                      ><!---->
+                    </div>
+                    <div
+                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                      aria-hidden="true"
+                    ></div>
+                    <!----><!----><!----><!----></c8y-search-input
+                  ></c8y-search-action
+                ><!----><!----><!----></c8y-search-outlet
+              ><!----><c8y-action-outlet class="d-contents"
+                ><!----><!----><!----></c8y-action-outlet
+              ><!----><c8y-app-switcher
+                class="main-header-item"
+                title="Application switcher"
+                ><div
+                  class="cdk-visually-hidden cdk-focus-trap-anchor"
+                  aria-hidden="true"
+                ></div>
+                <div dropdown="" class="app-switcher-dropdown">
+                  <button
+                    id="appSwitcherDropdown"
+                    type="button"
+                    dropdowntoggle=""
+                    class="main-header-button c8y-dropdown dropdown-toggle"
+                    title="Application switcher"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                  >
+                    <i
+                      c8yicon="th"
+                      class="icon-2x c8y-icon dlt-c8y-icon-th"
+                    ></i></button
+                  ><!---->
+                </div>
+                <div
+                  class="cdk-visually-hidden cdk-focus-trap-anchor"
+                  aria-hidden="true"
+                ></div>
+                <!----></c8y-app-switcher
+              ><!----><button
+                placement="left"
+                type="button"
+                class="main-header-button drawer-toggle"
+                aria-expanded="false"
+                aria-controls="right-drawer"
+                data-cy="right-drawer-toggle-button"
+              >
+                <span
+                  data-cy="header-bar--user-dot"
+                  class="user-dot"
+                >
+                  TW </span
+                ><!----><span class="close-dot">×</span></button
+              ><!---->
+            </div>
+            <div class="head-toggler">
+              <button type="button" title="Toggle">
+                <i class="c8y-icon dlt-c8y-icon-angle-right"></i>
+              </button>
+            </div>
+            <c8y-drawer-outlet
+              id="right-drawer"
+              position="right"
+              tabindex="-1"
+              aria-hidden="true"
+              ><div
+                class="cdk-visually-hidden cdk-focus-trap-anchor"
+                aria-hidden="true"
+              ></div>
+              <aside class="c8y-right-drawer" aria-label="User menu">
+                <c8y-user-details-drawer class="d-contents"
+                  ><div class="c8y-right-drawer__header separator-bottom">
+                    <button
+                      type="button"
+                      class="close"
+                      title="Close"
+                      tabindex="-1"
+                    >
+                      ×
+                    </button>
+                    <div class="d-flex a-i-center">
+                      <div class="user-dot">TW</div>
+                      <div class="min-width-0">
+                        <p
+                          class="text-truncate text-medium text-16"
+                        >
+                        </p>
+                        <!----><small
+                          class="text-truncate"
+                          title="business, admins"
+                        >
+                          business, admins </small
+                        ><!---->
+                      </div>
+                    </div>
+                  </div></c8y-user-details-drawer
+                ><!----><!----><c8y-user-menu-outlet
+                  ><div class="p-t-8 p-b-8">
+                    <ul class="list-unstyled m-b-0">
+                      <li>
+                        <!----><button
+                          type="button"
+                          class="c8y-right-drawer__link"
+                          tabindex="-1"
+                          data-cy="user-menu-user-settings-button"
+                        >
+                          User settings</button
+                        ><!---->
+                      </li>
+                      <!----><!----><!----><!----><!---->
+                      <li>
+                        <!----><button
+                          type="button"
+                          class="c8y-right-drawer__link"
+                          tabindex="-1"
+                          data-cy="user-menu-logout-button"
+                        >
+                          Logout</button
+                        ><!---->
+                      </li>
+                      <!----><!----><!----><!----><!----><!---->
+                    </ul>
+                  </div>
+                  <!----><!----><!----><c8y-user-menu-item
+                    ><!----></c8y-user-menu-item
+                  ><!----><c8y-user-menu-item><!----></c8y-user-menu-item
+                  ><!----></c8y-user-menu-outlet
+                ><!----><!----><c8y-ui-settings
+                  ><div class="separator-top p-t-8 p-b-8">
+                    <div class="c8y-right-drawer__item sticky-top">
+                      <i
+                        c8yicon="eyedropper"
+                        class="c8y-icon dlt-c8y-icon-eyedropper"
+                      ></i
+                      ><span class="text-bold">UI settings</span>
+                    </div>
+                    <div class="form-group p-l-16 p-r-16">
+                      <label translate="" for="userLang">Language</label>
+                      <div class="c8y-select-wrapper">
+                        <select
+                          id="userLang"
+                          tabindex="-1"
+                          class="ng-untouched ng-pristine ng-valid"
+                        >
+                          <option value="de">Deutsch</option>
+                          <option value="en">English</option>
+                          <option value="es">Español</option>
+                          <option value="fr">Français</option>
+                          <option value="ja_JP">日本語</option>
+                          <option value="ko">한국어 (韓國語)</option>
+                          <option value="nl">Nederlands</option>
+                          <option value="pl">polski</option>
+                          <option value="pt_BR">Português (Brasil)</option>
+                          <option value="ru">русский язык</option>
+                          <option value="zh_CN">汉语</option>
+                          <option value="zh_TW">漢語</option>
+                          <!----></select
+                        ><span></span>
+                      </div>
+                    </div></div></c8y-ui-settings
+                ><!----><!----><c8y-version-list
+                  ><div class="separator-top p-t-8 p-b-8">
+                    <div class="c8y-right-drawer__item sticky-top">
+                      <i
+                        c8yicon="c8y-cumulocity-iot"
+                        class="c8y-icon c8y-icon-cumulocity-iot"
+                      ></i
+                      ><span class="text-bold">Platform info</span>
+                    </div>
+                    <ul class="list-unstyled">
+                      <li class="c8y-right-drawer__item">
+                        <span
+                          translate=""
+                          class="flex-grow text-muted m-0 text-12 text-truncate"
+                        >
+                          Tenant ID </span
+                        ><button
+                          type="button"
+                          class="m-l-auto flex-no-shrink btn-clean p-0 text-info"
+                          title="Copy tenant ID to the clipboard"
+                          tabindex="-1"
+                        >
+                          t12345678
+                          <i
+                            class="text-14 m-0 c8y-icon dlt-c8y-icon-clipboard"
+                          ></i>
+                        </button>
+                      </li>
+                      <!----><!---->
+                      <li class="c8y-right-drawer__item">
+                        <button
+                          translate=""
+                          class="btn btn-default btn-sm"
+                          title="Download platform details"
+                          tabindex="-1"
+                        >
+                          Download platform details
+                        </button>
+                      </li>
+                    </ul>
+                  </div></c8y-version-list
+                ><!----><!----><c8y-bookmarks
+                  ><div
+                    class="separator-top p-t-8 m-t-auto c8y-right-drawer__item sticky-top"
+                  >
+                    <i
+                      c8yicon="bookmark"
+                      class="c8y-icon dlt-c8y-icon-bookmark"
+                    ></i
+                    ><span class="text-bold">Bookmarks</span
+                    ><button
+                      container="body"
+                      placement="left"
+                      type="button"
+                      class="btn-dot m-l-auto"
+                      tabindex="-1"
+                      aria-label="Edit bookmarks"
+                    >
+                      <i
+                        c8yicon="cog"
+                        class="text-14 m-0 c8y-icon dlt-c8y-icon-cog"
+                      ></i></button
+                    ><!---->
+                  </div>
+                  <!----><!---->
+                  <div class="p-t-8 p-b-8">
+                    <span
+                      class="c8y-right-drawer__item text-muted text-bold text-14 p-b-0"
+                    >
+                      No bookmarks yet </span
+                    ><span class="c8y-right-drawer__item text-12 p-t-0"
+                      ><span class="text-muted"
+                        >Navigate to the desired page and click the "Add current
+                        page" button. Editing, deleting and reordering are
+                        possible by clicking on the cog wheel.</span
+                      ></span
+                    >
+                    <div class="c8y-right-drawer__item">
+                      <button
+                        type="button"
+                        class="btn btn-default btn-sm"
+                        tabindex="-1"
+                      >
+                        <i
+                          c8yicon="plus-circle-o"
+                          class="m-t-0 m-b-0 text-14 c8y-icon dlt-c8y-icon-plus-circle-o"
+                        ></i
+                        ><span>Add current page</span>
+                      </button>
+                    </div>
+                    <!----><!---->
+                  </div></c8y-bookmarks
+                ><!----><!----><c8y-support-outlet
+                  ><!---->
+                  <div
+                    id="collapseSupport"
+                    class="collapse in show"
+                    aria-hidden="false"
+                    style="display: block"
+                  >
+                    <!----><!----><!---->
+                  </div></c8y-support-outlet
+                ><!----><!----><c8y-help-and-support-outlet
+                  ><div class="separator-top p-t-8 p-b-8">
+                    <button
+                      type="button"
+                      class="c8y-right-drawer__link sticky-top"
+                      tabindex="-1"
+                      aria-expanded="false"
+                      aria-controls="collapseDocs"
+                    >
+                      <i
+                        c8yicon="book-shelf"
+                        class="c8y-icon dlt-c8y-icon-book-shelf"
+                      ></i
+                      ><span class="text-bold">Documentation</span
+                      ><i
+                        c8yicon="angle-down"
+                        class="m-l-auto c8y-icon dlt-c8y-icon-angle-down"
+                      ></i>
+                    </button>
+                    <div
+                      id="collapseDocs"
+                      class="collapse"
+                      aria-hidden="true"
+                      style="display: none"
+                    >
+                      <!----><a
+                        type="button"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        c8yproductexperience=""
+                        class="c8y-right-drawer__link"
+                        title="Concepts"
+                        tabindex="-1"
+                        href="https://cumulocity.com/docs/concepts/introduction"
+                        ><span class="text-truncate text-12" title="Concepts">
+                          Concepts
+                        </span></a
+                      ><!----><!----><!----><a
+                        type="button"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        c8yproductexperience=""
+                        class="c8y-right-drawer__link"
+                        title="Getting started"
+                        tabindex="-1"
+                        href="https://cumulocity.com/docs/section/getting_started"
+                        ><span
+                          class="text-truncate text-12"
+                          title="Getting started"
+                        >
+                          Getting started
+                        </span></a
+                      ><!----><!----><!----><a
+                        type="button"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        c8yproductexperience=""
+                        class="c8y-right-drawer__link"
+                        title="Platform administration"
+                        tabindex="-1"
+                        href="https://cumulocity.com/docs/section/platform_administration"
+                        ><span
+                          class="text-truncate text-12"
+                          title="Platform administration"
+                        >
+                          Platform administration
+                        </span></a
+                      ><!----><!----><!----><a
+                        type="button"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        c8yproductexperience=""
+                        class="c8y-right-drawer__link"
+                        title="Device management"
+                        tabindex="-1"
+                        href="https://cumulocity.com/docs/section/device_management"
+                        ><span
+                          class="text-truncate text-12"
+                          title="Device management"
+                        >
+                          Device management
+                        </span></a
+                      ><!----><!----><!----><a
+                        type="button"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        c8yproductexperience=""
+                        class="c8y-right-drawer__link"
+                        title="Application enablement"
+                        tabindex="-1"
+                        href="https://cumulocity.com/docs/section/app_enablement"
+                        ><span
+                          class="text-truncate text-12"
+                          title="Application enablement"
+                        >
+                          Application enablement
+                        </span></a
+                      ><!----><!----><!----><a
+                        type="button"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        c8yproductexperience=""
+                        class="c8y-right-drawer__link"
+                        title="Cumulocity IoT Edge"
+                        tabindex="-1"
+                        href="https://cumulocity.com/docs/edge/edge-introduction"
+                        ><span
+                          class="text-truncate text-12"
+                          title="Cumulocity IoT Edge"
+                        >
+                          Cumulocity IoT Edge
+                        </span></a
+                      ><!----><!----><!----><a
+                        type="button"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        c8yproductexperience=""
+                        class="c8y-right-drawer__link"
+                        title="Streaming analytics"
+                        tabindex="-1"
+                        href="https://cumulocity.com/docs/streaming-analytics/overview-analytics"
+                        ><span
+                          class="text-truncate text-12"
+                          title="Streaming analytics"
+                        >
+                          Streaming analytics
+                        </span></a
+                      ><!----><!----><!----><a
+                        type="button"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        c8yproductexperience=""
+                        class="c8y-right-drawer__link"
+                        title="OpenAPI specification"
+                        tabindex="-1"
+                        href="https://cumulocity.com/api/core"
+                        ><span
+                          class="text-truncate text-12"
+                          title="OpenAPI specification"
+                        >
+                          OpenAPI specification
+                        </span></a
+                      ><!----><!----><!---->
+                    </div>
+                  </div>
+                  <!----><!----><!----></c8y-help-and-support-outlet
+                ><!----><!----><c8y-legal-notices-outlet
+                  ><div class="separator-top p-t-8 m-t-auto">
+                    <!----><a
+                      type="button"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      c8yproductexperience=""
+                      class="c8y-right-drawer__link"
+                      title="Legal notices"
+                      href="https://documentation.softwareag.com/legal/"
+                      tabindex="-1"
+                      ><span
+                        class="text-truncate text-12"
+                        title="Legal notices"
+                      >
+                        Legal notices
+                      </span></a
+                    ><!---->
+                  </div>
+                  <!----></c8y-legal-notices-outlet
+                ><!----><!----><!----><!---->
+              </aside>
+              <div
+                class="cdk-visually-hidden cdk-focus-trap-anchor"
+                aria-hidden="true"
+              ></div>
+              <!----><!----><!----></c8y-drawer-outlet
+            >
+            <div class="loading-bar"></div></div></c8y-header-bar
+        ><!----><c8y-drawer-outlet
+          role="region"
+          position="left"
+          data-cy="bootstrap.template--c8y-drawer-outlet"
+          tabindex="0"
+          ><nav id="navigator" class="navigator open" aria-label="Navigator">
+            <c8y-navigator-bottom class="powered-by navigator-slot-bottom"
+              ><p translate="">powered by Cumulocity</p></c8y-navigator-bottom
+            ><!----><!---->
+            <header class="title navigator-slot-top" c8y-navigator-top="">
+              <div class="tenant-brand"></div>
+              <c8y-app-icon class="c8y-app-icon"
+                ><i class="c8y-icon c8y-icon-enterprise c8y-icon-duocolor"></i
+                ><!----><!----><!----><!----><!----></c8y-app-icon
+              ><span>Digital twin manager</span>
+            </header>
+            <!----><!----><c8y-navigator-outlet class="d-contents"
+              ><div
+                role="navigation"
+                class="navigatorContent"
+                aria-label="Main navigation"
+              >
+                <button
+                  tabindex="0"
+                  translate=""
+                  class="sr-only sr-only-focusable btn btn-default btn-sm"
+                >
+                  Skip to content</button
+                ><c8y-navigator-node class="d-contents"
+                  ><!---->
+                  <div class="slot" draggable="false">
+                    <div tabindex="-1" class="link">
+                      <!----><c8y-navigator-icon
+                        ><i
+                          class="icon c8y-icon dlt-c8y-icon-home"
+                        ></i></c8y-navigator-icon
+                      ><!----><!----><button
+                        type="button"
+                        draggable="false"
+                        class="btn-clean root-link"
+                        title="Home"
+                        data-cy="Home"
+                        id="navigator_node_home"
+                      >
+                        <span>Home</span
+                        ><!----><c8y-popover-confirm
+                          triggers="focus"
+                          containerclass="navigator-popover"
+                          ><div triggers="" class="navigator-popover"></div>
+                          <!----><!----></c8y-popover-confirm
+                        ><!---->
+                      </button>
+                    </div>
+                    <!----><!---->
+                  </div>
+                  <!----><!----><!----></c8y-navigator-node
+                ><c8y-navigator-node class="d-contents"
+                  ><!---->
+                  <div class="slot" draggable="false">
+                    <div tabindex="-1" class="link">
+                      <!----><c8y-navigator-icon
+                        ><i
+                          class="icon c8y-icon c8y-icon-modules"
+                        ></i></c8y-navigator-icon
+                      ><!----><!----><button
+                        type="button"
+                        draggable="false"
+                        class="btn-clean root-link"
+                        title="Assets"
+                        data-cy="Assets"
+                        id="navigator_node_assets"
+                      >
+                        <span>Assets</span
+                        ><!----><c8y-popover-confirm
+                          triggers="focus"
+                          containerclass="navigator-popover"
+                          ><div triggers="" class="navigator-popover"></div>
+                          <!----><!----></c8y-popover-confirm
+                        ><!---->
+                      </button>
+                    </div>
+                    <!----><!---->
+                  </div>
+                  <!----><!----><!----></c8y-navigator-node
+                ><c8y-navigator-node class="d-contents"
+                  ><!---->
+                  <div class="slot" draggable="false">
+                    <div tabindex="-1" class="link">
+                      <!----><c8y-navigator-icon
+                        ><i
+                          class="icon c8y-icon dlt-c8y-icon-cog"
+                        ></i></c8y-navigator-icon
+                      ><!----><!----><button
+                        type="button"
+                        draggable="false"
+                        class="btn-clean root-link parent"
+                        title="Configuration"
+                        aria-expanded="false"
+                        data-cy="Configuration"
+                        id="navigator_node_configuration"
+                      >
+                        <span>Configuration</span
+                        ><i
+                          role="button"
+                          data-cy="c8y-navigator-node--expander"
+                          class="expander c8y-icon dlt-c8y-icon-chevron-down"
+                          aria-label="Expand"
+                        ></i
+                        ><!----><c8y-popover-confirm
+                          triggers="focus"
+                          containerclass="navigator-popover"
+                          ><div triggers="" class="navigator-popover"></div>
+                          <!----><!----></c8y-popover-confirm
+                        ><!---->
+                      </button>
+                    </div>
+                    <!---->
+                    <div
+                      class="children panel-expand expand collapse"
+                      aria-hidden="true"
+                      style="display: none"
+                    >
+                      <c8y-navigator-node
+                        ><!---->
+                        <div class="slot" draggable="false">
+                          <div tabindex="-1" class="link">
+                            <!----><c8y-navigator-icon
+                              ><i
+                                class="icon c8y-icon c8y-icon-enterprise"
+                              ></i></c8y-navigator-icon
+                            ><!----><!----><button
+                              type="button"
+                              draggable="false"
+                              class="btn-clean"
+                              title="Asset models"
+                              data-cy="Asset types"
+                            >
+                              <span>Asset models</span
+                              ><!----><c8y-popover-confirm
+                                triggers="focus"
+                                containerclass="navigator-popover"
+                                ><div
+                                  triggers=""
+                                  class="navigator-popover"
+                                ></div>
+                                <!----><!----></c8y-popover-confirm
+                              ><!---->
+                            </button>
+                          </div>
+                          <!----><!---->
+                        </div>
+                        <!----><!----><!----></c8y-navigator-node
+                      ><c8y-navigator-node
+                        ><!---->
+                        <div class="slot" draggable="false">
+                          <div tabindex="-1" class="link">
+                            <!----><c8y-navigator-icon
+                              ><i
+                                class="icon c8y-icon dlt-c8y-icon-sliders"
+                              ></i></c8y-navigator-icon
+                            ><!----><!----><button
+                              type="button"
+                              draggable="false"
+                              class="btn-clean"
+                              title="Asset properties"
+                              data-cy="Property library"
+                            >
+                              <span>Asset properties</span
+                              ><!----><c8y-popover-confirm
+                                triggers="focus"
+                                containerclass="navigator-popover"
+                                ><div
+                                  triggers=""
+                                  class="navigator-popover"
+                                ></div>
+                                <!----><!----></c8y-popover-confirm
+                              ><!---->
+                            </button>
+                          </div>
+                          <!----><!---->
+                        </div>
+                        <!----><!----><!----></c8y-navigator-node
+                      ><c8y-navigator-node
+                        ><!---->
+                        <div class="slot" draggable="false">
+                          <div tabindex="-1" class="link">
+                            <!----><c8y-navigator-icon
+                              ><i
+                                class="icon c8y-icon dlt-c8y-icon-language1"
+                              ></i></c8y-navigator-icon
+                            ><!----><!----><button
+                              type="button"
+                              draggable="false"
+                              class="btn-clean"
+                              title="Localization"
+                              data-cy="Localization"
+                            >
+                              <span>Localization</span
+                              ><!----><c8y-popover-confirm
+                                triggers="focus"
+                                containerclass="navigator-popover"
+                                ><div
+                                  triggers=""
+                                  class="navigator-popover"
+                                ></div>
+                                <!----><!----></c8y-popover-confirm
+                              ><!---->
+                            </button>
+                          </div>
+                          <!----><!---->
+                        </div>
+                        <!----><!----><!----></c8y-navigator-node
+                      ><!---->
+                    </div>
+                    <!---->
+                  </div>
+                  <!----><!----><!----></c8y-navigator-node
+                ><!---->
+              </div></c8y-navigator-outlet
+            ><!----><!----><!----><!---->
+          </nav>
+          <!----><!----><!----></c8y-drawer-outlet
+        >
+        <div class="alerts">
+          <c8y-alert-outlet><!----></c8y-alert-outlet>
+        </div>
+        <c8y-tabs-outlet
+          role="navigation"
+          class="page-tabs-horizontal navigator-open"
+          ><div class="tabContainer hidden-xs">
+            <!----><!---->
+            <div role="list" class="nav nav-tabs nav-tabsc8y"><!----></div>
+            <!----><!---->
+          </div>
+          <div class="visible-xs mobile-tabs">
+            <ul class="list-unstyled d-flex m-b-0">
+              <li class="c8y-select-wrapper flex-grow">
+                <select>
+                  <!---->
+                </select>
+              </li>
+              <!---->
+            </ul>
+          </div>
+          <!----><!----></c8y-tabs-outlet
+        ><c8y-action-bar
+          role="group"
+          class="c8y-ui-action-bar horizontal-tabs navigator-open"
+          hidden=""
+          ><div role="presentation" class="navbar-header">
+            <p class="text-label-small p-l-16 p-t-8 p-b-8 visible-xs">
+              <span class="text-primary">Action bar</span>
+            </p>
+          </div>
+          <div id="page-toolbar" role="complementary" class="navbar-collapse">
+            <ul class="nav navbar-nav navbar-left gap-sm-8 p-l-sm-16">
+              <!---->
+            </ul>
+            <ul class="nav navbar-nav navbar-right gap-sm-8">
+              <!----><!----><!----><!---->
+            </ul>
+          </div></c8y-action-bar
+        >
+        <div class="mcontainer horizontal-tabs open">
+          <main id="main-content" tabindex="-1" class="container-fluid">
+            <router-outlet></router-outlet
+            ><c8y-asset-hierarchy
+              ><c8y-title><!----></c8y-title>
+              <div
+                class="card content-fullpage split-view--4-8 grid__row--single"
+              >
+                <div class="inner-scroll split-view__list bg-level-1">
+                  <div class="sticky-top" style="left: 0">
+                    <div class="card-header separator-bottom flex-no-shrink">
+                      <h4>Asset hierarchy</h4>
+                    </div>
+                    <div class="flex-no-shrink p-16 p-b-0">
+                      <div class="c8y-select-wrapper fit-w">
+                        <ng-select
+                          autofocus=""
+                          appendto="body"
+                          title="Wind turbine AZ-43Y"
+                          class="ng-select-searchable ng-select-clearable ng-select ng-select-single ng-select-bottom ng-select-filtered ng-touched ng-dirty ng-valid"
+                          ><div class="ng-select-container ng-has-value">
+                            <div class="ng-value-container">
+                              <div class="ng-placeholder">
+                                Choose Asset model
+                              </div>
+                              <div class="ng-value">
+                                <!----><span
+                                  aria-hidden="true"
+                                  class="ng-value-icon left"
+                                  >×</span
+                                ><span class="ng-value-label"
+                                  >Wind turbine AZ-43Y</span
+                                ><!---->
+                              </div>
+                              <!----><!----><!----><!---->
+                              <div
+                                role="combobox"
+                                aria-haspopup="listbox"
+                                class="ng-input"
+                                aria-expanded="false"
+                              >
+                                <input
+                                  aria-autocomplete="list"
+                                  type="text"
+                                  autocorrect="off"
+                                  autocapitalize="off"
+                                  autocomplete="af357d70f8fc"
+                                />
+                              </div>
+                            </div>
+                            <!----><span
+                              tabindex="0"
+                              class="ng-clear-wrapper"
+                              title="Clear all"
+                              ><span aria-hidden="true" class="ng-clear"
+                                >×</span
+                              ></span
+                            ><!----><span class="ng-arrow-wrapper"
+                              ><span class="ng-arrow"></span
+                            ></span>
+                          </div>
+                          <!----></ng-select
+                        >
+                      </div>
+                    </div>
+                    <!---->
+                  </div>
+                  <div class="flex-grow">
+                    <div class="card-block overflow-visible">
+                      <ul class="dtm-asset-hierarchy__stepper">
+                        <li class="dtm-asset-hierarchy__step">
+                          <div class="dtm-asset-hierarchy__step--item active">
+                            <c8y-li
+                              class="c8y-list__item flex-grow a-i-center shadow1"
+                              ><div>
+                                <div class="c8y-list__item__block">
+                                  <c8y-li-icon class="c8y-list__item__icon"
+                                    ><i class="c8y-icon c8y-icon-enterprise"></i
+                                    ><!----></c8y-li-icon
+                                  >
+                                  <div
+                                    class="c8y-list__item__body text-truncate-wrap"
+                                  >
+                                    <div class="l-h-1 text-truncate">
+                                      <span class="text-label-small"
+                                        >Start node</span
+                                      >
+                                      <p
+                                        class="text-truncate"
+                                        title="Wind turbine AZ-43Y"
+                                      >
+                                        Wind turbine AZ-43Y
+                                      </p>
+                                    </div>
+                                    <!----><!----><!---->
+                                  </div>
+                                  <!---->
+                                </div>
+                                <!---->
+                              </div></c8y-li
+                            >
+                          </div>
+                          <ul>
+                            <li>
+                              <c8y-asset-node
+                                ><li class="dtm-asset-hierarchy__step">
+                                  <div class="dtm-asset-hierarchy__step--item">
+                                    <c8y-li
+                                      class="c8y-list__item flex-grow a-i-center shadow1"
+                                      ><div>
+                                        <div class="c8y-list__item__block">
+                                          <c8y-li-icon
+                                            class="c8y-list__item__icon"
+                                            ><i
+                                              class="c8y-icon c8y-icon-enterprise"
+                                            ></i
+                                            ><!----></c8y-li-icon
+                                          >
+                                          <div
+                                            class="c8y-list__item__body text-truncate-wrap"
+                                          >
+                                            <div class="l-h-1 text-truncate">
+                                              <p
+                                                class="text-truncate"
+                                                title="AZ-43Y-Rotor"
+                                              >
+                                                AZ-43Y-Rotor
+                                              </p>
+                                              <!---->
+                                            </div>
+                                            <!---->
+                                          </div>
+                                          <!---->
+                                        </div>
+                                        <!---->
+                                      </div></c8y-li
+                                    >
+                                  </div>
+                                  <ul>
+                                    <li>
+                                      <c8y-asset-node
+                                        ><li class="dtm-asset-hierarchy__step">
+                                          <div
+                                            class="dtm-asset-hierarchy__step--item"
+                                          >
+                                            <c8y-li
+                                              class="c8y-list__item flex-grow a-i-center shadow1"
+                                              ><div>
+                                                <div
+                                                  class="c8y-list__item__block"
+                                                >
+                                                  <c8y-li-icon
+                                                    class="c8y-list__item__icon"
+                                                    ><i
+                                                      class="c8y-icon c8y-icon-enterprise"
+                                                    ></i
+                                                    ><!----></c8y-li-icon
+                                                  >
+                                                  <div
+                                                    class="c8y-list__item__body text-truncate-wrap"
+                                                  >
+                                                    <div
+                                                      class="l-h-1 text-truncate"
+                                                    >
+                                                      <p
+                                                        class="text-truncate"
+                                                        title="AZ-43Y Blade"
+                                                      >
+                                                        AZ-43Y Blade
+                                                      </p>
+                                                      <!---->
+                                                    </div>
+                                                    <!---->
+                                                  </div>
+                                                  <!---->
+                                                </div>
+                                                <!---->
+                                              </div></c8y-li
+                                            >
+                                          </div>
+                                          <ul>
+                                            <li><!----></li>
+                                          </ul>
+                                        </li></c8y-asset-node
+                                      ><!---->
+                                    </li>
+                                  </ul>
+                                </li></c8y-asset-node
+                              ><c8y-asset-node
+                                ><li class="dtm-asset-hierarchy__step">
+                                  <div class="dtm-asset-hierarchy__step--item">
+                                    <c8y-li
+                                      class="c8y-list__item flex-grow a-i-center shadow1"
+                                      ><div>
+                                        <div class="c8y-list__item__block">
+                                          <c8y-li-icon
+                                            class="c8y-list__item__icon"
+                                            ><i
+                                              class="c8y-icon c8y-icon-enterprise"
+                                            ></i
+                                            ><!----></c8y-li-icon
+                                          >
+                                          <div
+                                            class="c8y-list__item__body text-truncate-wrap"
+                                          >
+                                            <div class="l-h-1 text-truncate">
+                                              <p
+                                                class="text-truncate"
+                                                title="AZ-43Y Nacelle"
+                                              >
+                                                AZ-43Y Nacelle
+                                              </p>
+                                              <!---->
+                                            </div>
+                                            <!---->
+                                          </div>
+                                          <!---->
+                                        </div>
+                                        <!---->
+                                      </div></c8y-li
+                                    >
+                                  </div>
+                                  <ul>
+                                    <li>
+                                      <c8y-asset-node
+                                        ><li class="dtm-asset-hierarchy__step">
+                                          <div
+                                            class="dtm-asset-hierarchy__step--item"
+                                          >
+                                            <c8y-li
+                                              class="c8y-list__item flex-grow a-i-center shadow1"
+                                              ><div>
+                                                <div
+                                                  class="c8y-list__item__block"
+                                                >
+                                                  <c8y-li-icon
+                                                    class="c8y-list__item__icon"
+                                                    ><i
+                                                      class="c8y-icon c8y-icon-enterprise"
+                                                    ></i
+                                                    ><!----></c8y-li-icon
+                                                  >
+                                                  <div
+                                                    class="c8y-list__item__body text-truncate-wrap"
+                                                  >
+                                                    <div
+                                                      class="l-h-1 text-truncate"
+                                                    >
+                                                      <p
+                                                        class="text-truncate"
+                                                        title="AZ-43Y High speed shaft"
+                                                      >
+                                                        AZ-43Y High speed shaft
+                                                      </p>
+                                                      <!---->
+                                                    </div>
+                                                    <!---->
+                                                  </div>
+                                                  <!---->
+                                                </div>
+                                                <!---->
+                                              </div></c8y-li
+                                            >
+                                          </div>
+                                          <ul>
+                                            <li><!----></li>
+                                          </ul>
+                                        </li></c8y-asset-node
+                                      ><c8y-asset-node
+                                        ><li class="dtm-asset-hierarchy__step">
+                                          <div
+                                            class="dtm-asset-hierarchy__step--item"
+                                          >
+                                            <c8y-li
+                                              class="c8y-list__item flex-grow a-i-center shadow1"
+                                              ><div>
+                                                <div
+                                                  class="c8y-list__item__block"
+                                                >
+                                                  <c8y-li-icon
+                                                    class="c8y-list__item__icon"
+                                                    ><i
+                                                      class="c8y-icon c8y-icon-enterprise"
+                                                    ></i
+                                                    ><!----></c8y-li-icon
+                                                  >
+                                                  <div
+                                                    class="c8y-list__item__body text-truncate-wrap"
+                                                  >
+                                                    <div
+                                                      class="l-h-1 text-truncate"
+                                                    >
+                                                      <p
+                                                        class="text-truncate"
+                                                        title="AZ-43Y Generator"
+                                                      >
+                                                        AZ-43Y Generator
+                                                      </p>
+                                                      <!---->
+                                                    </div>
+                                                    <!---->
+                                                  </div>
+                                                  <!---->
+                                                </div>
+                                                <!---->
+                                              </div></c8y-li
+                                            >
+                                          </div>
+                                          <ul>
+                                            <li><!----></li>
+                                          </ul>
+                                        </li></c8y-asset-node
+                                      ><c8y-asset-node
+                                        ><li class="dtm-asset-hierarchy__step">
+                                          <div
+                                            class="dtm-asset-hierarchy__step--item"
+                                          >
+                                            <c8y-li
+                                              class="c8y-list__item flex-grow a-i-center shadow1"
+                                              ><div>
+                                                <div
+                                                  class="c8y-list__item__block"
+                                                >
+                                                  <c8y-li-icon
+                                                    class="c8y-list__item__icon"
+                                                    ><i
+                                                      class="c8y-icon c8y-icon-enterprise"
+                                                    ></i
+                                                    ><!----></c8y-li-icon
+                                                  >
+                                                  <div
+                                                    class="c8y-list__item__body text-truncate-wrap"
+                                                  >
+                                                    <div
+                                                      class="l-h-1 text-truncate"
+                                                    >
+                                                      <p
+                                                        class="text-truncate"
+                                                        title="AZ-43Y Gearbox"
+                                                      >
+                                                        AZ-43Y Gearbox
+                                                      </p>
+                                                      <!---->
+                                                    </div>
+                                                    <!---->
+                                                  </div>
+                                                  <!---->
+                                                </div>
+                                                <!---->
+                                              </div></c8y-li
+                                            >
+                                          </div>
+                                          <ul>
+                                            <li><!----></li>
+                                          </ul>
+                                        </li></c8y-asset-node
+                                      ><c8y-asset-node
+                                        ><li class="dtm-asset-hierarchy__step">
+                                          <div
+                                            class="dtm-asset-hierarchy__step--item"
+                                          >
+                                            <c8y-li
+                                              class="c8y-list__item flex-grow a-i-center shadow1"
+                                              ><div>
+                                                <div
+                                                  class="c8y-list__item__block"
+                                                >
+                                                  <c8y-li-icon
+                                                    class="c8y-list__item__icon"
+                                                    ><i
+                                                      class="c8y-icon c8y-icon-enterprise"
+                                                    ></i
+                                                    ><!----></c8y-li-icon
+                                                  >
+                                                  <div
+                                                    class="c8y-list__item__body text-truncate-wrap"
+                                                  >
+                                                    <div
+                                                      class="l-h-1 text-truncate"
+                                                    >
+                                                      <p
+                                                        class="text-truncate"
+                                                        title="AZ-43Y Low speed shaft"
+                                                      >
+                                                        AZ-43Y Low speed shaft
+                                                      </p>
+                                                      <!---->
+                                                    </div>
+                                                    <!---->
+                                                  </div>
+                                                  <!---->
+                                                </div>
+                                                <!---->
+                                              </div></c8y-li
+                                            >
+                                          </div>
+                                          <ul>
+                                            <li><!----></li>
+                                          </ul>
+                                        </li></c8y-asset-node
+                                      ><!---->
+                                    </li>
+                                  </ul>
+                                </li></c8y-asset-node
+                              ><c8y-asset-node
+                                ><li class="dtm-asset-hierarchy__step">
+                                  <div class="dtm-asset-hierarchy__step--item">
+                                    <c8y-li
+                                      class="c8y-list__item flex-grow a-i-center shadow1"
+                                      ><div>
+                                        <div class="c8y-list__item__block">
+                                          <c8y-li-icon
+                                            class="c8y-list__item__icon"
+                                            ><i
+                                              class="c8y-icon c8y-icon-enterprise"
+                                            ></i
+                                            ><!----></c8y-li-icon
+                                          >
+                                          <div
+                                            class="c8y-list__item__body text-truncate-wrap"
+                                          >
+                                            <div class="l-h-1 text-truncate">
+                                              <p
+                                                class="text-truncate"
+                                                title="AZ-43Y Tower"
+                                              >
+                                                AZ-43Y Tower
+                                              </p>
+                                              <!---->
+                                            </div>
+                                            <!---->
+                                          </div>
+                                          <!---->
+                                        </div>
+                                        <!---->
+                                      </div></c8y-li
+                                    >
+                                  </div>
+                                  <ul>
+                                    <li><!----></li>
+                                  </ul>
+                                </li></c8y-asset-node
+                              ><!---->
+                            </li>
+                          </ul>
+                          <ul>
+                            <li class="dtm-asset-hierarchy__step">
+                              <div class="dtm-asset-hierarchy__step--item">
+                                <c8y-li
+                                  class="c8y-list__item flex-grow a-i-center shadow1"
+                                  ><div>
+                                    <div class="c8y-list__item__block">
+                                      <c8y-li-icon class="c8y-list__item__icon"
+                                        ><i
+                                          class="c8y-icon dlt-c8y-icon-audit"
+                                        ></i
+                                        ><!----></c8y-li-icon
+                                      >
+                                      <div
+                                        class="c8y-list__item__body text-truncate-wrap"
+                                      >
+                                        <div class="l-h-1 text-truncate">
+                                          <p
+                                            class="text-truncate"
+                                            title=" Confirmation"
+                                          >
+                                            Confirmation
+                                          </p>
+                                        </div>
+                                        <!---->
+                                      </div>
+                                      <!---->
+                                    </div>
+                                    <!---->
+                                  </div></c8y-li
+                                >
+                              </div>
+                            </li>
+                          </ul>
+                        </li>
+                      </ul>
+                      <!---->
+                    </div>
+                  </div>
+                  <div class="ff-scroll-fix"></div>
+                </div>
+                <div class="inner-scroll split-view__detail">
+                  <div class="card-header separator sticky-top large-padding">
+                    <h4 class="text-truncate" title=" Wind turbine AZ-43Y">
+                      Wind turbine AZ-43Y <small><em>required</em></small
+                      ><!---->
+                    </h4>
+                  </div>
+                  <div class="flex-grow">
+                    <div class="card-block large-padding">
+                      <div class="row">
+                        <div class="col-lg-9">
+                          <!----><c8y-form-group class="form-group"
+                            ><formly-form
+                              ><formly-field _nghost-ng-c1091297234=""
+                                ><formly-group
+                                  ><formly-field _nghost-ng-c1091297234=""
+                                    ><c8y-repeat-section
+                                      ><fieldset
+                                        class="row d-flex flex-wrap c8y-fieldset"
+                                        id="form-field-0"
+                                      >
+                                        <div class="text-right fit-w">
+                                          <button
+                                            type="button"
+                                            class="btn btn-dot btn-dot--danger invisible"
+                                            style="margin-right: -12px"
+                                          >
+                                            <i
+                                              c8yicon="minus-circle"
+                                              class="c8y-icon dlt-c8y-icon-minus-circle"
+                                            ></i
+                                            ><span class="sr-only"
+                                              >Remove</span
+                                            ></button
+                                          ><!----><!---->
+                                        </div>
+                                        <formly-field
+                                          class="d-contents"
+                                          _nghost-ng-c1091297234=""
+                                          ><formly-group
+                                            ><formly-field
+                                              _nghost-ng-c1091297234=""
+                                              class="col-xs-12 col-md-12"
+                                              ><!----></formly-field
+                                            ><!----><formly-field
+                                              _nghost-ng-c1091297234=""
+                                              class="col-xs-12 col-md-12"
+                                              ><c8y-wrapper-form-field
+                                                ><div
+                                                  class="form-group has-error"
+                                                >
+                                                  <label
+                                                    class="text-pre-wrap"
+                                                    for="name"
+                                                  >
+                                                    Name
+                                                    <!----><!----><!----></label
+                                                  ><!---->
+                                                  <div class="d-flex">
+                                                    <div class="flex-grow">
+                                                      <c8y-field-input
+                                                        ><input
+                                                          class="form-control ng-pristine ng-invalid is-invalid ng-touched"
+                                                          type="text"
+                                                          id="name"
+                                                          required=""
+                                                          maxlength="254"
+                                                          placeholder="(required)"
+                                                        /><!----><!----></c8y-field-input
+                                                      ><!---->
+                                                    </div>
+                                                    <!---->
+                                                  </div>
+                                                  <div class="c8y-messages">
+                                                    <formly-validation-message
+                                                      class="form-control-feedback-message"
+                                                      >This field is
+                                                      required.</formly-validation-message
+                                                    >
+                                                  </div>
+                                                  <!----><!---->
+                                                </div></c8y-wrapper-form-field
+                                              ><!----></formly-field
+                                            ><!----><formly-field
+                                              _nghost-ng-c1091297234=""
+                                              class="col-xs-12 col-md-12"
+                                              ><c8y-wrapper-form-field
+                                                ><div class="form-group">
+                                                  <label
+                                                    class="text-pre-wrap"
+                                                    for="formly_8_string_c8y_Notes_2"
+                                                  >
+                                                    Description
+                                                    <!----><!----><!----></label
+                                                  ><!---->
+                                                  <div class="d-flex">
+                                                    <div class="flex-grow">
+                                                      <c8y-field-input
+                                                        ><input
+                                                          class="form-control ng-untouched ng-pristine ng-valid"
+                                                          type="text"
+                                                          id="formly_8_string_c8y_Notes_2"
+                                                          placeholder=""
+                                                        /><!----><!----></c8y-field-input
+                                                      ><!---->
+                                                    </div>
+                                                    <!---->
+                                                  </div>
+                                                  <!----><!---->
+                                                </div></c8y-wrapper-form-field
+                                              ><!----></formly-field
+                                            ><!----><formly-field
+                                              _nghost-ng-c1091297234=""
+                                              class="fit-w"
+                                              ><c8y-property-template
+                                                ><div class="col-xs-12 fit-w">
+                                                  <div
+                                                    class="legend form-block"
+                                                  >
+                                                    Asset properties
+                                                  </div>
+                                                </div></c8y-property-template
+                                              ><!----></formly-field
+                                            ><!----><formly-field
+                                              _nghost-ng-c1091297234=""
+                                              class="col-xs-12 col-md-12"
+                                              ><c8y-wrapper-form-field
+                                                ><div class="form-group">
+                                                  <label
+                                                    class="text-pre-wrap"
+                                                    for="property-value-0"
+                                                  >
+                                                    Model name
+                                                    <!----><!----><!----></label
+                                                  ><!---->
+                                                  <div class="d-flex">
+                                                    <div class="flex-grow">
+                                                      <c8y-field-input
+                                                        ><input
+                                                          class="form-control ng-untouched ng-pristine ng-valid"
+                                                          type="text"
+                                                          id="property-value-0"
+                                                          placeholder=""
+                                                        /><!----><!----></c8y-field-input
+                                                      ><!---->
+                                                    </div>
+                                                    <!---->
+                                                  </div>
+                                                  <!----><!---->
+                                                </div></c8y-wrapper-form-field
+                                              ><!----></formly-field
+                                            ><!----><formly-field
+                                              _nghost-ng-c1091297234=""
+                                              class="col-xs-12 col-md-12"
+                                              ><c8y-dtm-assign-devices
+                                                ><!---->
+                                                <div class="legend form-block">
+                                                  Assigned devices
+                                                </div>
+                                                <c8y-ui-empty-state
+                                                  icon="exchange"
+                                                  class="d-block"
+                                                  ><div
+                                                    class="c8y-empty-state c8y-empty-state--horizontal"
+                                                  >
+                                                    <i
+                                                      class="c8y-icon-duocolor c8y-icon dlt-c8y-icon-exchange"
+                                                    ></i
+                                                    ><!---->
+                                                    <div
+                                                      class="d-flex d-col j-c-center"
+                                                    >
+                                                      <p
+                                                        class="text-medium a-s-start"
+                                                      >
+                                                        No devices assigned.
+                                                      </p>
+                                                      <p
+                                                        class="small a-s-start"
+                                                      >
+                                                        Assign devices to this
+                                                        asset to monitor
+                                                        measurements, events and
+                                                        alarms.
+                                                      </p>
+                                                      <!---->
+                                                      <div
+                                                        class="small a-s-start"
+                                                      >
+                                                        <!---->
+                                                      </div>
+                                                    </div>
+                                                    <!----><!----><!---->
+                                                  </div></c8y-ui-empty-state
+                                                ><!----><!---->
+                                                <div class="p-t-8 p-b-16">
+                                                  <button
+                                                    id="assignDevices"
+                                                    class="btn btn-default btn-sm"
+                                                  >
+                                                    <i
+                                                      c8yicon="link"
+                                                      class="c8y-icon dlt-c8y-icon-link"
+                                                    ></i>
+                                                    Assign devices
+                                                  </button>
+                                                </div>
+                                                <div class="drawerOpen">
+                                                  <div class="bottom-drawer">
+                                                    <div
+                                                      class="d-flex d-col no-align-items fit-h"
+                                                    >
+                                                      <div
+                                                        class="card-block flex-no-shrink separator-bottom large-padding p-t-24 p-b-24"
+                                                      >
+                                                        <div class="row">
+                                                          <div
+                                                            class="col-md-6 col-md-offset-3 col-lg-4 col-lg-offset-4"
+                                                          >
+                                                            <h4
+                                                              translate=""
+                                                              class="text-center text-medium"
+                                                            >
+                                                              Assign devices
+                                                            </h4>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                      <c8y-device-grid
+                                                        class="flex-grow col-xs-12 no-gutter"
+                                                        ><c8y-data-grid
+                                                          c8yproductexperience=""
+                                                          inherit=""
+                                                          class="d-contents"
+                                                          ><div
+                                                            data-cy="c8y-data-grid--table-data-grid-scroll"
+                                                            class="table-data-grid-scroll"
+                                                          >
+                                                            <!---->
+                                                            <div
+                                                              class="table-data-grid-header separator large-padding"
+                                                            >
+                                                              <div
+                                                                class="h4 m-r-16"
+                                                              >
+                                                                Select target
+                                                                devices
+                                                              </div>
+                                                              <span
+                                                                ><small
+                                                                  translate=""
+                                                                  class="m-r-4"
+                                                                >
+                                                                  1 of 1 items </small
+                                                                ><!----><span
+                                                                  translate=""
+                                                                  class="label label-default m-r-4"
+                                                                >
+                                                                  No filters
+                                                                </span></span
+                                                              ><!----><!----><button
+                                                                placement="right"
+                                                                triggers="focus"
+                                                                type="button"
+                                                                data-cy="data-grid--help-filters"
+                                                                class="btn-help btn-help--sm hidden-xs hidden-sm"
+                                                                aria-label="Help"
+                                                              >
+                                                                <i
+                                                                  c8yicon="question-circle-o"
+                                                                  class="c8y-icon dlt-c8y-icon-question-circle-o"
+                                                                ></i></button
+                                                              ><!----><!----><!----><!----><!----><!---->
+                                                              <div
+                                                                class="m-l-auto"
+                                                              >
+                                                                <div
+                                                                  class="btnbar d-flex a-i-center"
+                                                                >
+                                                                  <label
+                                                                    class="c8y-switch"
+                                                                    ><input
+                                                                      type="checkbox"
+                                                                      id="c8y-switch"
+                                                                      class="ng-untouched ng-pristine ng-valid"
+                                                                    /><span></span
+                                                                    ><span
+                                                                      >Enable
+                                                                      child
+                                                                      devices
+                                                                      selection</span
+                                                                    ></label
+                                                                  ><button
+                                                                    placement="bottom"
+                                                                    class="btn-help m-r-4"
+                                                                    aria-label="Help"
+                                                                  ></button
+                                                                  ><!----><!----><!----><!----><!----><!----><!---->
+                                                                  <div
+                                                                    class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                    aria-hidden="true"
+                                                                  ></div>
+                                                                  <div
+                                                                    placement="bottom left"
+                                                                    dropdown=""
+                                                                    class="dropdown"
+                                                                  >
+                                                                    <button
+                                                                      type="button"
+                                                                      data-cy="data-grid--custom-column-btn"
+                                                                      dropdowntoggle=""
+                                                                      class="btnbar-btn"
+                                                                      title="Configure columns"
+                                                                      aria-haspopup="true"
+                                                                      aria-expanded="false"
+                                                                    >
+                                                                      <i
+                                                                        c8yicon="columns"
+                                                                        class="m-r-4 c8y-icon dlt-c8y-icon-columns"
+                                                                      ></i
+                                                                      ><span
+                                                                        >Configure
+                                                                        columns</span
+                                                                      ></button
+                                                                    ><!---->
+                                                                  </div>
+                                                                  <div
+                                                                    class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                    aria-hidden="true"
+                                                                  ></div>
+                                                                  <!----><!----><button
+                                                                    type="button"
+                                                                    data-cy="data-grid--reload-btn"
+                                                                    class="btnbar-btn btn-link"
+                                                                    title="Reload"
+                                                                  >
+                                                                    <i
+                                                                      c8yicon="refresh"
+                                                                      class="m-r-4 c8y-icon dlt-c8y-icon-refresh"
+                                                                    ></i
+                                                                    ><span
+                                                                      >Reload</span
+                                                                    >
+                                                                  </button>
+                                                                  <div
+                                                                    class="input-group input-group-search m-l-sm-16 data-grid__search-input"
+                                                                  >
+                                                                    <input
+                                                                      type="search"
+                                                                      class="form-control ng-untouched ng-pristine ng-valid"
+                                                                      placeholder="Search…"
+                                                                    />
+                                                                    <div
+                                                                      class="input-group-addon"
+                                                                    >
+                                                                      <i
+                                                                        c8yicon="search"
+                                                                        class="c8y-icon dlt-c8y-icon-search"
+                                                                      ></i
+                                                                      ><!----><!---->
+                                                                    </div>
+                                                                  </div>
+                                                                  <!---->
+                                                                </div>
+                                                              </div>
+                                                              <!---->
+                                                            </div>
+                                                            <!---->
+                                                            <table
+                                                              cdk-table=""
+                                                              data-cy="c8y-data-grid--table"
+                                                              class="cdk-table table table-filtered-sorted table-data-grid large-padding table-striped table-hover table-data-grid-with-checkboxes"
+                                                              role="table"
+                                                              style="
+                                                                grid-template-columns:
+                                                                  32px minmax(
+                                                                    80px,
+                                                                    1fr
+                                                                  )
+                                                                  minmax(
+                                                                    80px,
+                                                                    1.67fr
+                                                                  )
+                                                                  minmax(
+                                                                    80px,
+                                                                    1.67fr
+                                                                  )
+                                                                  minmax(
+                                                                    80px,
+                                                                    1.67fr
+                                                                  )
+                                                                  minmax(
+                                                                    80px,
+                                                                    1.67fr
+                                                                  )
+                                                                  minmax(
+                                                                    80px,
+                                                                    1.67fr
+                                                                  )
+                                                                  minmax(
+                                                                    80px,
+                                                                    1.67fr
+                                                                  )
+                                                                  minmax(
+                                                                    80px,
+                                                                    1.67fr
+                                                                  )
+                                                                  minmax(
+                                                                    80px,
+                                                                    1.67fr
+                                                                  );
+                                                              "
+                                                            >
+                                                              <!---->
+                                                              <thead
+                                                                role="rowgroup"
+                                                              >
+                                                                <tr
+                                                                  role="row"
+                                                                  cdk-header-row=""
+                                                                  class="cdk-header-row"
+                                                                >
+                                                                  <th
+                                                                    role="columnheader"
+                                                                    cdk-header-cell=""
+                                                                    data-type="icon"
+                                                                    class="cdk-header-cell cdk-column-checkbox"
+                                                                  >
+                                                                    <div>
+                                                                      <label
+                                                                        class="c8y-checkbox"
+                                                                        ><input
+                                                                          type="checkbox"
+                                                                          c8yproductexperience=""
+                                                                          inherit=""
+                                                                          aria-label="Selected" /><span></span
+                                                                      ></label>
+                                                                    </div>
+                                                                  </th>
+                                                                  <th
+                                                                    role="columnheader"
+                                                                    cdk-header-cell=""
+                                                                    class="cdk-header-cell cdk-column-status"
+                                                                    data-type="icon"
+                                                                  >
+                                                                    <!---->
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <div
+                                                                      dropdown=""
+                                                                      class="dropdown"
+                                                                    >
+                                                                      <button
+                                                                        type="button"
+                                                                        dropdowntoggle=""
+                                                                        class="btn-header"
+                                                                        title="Status"
+                                                                        data-cy="data-grid--header-btn--Status"
+                                                                        aria-haspopup="true"
+                                                                        aria-expanded="false"
+                                                                      >
+                                                                        <c8y-cell-renderer
+                                                                          data-cy="c8y-data-grid--c8y-cell-renderer"
+                                                                          ><!----><span
+                                                                            title="Status"
+                                                                          >
+                                                                            Status </span
+                                                                          ><!----><!----></c8y-cell-renderer
+                                                                        ><!----><!----><i
+                                                                          c8yicon="filter"
+                                                                          class="c8y-icon dlt-c8y-icon-filter"
+                                                                          title="Filter"
+                                                                        ></i></button
+                                                                      ><!---->
+                                                                    </div>
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <!----><!----><button
+                                                                      type="button"
+                                                                      data-cy="change-sort-order"
+                                                                      class="btn-sort"
+                                                                      title='Sort column "Status"'
+                                                                    >
+                                                                      <!----><!----><i
+                                                                        c8yicon="exchange"
+                                                                        class="c8y-icon dlt-c8y-icon-exchange"
+                                                                      ></i
+                                                                      ><!----><!----></button
+                                                                    ><!----><!---->
+                                                                  </th>
+                                                                  <th
+                                                                    role="columnheader"
+                                                                    cdk-header-cell=""
+                                                                    class="cdk-header-cell cdk-column-name"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <!---->
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <div
+                                                                      dropdown=""
+                                                                      class="dropdown"
+                                                                    >
+                                                                      <button
+                                                                        type="button"
+                                                                        dropdowntoggle=""
+                                                                        class="btn-header"
+                                                                        title="Name"
+                                                                        data-cy="data-grid--header-btn--Name"
+                                                                        aria-haspopup="true"
+                                                                        aria-expanded="false"
+                                                                      >
+                                                                        <c8y-cell-renderer
+                                                                          data-cy="c8y-data-grid--c8y-cell-renderer"
+                                                                          ><!----><span
+                                                                            title="Name"
+                                                                          >
+                                                                            Name </span
+                                                                          ><!----><!----></c8y-cell-renderer
+                                                                        ><!----><!----><i
+                                                                          c8yicon="filter"
+                                                                          class="c8y-icon dlt-c8y-icon-filter"
+                                                                          title="Filter"
+                                                                        ></i></button
+                                                                      ><!---->
+                                                                    </div>
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <!----><!----><button
+                                                                      type="button"
+                                                                      data-cy="change-sort-order"
+                                                                      class="btn-sort"
+                                                                      title='Sort column "Name"'
+                                                                    >
+                                                                      <!----><!----><i
+                                                                        c8yicon="exchange"
+                                                                        class="c8y-icon dlt-c8y-icon-exchange"
+                                                                      ></i
+                                                                      ><!----><!----></button
+                                                                    ><!----><span
+                                                                      class="resize-handle"
+                                                                    ></span
+                                                                    ><!---->
+                                                                  </th>
+                                                                  <th
+                                                                    role="columnheader"
+                                                                    cdk-header-cell=""
+                                                                    class="cdk-header-cell cdk-column-model"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <!---->
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <div
+                                                                      dropdown=""
+                                                                      class="dropdown"
+                                                                    >
+                                                                      <button
+                                                                        type="button"
+                                                                        dropdowntoggle=""
+                                                                        class="btn-header"
+                                                                        title="Model"
+                                                                        data-cy="data-grid--header-btn--Model"
+                                                                        aria-haspopup="true"
+                                                                        aria-expanded="false"
+                                                                      >
+                                                                        <c8y-cell-renderer
+                                                                          data-cy="c8y-data-grid--c8y-cell-renderer"
+                                                                          ><!----><span
+                                                                            title="Model"
+                                                                          >
+                                                                            Model </span
+                                                                          ><!----><!----></c8y-cell-renderer
+                                                                        ><!----><!----><i
+                                                                          c8yicon="filter"
+                                                                          class="c8y-icon dlt-c8y-icon-filter"
+                                                                          title="Filter"
+                                                                        ></i></button
+                                                                      ><!---->
+                                                                    </div>
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <!----><!----><button
+                                                                      type="button"
+                                                                      data-cy="change-sort-order"
+                                                                      class="btn-sort"
+                                                                      title='Sort column "Model"'
+                                                                    >
+                                                                      <!----><!----><i
+                                                                        c8yicon="exchange"
+                                                                        class="c8y-icon dlt-c8y-icon-exchange"
+                                                                      ></i
+                                                                      ><!----><!----></button
+                                                                    ><!----><span
+                                                                      class="resize-handle"
+                                                                    ></span
+                                                                    ><!---->
+                                                                  </th>
+                                                                  <th
+                                                                    role="columnheader"
+                                                                    cdk-header-cell=""
+                                                                    class="cdk-header-cell cdk-column-serialNumber"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <!---->
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <div
+                                                                      dropdown=""
+                                                                      class="dropdown"
+                                                                    >
+                                                                      <button
+                                                                        type="button"
+                                                                        dropdowntoggle=""
+                                                                        class="btn-header"
+                                                                        title="Serial number"
+                                                                        data-cy="data-grid--header-btn--Serial number"
+                                                                        aria-haspopup="true"
+                                                                        aria-expanded="false"
+                                                                      >
+                                                                        <c8y-cell-renderer
+                                                                          data-cy="c8y-data-grid--c8y-cell-renderer"
+                                                                          ><!----><span
+                                                                            title="Serial number"
+                                                                          >
+                                                                            Serial
+                                                                            number </span
+                                                                          ><!----><!----></c8y-cell-renderer
+                                                                        ><!----><!----><i
+                                                                          c8yicon="filter"
+                                                                          class="c8y-icon dlt-c8y-icon-filter"
+                                                                          title="Filter"
+                                                                        ></i></button
+                                                                      ><!---->
+                                                                    </div>
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <!----><!----><button
+                                                                      type="button"
+                                                                      data-cy="change-sort-order"
+                                                                      class="btn-sort"
+                                                                      title='Sort column "Serial number"'
+                                                                    >
+                                                                      <!----><!----><i
+                                                                        c8yicon="exchange"
+                                                                        class="c8y-icon dlt-c8y-icon-exchange"
+                                                                      ></i
+                                                                      ><!----><!----></button
+                                                                    ><!----><span
+                                                                      class="resize-handle"
+                                                                    ></span
+                                                                    ><!---->
+                                                                  </th>
+                                                                  <th
+                                                                    role="columnheader"
+                                                                    cdk-header-cell=""
+                                                                    class="cdk-header-cell cdk-column-group"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <!---->
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <div
+                                                                      dropdown=""
+                                                                      class="dropdown"
+                                                                    >
+                                                                      <button
+                                                                        type="button"
+                                                                        dropdowntoggle=""
+                                                                        class="btn-header"
+                                                                        title="Group"
+                                                                        data-cy="data-grid--header-btn--Group"
+                                                                        aria-haspopup="true"
+                                                                        aria-expanded="false"
+                                                                      >
+                                                                        <c8y-cell-renderer
+                                                                          data-cy="c8y-data-grid--c8y-cell-renderer"
+                                                                          ><!----><span
+                                                                            title="Group"
+                                                                          >
+                                                                            Group </span
+                                                                          ><!----><!----></c8y-cell-renderer
+                                                                        ><!----><!----><i
+                                                                          c8yicon="filter"
+                                                                          class="c8y-icon dlt-c8y-icon-filter"
+                                                                          title="Filter"
+                                                                        ></i></button
+                                                                      ><!---->
+                                                                    </div>
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <!----><!----><!----><span
+                                                                      class="resize-handle"
+                                                                    ></span
+                                                                    ><!---->
+                                                                  </th>
+                                                                  <th
+                                                                    role="columnheader"
+                                                                    cdk-header-cell=""
+                                                                    class="cdk-header-cell cdk-column-registrationDate"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <!---->
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <div
+                                                                      dropdown=""
+                                                                      class="dropdown"
+                                                                    >
+                                                                      <button
+                                                                        type="button"
+                                                                        dropdowntoggle=""
+                                                                        class="btn-header"
+                                                                        title="Registration date"
+                                                                        data-cy="data-grid--header-btn--Registration date"
+                                                                        aria-haspopup="true"
+                                                                        aria-expanded="false"
+                                                                      >
+                                                                        <c8y-cell-renderer
+                                                                          data-cy="c8y-data-grid--c8y-cell-renderer"
+                                                                          ><!----><span
+                                                                            title="Registration date"
+                                                                          >
+                                                                            Registration
+                                                                            date </span
+                                                                          ><!----><!----></c8y-cell-renderer
+                                                                        ><!----><!----><i
+                                                                          c8yicon="filter"
+                                                                          class="c8y-icon dlt-c8y-icon-filter"
+                                                                          title="Filter"
+                                                                        ></i></button
+                                                                      ><!---->
+                                                                    </div>
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <!----><!----><button
+                                                                      type="button"
+                                                                      data-cy="change-sort-order"
+                                                                      class="btn-sort"
+                                                                      title='Sort column "Registration date"'
+                                                                    >
+                                                                      <!----><!----><i
+                                                                        c8yicon="exchange"
+                                                                        class="c8y-icon dlt-c8y-icon-exchange"
+                                                                      ></i
+                                                                      ><!----><!----></button
+                                                                    ><!----><span
+                                                                      class="resize-handle"
+                                                                    ></span
+                                                                    ><!---->
+                                                                  </th>
+                                                                  <th
+                                                                    role="columnheader"
+                                                                    cdk-header-cell=""
+                                                                    class="cdk-header-cell cdk-column-systemId"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <!---->
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <div
+                                                                      dropdown=""
+                                                                      class="dropdown"
+                                                                    >
+                                                                      <button
+                                                                        type="button"
+                                                                        dropdowntoggle=""
+                                                                        class="btn-header"
+                                                                        title="System ID"
+                                                                        data-cy="data-grid--header-btn--System ID"
+                                                                        aria-haspopup="true"
+                                                                        aria-expanded="false"
+                                                                      >
+                                                                        <c8y-cell-renderer
+                                                                          data-cy="c8y-data-grid--c8y-cell-renderer"
+                                                                          ><!----><span
+                                                                            title="System ID"
+                                                                          >
+                                                                            System
+                                                                            ID </span
+                                                                          ><!----><!----></c8y-cell-renderer
+                                                                        ><!----><!----><i
+                                                                          c8yicon="filter"
+                                                                          class="c8y-icon dlt-c8y-icon-filter"
+                                                                          title="Filter"
+                                                                        ></i></button
+                                                                      ><!---->
+                                                                    </div>
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <!----><!----><button
+                                                                      type="button"
+                                                                      data-cy="change-sort-order"
+                                                                      class="btn-sort"
+                                                                      title='Sort column "System ID"'
+                                                                    >
+                                                                      <!----><!----><i
+                                                                        c8yicon="exchange"
+                                                                        class="c8y-icon dlt-c8y-icon-exchange"
+                                                                      ></i
+                                                                      ><!----><!----></button
+                                                                    ><!----><span
+                                                                      class="resize-handle"
+                                                                    ></span
+                                                                    ><!---->
+                                                                  </th>
+                                                                  <th
+                                                                    role="columnheader"
+                                                                    cdk-header-cell=""
+                                                                    class="cdk-header-cell cdk-column-imei"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <!---->
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <div
+                                                                      dropdown=""
+                                                                      class="dropdown"
+                                                                    >
+                                                                      <button
+                                                                        type="button"
+                                                                        dropdowntoggle=""
+                                                                        class="btn-header"
+                                                                        title="IMEI"
+                                                                        data-cy="data-grid--header-btn--IMEI"
+                                                                        aria-haspopup="true"
+                                                                        aria-expanded="false"
+                                                                      >
+                                                                        <c8y-cell-renderer
+                                                                          data-cy="c8y-data-grid--c8y-cell-renderer"
+                                                                          ><!----><span
+                                                                            title="IMEI"
+                                                                          >
+                                                                            IMEI </span
+                                                                          ><!----><!----></c8y-cell-renderer
+                                                                        ><!----><!----><i
+                                                                          c8yicon="filter"
+                                                                          class="c8y-icon dlt-c8y-icon-filter"
+                                                                          title="Filter"
+                                                                        ></i></button
+                                                                      ><!---->
+                                                                    </div>
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <!----><!----><button
+                                                                      type="button"
+                                                                      data-cy="change-sort-order"
+                                                                      class="btn-sort"
+                                                                      title='Sort column "IMEI"'
+                                                                    >
+                                                                      <!----><!----><i
+                                                                        c8yicon="exchange"
+                                                                        class="c8y-icon dlt-c8y-icon-exchange"
+                                                                      ></i
+                                                                      ><!----><!----></button
+                                                                    ><!----><span
+                                                                      class="resize-handle"
+                                                                    ></span
+                                                                    ><!---->
+                                                                  </th>
+                                                                  <th
+                                                                    role="columnheader"
+                                                                    cdk-header-cell=""
+                                                                    class="cdk-header-cell cdk-column-alarms"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <!---->
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <div
+                                                                      dropdown=""
+                                                                      class="dropdown"
+                                                                    >
+                                                                      <button
+                                                                        type="button"
+                                                                        dropdowntoggle=""
+                                                                        class="btn-header"
+                                                                        title="Alarms"
+                                                                        data-cy="data-grid--header-btn--Alarms"
+                                                                        aria-haspopup="true"
+                                                                        aria-expanded="false"
+                                                                      >
+                                                                        <c8y-cell-renderer
+                                                                          data-cy="c8y-data-grid--c8y-cell-renderer"
+                                                                          ><!----><c8y-alarms-header-cell-renderer
+                                                                            ><div
+                                                                              class="d-flex"
+                                                                            >
+                                                                              <span
+                                                                                class="text-truncate"
+                                                                                title="Alarms"
+                                                                              >
+                                                                                Alarms </span
+                                                                              ><button
+                                                                                placement="bottom"
+                                                                                triggers="focus"
+                                                                                container="body"
+                                                                                type="button"
+                                                                                class="btn-help btn-help--sm a-s-center"
+                                                                                aria-label="Help"
+                                                                              >
+                                                                                <i
+                                                                                  c8yicon="question-circle-o"
+                                                                                  class="c8y-icon dlt-c8y-icon-question-circle-o"
+                                                                                ></i></button
+                                                                              ><!---->
+                                                                            </div></c8y-alarms-header-cell-renderer
+                                                                          ><!----><!----><!----><!----><!----></c8y-cell-renderer
+                                                                        ><!----><!----><i
+                                                                          c8yicon="filter"
+                                                                          class="c8y-icon dlt-c8y-icon-filter"
+                                                                          title="Filter"
+                                                                        ></i></button
+                                                                      ><!---->
+                                                                    </div>
+                                                                    <div
+                                                                      class="cdk-visually-hidden cdk-focus-trap-anchor"
+                                                                      aria-hidden="true"
+                                                                    ></div>
+                                                                    <!----><!----><button
+                                                                      type="button"
+                                                                      data-cy="change-sort-order"
+                                                                      class="btn-sort"
+                                                                      title='Sort column "Alarms"'
+                                                                    >
+                                                                      <!----><!----><i
+                                                                        c8yicon="exchange"
+                                                                        class="c8y-icon dlt-c8y-icon-exchange"
+                                                                      ></i
+                                                                      ><!----><!----></button
+                                                                    ><!----><span
+                                                                      class="resize-handle"
+                                                                    ></span
+                                                                    ><!---->
+                                                                  </th>
+                                                                  <!---->
+                                                                </tr>
+                                                                <!---->
+                                                              </thead>
+                                                              <tbody
+                                                                role="rowgroup"
+                                                              >
+                                                                <tr
+                                                                  role="row"
+                                                                  data-cy="c8y-data-grid--row-in-data-grid"
+                                                                  cdk-row=""
+                                                                  class="cdk-row even"
+                                                                >
+                                                                  <td
+                                                                    cdk-cell=""
+                                                                    data-type="icon"
+                                                                    class="cdk-cell cdk-column-checkbox"
+                                                                  >
+                                                                    <label
+                                                                      class="c8y-checkbox"
+                                                                      ><input
+                                                                        type="checkbox"
+                                                                        c8yproductexperience=""
+                                                                        inherit=""
+                                                                        data-cy="c8y-data-grid--checkbox"
+                                                                        aria-label="Selected" /><span></span
+                                                                    ></label>
+                                                                  </td>
+                                                                  <td
+                                                                    cdk-cell=""
+                                                                    class="cdk-cell cdk-column-status"
+                                                                    data-cell-title="Status"
+                                                                    data-cy="data-grid--Status"
+                                                                    data-type="icon"
+                                                                  >
+                                                                    <c8y-cell-renderer
+                                                                      ><!----><c8y-device-status-cell-renderer
+                                                                        ><device-status
+                                                                          ><button
+                                                                            placement="right"
+                                                                            container="body"
+                                                                            class="btn-clean p-0"
+                                                                            aria-label="Connection status"
+                                                                            style="
+                                                                              max-width: 20px;
+                                                                            "
+                                                                          >
+                                                                            <svg
+                                                                              viewBox="0 0 90 90"
+                                                                              fill="none"
+                                                                              style="
+                                                                                max-width: 20px;
+                                                                                min-width: 20px;
+                                                                                pointer-events: none;
+                                                                              "
+                                                                            >
+                                                                              <g>
+                                                                                <path
+                                                                                  d="M45 3C21.804 3 3 21.804 3 45H87C87 21.804 68.196 3 45 3Z"
+                                                                                  class="sendStatus statusUnknown"
+                                                                                ></path>
+                                                                                <path
+                                                                                  fill-rule="evenodd"
+                                                                                  clip-rule="evenodd"
+                                                                                  d="M67.0952 27.4943C67.0952 27.27 66.9967 27.0702 66.8472 26.9215L57.2702 18.1929C57.0221 17.9922 56.6974 17.9439 56.3974 18.0679C56.0982 18.1929 55.9231 18.4674 55.9231 18.7903V24.3768H24.7981C24.3493 24.3768 24 24.7262 24 25.1749V29.9634C24 30.4121 24.3493 30.7614 24.7981 30.7614H55.9231V36.3471C55.9231 36.6718 56.1237 36.9463 56.3974 37.0713C56.6974 37.1953 57.0221 37.1451 57.2702 36.9208L66.8472 28.0927C66.9967 27.944 67.0952 27.7196 67.0952 27.4943Z"
+                                                                                  fill="var(--c8y-palette-high)"
+                                                                                ></path>
+                                                                              </g>
+                                                                              <!---->
+                                                                              <g>
+                                                                                <path
+                                                                                  d="M45 87C68.196 87 87 68.196 87 45L3 45C3 68.196 21.804 87 45 87Z"
+                                                                                  class="pushStatus statusUnknown"
+                                                                                ></path>
+                                                                                <path
+                                                                                  fill-rule="evenodd"
+                                                                                  clip-rule="evenodd"
+                                                                                  d="M23.9048 62.4943C23.9048 62.27 24.0033 62.0702 24.1528 61.9215L33.7298 53.1929C33.9779 52.9922 34.3026 52.9439 34.6026 53.0679C34.9018 53.1929 35.0769 53.4674 35.0769 53.7903V59.3768H66.2019C66.6507 59.3768 67 59.7262 67 60.1749V64.9634C67 65.4121 66.6507 65.7614 66.2019 65.7614H35.0769V71.3471C35.0769 71.6718 34.8763 71.9463 34.6026 72.0713C34.3026 72.1953 33.9779 72.1451 33.7298 71.9208L24.1528 63.0927C24.0033 62.944 23.9048 62.7196 23.9048 62.4943Z"
+                                                                                  fill="var(--c8y-palette-high)"
+                                                                                ></path>
+                                                                              </g>
+                                                                              <!----><!---->
+                                                                              <path
+                                                                                d="M88 45C88 68.7482 68.7482 88 45 88C21.2518 88 2 68.7482 2 45C2 21.2518 21.2518 2 45 2C68.7482 2 88 21.2518 88 45Z"
+                                                                                stroke="var(--c8y-root-component-border-color)"
+                                                                                stroke-width="4"
+                                                                                stroke-miterlimit="10"
+                                                                              ></path>
+                                                                            </svg></button
+                                                                          ><!----><!----><!----><!----></device-status
+                                                                        ></c8y-device-status-cell-renderer
+                                                                      ><!----><!----><!----><!----><!----></c8y-cell-renderer
+                                                                    ><!----><!---->
+                                                                  </td>
+                                                                  <td
+                                                                    cdk-cell=""
+                                                                    class="cdk-cell cdk-column-name data-record-header"
+                                                                    data-cell-title="Name"
+                                                                    data-cy="data-grid--Name"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <c8y-cell-renderer
+                                                                      ><!----><c8y-name-cell-renderer
+                                                                        ><a
+                                                                          class="interact"
+                                                                          title="LWM2M t36528327 connector"
+                                                                          href="#/device/161200"
+                                                                        >
+                                                                          LWM2M
+                                                                          t36528327
+                                                                          connector
+                                                                        </a></c8y-name-cell-renderer
+                                                                      ><!----><!----><!----><!----><!----></c8y-cell-renderer
+                                                                    ><!----><!---->
+                                                                  </td>
+                                                                  <td
+                                                                    cdk-cell=""
+                                                                    class="cdk-cell cdk-column-model"
+                                                                    data-cell-title="Model"
+                                                                    data-cy="data-grid--Model"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <c8y-cell-renderer
+                                                                      ><!----><c8y-model-cell-renderer
+                                                                      >
+                                                                      </c8y-model-cell-renderer
+                                                                      ><!----><!----><!----><!----><!----></c8y-cell-renderer
+                                                                    ><!----><!---->
+                                                                  </td>
+                                                                  <td
+                                                                    cdk-cell=""
+                                                                    class="cdk-cell cdk-column-serialNumber"
+                                                                    data-cell-title="Serial number"
+                                                                    data-cy="data-grid--Serial number"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <c8y-cell-renderer
+                                                                      ><!----><c8y-serial-number-cell-renderer
+                                                                      >
+                                                                      </c8y-serial-number-cell-renderer
+                                                                      ><!----><!----><!----><!----><!----></c8y-cell-renderer
+                                                                    ><!----><!---->
+                                                                  </td>
+                                                                  <td
+                                                                    cdk-cell=""
+                                                                    class="cdk-cell cdk-column-group"
+                                                                    data-cell-title="Group"
+                                                                    data-cy="data-grid--Group"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <c8y-cell-renderer
+                                                                      ><!----><c8y-group-cell-renderer
+                                                                        ><span
+                                                                          title=""
+                                                                        >
+                                                                        </span></c8y-group-cell-renderer
+                                                                      ><!----><!----><!----><!----><!----></c8y-cell-renderer
+                                                                    ><!----><!---->
+                                                                  </td>
+                                                                  <td
+                                                                    cdk-cell=""
+                                                                    class="cdk-cell cdk-column-registrationDate"
+                                                                    data-cell-title="Registration date"
+                                                                    data-cy="data-grid--Registration date"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <c8y-cell-renderer
+                                                                      ><!----><c8y-registration-date-cell-renderer>
+                                                                        30 Oct
+                                                                        2024,
+                                                                        05:58:03 </c8y-registration-date-cell-renderer
+                                                                      ><!----><!----><!----><!----><!----></c8y-cell-renderer
+                                                                    ><!----><!---->
+                                                                  </td>
+                                                                  <td
+                                                                    cdk-cell=""
+                                                                    class="cdk-cell cdk-column-systemId"
+                                                                    data-cell-title="System ID"
+                                                                    data-cy="data-grid--System ID"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <c8y-cell-renderer
+                                                                      ><!----><span
+                                                                        title="161200"
+                                                                      >
+                                                                        161200 </span
+                                                                      ><!----><!----></c8y-cell-renderer
+                                                                    ><!----><!---->
+                                                                  </td>
+                                                                  <td
+                                                                    cdk-cell=""
+                                                                    class="cdk-cell cdk-column-imei"
+                                                                    data-cell-title="IMEI"
+                                                                    data-cy="data-grid--IMEI"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <c8y-cell-renderer
+                                                                      ><!----><span
+                                                                        title=""
+                                                                      >
+                                                                      </span
+                                                                      ><!----><!----></c8y-cell-renderer
+                                                                    ><!----><!---->
+                                                                  </td>
+                                                                  <td
+                                                                    cdk-cell=""
+                                                                    class="cdk-cell cdk-column-alarms"
+                                                                    data-cell-title="Alarms"
+                                                                    data-cy="data-grid--Alarms"
+                                                                    data-type="text-short"
+                                                                  >
+                                                                    <c8y-cell-renderer
+                                                                      ><!----><c8y-alarms-cell-renderer
+                                                                        ><!----></c8y-alarms-cell-renderer
+                                                                      ><!----><!----><!----><!----><!----></c8y-cell-renderer
+                                                                    ><!----><!---->
+                                                                  </td>
+                                                                  <!---->
+                                                                </tr>
+                                                                <!----><!---->
+                                                              </tbody>
+                                                              <tfoot
+                                                                role="rowgroup"
+                                                              >
+                                                                <tr
+                                                                  role="row"
+                                                                  cdk-footer-row=""
+                                                                  class="cdk-footer-row"
+                                                                >
+                                                                  <td
+                                                                    cdk-footer-cell=""
+                                                                    class="cdk-footer-cell cdk-column-infiniteScrollFooter"
+                                                                    style="
+                                                                      grid-column: 1 /
+                                                                        -1;
+                                                                    "
+                                                                  >
+                                                                    <template></template
+                                                                    ><!---->
+                                                                  </td>
+                                                                  <!---->
+                                                                </tr>
+                                                                <!---->
+                                                              </tfoot>
+                                                              <!----><!---->
+                                                            </table>
+                                                            <!----><!---->
+                                                          </div></c8y-data-grid
+                                                        ></c8y-device-grid
+                                                      ><!---->
+                                                      <div
+                                                        class="text-center card-footer p-24 separator"
+                                                      >
+                                                        <button
+                                                          type="button"
+                                                          class="btn btn-default"
+                                                          title="Cancel"
+                                                        >
+                                                          <span
+                                                            >Cancel</span
+                                                          ></button
+                                                        ><button
+                                                          type="button"
+                                                          class="btn btn-primary"
+                                                          title="Assign"
+                                                          disabled=""
+                                                        >
+                                                          <span>Assign</span>
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <!----></c8y-dtm-assign-devices
+                                              ><!----></formly-field
+                                            ><!----><!----></formly-group
+                                          ><!----></formly-field
+                                        ><!---->
+                                      </fieldset>
+                                      <!----><button
+                                        type="button"
+                                        class="btn btn-default btn-sm"
+                                        title="Add"
+                                      >
+                                        <i
+                                          c8yicon="plus-circle"
+                                          class="c8y-icon dlt-c8y-icon-plus-circle"
+                                        ></i>
+                                        Add
+                                      </button></c8y-repeat-section
+                                    ><!----></formly-field
+                                  ><!----><!----></formly-group
+                                ><!----></formly-field
+                              ><!----></formly-form
+                            ><!----><c8y-messages
+                              ><small class="form-control-feedback-message"
+                                ><!----><!----></small
+                              ></c8y-messages
+                            ><!----></c8y-form-group
+                          >
+                        </div>
+                      </div>
+                    </div>
+                    <!----><!---->
+                    <div class="ff-scroll-fix"></div>
+                  </div>
+                  <div class="card-footer separator sticky-bottom">
+                    <button
+                      data-cy="asset-hierarchy-cancel-button"
+                      class="btn btn-default"
+                    >
+                      Cancel</button
+                    ><!----><button
+                      data-cy="asset-hierarchy-next-button"
+                      class="btn btn-primary"
+                      disabled=""
+                    >
+                      Next</button
+                    ><!----><!---->
+                  </div>
+                  <!---->
+                </div>
+              </div>
+              <!----></c8y-asset-hierarchy
+            ><!---->
+          </main>
+        </div>
+      </div>
+      <!----><!----><c8y-cookie-banner
+        ><div class="c8y-cookie-banner">
+          <div class="container"><!----></div>
+        </div></c8y-cookie-banner
+      ></c8y-bootstrap
+    >
+  </body>
+</html>
