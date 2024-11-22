@@ -200,7 +200,10 @@ export class C8yScreenshotRunner {
               const handlerKey = Object.keys(action)[0];
               const handler = this.actionHandlers[handlerKey];
               if (handler) {
-                if (isScreenshotAction(action)) {
+                if (
+                  isScreenshotAction(action) &&
+                  !_.isString(action.screenshot)
+                ) {
                   const clipArea = action.screenshot?.clip;
                   if (clipArea) {
                     options["clip"] = {
@@ -499,19 +502,19 @@ export class C8yScreenshotRunner {
     item: Screenshot,
     options: any
   ) {
-    let name = action?.path || item.image;
-    const selector = getSelector(action, this.config.selectors);
-    cy.task(
-      "debug",
-      `Taking screenshot ${name} Selector: ${selector}`,
-      taskLog
-    );
+    const name = _.isString(action) ? action : action?.path ?? item.image;
+    const selector = !_.isString(action)
+      ? getSelector(action, this.config.selectors)
+      : undefined;
+
+    const logmessage = `Taking screenshot ${name} Selector: ${selector}`;
+    cy.task("debug", logmessage, taskLog);
     cy.task("debug", `Options: ${JSON.stringify(options)}`, taskLog);
-    name = imageName(name);
+    
     if (selector != null) {
-      cy.get(selector).screenshot(name, options);
+      cy.get(selector).screenshot(imageName(name), options);
     } else {
-      cy.screenshot(name, options);
+      cy.screenshot(imageName(name), options);
     }
   }
 

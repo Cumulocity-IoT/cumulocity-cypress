@@ -735,7 +735,7 @@ If no selector is provided, the file will be uploaded to the first file input fi
 
 **screenshot**
 ```yaml
-- screenshot:
+- screenshot: string or object
     selector: string or object
     clip:
       x: number
@@ -745,6 +745,8 @@ If no selector is provided, the file will be uploaded to the first file input fi
     path: string
 ```
 Takes a screenshot with specific options. If used within the `actions` array, this allows for multiple screenshots within a single workflow.
+
+If a string is passed to screenshot, it will be used as the path for the screenshot.
 
 **text**
 ```yaml

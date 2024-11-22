@@ -356,6 +356,9 @@
                                 }
                             },
                             "type": "object"
+                        },
+                        {
+                            "type": "string"
                         }
                     ],
                     "description": "The screenshot action triggers a screenshot of the current state of the application."

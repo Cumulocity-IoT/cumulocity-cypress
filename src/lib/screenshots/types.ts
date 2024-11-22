@@ -379,7 +379,7 @@ export interface Action {
   /**
    * The screenshot action triggers a screenshot of the current state of the application.
    */
-  screenshot?: ScreenshotAction & Partial<Selectable>;
+  screenshot?: string | ScreenshotAction & Partial<Selectable>;
   /**
    * A text action modifies the text value of selected DOM element.
    */
