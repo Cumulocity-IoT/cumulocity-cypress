@@ -309,17 +309,19 @@ export function configureC8yScreenshotPlugin(
         (config.screenshotsFolder as string) ??
         (config.e2e.screenshotsFolder as string);
 
-      const isDiffEnabled = diffOptions != null;
+      const isTestFailure = details.testFailure === true;
+      const isDiffEnabled = diffOptions != null && !isTestFailure;
       if (isDiffEnabled && !diffTarget) {
         log(`Diffing enabled but no target folder found`);
         finish(details);
       }
 
       const folders = [screenshotTarget];
-      if (isDiffEnabled && diffTarget)
+      if (isDiffEnabled && diffTarget) {
         folders.push(
           path.join(diffTarget, ...details.name.split("/").slice(0, -1))
         );
+      }
 
       folders.forEach((f) => {
         if (!fs.existsSync(f)) {
@@ -331,20 +333,20 @@ export function configureC8yScreenshotPlugin(
       });
 
       if (!screenshotTarget) {
-        log(`No screenshot target folder found`);
+        log(`No screenshot target folder configured`);
         finish(details);
       }
 
       // for Module API run(), overwrite option of the screenshot is not working
       const screenshotFile =
         overwrite === true ? newPath : appendCountIfPathExists(newPath);
-      const diffFile = path.join(diffTarget, `${details.name}.diff.png`);
-      log(`Diff file: ${diffFile}`);
 
       if (!isDiffEnabled) {
         moveFile(details.path, screenshotFile);
         finish(newPath);
       } else {
+        const diffFile = path.join(diffTarget, `${details.name}.diff.png`);
+        log(`Diff file: ${diffFile}`);
         compare(details.path, screenshotFile, diffFile, diffOptions).then(
           (diffResult) => {
             log(`Diff result: ${JSON.stringify(diffResult)}`);
@@ -383,7 +385,9 @@ export function configureC8yScreenshotPlugin(
 
   const disabled = config.env.C8Y_DISABLE_WEBSOCKET;
   if (disabled === true || disabled === "true") {
-    log(`Websocket server disabled. Config file will not be watched and reloaded.`);
+    log(
+      `Websocket server disabled. Config file will not be watched and reloaded.`
+    );
     return;
   }
 
