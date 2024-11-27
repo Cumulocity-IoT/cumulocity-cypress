@@ -14,7 +14,12 @@ import {
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
-import { findCommonParent, getSelector, imageName } from "./runner-helper";
+import {
+  findCommonParent,
+  getElementPositionWithinParent,
+  getSelector,
+  imageName,
+} from "./runner-helper";
 
 const { _ } = Cypress;
 
@@ -289,18 +294,6 @@ export class C8yScreenshotRunner {
         "outline-color": "#FF9300",
       };
 
-      const getPosition = ($e: HTMLElement, $p: HTMLElement) => {
-        const childRect = $e.getBoundingClientRect();
-        const parentRect = $p.getBoundingClientRect();
-
-        return new DOMRectReadOnly(
-          childRect.left - parentRect.left,
-          childRect.top - parentRect.top,
-          childRect.width,
-          childRect.height
-        );
-      };
-
       const applyHighlightStyle = (
         $element: JQuery<HTMLElement>,
         styles: any
@@ -323,11 +316,9 @@ export class C8yScreenshotRunner {
               Cypress.$($parent).css("position", "relative");
             }
 
-            const firstRect = getPosition($element[0], $parent);
-            const lastRect = getPosition(
-              $element[$element.length - 1],
-              $parent
-            );
+            const getRect = getElementPositionWithinParent;
+            const firstRect = getRect($element[0], $parent);
+            const lastRect = getRect($element[$element.length - 1], $parent);
 
             let width = lastRect.right - firstRect.left;
             if (!_.isString(highlight) && highlight?.width != null) {
@@ -510,7 +501,7 @@ export class C8yScreenshotRunner {
     const logmessage = `Taking screenshot ${name} Selector: ${selector}`;
     cy.task("debug", logmessage, taskLog);
     cy.task("debug", `Options: ${JSON.stringify(options)}`, taskLog);
-    
+
     if (selector != null) {
       cy.get(selector).screenshot(imageName(name), options);
     } else {
