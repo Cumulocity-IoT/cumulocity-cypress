@@ -89,7 +89,7 @@ describe("general", () => {
               required: false,
               functional: false,
               marketing: true,
-              policyVersion: "2",
+              policyVersion: "2024-12-03",
             });
           });
         });
