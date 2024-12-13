@@ -7,9 +7,18 @@ declare global {
   namespace Cypress {
     interface Chainable {
       /**
-       * Disables the Cumulocity cookie banner. Run before visit.
+       * Disables the Cumulocity cookie banner.
        */
       hideCookieBanner(): Chainable<void>;
+
+      /** 
+       * Accept the cookie banner with the provided configuration for current, functional and marketing cookies.
+       */
+      acceptCookieBanner(
+        required: boolean,
+        functional: boolean,
+        marketing: boolean
+      ): Chainable<void>;
 
       /**
        * Sets the language in user preferences.
@@ -57,19 +66,52 @@ declare global {
 }
 
 Cypress.Commands.add("hideCookieBanner", () => {
-  const COOKIE_NAME = "acceptCookieNotice";
-  const COOKIE_VALUE = '{"required":true,"functional":true}';
-
-  Cypress.on("window:before:load", (window) => {
-    window.localStorage.setItem(COOKIE_NAME, COOKIE_VALUE);
-  });
-  window.localStorage.setItem(COOKIE_NAME, COOKIE_VALUE);
-
   Cypress.log({
     name: "hideCookieBanner",
-    message: "",
   });
+  cy.acceptCookieBanner(true, true, true);
 });
+
+Cypress.Commands.add(
+  "acceptCookieBanner",
+  (required = true, functional = true, marketing = true) => {
+    const COOKIE_NAME = "acceptCookieNotice";
+
+    const consoleProps = {
+      required,
+      functional,
+      marketing,
+    };
+    Cypress.log({
+      name: "acceptCookieBanner",
+      message: "",
+      consoleProps: () => consoleProps,
+    });
+
+    cy.intercept(
+      {
+        pathname: /\/apps\/public\/public-options(@app-[^/]+)?\/options.json/,
+      },
+      (request) => {
+        request.on("before:response", (response) => {
+          if (response.statusCode !== 200) {
+            return;
+          }
+          const policyVersion = response.body.cookieBanner?.policyVersion;
+          const denyCookies: { [key: string]: string | boolean } = {
+            required: !!required,
+            functional: !!functional,
+            marketing: !!marketing,
+          };
+          if (policyVersion != null) {
+            denyCookies.policyVersion = policyVersion;
+          }
+          localStorage.setItem(COOKIE_NAME, JSON.stringify(denyCookies));
+        });
+      }
+    ).as("publicOptions");
+  }
+);
 
 Cypress.Commands.add(
   "visitAndWaitForSelector",
