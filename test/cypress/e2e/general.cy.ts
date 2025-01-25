@@ -31,20 +31,83 @@ describe("general", () => {
     });
   });
 
-  context("hideCookieBanner", () => {
-    it("hideCookieBanner should update localStorage cookie value", () => {
+  context("CookieBanner", () => {
+    beforeEach(() => {
       cy.window().then((win) => {
         const cookie = win.localStorage.getItem("acceptCookieNotice");
         expect(cookie).to.be.null;
       });
+    });
 
-      cy.hideCookieBanner();
+    it("hideCookieBanner should configure acceptCookieNotice", () => {
+      cy.hideCookieBanner()
+        .as("interception")
+        .then(() => $.get(url(`/apps/public/public-options/options.json?_=a`)))
+        .then(() => {
+          cy.window().then((win) => {
+            const cookie = win.localStorage.getItem("acceptCookieNotice");
+            expect(cookie).to.be.not.null;
+            expect(JSON.parse(cookie!)).to.deep.eq({
+              required: true,
+              functional: true,
+              marketing: true,
+              policyVersion: "2",
+            });
+          });
+        });
+    });
 
-      cy.window().then((win) => {
-        const cookie = JSON.parse(
-          win.localStorage.getItem("acceptCookieNotice")!
-        );
-        expect(cookie).to.deep.eq({ required: true, functional: true });
+    it("acceptCookieBanner should configure acceptCookieNotice", () => {
+      cy.acceptCookieBanner(false, false, false)
+        .as("interception")
+        .then(() => $.get(url(`/apps/public/public-options/options.json?_=b`)))
+        .then(() => {
+          cy.window().then((win) => {
+            const cookie = win.localStorage.getItem("acceptCookieNotice");
+            expect(cookie).to.be.not.null;
+            expect(JSON.parse(cookie!)).to.deep.eq({
+              required: false,
+              functional: false,
+              marketing: false,
+              policyVersion: "2",
+            });
+          });
+        });
+    });
+
+    it("acceptCookieBanner should intercept app options", () => {
+      cy.acceptCookieBanner(false, false, true)
+        .as("interception")
+        .then(() =>
+          $.get(url(`/apps/public/public-options@app-cockpit/options.json?_=c`))
+        )
+        .then(() => {
+          cy.window().then((win) => {
+            const cookie = win.localStorage.getItem("acceptCookieNotice");
+            expect(cookie).to.be.not.null;
+            expect(JSON.parse(cookie!)).to.deep.eq({
+              required: false,
+              functional: false,
+              marketing: true,
+              policyVersion: "2024-12-03",
+            });
+          });
+        });
+    });
+
+    it("showCookieBanner should remove acceptCookieNotice", () => {
+      cy.acceptCookieBanner(false, false, false).then(() => {
+        cy.window().then((win) => {
+          const cookie = win.localStorage.getItem("acceptCookieNotice");
+          expect(cookie).to.be.not.null;
+        });
+      });
+
+      cy.showCookieBanner().then(() => {
+        cy.window().then((win) => {
+          const cookie = win.localStorage.getItem("acceptCookieNotice");
+          expect(cookie).to.be.null;
+        });
       });
     });
   });

@@ -182,7 +182,7 @@ describe("login", () => {
           const c = win.localStorage.getItem("acceptCookieNotice");
           expect(c).to.not.be.null;
           const cookie = JSON.parse(c!);
-          expect(cookie).to.deep.eq({ required: true, functional: true });
+          expect(cookie).to.deep.eq({ required: true, functional: true, marketing: true });
         });
       });
     });

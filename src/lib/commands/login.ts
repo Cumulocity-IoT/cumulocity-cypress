@@ -102,6 +102,10 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
       consoleProps.options = options || null;
 
       const loginRequest = (tenant: string) => {
+        // cookie banner adds interception, set before login
+        if (options.hideCookieBanner === true) {
+          cy.hideCookieBanner();
+        }
         return cy
           .request({
             method: "POST",
@@ -118,9 +122,6 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
             expect(resp).to.have.property("headers");
             if (options.disableGainsight === true) {
               cy.disableGainsight();
-            }
-            if (options.hideCookieBanner === true) {
-              cy.hideCookieBanner();
             }
           });
       };
