@@ -94,6 +94,22 @@ describe("general", () => {
           });
         });
     });
+
+    it("showCookieBanner should remove acceptCookieNotice", () => {
+      cy.acceptCookieBanner(false, false, false).then(() => {
+        cy.window().then((win) => {
+          const cookie = win.localStorage.getItem("acceptCookieNotice");
+          expect(cookie).to.be.not.null;
+        });
+      });
+
+      cy.showCookieBanner().then(() => {
+        cy.window().then((win) => {
+          const cookie = win.localStorage.getItem("acceptCookieNotice");
+          expect(cookie).to.be.null;
+        });
+      });
+    });
   });
 
   context("setLanguage", () => {

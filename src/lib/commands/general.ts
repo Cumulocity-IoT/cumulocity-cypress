@@ -11,7 +11,7 @@ declare global {
        */
       hideCookieBanner(): Chainable<void>;
 
-      /** 
+      /**
        * Accept the cookie banner with the provided configuration for current, functional and marketing cookies.
        */
       acceptCookieBanner(
@@ -19,6 +19,12 @@ declare global {
         functional: boolean,
         marketing: boolean
       ): Chainable<void>;
+
+      /**
+       * Ensure the cookie banner is shown on visit. If the cookie banner has been
+       * accepted or hidden using `acceptCookieBanner` or `hideCookieBanner`, it will be reset.
+       */
+      showCookieBanner(): Chainable<void>;
 
       /**
        * Sets the language in user preferences.
@@ -82,11 +88,22 @@ Cypress.Commands.add(
       functional,
       marketing,
     };
+
     Cypress.log({
       name: "acceptCookieBanner",
       message: "",
       consoleProps: () => consoleProps,
     });
+
+    const setLocalCookie = (c: { [key: string]: string | boolean }) => {
+      const cookie = JSON.stringify(c);
+      Cypress.on("window:before:load", (window) => {
+        window.localStorage.setItem(COOKIE_NAME, cookie);
+      });
+      window.localStorage.setItem(COOKIE_NAME, cookie);
+    };
+
+    setLocalCookie({ required, functional, marketing });
 
     cy.intercept(
       {
@@ -106,12 +123,22 @@ Cypress.Commands.add(
           if (policyVersion != null) {
             denyCookies.policyVersion = policyVersion;
           }
-          localStorage.setItem(COOKIE_NAME, JSON.stringify(denyCookies));
+          setLocalCookie(denyCookies);
         });
       }
     ).as("publicOptions");
   }
 );
+
+Cypress.Commands.add("showCookieBanner", () => {
+  Cypress.log({
+    name: "showCookieBanner",
+  });
+  Cypress.on("window:before:load", (window) => {
+    window.localStorage.removeItem("acceptCookieNotice");
+  });
+  window.localStorage.removeItem("acceptCookieNotice");
+});
 
 Cypress.Commands.add(
   "visitAndWaitForSelector",

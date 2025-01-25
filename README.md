@@ -45,8 +45,8 @@ General commands
 
 - `visitAndWaitForSelector`
 - `setLanguage`
-- `hideCookieBanner`, `acceptCookieBanner`
-- `disableGainsights`
+- `hideCookieBanner`, `acceptCookieBanner`, `showCookieBanner`
+- `disableGainsight`
 
 Authentication related commands
 - `login`
