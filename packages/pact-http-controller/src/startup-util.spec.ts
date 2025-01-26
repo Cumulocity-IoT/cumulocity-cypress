@@ -85,8 +85,8 @@ describe("startup util tests", () => {
     test("getConfigFromArgs should not use default values", () => {
       process.argv = ["node", "script.js"];
       const [config] = getConfigFromArgs();
-      expect(config.mode).toBe(undefined);
-      expect(config.recordingMode).toBe(undefined);
+      expect(config.mode).toBe("forward");
+      expect(config.recordingMode).toBe("append");
     });
 
     test("getConfigFromArgs should work with logLevel", () => {

@@ -13,6 +13,7 @@ export const C8yPactModeValues = [
   "record",
   "recording",
   "apply",
+  "forward",
   "disabled",
   "mock",
 ] as const;
@@ -21,8 +22,9 @@ export const C8yPactModeValues = [
  * - `record`: Records the requests and responses and stores them in a pact file.
  * - `apply`: Mocks or matches the requests and responses from the recorded pact file.
  * - `disabled`: Disables the pact recording and mocking (same as undefined).
+ * - `forward`: Forward requests without recording or mocking (might not be supported in all contexts).
  * - `recording` (deprecated): same as `record`, use `record` instead.
- * - `mock: (deprecated): same as `apply`, use `apply` instead.
+ * - `mock`: Mock responses for requests. Same as `apply`, but `apply` could also mean matching the requests and responses depending on the context.
  */
 export type C8yPactMode = (typeof C8yPactModeValues)[number];
 

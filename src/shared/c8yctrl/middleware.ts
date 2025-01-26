@@ -200,7 +200,7 @@ export function createRequestHandler(
 
     // add authorization header
     if (
-      c8yctrl.isRecordingEnabled() === true &&
+      (c8yctrl.isRecordingEnabled() === true || c8yctrl.mode === "forward") &&
       auth &&
       !proxyReq.getHeader("Authorization") &&
       !proxyReq.getHeader("authorization")

@@ -7,6 +7,8 @@ import {
   C8yPactResponse,
   C8ySchemaGenerator,
   C8yPactFileAdapter,
+  C8yPactMode,
+  C8yPactRecordingMode,
 } from "cumulocity-cypress/shared/c8ypact";
 
 import { Request, RequestHandler } from "express";
@@ -36,6 +38,11 @@ export const C8yPactHttpControllerLogLevel = [
   "warn",
   "error",
 ] as const;
+
+export const C8yPactHttpControllerDefaultMode: C8yPactMode = "forward";
+
+export const C8yPactHttpControllerDefaultRecordingMode: C8yPactRecordingMode =
+  "append";
 
 export interface C8yPactHttpControllerOptions {
   /**
@@ -87,9 +94,17 @@ export interface C8yPactHttpControllerOptions {
    */
   strictMocking?: boolean;
   /**
-   * Enable recording of requests and responses.
+   * Mode the controller is running in.
    */
-  isRecordingEnabled?: boolean;
+  mode?: C8yPactMode;
+  /**
+   * Recording mode to use for recording requests and responses.
+   */
+  recordingMode?: C8yPactRecordingMode;
+  /**
+   * Id of the pact to use for recording and mocking. Default is undefined.
+   */
+  pactId?: string;
   /**
    * Record to use for error responses when no mock is found.
    */

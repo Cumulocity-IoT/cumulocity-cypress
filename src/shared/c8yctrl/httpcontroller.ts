@@ -20,7 +20,6 @@ import {
   toPactSerializableObject,
   C8yPactRecordingMode,
   C8yPactMode,
-  isOneOfStrings,
   C8yPactRecordingModeValues,
   C8yPactModeValues,
 } from "../c8ypact";
@@ -61,7 +60,6 @@ export class C8yPactHttpController {
   readonly tenant?: string;
 
   adapter?: C8yPactFileAdapter;
-  protected _isRecordingEnabled: boolean = false;
   protected _recordingMode: C8yPactRecordingMode = "append";
   protected _mode: C8yPactMode = "apply";
   protected _isStrictMocking: boolean = true;
@@ -84,7 +82,6 @@ export class C8yPactHttpController {
     this.adapter = options.adapter;
     this.port = options.port || 3000;
     this.hostname = options.hostname || "localhost";
-    this._isRecordingEnabled = options.isRecordingEnabled || false;
     this._isStrictMocking = options.strictMocking || true;
 
     this.resourcePath = options.resourcePath || "/c8yctrl";
@@ -94,6 +91,9 @@ export class C8yPactHttpController {
 
     this.currentPact = undefined;
     this.tenant = options.tenant;
+
+    this.mode = options.mode || "apply";
+    this.recordingMode = options.recordingMode || "append";
 
     const loggerOptions = {
       format: winston.format.simple(),
@@ -129,10 +129,6 @@ export class C8yPactHttpController {
       );
     }
 
-    if (this.options.errorLogger != null) {
-      this.app.use(this.options.errorLogger);
-    }
-
     // register cookie parser
     this.app.use(cookieParser());
 
@@ -151,16 +147,40 @@ export class C8yPactHttpController {
     return this._recordingMode;
   }
 
+  set recordingMode(mode: C8yPactRecordingMode) {
+    if (!_.isString(mode) || !C8yPactRecordingModeValues.includes(mode)) {
+      this.logger.warn(
+        `Invalid recording mode: "${mode}". Ignoring and continuing with recording mode "${this.recordingMode}".`
+      );
+      return;
+    }
+    this._recordingMode = mode;
+  }
+
   get mode(): C8yPactMode {
     return this._mode;
   }
 
+  set mode(mode: C8yPactMode) {
+    if (!_.isString(mode) || !C8yPactModeValues.includes(mode)) {
+      this.logger.warn(
+        `Invalid mode: "${mode}". Ignoring and continuing with mode "${this.mode}".`
+      );
+      return;
+    }
+    this._mode = mode;
+  }
+
   isRecordingEnabled(): boolean {
     return (
-      this._isRecordingEnabled === true &&
+      (this.mode === "record" || this.mode === "recording") &&
       this.adapter != null &&
       this.baseUrl != null
     );
+  }
+
+  isMockingEnabled(): boolean {
+    return this.mode === "apply" || this.mode === "mock";
   }
 
   /**
@@ -188,8 +208,10 @@ export class C8yPactHttpController {
     }
 
     if (!this.authOptions) {
-      this.logger.warn(`No auth options provided. Not logging in.`);
+      this.logger.debug(`No auth options provided. Not logging in.`);
     }
+
+    await this.registerStaticRootRequestHandler();
 
     if (this.baseUrl) {
       this.logger.info(`BaseURL: ${this.baseUrl}`);
@@ -218,14 +240,12 @@ export class C8yPactHttpController {
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: true }));
 
-    this.registerStaticRootRequestHandler();
-
     this.registerC8yctrlInterface();
 
     try {
       this.server = await this.app.listen(this.port);
       this.logger.info(
-        `Started: ${this.hostname}:${this.port} (recording: ${this._isRecordingEnabled})`
+        `Started: ${this.hostname}:${this.port} (mode: ${this.mode})`
       );
     } catch (error) {
       this.logger.error("Error starting server:", error);
@@ -288,10 +308,9 @@ export class C8yPactHttpController {
           `  ${relativePath} (${info}) -> ${this.staticRoot}/apps/${folder.name}`
         );
 
-        this.app.use(
-          relativePath,
-          express.static(`${this.staticRoot}/${relativePath}`)
-        );
+        const appFolder = path.join(this.staticRoot, "apps", folder.name);
+        log(`${relativePath} -> ${appFolder}`);
+        this.app.use(relativePath, express.static(appFolder));
       } catch (error) {
         this.logger.error(
           `  error reading or parsing ${cumulocityJsonPath} - ${error}`
@@ -323,28 +342,8 @@ export class C8yPactHttpController {
       const { mode, clear, recordingMode, strictMocking } = parameters;
       const id = pactId(parameters.id) || pactId(parameters.title);
 
-      if (mode && _.isString(mode)) {
-        this._isRecordingEnabled = isOneOfStrings(mode, [
-          "record",
-          "recording",
-        ]);
-        this._mode = this._isRecordingEnabled ? "record" : "apply";
-      } else {
-        this._isRecordingEnabled = false;
-        this._mode = "apply";
-      }
-
-      if (
-        isOneOfStrings(
-          recordingMode,
-          C8yPactRecordingModeValues as unknown as string[]
-        )
-      ) {
-        this._recordingMode = recordingMode;
-      } else {
-        this._recordingMode = "append";
-      }
-
+      this.mode = mode as C8yPactMode;
+      this.recordingMode = recordingMode as C8yPactRecordingMode;
       this._isStrictMocking = toBoolean(strictMocking, this._isStrictMocking);
 
       if (!id || !_.isString(id)) {
@@ -538,6 +537,7 @@ export class C8yPactHttpController {
         isRecordingEnabled: this.isRecordingEnabled(),
       },
       mocking: {
+        isMockingEnabled: this.isMockingEnabled(),
         strictMocking: this._isStrictMocking,
       },
       logger: {
@@ -550,7 +550,7 @@ export class C8yPactHttpController {
   // mock handler - returns recorded response.
   // register before proxy handler
   protected mockRequestHandler: RequestHandler = (req, res, next) => {
-    if (this._isRecordingEnabled === true) {
+    if (!this.isMockingEnabled()) {
       return next();
     }
 
@@ -740,7 +740,7 @@ export class C8yPactHttpController {
     }
   }
 
-  getObjectWithKeys(objs: any[], keys: string[]): any[] {
+  protected getObjectWithKeys(objs: any[], keys: string[]): any[] {
     return objs.map((r) => {
       const x: any = _.pick(r, keys);
       if (keys.includes("size")) {
