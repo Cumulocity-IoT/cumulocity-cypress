@@ -7,11 +7,14 @@ import {
   getConfigFromArgs,
   getConfigFromArgsOrEnvironment,
   getConfigFromEnvironment,
+  validateConfig,
 } from "./startup-util";
 
 import {
   C8yPactHttpControllerOptions,
   C8yPactDefaultFileAdapter,
+  C8yPactHttpControllerDefaultMode,
+  C8yPactHttpControllerDefaultRecordingMode,
 } from "../../../src/shared/c8yctrl";
 
 describe("startup util tests", () => {
@@ -34,8 +37,8 @@ describe("startup util tests", () => {
         "tenant",
         "--staticRoot",
         "static",
-        "--recording",
-        "true",
+        "--mode",
+        "mock",
         "--config",
         "c8yctrl.config.ts",
         "--log",
@@ -56,7 +59,7 @@ describe("startup util tests", () => {
       expect(config.password).toBe("password");
       expect(config.tenant).toBe("tenant");
       expect(config.staticRoot).toBe("static");
-      expect(config.isRecordingEnabled).toBeTruthy();
+      expect(config.mode).toBe("mock");
       expect(configFile).toBe("c8yctrl.config.ts");
       expect(config.log).toBeTruthy();
       expect(config.logFilename).toBe("combined.log");
@@ -79,10 +82,11 @@ describe("startup util tests", () => {
       expect(config.staticRoot).toBe("static");
     });
 
-    test("getConfigFromArgs should use default values", () => {
-      process.argv = ["node", "script.js", "--recording"];
+    test("getConfigFromArgs should not use default values", () => {
+      process.argv = ["node", "script.js"];
       const [config] = getConfigFromArgs();
-      expect(config.isRecordingEnabled).toBe(true);
+      expect(config.mode).toBe(undefined);
+      expect(config.recordingMode).toBe(undefined);
     });
 
     test("getConfigFromArgs should work with logLevel", () => {
@@ -95,16 +99,8 @@ describe("startup util tests", () => {
     });
 
     test("getConfigFromArgs should work with boolean values", () => {
-      process.argv = [
-        "node",
-        "script.js",
-        "--recording",
-        "false",
-        "--log",
-        "false",
-      ];
+      process.argv = ["node", "script.js", "--log", "false"];
       const [config] = getConfigFromArgs();
-      expect(config.isRecordingEnabled).toBe(false);
       expect(config.log).toBe(false);
     });
 
@@ -131,7 +127,8 @@ describe("startup util tests", () => {
       process.env.C8Y_BASE_PASSWORD = "password";
       process.env.C8Y_BASE_TENANT = "tenant";
       process.env.C8Y_STATIC_ROOT = "/my/static/root";
-      process.env.PACT_MODE = "recording";
+      process.env.C8Y_PACT_MODE = "record";
+      process.env.C8Y_PACT_RECORDING_MODE = "replace";
       process.env.C8Y_LOG_FILE = "combined.log";
       process.env.C8Y_ACCESS_LOG_FILE = "access.log";
       process.env.C8Y_LOG = "false";
@@ -144,16 +141,17 @@ describe("startup util tests", () => {
       expect(config.password).toBe("password");
       expect(config.tenant).toBe("tenant");
       expect(config.staticRoot).toBe("/my/static/root");
-      expect(config.isRecordingEnabled).toBeTruthy();
       expect(config.logFilename).toBe("combined.log");
       expect(config.accessLogFilename).toBe("access.log");
+      expect(config.mode).toBe("record");
+      expect(config.recordingMode).toBe("replace");
       expect(config.log).toBeFalsy();
       expect(config.logLevel).toBe("debug");
     });
   });
 
   describe("getConfigFromArgsOrEnvironment", () => {
-    test("getConfigFromArgsOrEnvironment should return config from args", () => {
+    test("should return config from args", () => {
       process.argv = [
         "node",
         "script.js",
@@ -171,8 +169,6 @@ describe("startup util tests", () => {
         "tenant",
         "--staticRoot",
         "static",
-        "--recording",
-        "true",
         "--config",
         "c8yctrl.config.ts",
       ];
@@ -184,11 +180,10 @@ describe("startup util tests", () => {
       expect(config.password).toBe("password");
       expect(config.tenant).toBe("tenant");
       expect(config.staticRoot).toBe("static");
-      expect(config.isRecordingEnabled).toBeTruthy();
       expect(configFile).toBe("c8yctrl.config.ts");
     });
 
-    test("getConfigFromArgsOrEnvironment should return config from environment", () => {
+    test("should return config from environment", () => {
       process.env.C8Y_PACT_FOLDER = "/my/folder";
       process.env.C8Y_HTTP_PORT = "1234";
       process.env.C8Y_BASE_URL = "http://example.com";
@@ -196,7 +191,7 @@ describe("startup util tests", () => {
       process.env.C8Y_BASE_PASSWORD = "password";
       process.env.C8Y_BASE_TENANT = "tenant";
       process.env.C8Y_STATIC_ROOT = "/my/static/root";
-      process.env.PACT_MODE = "recording";
+      process.env.C8Y_PACT_MODE = "record";
       process.argv = ["node", "script.js"];
       const [config, configFile] = getConfigFromArgsOrEnvironment();
       expect(config.folder).toBe("/my/folder");
@@ -206,14 +201,15 @@ describe("startup util tests", () => {
       expect(config.password).toBe("password");
       expect(config.tenant).toBe("tenant");
       expect(config.staticRoot).toBe("/my/static/root");
-      expect(config.isRecordingEnabled).toBeTruthy();
+      expect(config.mode).toBe("record");
       expect(configFile).toBeUndefined();
     });
 
-    test("getConfigFromArgsOrEnvironment should return config from args and environment", () => {
+    test("should return config from args and environment", () => {
       process.env.C8Y_PACT_FOLDER = "/my/folder";
       process.env.C8Y_HTTP_PORT = "1234";
       process.env.C8Y_BASE_URL = "http://example.com";
+      process.env.C8Y_PACT_RECORDING_MODE = "replace";
       process.argv = [
         "node",
         "script.js",
@@ -225,10 +221,10 @@ describe("startup util tests", () => {
         "tenant",
         "--staticRoot",
         "/my/static/root",
-        "--recording",
-        "true",
         "--config",
         "c8yctrl.config.ts",
+        "--mode",
+        "record",
       ];
       const [config, configFile] = getConfigFromArgsOrEnvironment();
       expect(config.folder).toBe("/my/folder");
@@ -238,7 +234,8 @@ describe("startup util tests", () => {
       expect(config.password).toBe("password");
       expect(config.tenant).toBe("tenant");
       expect(config.staticRoot).toBe("/my/static/root");
-      expect(config.isRecordingEnabled).toBeTruthy();
+      expect(config.mode).toBe("record");
+      expect(config.recordingMode).toBe("replace");
       expect(configFile).toBe("c8yctrl.config.ts");
     });
   });
@@ -286,6 +283,32 @@ describe("startup util tests", () => {
 
     test("lodash isFunction should return false for undefined", () => {
       expect(_.isFunction(undefined)).toBeFalsy();
+    });
+  });
+
+  describe("validateConfig", () => {
+    test("should validate mode", () => {
+      const config: C8yPactHttpControllerOptions = {
+        mode: "unsupported",
+        recordingMode: "unsupported",
+      } as any;
+      expect(() => validateConfig(config)).toThrow();
+    });
+
+    test("should validate recordingMode", () => {
+      const config: C8yPactHttpControllerOptions = {
+        mode: "record",
+        recordingMode: "unsupported",
+      } as any;
+      expect(() => validateConfig(config)).toThrow();
+    });
+
+    test("should not throw for valid config", () => {
+      const config: C8yPactHttpControllerOptions = {
+        mode: C8yPactHttpControllerDefaultMode,
+        recordingMode: C8yPactHttpControllerDefaultRecordingMode,
+      } as any;
+      expect(() => validateConfig(config)).not.toThrow();
     });
   });
 });

@@ -17,6 +17,10 @@ import {
   C8yDefaultPactPreprocessor,
   C8yPactDefaultFileAdapter,
   C8yPactHttpControllerLogLevel,
+  C8yPactModeValues,
+  C8yPactRecordingModeValues,
+  C8yPactHttpControllerDefaultMode,
+  C8yPactHttpControllerDefaultRecordingMode,
 } from "cumulocity-cypress/shared/c8yctrl";
 
 import { RequestHandler } from "express";
@@ -43,6 +47,7 @@ export function getConfigFromArgs(): [
   Partial<C8yPactHttpControllerConfig>,
   string | undefined
 ] {
+  // doc: https://github.com/yargs/yargs/blob/0c95f9c79e1810cf9c8964fbf7d139009412f7e7/docs/api.md
   const result = yargs(hideBin(process.argv))
     .usage("Usage: $0 [options]")
     .scriptName("c8yctrl")
@@ -55,6 +60,8 @@ export function getConfigFromArgs(): [
     .option("port", {
       type: "number",
       requiresArg: true,
+      default: +(getEnvVar("C8Y_HTTP_PORT") || 3000),
+      defaultDescription: "3000",
       description: "HTTP port c8yctrl listens on",
     })
     .option("baseUrl", {
@@ -85,11 +92,23 @@ export function getConfigFromArgs(): [
       type: "string",
       description: "The root folder to serve static files from",
     })
-    .option("recording", {
-      type: "boolean",
-      requiresArg: false,
-      default: true,
-      description: "Enable or disable recording",
+    .option("mode", {
+      type: "string",
+      requiresArg: true,
+      default: getEnvVar("C8Y_PACT_MODE") || C8yPactHttpControllerDefaultMode,
+      defaultDescription: C8yPactHttpControllerDefaultMode,
+      description: `One of ${Object.values(C8yPactModeValues).join(", ")}`,
+    })
+    .option("recordingMode", {
+      type: "string",
+      requiresArg: true,
+      default:
+        getEnvVar("C8Y_PACT_RECORDING_MODE") ||
+        C8yPactHttpControllerDefaultRecordingMode,
+      defaultDescription: C8yPactHttpControllerDefaultRecordingMode,
+      description: `One of ${Object.values(C8yPactRecordingModeValues).join(
+        ", "
+      )}`,
     })
     .option("config", {
       type: "string",
@@ -98,13 +117,15 @@ export function getConfigFromArgs(): [
     })
     .option("log", {
       type: "boolean",
-      default: true,
+      default: getEnvVar("C8Y_LOG") !== "false",
+      defaultDescription: "true",
       requiresArg: false,
       description: "Enable or disable logging",
     })
     .option("logLevel", {
       type: "string",
-      default: "info",
+      default: getEnvVar("C8Y_LOG_LEVEL") || "info",
+      defaultDescription: "info",
       requiresArg: true,
       description: "The log level used for logging",
     })
@@ -119,7 +140,6 @@ export function getConfigFromArgs(): [
       description: "The path of the access logfile",
     })
     .option("apps", {
-      alias: "versions",
       type: "array",
       requiresArg: true,
       description:
@@ -154,7 +174,6 @@ export function getConfigFromArgs(): [
       password: result.password,
       tenant: result.tenant,
       staticRoot: result.staticRoot,
-      isRecordingEnabled: result.recording,
       logFilename: result.logFile,
       accessLogFilename: result.accessLogFile,
       log: result.log,
@@ -162,6 +181,8 @@ export function getConfigFromArgs(): [
         ? (result.logLevel as (typeof C8yPactHttpControllerLogLevel)[number])
         : undefined,
       appsVersions: result.apps,
+      mode: result.mode as any,
+      recordingMode: result.recordingMode as any,
     },
     result.config,
   ];
@@ -176,11 +197,12 @@ export function getConfigFromEnvironment(): Partial<C8yPactHttpControllerConfig>
     password: getEnvVar("C8Y_BASE_PASSWORD") || getEnvVar("C8Y_PASSWORD"),
     tenant: getEnvVar("C8Y_BASE_TENANT") || getEnvVar("C8Y_TENANT"),
     staticRoot: getEnvVar("C8Y_STATIC_ROOT") || getEnvVar("C8Y_STATIC"),
-    isRecordingEnabled: getEnvVar("C8Y_PACT_MODE") === "recording",
     logFilename: getEnvVar("C8Y_LOG_FILE"),
     accessLogFilename: getEnvVar("C8Y_ACCESS_LOG_FILE"),
     log: getEnvVar("C8Y_LOG") !== "false",
     logLevel: getEnvVar("C8Y_LOG_LEVEL"),
+    mode: getEnvVar("C8Y_PACT_MODE"),
+    recordingMode: getEnvVar("C8Y_PACT_RECORDING_MODE"),
   } as Partial<C8yPactHttpControllerConfig>;
 }
 
@@ -191,6 +213,23 @@ export function getConfigFromArgsOrEnvironment(): [
   const [args, config] = getConfigFromArgs();
   const env = getConfigFromEnvironment();
   return [_.defaults(args, env), config];
+}
+
+export function validateConfig(config: Partial<C8yPactHttpControllerConfig>) {
+  if (!C8yPactModeValues.includes(config.mode as any)) {
+    throw new Error(
+      `Configured mode "${
+        config.mode
+      }" is not valid. Must be one of ${C8yPactModeValues.join(", ")}.`
+    );
+  }
+  if (!C8yPactRecordingModeValues.includes(config.recordingMode as any)) {
+    throw new Error(
+      `Configured recording mode "${
+        config.recordingMode
+      }" is not valid. Must be one of ${C8yPactRecordingModeValues.join(", ")}.`
+    );
+  }
 }
 
 const safeTransports = !_.isEmpty(transports) ? transports : transportsDirect;

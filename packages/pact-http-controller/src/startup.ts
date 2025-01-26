@@ -16,6 +16,7 @@ import {
   applyDefaultConfig,
   defaultLogger,
   getConfigFromArgsOrEnvironment,
+  validateConfig,
 } from "./startup-util";
 
 const log = debug("c8y:ctrl:startup");
@@ -63,10 +64,11 @@ const log = debug("c8y:ctrl:startup");
   // now config is complete and we can start the controller
   try {
     const c = config as C8yPactHttpControllerOptions;
+    validateConfig(config);
     const controller = new C8yPactHttpController(c);
     config.on?.beforeStart?.(controller, c);
     await controller.start();
-  } catch (error) {
-    console.error("Error starting HTTP controller:", error);
+  } catch (error: any) {
+    console.error("Error starting c8yctrl:", error.message);
   }
 })();
