@@ -7,35 +7,32 @@ Use `c8yctrl` for
 - offline testing by recording and mocking API requests
 - e2e, component and microservice unit testing
 
-`c8yctrl` does not require using `cumulocity-cypress` in your e2e or component tests. However, `cumulocity-cypress` integrates with `c8yctrl` without the need for any custom implementation or configuration in your tests. 
+`c8yctrl` does not require using `cumulocity-cypress` in your e2e or component tests.
 
-# Content
 <!-- set markdown.extension.toc.levels 2..6 - level 1 is ignored in auto generated toc -->
-- [c8yctrl](#c8yctrl)
-- [Content](#content)
-  - [Usage](#usage)
-    - [Static sources](#static-sources)
-    - [Recording and mocking](#recording-and-mocking)
-  - [Configuration](#configuration)
-    - [Environment Variables](#environment-variables)
-    - [Command Line Arguments](#command-line-arguments)
-    - [Parameters](#parameters)
-    - [Configuration File](#configuration-file)
-  - [How it works](#how-it-works)
-  - [Rest Interface](#rest-interface)
-    - [POST /c8yctrl/current](#post-c8yctrlcurrent)
-      - [Parameters](#parameters-1)
-    - [GET /c8yctrl/current](#get-c8yctrlcurrent)
-    - [DELETE /c8yctrl/current](#delete-c8yctrlcurrent)
-    - [POST /c8yctrl/current/clear](#post-c8yctrlcurrentclear)
-    - [GET /c8yctrl/current/request?](#get-c8yctrlcurrentrequest)
-    - [GET /c8yctrl/current/response?](#get-c8yctrlcurrentresponse)
-    - [GET /c8yctrl/log](#get-c8yctrllog)
-    - [POST /c8yctrl/log](#post-c8yctrllog)
-    - [PUT /c8yctrl/log](#put-c8yctrllog)
-    - [Using c8yctrl with cumulocity-cypress](#using-c8yctrl-with-cumulocity-cypress)
-    - [From Cypress tests](#from-cypress-tests)
-    - [For microservices](#for-microservices)
+- [Usage](#usage)
+  - [Static sources](#static-sources)
+  - [Recording and mocking](#recording-and-mocking)
+- [Configuration](#configuration)
+  - [Environment Variables](#environment-variables)
+  - [Command Line Arguments](#command-line-arguments)
+  - [Parameters](#parameters)
+  - [Configuration File](#configuration-file)
+- [How it works](#how-it-works)
+- [Rest Interface](#rest-interface)
+  - [POST /c8yctrl/current](#post-c8yctrlcurrent)
+    - [Parameters](#parameters-1)
+  - [GET /c8yctrl/current](#get-c8yctrlcurrent)
+  - [DELETE /c8yctrl/current](#delete-c8yctrlcurrent)
+  - [POST /c8yctrl/current/clear](#post-c8yctrlcurrentclear)
+  - [GET /c8yctrl/current/request?](#get-c8yctrlcurrentrequest)
+  - [GET /c8yctrl/current/response?](#get-c8yctrlcurrentresponse)
+  - [GET /c8yctrl/log](#get-c8yctrllog)
+  - [POST /c8yctrl/log](#post-c8yctrllog)
+  - [PUT /c8yctrl/log](#put-c8yctrllog)
+  - [Using c8yctrl with cumulocity-cypress](#using-c8yctrl-with-cumulocity-cypress)
+  - [From Cypress tests](#from-cypress-tests)
+  - [For microservices](#for-microservices)
 
 ## Usage
 
