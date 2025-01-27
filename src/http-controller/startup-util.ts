@@ -62,7 +62,7 @@ export function getConfigFromArgs(): [
       requiresArg: true,
       default: +(getEnvVar("C8Y_HTTP_PORT") || 3000),
       defaultDescription: "3000",
-      description: "HTTP port c8yctrl listens on",
+      description: "The HTTP port c8yctrl listens on",
     })
     .option("baseUrl", {
       alias: "baseurl",
@@ -97,7 +97,7 @@ export function getConfigFromArgs(): [
       requiresArg: true,
       default: getEnvVar("C8Y_PACT_MODE") || C8yPactHttpControllerDefaultMode,
       defaultDescription: C8yPactHttpControllerDefaultMode,
-      description: `One of ${Object.values(C8yPactModeValues).join(", ")}`,
+      description: `One of ${Object.values(C8yPactModeValues).filter((m) => m !== "recording").join(", ")}`,
     })
     .option("recordingMode", {
       type: "string",
