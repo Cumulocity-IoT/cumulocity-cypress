@@ -1,7 +1,7 @@
 module.exports = {
   projects: [
     {
-      roots: ["<rootDir>/src", "<rootDir>/packages/pact-http-controller"],
+      roots: ["<rootDir>/src"],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",

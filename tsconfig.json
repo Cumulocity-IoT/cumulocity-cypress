@@ -17,5 +17,6 @@
       "cumulocity-cypress/*": ["./src/*"],
       "cumulocity-cypress": ["./src"]
     }
-  }
+  },
+  "exclude": ["**/*.spec.ts", "**/*.spec.tsx"],
 }

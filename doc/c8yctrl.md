@@ -11,46 +11,30 @@ Use `c8yctrl` for
 
 # Content
 <!-- set markdown.extension.toc.levels 2..6 - level 1 is ignored in auto generated toc -->
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Static sources](#static-sources)
-  - [Recording and mocking](#recording-and-mocking)
-- [Configuration](#configuration)
-  - [Environment Variables](#environment-variables)
-  - [Command Line Arguments](#command-line-arguments)
-  - [Parameters](#parameters)
-  - [Configuration File](#configuration-file)
-- [How it works](#how-it-works)
-- [Rest Interface](#rest-interface)
-  - [POST /c8yctrl/current](#post-c8yctrlcurrent)
-    - [Parameters](#parameters-1)
-  - [GET /c8yctrl/current](#get-c8yctrlcurrent)
-  - [DELETE /c8yctrl/current](#delete-c8yctrlcurrent)
-  - [POST /c8yctrl/log](#post-c8yctrllog)
-  - [Using c8yctrl with cumulocity-cypress](#using-c8yctrl-with-cumulocity-cypress)
-  - [From Cypress tests](#from-cypress-tests)
-  - [For microservices](#for-microservices)
-- [Todo](#todo)
-
-## Installation
-
-Install `c8yctrl` as a dev dependency in your project
-
-```bash
-npm install cumulocity-cypress-ctrl --save-dev
-```
-
-or install globally
-
-```bash
-npm install -g cumulocity-cypress-ctrl
-```
-
-As `cumulocity-cypress` is not a direct dependency of `c8yctrl`, you need to install it separately if you want to use it in your tests.
-
-```bash
-npm install cumulocity-cypress --save-dev
-```
+- [c8yctrl](#c8yctrl)
+- [Content](#content)
+  - [Usage](#usage)
+    - [Static sources](#static-sources)
+    - [Recording and mocking](#recording-and-mocking)
+  - [Configuration](#configuration)
+    - [Environment Variables](#environment-variables)
+    - [Command Line Arguments](#command-line-arguments)
+    - [Parameters](#parameters)
+    - [Configuration File](#configuration-file)
+  - [How it works](#how-it-works)
+  - [Rest Interface](#rest-interface)
+    - [POST /c8yctrl/current](#post-c8yctrlcurrent)
+      - [Parameters](#parameters-1)
+    - [GET /c8yctrl/current](#get-c8yctrlcurrent)
+    - [DELETE /c8yctrl/current](#delete-c8yctrlcurrent)
+    - [GET /c8yctrl/current/request?](#get-c8yctrlcurrentrequest)
+    - [GET /c8yctrl/current/response?](#get-c8yctrlcurrentresponse)
+    - [POST /c8yctrl/log](#post-c8yctrllog)
+    - [PUT /c8yctrl/log](#put-c8yctrllog)
+    - [Using c8yctrl with cumulocity-cypress](#using-c8yctrl-with-cumulocity-cypress)
+    - [From Cypress tests](#from-cypress-tests)
+    - [For microservices](#for-microservices)
+  - [Todo](#todo)
 
 ## Usage
 

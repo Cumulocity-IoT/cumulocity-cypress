@@ -39,25 +39,27 @@ export default [
   },
   {
     input:
-      "./packages/pact-http-controller/dist/packages/pact-http-controller/src/startup.js",
+      "./dist/http-controller/src/startup.js",
     output: [
       {
-        name: "c8yctrl",
-        file: "dist/bin/c8yctrl.js",
-        format: "cjs",
+        dir: "dist",
+        format: "commonjs",
       },
     ],
     plugins: [
-      includePaths(includePathOptions),
       resolve({
-        extensions: [".js"],
+        resolveOnly: ["./src/**"],
         preferBuiltins: true,
-        mainFields: ["main", "module"],
-        resolveOnly: ["./packages/pact-http-controller/dist/**"],
       }),
-      alias(aliasConfig),
       commonjs(),
       json(),
+      shebang(
+        {
+          include: [
+            "dist/http-controller/src/startup.js",
+          ]
+        }
+      )
     ],
   },
   {
@@ -84,7 +86,7 @@ export default [
     ],
     plugins: [
       resolve({
-        only: ["./src/**"],
+        resolveOnly: ["./src/**"],
       }),
       commonjs(),
       json(),

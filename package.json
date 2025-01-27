@@ -4,7 +4,7 @@
   "description": "Cypress commands for Cumulocity IoT",
   "scripts": {
     "start:cypress:server": "cross-env NODE_NO_WARNINGS=1 npx tsx test/backend/test-server.ts",
-    "start:c8yctrl": "cd packages/pact-http-controller && npm run start",
+    "start:c8yctrl": "cd src/http-controller && cross-env NODE_NO_WARNINGS=1 npx tsx --env-file=.env src/startup.ts --config c8yctrl-dev.config.ts",
     "test": "npm run jest:run && npm run cypress",
     "cypress": "cross-env TZ=Europe/Berlin start-server-and-test start:cypress:server http://localhost:8080 cypress:run",
     "cypress:run": "cross-env TZ=Europe/Berlin cypress run --project test --browser chrome --config video=false",
@@ -19,7 +19,6 @@
     "package": "npm run build && npm run clean:package:folder && cd dist/ && npm run clean:package:json",
     "yalc:runner": "npm run yalc:publish && cd packages/pactrunner && yalc add cumulocity-cypress",
     "yalc:publish": "npm run clean && npm run build && cd dist/ && yalc publish && cd ..",
-    "yalc:controller": "npm run yalc:publish && cd packages/pact-http-controller && yalc add cumulocity-cypress",
     "clean:package:folder": "rimraf -v -g './dist/**/*.tsbuildinfo'",
     "clean:package:json": "npm pkg delete 'devDependencies' && npm pkg delete 'scripts'",
     "lint": "eslint ./",
@@ -43,14 +42,12 @@
     "url": "https://github.com/Cumulocity-IoT/cumulocity-cypress/issues"
   },
   "bin": {
-    "c8yctrl": "bin/c8yctrl.js"
+    "c8yctrl": "./bin/c8yctrl.js",
+    "c8yscrn": "./screenshot/startup.js"
   },
   "workspaces": [
     "packages/*"
   ],
-  "bin": {
-    "c8yscrn": "./screenshot/startup.js"
-  },
   "exports": {
     ".": {
       "types": "./index.d.ts",
