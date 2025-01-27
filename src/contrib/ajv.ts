@@ -1,9 +1,10 @@
 import _ from "lodash";
+import * as semver from "semver";
 
 import Ajv, { AnySchemaObject, SchemaObject } from "ajv";
 import addFormats from "ajv-formats";
 
-import { C8ySchemaMatcher } from "cumulocity-cypress";
+import { C8ySchemaMatcher } from "../shared/c8ypact/schema";
 
 import draft06Schema from "ajv/lib/refs/json-schema-draft-06.json";
 
@@ -20,11 +21,20 @@ export class C8yAjvSchemaMatcher implements C8ySchemaMatcher {
   constructor(metas?: AnySchemaObject[]) {
     //https://ajv.js.org/options.html
     this.ajv = new Ajv({ strict: "log" });
-    addFormats(this.ajv);
+    addFormats(this.ajv, [
+      "uri",
+      "uri-reference",
+      "url",
+      "uuid",
+      "hostname",
+      "date-time",
+      "date",
+      "password",
+    ]);
 
     this.ajv.addFormat("integer", {
       type: "number",
-      validate: (x) => _.isInteger(x),
+      validate: (x: any) => _.isInteger(x),
     });
 
     this.ajv.addFormat("boolean", {
@@ -35,6 +45,20 @@ export class C8yAjvSchemaMatcher implements C8ySchemaMatcher {
       type: "string",
       validate: (x: any) =>
         _.isString(x) && ["true", "false"].includes(_.lowerCase(x)),
+    });
+
+    this.ajv.addFormat("semver-range", {
+      type: "string",
+      validate: (x: any) => {
+        return semver.validRange(x) != null;
+      },
+    });
+
+    this.ajv.addFormat("semver-version", {
+      type: "string",
+      validate: (x: any) => {
+        return semver.valid(x) != null;
+      },
     });
 
     if (metas && _.isArrayLike(metas)) {

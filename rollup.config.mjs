@@ -3,35 +3,13 @@ import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import alias from "@rollup/plugin-alias";
 import json from "@rollup/plugin-json";
-import path, { dirname } from "path";
-import { fileURLToPath } from "url";
-import includePaths from "rollup-plugin-includepaths";
+import shebang from 'rollup-plugin-shebang-bin'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// eslint-disable-next-line import/no-named-as-default
+import glob from 'glob';
 
-const ccPath = path.resolve(
-  __dirname,
-  "./packages/pact-http-controller/dist/src"
-);
-
-console.log("Resolving cumulocity-cypress to", ccPath);
-
-let includePathOptions = {
-  include: {},
-  paths: ["src"],
-  external: [],
-  extensions: [".js"],
-};
-
-const aliasConfig = {
-  entries: [
-    {
-      find: "cumulocity-cypress",
-      replacement: ccPath,
-    },
-  ],
-};
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export default [
   {
@@ -40,8 +18,8 @@ export default [
       {
         name: "c8y",
         file: "dist/plugin/index.js",
-        format: "umd",
-        sourcemap: false,
+        format: "commonjs",
+        sourcemap: true,
       },
     ],
     plugins: [
@@ -87,4 +65,36 @@ export default [
     output: [{ file: "dist/bin/c8yctrl.d.ts", format: "es", sourcemap: false }],
     plugins: [dts()],
   },
+  {
+    input: Object.fromEntries(
+      // eslint-disable-next-line import/no-named-as-default-member
+      glob.sync("dist/screenshot/*.js").map((file) => [
+        path.relative(
+          "dist",
+          file.slice(0, file.length - path.extname(file).length)
+        ),
+        fileURLToPath(new URL(file, import.meta.url)),
+      ])
+    ),
+    output: [
+      {
+        dir: "dist",
+        format: "commonjs",
+      },
+    ],
+    plugins: [
+      resolve({
+        only: ["./src/**"],
+      }),
+      commonjs(),
+      json(),
+      shebang(
+        {
+          include: [
+            "dist/screenshot/startup.js",
+          ]
+        }
+      )
+    ],
+  }
 ];

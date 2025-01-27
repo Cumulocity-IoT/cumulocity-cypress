@@ -1,4 +1,4 @@
-name: PR Review
+name: PR Auto Commit Review
 
 on:
   pull_request:

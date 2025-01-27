@@ -11,25 +11,25 @@
     "cypress:open": "cross-env TZ=Europe/Berlin start-server-and-test start:cypress:server http://localhost:8080 cypress:debug",
     "cypress:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 cypress open --project test",
     "jest": "npm run jest:run",
-    "jest:run": "cross-env NODE_NO_WARNINGS=1 jest --config jest.config.js",
-    "clean": "rimraf dist/ && rimraf packages/*/dist/ && rimraf packages/*/.yalc && rimraf packages/*/yalc.lock",
-    "copy:lib": "copyfiles --up 1 -V './src/lib/**/*.js' './src/lib/**/*.d.ts' ./dist/ && copyfiles '*.md' package.json ./dist/",
-    "build": "npm run clean && npm run copy:lib && tsc -b -v src/ && npm run build:c8yctrl && npm run build:rollup",
-    "build:c8yctrl": "cd packages/pact-http-controller && npm run build",
-    "build:rollup": "rollup -c rollup.config.mjs",
-    "package": "npm run build && npm run clean:package:folder && cd ./dist/ && npm run clean:package:json",
-    "yalc:runner": "npm run yalc:publish && cd packages/pact-runner && yalc add cumulocity-cypress",
+    "jest:run": "jest --config jest.config.js",
+    "clean": "rimraf dist/ && rimraf packages/pactrunner/dist/ && rimraf packages/pactrunner/.yalc && rimraf packages/pactrunner/yalc.lock",
+    "copy-files": "copyfiles --up 1 -V './src/**/*.js' './src/**/*.d.ts' dist/ && copyfiles '*.md' package.json dist/",
+    "build": "npm run clean && npm run screenshot:schema && npm run copy-files && tsc -b -v src/ && npm run build:plugin",
+    "build:plugin": "rollup -c rollup.config.mjs",
+    "package": "npm run build && npm run clean:package:folder && cd dist/ && npm run clean:package:json",
+    "yalc:runner": "npm run yalc:publish && cd packages/pactrunner && yalc add cumulocity-cypress",
     "yalc:publish": "npm run clean && npm run build && cd dist/ && yalc publish && cd ..",
     "yalc:controller": "npm run yalc:publish && cd packages/pact-http-controller && yalc add cumulocity-cypress",
     "clean:package:folder": "rimraf -v -g './dist/**/*.tsbuildinfo'",
     "clean:package:json": "npm pkg delete 'devDependencies' && npm pkg delete 'scripts'",
     "lint": "eslint ./",
     "release": "semantic-release",
-    "release:test": "semantic-release --debug --dry-run --no-ci --repositoryUrl git@github.com:SoftwareAG/cumulocity-cypress.git"
+    "release:test": "semantic-release --debug --dry-run --no-ci --repositoryUrl git@github.com:Cumulocity-IoT/cumulocity-cypress.git",
+    "screenshot:schema": "npx typescript-json-schema --required --noExtraProps --excludePrivate -o src/screenshot/schema.json src/tsconfig.schematypes.json ScreenshotSetup"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SoftwareAG/cumulocity-cypress.git"
+    "url": "git+https://github.com/Cumulocity-IoT/cumulocity-cypress.git"
   },
   "keywords": [
     "Cypress",
@@ -37,10 +37,10 @@
     "IoT",
     "Test"
   ],
-  "author": "twi@softwareag.com",
+  "author": "thomas.winkler@cumulocity.com",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/SoftwareAG/cumulocity-cypress/issues"
+    "url": "https://github.com/Cumulocity-IoT/cumulocity-cypress/issues"
   },
   "bin": {
     "c8yctrl": "bin/c8yctrl.js"
@@ -48,6 +48,9 @@
   "workspaces": [
     "packages/*"
   ],
+  "bin": {
+    "c8yscrn": "./screenshot/startup.js"
+  },
   "exports": {
     ".": {
       "types": "./index.d.ts",
@@ -91,24 +94,32 @@
     }
   },
   "dependencies": {
+    "@cypress/grep": "^4.1.0",
+    "@types/ws": "^8.5.13",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "body-parser": "^1.20.2",
+    "chokidar": "^4.0.1",
     "cookie": "^0.6.0",
     "cookie-parser": "^1.4.6",
     "cosmiconfig": "^9.0.0",
     "cosmiconfig-typescript-loader": "^5.0.0",
+    "cypress-file-upload": "^5.0.8",
+    "cypress-wait-until": "^3.0.2",
     "date-fns": "^2.30.0",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "http-proxy-middleware": "^3.0.0",
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
+    "odiff-bin": "^3.1.2",
     "quicktype": "^23.0.81",
     "semver": "^7.5.2",
     "set-cookie-parser": "^2.6.0",
     "tslib": "^2.6.2",
     "winston": "^3.13.0",
+    "ws": "^8.18.0",
+    "yaml": "^2.5.1",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
@@ -148,12 +159,14 @@
     "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-includepaths": "^0.2.4",
     "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-shebang-bin": "^0.0.7",
     "semantic-release": "^24.0.0",
     "semver": "^7.6.3",
     "start-server-and-test": "^2.0.0",
     "ts-jest": "^29.1.2",
     "tsx": "^4.16.5",
     "typescript": "^5.0.2",
+    "typescript-json-schema": "^0.65.1",
     "yalc": "^1.0.0-pre.53"
   },
   "peerDependencies": {

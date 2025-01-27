@@ -6,33 +6,36 @@ Contribute by raising pull requests. All commands must be documented and, if pos
 
 # Content
 <!-- set markdown.extension.toc.levels 2..6 - level 1 is ignored in auto generated toc -->
-- [Overview of commands](#overview-of-commands)
-- [Installation and setup](#installation-and-setup)
-  - [Peer dependencies](#peer-dependencies)
-  - [Load plugin](#load-plugin)
-  - [Import commands](#import-commands)
-  - [Environment variables](#environment-variables)
-- [Additional frameworks](#additional-frameworks)
-- [Concepts](#concepts)
-  - [Authentication and credentials](#authentication-and-credentials)
-    - [Authentication via getAuth and useAuth commands](#authentication-via-getauth-and-useauth-commands)
-    - [Authentication via test case annotations](#authentication-via-test-case-annotations)
-    - [Authentication via environment variables](#authentication-via-environment-variables)
-    - [Passing authentication to cy.request](#passing-authentication-to-cyrequest)
-  - [Chaining of commands](#chaining-of-commands)
-  - [c8y/client and Web SDK types](#c8yclient-and-web-sdk-types)
-  - [Recording of requests and responses](#recording-of-requests-and-responses)
-  - [Component testing](#component-testing)
-- [Development](#development)
-  - [Debugging](#debugging)
-    - [Console log debugging](#console-log-debugging)
-    - [Debugging in Visual Studio Code](#debugging-in-visual-studio-code)
-  - [Testing](#testing)
-    - [Test access of DOM elements](#test-access-of-dom-elements)
-    - [Test requests](#test-requests)
-    - [Test interceptions](#test-interceptions)
-- [Useful links](#useful-links)
-- [Disclaimer](#disclaimer)
+- [Cypress commands for Cumulocity](#cypress-commands-for-cumulocity)
+- [Content](#content)
+  - [Overview of commands](#overview-of-commands)
+  - [Screenshot automation](#screenshot-automation)
+  - [Installation and setup](#installation-and-setup)
+    - [Peer dependencies](#peer-dependencies)
+    - [Load plugin](#load-plugin)
+    - [Import commands](#import-commands)
+    - [Environment variables](#environment-variables)
+  - [Additional frameworks](#additional-frameworks)
+  - [Concepts](#concepts)
+    - [Authentication and credentials](#authentication-and-credentials)
+      - [Authentication via getAuth and useAuth commands](#authentication-via-getauth-and-useauth-commands)
+      - [Authentication via test case annotations](#authentication-via-test-case-annotations)
+      - [Authentication via environment variables](#authentication-via-environment-variables)
+      - [Passing authentication to cy.request](#passing-authentication-to-cyrequest)
+    - [Chaining of commands](#chaining-of-commands)
+    - [c8y/client and Web SDK types](#c8yclient-and-web-sdk-types)
+    - [Recording of requests and responses](#recording-of-requests-and-responses)
+    - [Component testing](#component-testing)
+  - [Development](#development)
+    - [Debugging](#debugging)
+      - [Console log debugging](#console-log-debugging)
+      - [Debugging in Visual Studio Code](#debugging-in-visual-studio-code)
+    - [Testing](#testing)
+      - [Test access of DOM elements](#test-access-of-dom-elements)
+      - [Test requests](#test-requests)
+      - [Test interceptions](#test-interceptions)
+  - [Useful links](#useful-links)
+  - [Disclaimer](#disclaimer)
 
 ## Overview of commands
 
@@ -42,8 +45,8 @@ General commands
 
 - `visitAndWaitForSelector`
 - `setLanguage`
-- `hideCookieBanner`
-- `disableGainsights`
+- `hideCookieBanner`, `acceptCookieBanner`, `showCookieBanner`
+- `disableGainsight`
 
 Authentication related commands
 - `login`
@@ -74,12 +77,16 @@ Component testing
 
 See [Integration and API testing](./doc/API%20and%20Integration%20Testing.md) for more information.
 
+## Screenshot automation
+
+With the `c8yscrn` command, `cumulocity-cypress` provides a tool to automate taking screenshots of your Cumulocity IoT applications as part of your test suite or CI/CD workflows. See [Screenshot automation](./doc/Screenshot%20Automation.md) for more information.
+
 ## Installation and setup
 
 Add dependency to your package.json and install via npm or yarn.
 
 ```bash
-npm install cumulocity-cypress ---dev
+npm install --save-dev cumulocity-cypress
 ```
 or 
 

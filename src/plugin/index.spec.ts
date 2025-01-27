@@ -1,9 +1,17 @@
 /// <reference types="jest" />
 
-import { C8yPactDefaultFileAdapter, configureC8yPlugin } from "./index";
+import {
+  appendCountIfPathExists,
+  C8yPactDefaultFileAdapter,
+  configureC8yPlugin,
+  getFileUploadOptions,
+} from "./index";
 import path from "path";
+import { vol } from "memfs";
 
 jest.spyOn(process, "cwd").mockReturnValue("/home/user/test");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+jest.mock("fs", () => require("memfs").fs);
 
 describe("plugin", () => {
   describe("configurePlugin ", () => {
@@ -59,6 +67,106 @@ describe("plugin", () => {
         path.resolve("/home/user/test/cypress/fixtures/c8ypact2")
       );
       expect((config.env as any).C8Y_PLUGIN_LOADED).toBe("true");
+    });
+  });
+
+  describe("appendCountIfPathExists", () => {
+    beforeEach(() => {
+      vol.fromNestedJSON({
+        "/home/user/test/cypress/screenshots": {
+          "my-screenshot-05.png": Buffer.from([8, 6, 7, 5, 3, 0, 9]),
+          "my-screenshot-04.png": Buffer.from([8, 6, 7, 5, 3, 0, 9]),
+          "my-screenshot-04 (2).png": Buffer.from([8, 6, 7, 5, 3, 0, 9]),
+          "my-screenshot-04 (3).png": Buffer.from([8, 6, 7, 5, 3, 0, 9]),
+        },
+      });
+    });
+
+    afterEach(() => {
+      vol.reset();
+    });
+
+    it("should append count if path exists", () => {
+      const result = appendCountIfPathExists(
+        "/home/user/test/cypress/screenshots/my-screenshot-05.png"
+      );
+      expect(result).toBe(
+        "/home/user/test/cypress/screenshots/my-screenshot-05 (2).png"
+      );
+    });
+
+    it("should not append count if path does not exists", () => {
+      const result = appendCountIfPathExists(
+        "/home/user/test/cypress/screenshots/my-screenshot-01.png"
+      );
+      expect(result).toBe(
+        "/home/user/test/cypress/screenshots/my-screenshot-01.png"
+      );
+    });
+
+    it("should increase count", () => {
+      const result = appendCountIfPathExists(
+        "/home/user/test/cypress/screenshots/my-screenshot-04.png"
+      );
+      expect(result).toBe(
+        "/home/user/test/cypress/screenshots/my-screenshot-04 (4).png"
+      );
+    });
+  });
+
+  describe("getFileUploadOptions", () => {
+    beforeEach(() => {
+      vol.fromNestedJSON({
+        "/home/user/test/": {
+          "c8yscrn.config.yaml": Buffer.from([8, 6, 7, 5, 3, 0, 9]),
+          "file.json": Buffer.from(JSON.stringify({ test: "value" })),
+          "file.myjson": Buffer.from(JSON.stringify({ test: "myjson" })),
+        },
+      });
+    });
+
+    afterEach(() => {
+      vol.reset();
+    });
+
+    it("should return null for unsupported file extension", () => {
+      const result = getFileUploadOptions(
+        { path: "/home/user/test/cypress/fixtures/c8ypact/my-file.html" },
+        "/home/user/test/c8yscrn.config.yaml",
+        "/home/user/test"
+      );
+      expect(result).toBe(null);
+    });
+
+    it("should return null if path does not exist", () => {
+      const result = getFileUploadOptions(
+        { path: "/home/user/test/cypress/fixtures/c8ypact/my-file.json" },
+        "/home/user/test/c8yscrn.config.yaml",
+        "/home/user/test"
+      );
+      expect(result).toBe(null);
+    });
+
+    it("should return object for json file", () => {
+      const result = getFileUploadOptions(
+        { path: "/home/user/test/file.json" },
+        "/home/user/test/c8yscrn.config.yaml",
+        "/home/user/test"
+      );
+      expect(result?.data).toEqual({ test: "value" });
+      expect(result?.filename).toBe("file.json");
+      expect(result?.path).toBe("/home/user/test/file.json");
+    });
+
+    it("should allow overwriting name of file with filename", () => {
+      const result = getFileUploadOptions(
+        { path: "/home/user/test/file.myjson", fileName: "my-file.json" },
+        "/home/user/test/c8yscrn.config.yaml",
+        "/home/user/test"
+      );
+      expect(result?.data).toEqual({ test: "myjson" });
+      expect(result?.filename).toBe("my-file.json");
+      expect(result?.path).toBe("/home/user/test/file.myjson");
     });
   });
 });

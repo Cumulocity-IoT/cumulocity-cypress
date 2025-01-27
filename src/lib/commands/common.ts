@@ -2,7 +2,7 @@ import { FetchClient } from "@c8y/client";
 import { C8yPact } from "../../shared/c8ypact";
 import { C8yAuthOptions } from "../../shared/auth";
 import { getC8yClientAuthentication } from "../utils";
-import { C8yClient } from "cumulocity-cypress/shared/c8yclient";
+import { C8yClient } from "../../shared/c8yclient";
 
 declare global {
   interface ChainableWithState {

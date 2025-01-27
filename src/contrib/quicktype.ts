@@ -4,7 +4,7 @@ import {
   quicktype,
 } from "quicktype-core";
 
-import { C8ySchemaGenerator } from "cumulocity-cypress";
+import { C8ySchemaGenerator } from "../shared/c8ypact/schema";
 
 /**
  * C8ySchemaGenerator implementation using quicktype library with target language

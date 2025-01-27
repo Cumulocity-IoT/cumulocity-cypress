@@ -18,6 +18,20 @@
       ]
     },
     {
+      "name": "Launch c8yscrn",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/screenshot/startup.ts",
+      "args": ["--config", "${workspaceFolder}/c8yscrn.config.yaml"],
+      "internalConsoleOptions": "neverOpen",
+      "console": "integratedTerminal",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**"
+      ]
+    },
+    {
       "name": "Cypress Chrome",
       "port": 9222,
       "request": "attach",

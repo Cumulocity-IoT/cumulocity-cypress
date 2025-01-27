@@ -589,6 +589,17 @@ describe("administration", () => {
         });
     });
 
+    it("should not fail for CookieAuth", function () {
+      cy.setCookie("XSRF-TOKEN", "123");
+      cy.setCookie("authorization", "213412")
+
+      stubEnv({ C8Y_USERNAME: "admin", C8Y_PASSWORD: "mypassword", C8Y_TENANT: "t1234"});
+      cy.getTenantId().then((id) => {
+        expect(id).to.eq("t1234");
+        expect(window.fetchStub.callCount).to.equal(0);
+      });
+    });
+
     it("should use tenant id from pact recording when mocking", function () {
       stubEnv({ C8Y_PACT_MODE: "mock", C8Y_PLUGIN_LOADED: "true" });
       Cypress.c8ypact.current = new C8yDefaultPact(

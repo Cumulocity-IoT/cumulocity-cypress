@@ -8,7 +8,7 @@ import {
 } from "../../shared/c8ypact";
 import { C8yClientOptions, isCypressError } from "../../shared/c8yclient";
 import { throwError } from "../utils";
-import { C8yAjvSchemaMatcher } from "cumulocity-cypress/contrib/ajv";
+import { C8yAjvSchemaMatcher } from "../../contrib/ajv";
 
 const { _ } = Cypress;
 

@@ -6,7 +6,10 @@
     "lib": ["dom", "dom.iterable", "ES2020"],
     "types": ["cypress", "node", "semver", "cookie-parser", "debug"],
     "outDir": "../dist/",
-    "allowSyntheticDefaultImports": true
+    "declarationMap": false,
+    "allowSyntheticDefaultImports": true,
+    "noImplicitAny": true,
   },
-  "exclude": ["**/*.spec.ts", "**/*.spec.tsx"]
+  "exclude": ["**/*.spec.ts", "**/*.spec.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "**/schema.json"]
 }

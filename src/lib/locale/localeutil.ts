@@ -30,7 +30,7 @@ function insertWord(root: TrieNode, word: string) {
 
 export function shortestUniquePrefixes(words: string[]) {
   const root = new TrieNode();
-  const prefixes = [];
+  const prefixes: string[] = [];
 
   for (const word of words) {
     insertWord(root, word);

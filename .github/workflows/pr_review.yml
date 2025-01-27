@@ -1,0 +1,21 @@
+name: 'PR Review'
+on: 
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout Repository'
+        uses: actions/checkout@v4
+
+      - name: 'Dependency Review'
+        uses: actions/dependency-review-action@v4
+        with:
+          deny-licenses: LGPL-2.0+, GPL-1.0+, AGPL-1.0, AGPL-3.0 # https://spdx.org/licenses/
