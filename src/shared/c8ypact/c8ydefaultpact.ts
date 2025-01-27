@@ -3,17 +3,21 @@ import { C8yClient } from "../c8yclient";
 import { isURL, removeBaseUrlFromRequestUrl } from "./url";
 import { toPactAuthObject } from "../auth";
 import {
-  C8yDefaultPactRecord,
   C8yPact,
   C8yPactID,
   C8yPactInfo,
   C8yPactRecord,
   C8yPactRequest,
+  C8yPactSaveKeys,
   isCypressResponse,
   isPact,
   toPactRequest,
   toPactResponse,
 } from "./c8ypact";
+
+import { C8ySchemaGenerator } from "./schema";
+import { C8yPactPreprocessor } from "./preprocessor";
+import { C8yDefaultPactRecord, createPactRecord } from "./c8ydefaultpactrecord";
 
 /**
  * Default implementation of C8yPact. Use C8yDefaultPact.from to create a C8yPact from
@@ -111,18 +115,19 @@ export class C8yDefaultPact implements C8yPact {
     this.iteratorIndex = 0;
   }
 
-  appendRecord(record: C8yPactRecord, skipIfExists: boolean = false): void {
+  appendRecord(record: C8yPactRecord, skipIfExists: boolean = false): boolean {
     if (skipIfExists) {
       if (!record.request.url) null;
       const matches = this.getRecordsMatchingRequest(record.request);
-      if (matches && !_.isEmpty(matches)) return;
+      if (matches && !_.isEmpty(matches)) return false;
     }
     this.records.push(record);
+    return true;
   }
 
-  replaceRecord(record: C8yPactRecord): void {
+  replaceRecord(record: C8yPactRecord): boolean {
     const key = this.indexMapKey(record.request, this.info.baseUrl);
-    if (!key) return;
+    if (!key) return false;
 
     const matches = this.getRecordsMatchingRequest(record.request);
     if (!matches) {
@@ -137,9 +142,12 @@ export class C8yDefaultPact implements C8yPact {
         if (index >= 0) {
           this.records[index] = record;
           this.setIndexForKey(key, currentIndex + 1);
+        } else {
+          return false;
         }
       }
     }
+    return true;
   }
 
   /**
@@ -153,7 +161,7 @@ export class C8yDefaultPact implements C8yPact {
   }
 
   nextRecordMatchingRequest(
-    request: Partial<Request>,
+    request: Partial<Request> | { url: string; method: string },
     baseUrl?: string
   ): C8yPactRecord | null {
     if (!request?.url) return null;
@@ -269,5 +277,68 @@ export class C8yDefaultPact implements C8yPact {
         }
       },
     };
+  }
+}
+
+export async function toPactSerializableObject(
+  response: Partial<Cypress.Response<any>>,
+  info: C8yPactInfo,
+  options: {
+    preprocessor?: C8yPactPreprocessor;
+    client?: C8yClient;
+    modifiedResponse?: Cypress.Response<any>;
+    schemaGenerator?: C8ySchemaGenerator;
+    loggedInUser?: string;
+    loggedInUserAlias?: string;
+    authType?: string;
+  } = {}
+): Promise<Pick<C8yPact, C8yPactSaveKeys>> {
+  const recordOptions = {
+    loggedInUser: options?.loggedInUser,
+    loggedInUserAlias: options?.loggedInUserAlias,
+    authType: options?.authType,
+  };
+  const record = createPactRecord(response, options?.client, recordOptions);
+  removeBaseUrlFromRequestUrl(record, info.baseUrl);
+  const pact = new C8yDefaultPact([record], info, info.id);
+
+  if (
+    options?.modifiedResponse &&
+    isCypressResponse(options?.modifiedResponse)
+  ) {
+    const modifiedPactRecord = createPactRecord(
+      options.modifiedResponse,
+      options?.client,
+      recordOptions
+    );
+    pact.records[pact.records.length - 1].modifiedResponse =
+      modifiedPactRecord.response;
+  }
+
+  options?.preprocessor?.apply(pact);
+
+  const keysToSave: C8yPactSaveKeys[] = ["id", "info", "records"];
+  try {
+    await Promise.all(
+      pact.records
+        .filter(
+          (record_1) =>
+            record_1.response.body &&
+            !record_1.response.$body &&
+            _.isObjectLike(record_1.response.body)
+        )
+        .map((record_2) =>
+          options?.schemaGenerator
+            ?.generate(record_2.response.body, { name: "body" })
+            .then((schema) => {
+              record_2.response.$body = schema;
+              return record_2;
+            })
+        )
+    );
+    return { ..._.pick(pact, keysToSave) };
+  } catch (error) {
+    console.error(error);
+    return { ..._.pick(pact, keysToSave) };
   }
 }

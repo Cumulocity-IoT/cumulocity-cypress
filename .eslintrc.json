@@ -26,7 +26,8 @@
         "ts-expect-error": "allow-with-description",
         "minimumDescriptionLength": 0
       }
-    ]
+    ],
+    "@typescript-eslint/no-restricted-imports": "error"
   },
   "settings": {
     "import/parsers": {
@@ -39,7 +40,7 @@
           "./tsconfig.json",
           "./src/tsconfig.json",
           "./test/tsconfig.json",
-          "./packages/pactrunner/tsconfig.json"
+          "./packages/pact-runner/tsconfig.json"
         ]
       },
       "node": {

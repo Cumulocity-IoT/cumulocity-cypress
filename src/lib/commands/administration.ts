@@ -10,7 +10,7 @@ import {
   ICurrentTenant,
   IDeviceCredentials,
 } from "@c8y/client";
-import { C8yAuthOptions } from "./auth";
+import { C8yAuthOptions } from "../../shared/auth";
 import { C8yClientOptions } from "../../shared/c8yclient";
 import { toSemverVersion } from "../../shared/versioning";
 
@@ -278,10 +278,11 @@ Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
   const logger = Cypress.log({
     autoEnd: false,
     name: "createUser",
-    message: userOptions.userName,
+    message: userOptions?.userName || null,
     consoleProps: () => consoleProps,
   });
 
+  logger.end();
   if (!userOptions) {
     logger.end();
     throw new Error("Missing argument. Requiring user options argument.");
@@ -297,6 +298,7 @@ Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
       consoleProps.userId = userId;
       expect(userId).to.not.be.undefined;
       if (permissions && !_.isEmpty(permissions)) {
+        consoleProps.permissions = permissions;
         cy.wrap(permissions, { log: false }).each((permission) => {
           cy.wrap(auth, { log: false }).c8yclient(
             [
@@ -320,6 +322,7 @@ Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
         });
       }
       if (applications && !_.isEmpty(applications)) {
+        consoleProps.applications = applications;
         cy.wrap(applications, { log: false }).each((appName) => {
           cy.wrap(auth, { log: false }).c8yclient(
             [
@@ -409,16 +412,20 @@ Cypress.Commands.add(
     const [auth, user, clientOptions] = $args;
 
     const options = { ...clientOptions };
+    const userIdentifier =
+      _.isObjectLike(user) && user.userName ? user.userName : user;
+
     const consoleProps: any = {
       args: args || null,
       auth: auth || null,
-      clientOptions: options || null,
+      clientOptions: options,
+      user: user || null,
     };
 
     const logger = Cypress.log({
       autoEnd: false,
       name: "clearUserRoles",
-      message: _.isObjectLike(user) ? user.userName : user,
+      message: userIdentifier,
       consoleProps: () => consoleProps,
     });
 
@@ -428,9 +435,6 @@ Cypress.Commands.add(
         "Missing argument. Requiring IUser object with userName or username argument."
       );
     }
-
-    const userIdentifier = _.isObjectLike(user) ? user.userName : user;
-    consoleProps.userIdentifier = userIdentifier || null;
 
     return cy
       .wrap(auth, { log: false })
@@ -467,18 +471,21 @@ Cypress.Commands.add(
     const [auth, user, roles, clientOptions] = $args;
 
     const options = { ...clientOptions };
-    const consoleProps: any = {
+    const consoleProps = {
       args: args || null,
       auth: auth || null,
-      clientOptions: options || null,
       user: user || null,
       roles: roles || null,
+      clientOptions: options,
     };
+
+    const userIdentifier =
+      _.isObjectLike(user) && user?.userName ? user?.userName : user;
 
     const logger = Cypress.log({
       autoEnd: false,
       name: "assignUserRoles",
-      message: _.isObjectLike(user) ? user.userName : user,
+      message: userIdentifier,
       consoleProps: () => consoleProps,
     });
 
@@ -496,9 +503,6 @@ Cypress.Commands.add(
       );
     }
 
-    const userIdentifier = _.isObjectLike(user) ? user.userName : user;
-    consoleProps.userIdentifier = userIdentifier || null;
-
     return cy
       .wrap(auth, { log: false })
       .c8yclient((client) => client.user.detail(userIdentifier), options)
@@ -514,6 +518,7 @@ Cypress.Commands.add(
                 const childId = response?.body?.self;
                 const groupId = groupResponse?.body?.id;
                 if (childId == null || !groupId) {
+                  logger.end();
                   throwError(
                     `Failed to add user ${childId} to group ${childId}.`
                   );

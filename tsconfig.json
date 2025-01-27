@@ -6,7 +6,8 @@
     "module": "es2020",
     "moduleResolution": "node",
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": false,
+    "sourceMap": false,
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -16,5 +17,6 @@
       "cumulocity-cypress/*": ["./src/*"],
       "cumulocity-cypress": ["./src"]
     }
-  }
+  },
+  "exclude": ["**/*.spec.ts", "**/*.spec.tsx"],
 }

@@ -5,6 +5,7 @@ import {
   STATIC_RESPONSE_WITH_OPTIONS_KEYS,
 } from "../pact/constants";
 import { getBaseUrlFromEnv } from "../utils";
+import { isAbsoluteURL } from "cumulocity-cypress/shared/c8ypact/url";
 
 const { _ } = Cypress;
 
@@ -23,10 +24,6 @@ Cypress.Commands.overwrite("intercept", (originalFn, ...args) => {
   if (!Cypress.c8ypact?.isEnabled() || !args || _.isEmpty(args)) {
     return originalFn(...args);
   }
-
-  const isAbsoluteURL = (url: string) => {
-    return /^https?:\/\//i.test(url);
-  };
 
   const method =
     _.isString(args[0]) && HTTP_METHODS.includes(args[0].toUpperCase())

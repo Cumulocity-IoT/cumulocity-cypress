@@ -17,6 +17,6 @@
 import "../../../src/lib/commands";
 // cant use path as import is not typescript
 import "../../../src/lib/commands/request";
-import "../../../src/lib/commands/c8ypact";
+import "../../../src/c8ypact";
 import "../../../src/lib/commands/intercept";
 import "../../../src/lib/commands/oauthlogin";

@@ -3,6 +3,7 @@
 import { BasicAuth, CookieAuth, IAuthentication } from "@c8y/client";
 import { C8yAuthOptions, isAuthOptions } from "../shared/auth";
 import { C8yClient } from "../shared/c8yclient";
+import { getEnvVar } from "../shared/c8ypact/c8ypact";
 import { toSemverVersion } from "../shared/versioning";
 
 const { _ } = Cypress;
@@ -288,10 +289,18 @@ export function getShellVersionFromEnv(): string | undefined {
   return Cypress.env(`C8Y_SHELL_VERSION`);
 }
 
+/**
+ * Tries to get the base URL from environment variables. The following
+ * environment variables are checked in order:
+ * - C8Y_BASEURL
+ * - C8Y_BASE_URL
+ *
+ * @returns Base URL from environment variables.
+ */
 export function getBaseUrlFromEnv(): string | undefined {
   return (
-    Cypress.env(`C8Y_BASEURL`) ||
-    Cypress.env(`baseUrl`) ||
+    getEnvVar("C8Y_BASEURL") ||
+    getEnvVar("C8Y_BASE_URL") ||
     Cypress.config().baseUrl ||
     undefined
   );

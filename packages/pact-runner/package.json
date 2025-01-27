@@ -1,9 +1,9 @@
 {
-  "name": "cumulocity-cypress-pactrunner",
+  "name": "cumulocity-cypress-pact-runner",
   "version": "0.3.2",
   "description": "Cypress runner for Cumulocity pact recordings",
   "scripts": {
-    "cypress": "cypress run --config-file cypress.config.js --spec cypress/e2e/pact-runner.cy.ts",
+    "cypress": "cypress run --config-file cypress.config.ts --spec cypress/e2e/pact-runner.cy.ts",
     "cypress:open": "cypress open",
     "docker": "docker build --platform linux/arm64 -t c8ypact-runner --target prod .",
     "docker:dev": "docker build --platform linux/arm64 -t c8ypact-runner --target dev ."

@@ -2,7 +2,7 @@ import {
   C8yAuthOptions,
   C8yDefaultPact,
   C8yPactFetchClient,
-} from "cumulocity-cypress";
+} from "cumulocity-cypress/c8ypact";
 import { BasicAuth, IFetchResponse } from "@c8y/client";
 import { encodeBase64 } from "../../../src/shared/c8yclient";
 import {
@@ -298,7 +298,7 @@ describe("c8ypact fetchclient", () => {
     it("should record only required auth properties", () => {
       const auth = new BasicAuth(user);
       // @ts-expect-error - additional property should not be stored in auth
-      auth.xsfrToken = "pQWAHZQfh";
+      auth.xsrfToken = "pQWAHZQfh";
       const client = new C8yPactFetchClient({
         cypresspact: Cypress.c8ypact,
         auth,

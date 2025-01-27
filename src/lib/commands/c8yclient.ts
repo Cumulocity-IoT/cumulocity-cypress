@@ -18,11 +18,12 @@ import {
   IResult,
   IResultList,
 } from "@c8y/client";
+
 import {
+  wrapFetchRequest,
   C8yClient,
   C8yClientOptions,
   toCypressResponse,
-  wrapFetchRequest,
 } from "../../shared/c8yclient";
 import { C8yAuthentication, isAuthOptions } from "../../shared/auth";
 import "../pact/c8ymatch";

@@ -38,3 +38,91 @@ export function removeBaseUrlFromRequestUrl(
   }
   record.request.url = removeBaseUrlFromString(record.request.url, baseUrl);
 }
+
+function normalizeUrl(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
+export function tenantUrl(
+  baseUrl?: string,
+  tenant?: string
+): string | undefined {
+  if (!baseUrl || !tenant) return undefined;
+
+  try {
+    const url = new URL(baseUrl);
+    const hostComponents = url.host.split(".");
+    if (hostComponents.length <= 2) {
+      url.host = `${tenant}.${hostComponents.join(".")}`;
+    } else {
+      const instance = url.host.split(".")?.slice(1)?.join(".");
+      url.host = `${tenant}.${instance}`;
+    }
+    return normalizeUrl(url.toString());
+  } catch {
+    // no-op
+  }
+  return undefined;
+}
+
+export function updateURLs(
+  value: string,
+  from: { baseUrl: string; tenant?: string },
+  to: { baseUrl: string; tenant?: string }
+): string {
+  if (!value || !from || !to) return value;
+  let result = value;
+
+  const fromTenantUrl = tenantUrl(from.baseUrl, from.tenant);
+  const toTenantUrl = tenantUrl(to.baseUrl, to.tenant);
+  if (fromTenantUrl && toTenantUrl) {
+    result = result.replace(new RegExp(fromTenantUrl, "g"), toTenantUrl);
+  }
+  if (from.baseUrl && to.baseUrl) {
+    const fromBaseUrl = normalizeUrl(from.baseUrl);
+    const toBaseUrl = normalizeUrl(to.baseUrl);
+    if (fromBaseUrl && toBaseUrl) {
+      result = result.replace(new RegExp(fromBaseUrl, "g"), toBaseUrl);
+    }
+
+    result = result.replace(
+      new RegExp(from.baseUrl.replace(/https?:\/\//i, ""), "g"),
+      to.baseUrl.replace(/https?:\/\//i, "")
+    );
+
+    if (fromTenantUrl) {
+      result = result.replace(
+        new RegExp(fromTenantUrl, "g"),
+        toTenantUrl || toBaseUrl
+      );
+    }
+  }
+  return result;
+}
+
+/**
+ * Checks if the given URL is an absolute URL.
+ * @param url The URL to check.
+ * @returns True if the URL is an absolute URL, false otherwise.
+ */
+export function isAbsoluteURL(url: string) {
+  if (!url || !_.isString(url) || _.isEmpty(url)) return false;
+  return /^https?:\/\//i.test(url);
+}
+
+/**
+ * Validates the base URL and throws an error if the base URL is not an absolute URL. This
+ * is required as commands expect an absolute URL as baseUrl. Will not fail for undefined values.
+ * `Cypress.config().baseUrl` is validated by Cypress itself and throw an error.
+ *
+ * @param baseUrl The url to validate.
+ */
+export function validateBaseUrl(baseUrl?: string) {
+  if (baseUrl != null && !isAbsoluteURL(baseUrl)) {
+    const error = new Error(
+      `Invalid value for C8Y_BASEURL. C8Y_BASEURL must be an absolute URL or undefined.`
+    );
+    error.name = "C8yPactError";
+    throw error;
+  }
+}

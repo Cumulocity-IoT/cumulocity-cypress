@@ -8,7 +8,7 @@ export interface C8yAuthOptions extends ICredentials {
   bearer?: (() => string) | string;
   userAlias?: string;
   type?: string;
-  xsfrToken?: string;
+  xsrfToken?: string;
 }
 
 export interface C8yPactAuthObject {

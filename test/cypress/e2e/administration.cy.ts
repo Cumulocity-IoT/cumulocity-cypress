@@ -5,7 +5,7 @@ import {
   stubEnv,
   stubResponses,
 } from "../support/testutils";
-import { C8yDefaultPact } from "cumulocity-cypress/index";
+import { C8yDefaultPact } from "cumulocity-cypress/c8ypact";
 const { _, sinon } = Cypress;
 
 declare global {
@@ -98,8 +98,7 @@ describe("administration", () => {
     });
 
     it("throws error for missing user and logs username", (done) => {
-      const user = { user: "test" };
-      const spyLog = cy.spy(Cypress, "log").log(false);
+      const spy = cy.spy(Cypress, "log").log(false);
 
       Cypress.once("fail", (err) => {
         expect(err.message).to.contain(
@@ -108,8 +107,7 @@ describe("administration", () => {
         done();
       });
 
-      //@ts-expect-error
-      cy.deleteUser(user);
+      cy.deleteUser({ user: "test" } as any);
     });
 
     it("should not overwrite cookie auth with auth from env", () => {
