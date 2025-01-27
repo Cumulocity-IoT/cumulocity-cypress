@@ -1,9 +1,9 @@
 # c8yctrl
 
-`c8yctrl` is a subpackage of [cumulocity-cypress](https://github.com/SoftwareAG/cumulocity-cypress) providing a HTTP controller that allows serving static builds of Web SDK based applications or plugins and proxying API requests to Cumulocity IoT. As an intermediary service, `c8yctrl` can record and mock proxied requests and with this allow running tests without requiring a Cumulocity IoT backend.
+With the `c8yctrl` command, `cumulocity-cypress` provides a tool providing a HTTP controller that allows serving static builds of Web SDK based applications or plugins and proxying API requests to Cumulocity. As an intermediary service, `c8yctrl` can record and mock proxied requests and with this allow running tests without requiring a Cumulocity backend.
 
 Use `c8yctrl` for 
-- testing shell and remotes without deploying them to Cumulocity IoT
+- testing shell and remotes without deploying them to Cumulocity
 - offline testing by recording and mocking API requests
 - e2e, component and microservice unit testing
 
@@ -27,18 +27,19 @@ Use `c8yctrl` for
       - [Parameters](#parameters-1)
     - [GET /c8yctrl/current](#get-c8yctrlcurrent)
     - [DELETE /c8yctrl/current](#delete-c8yctrlcurrent)
+    - [POST /c8yctrl/current/clear](#post-c8yctrlcurrentclear)
     - [GET /c8yctrl/current/request?](#get-c8yctrlcurrentrequest)
     - [GET /c8yctrl/current/response?](#get-c8yctrlcurrentresponse)
+    - [GET /c8yctrl/log](#get-c8yctrllog)
     - [POST /c8yctrl/log](#post-c8yctrllog)
     - [PUT /c8yctrl/log](#put-c8yctrllog)
     - [Using c8yctrl with cumulocity-cypress](#using-c8yctrl-with-cumulocity-cypress)
     - [From Cypress tests](#from-cypress-tests)
     - [For microservices](#for-microservices)
-  - [Todo](#todo)
 
 ## Usage
 
-`c8yctrl` is designed as an intermediary service, a middleware, in between your test framework and a Cumulocity IoT tenant. To use your tests with `c8yctrl`, you need to configure your tests to not directly access a Cumulocity IoT tenant, but instead use the `c8yctrl` service as the baseUrl for all requests. This is the same for E2E tests and possibly component tests, but also for microservices that require or access a Cumulocity IoT tenant.
+`c8yctrl` is designed as an intermediary service, a middleware, in between your test framework and a Cumulocity tenant. To use your tests with `c8yctrl`, you need to configure your tests to not directly access a Cumulocity tenant, but instead use the `c8yctrl` service as the baseUrl for all requests. This is the same for E2E tests and possibly component tests, but also for microservices that require or access a Cumulocity tenant.
 
 For Cypress E2E tests, use the cypress.config.ts file to configure the baseUrl for the tests:
 
@@ -52,7 +53,7 @@ export default defineConfig({
 })
 ```
 
-A microservice .property file could configugure the baseUrl for `c8yctrl` be the management tenant of the Cumulocity IoT instance you want to test against. Authentication is not required, as the microservice will take care of the authenticating.
+A microservice .property file could configugure the baseUrl for `c8yctrl` be the management tenant of the Cumulocity instance you want to test against. Authentication is not required, as the microservice will take care of the authenticating.
 
 ```properties
 application.name=demo-microservice
@@ -65,7 +66,7 @@ C8Y.bootstrap.password=secret
 C8Y.microservice.isolation=MULTI_TENANT
 ```
 
-To start `c8yctrl` at least the baseUrl of the Cumulocity IoT tenant must be provided. All other options, as for example the port the service needs to listen is optional and does come with defaults. The following command would for example start the controller on port `8181` with a given baseUrl. 
+To start `c8yctrl` at least the baseUrl of the Cumulocity tenant must be provided. All other options, as for example the port the service needs to listen is optional and does come with defaults. The following command would for example start the controller on port `8181` with a given baseUrl. 
 
 ```shell
 npx c8yctrl --baseUrl https://abc.eu-latest.cumulocity.com --port 8181
@@ -75,7 +76,7 @@ For all configuration options see the [Configuration](#configuration) section.
 
 ### Static sources
 
-One of the main use cases of `c8yctrl` is to serve builds of Web SDK based applications or plugins from a local folder without requiring deployment to a Cumulocity IoT tenant. This could be useful for testing compatibility of plugin and shell in development environments or with minimal requirements in CI/CD workflows. By just serving static files, it is easily possible to setup different combinations of plugin and shell versions, again, without requiring deployment to Cumulocity IoT. 
+One of the main use cases of `c8yctrl` is to serve builds of Web SDK based applications or plugins from a local folder without requiring deployment to a Cumulocity tenant. This could be useful for testing compatibility of plugin and shell in development environments or with minimal requirements in CI/CD workflows. By just serving static files, it is easily possible to setup different combinations of plugin and shell versions, again, without requiring deployment to Cumulocity IoT. 
 
 To enable serving static files provide the path to folder representing the root of all files to be server using the `staticRoot` configuration option. `c8yctrl` will serve all files from the given folder without forwarding to baseUrl if the request path matches a file in the folder. To serve multiple plugins and even multiple shells, just copy or unzip all files of the shells and plugins to the root folder. 
 
@@ -98,9 +99,9 @@ npx c8yctrl --baseUrl https://abc.eu-latest.cumulocity.com --port 8181 --staticR
 
 ### Recording and mocking
 
-As an intermediary service in between your tests and a Cumulocity IoT tenant, `c8yctrl` can record and mock requests and responses. Recording of requests and responses allows to easily create a set of mocks for your tests, without creating or maintaining the mocks manually. By enabling recording mode all requests are proxied to the configured Cumulocity IoT tenant and requests, responses as well as some metadata are stored automatically via a configurable `C8yPactFileAdapter` implementation. As a default implementation,  `C8yPactDefaultFileAdapter` stores the recordings as JSON files of `C8yPact` format in a configured folder.
+As an intermediary service in between your tests and a Cumulocity tenant, `c8yctrl` can record and mock requests and responses. Recording of requests and responses allows to easily create a set of mocks for your tests, without creating or maintaining the mocks manually. By enabling recording mode all requests are proxied to the configured Cumulocity tenant and requests, responses as well as some metadata are stored automatically via a configurable `C8yPactFileAdapter` implementation. As a default implementation,  `C8yPactDefaultFileAdapter` stores the recordings as JSON files of `C8yPact` format in a configured folder.
 
-To mock responses, `c8yctrl` will use the existing recordings and return the recorded response if it matches the request. If no recording is available, `c8yctrl` will return an error response or if `strictMocking` is disabled, forward the request to the configured Cumulocity IoT tenant.
+To mock responses, `c8yctrl` will use the existing recordings and return the recorded response if it matches the request. If no recording is available, `c8yctrl` will return an error response or if `strictMocking` is disabled, forward the request to the configured Cumulocity tenant.
 
 There is different ways to enable recording and mocking. When starting `c8yctrl`, use the `--recording` option with value `true` or the `C8Y_PACT_MODE` environment variable with value `recording` to enable recording of all requests and responses. 
 
@@ -133,7 +134,7 @@ It's recommended to use `.env` or `.c8yctrl` files to store environment variable
 
 ### Command Line Arguments
 
-All environment variables can be passed as command line arguments. 
+All environment variables can be passed as command line arguments. The following command line arguments are supported:
 
 ```shell
 npx c8yctrl --folder /path/to/my/recordings \ 
@@ -143,28 +144,71 @@ npx c8yctrl --folder /path/to/my/recordings \
             --tenant t123456 \
             --staticRoot /path/to/my/static/files \
             --port 8181 \
-            --recording true
+            --mode apply \
+            --recordingMode append \
+            --log true \
+            --logLevel info \
+            --logFile /path/to/logfile.log \
+            --accessLogFile /path/to/accesslog.log \
+            --apps cockpit/1.0.0 \
+            --config /path/to/my/custom.config.ts
 ```
+
+The following table maps command line arguments to their corresponding environment variables:
+
+| Command Line Argument | Environment Variable       |
+|-----------------------|----------------------------|
+| `--folder`            | `C8Y_PACT_FOLDER`          |
+| `--baseUrl`           | `C8Y_BASE_URL`             |
+| `--user`              | `C8Y_BASE_USERNAME`        |
+| `--password`          | `C8Y_BASE_PASSWORD`        |
+| `--tenant`            | `C8Y_BASE_TENANT`          |
+| `--staticRoot`        | `C8Y_STATIC_ROOT`          |
+| `--port`              | `C8Y_HTTP_PORT`            |
+| `--mode`              | `C8Y_PACT_MODE`            |
+| `--recordingMode`     | `C8Y_PACT_RECORDING_MODE`  |
+| `--log`               | `C8Y_LOG`                  |
+| `--logLevel`          | `C8Y_LOG_LEVEL`            |
+| `--logFile`           | `C8Y_LOG_FILE`             |
+| `--accessLogFile`     | `C8Y_ACCESS_LOG_FILE`      |
+| `--apps`              | `C8Y_APPS`                 |
+| `--config`            | `C8Y_CONFIG`               |
 
 ### Parameters
 
 Environment variables and command line arguments are mapped to the following configuration options:
 
-- `baseUrl` - The base URL of the Cumulocity IoT tenant to proxy requests to.
+- `baseUrl` - The base URL of the Cumulocity tenant to proxy requests to.
 
-- `tenant` - The tenant id of the Cumulocity IoT tenant configured in the `baseUrl`. The tenant id is required for login if the `username` and `password` are provided.
+- `tenant` - The tenant id of the Cumulocity tenant configured in the `baseUrl`. The tenant id is required for login if the `username` and `password` are provided.
 
-- `username` - The username to authenticate with the Cumulocity IoT tenant. If authentication is provided, the controller will automatically login to the tenant and use the authorization for all requests.
+- `username` - The username to authenticate with the Cumulocity tenant.
 
-- `password` - The password to authenticate with the Cumulocity IoT tenant.
+- `password` - The password to authenticate with the Cumulocity tenant.
 
 - `folder` - The folder where recordings are stored. By providing a folder, the controller will use `C8yPactDefaultFileAdapter` to store recordings in the given folder. Each file will be named by the given id of the recording.
 
-- `staticRoot` - The root folder where static files are served from. The controller will serve always serve static files if the request path matches a file in the folder. If served from `staticRoot`, the controller will not proxy the request to the `baseUrl`. 
+- `staticRoot` - The root folder where static files are served from. The controller will always serve static files if the request path matches a file in the folder. If served from `staticRoot`, the controller will not proxy the request to the `baseUrl`.
 
 - `port` - The port the controller listens on. The default port is `8181`.
 
-- `recording` - If set to `true`, the controller will record proxied requests and responses. If set to `false`, the controller will mock responses using the existing recording without sending requests to the `baseUrl`.
+- `mode` - The mode the controller is running in. Possible values are `apply`, `mock`, `record`, `forward`.
+
+- `recordingMode` - The recording mode to use for recording requests and responses. Possible values are `append`, `new`, `replace`, `refresh`.
+
+- `log` - Enable or disable logging.
+
+- `logLevel` - The log level used for logging.
+
+- `logFile` - The path of the logfile.
+
+- `accessLogFile` - The path of the access logfile.
+
+- `apps` - Array of static folder app names and semver ranges separated by '/'.
+
+- `config` - The path to the config file.
+
+If `username` and `password` parameters are provided, `c8yctrl` will automatically login to the configured Cumulocity tenant and pass all requests authenticated. Authentication in your tests will not be required in this case.
 
 ### Configuration File
 
@@ -198,9 +242,9 @@ A more complex configuration file can be found in the [contributions](./contribu
 
 ## How it works
 
-`c8yctrl` can be considered a intermediary service or middleware that tries to serve static files from a given folder and proxies all other requests to a given Cumulocity IoT tenant. As it is acting as a middleware, `c8yctrl` can record and mock requests based on its current configuration.
+`c8yctrl` can be considered a intermediary service or middleware that tries to serve static files from a given folder and proxies all other requests to a given Cumulocity tenant. As it is acting as a middleware, `c8yctrl` can record and mock requests based on its current configuration.
 
-On startup, `c8yctrl` will authenticate with the Cumulocity IoT tenant configured in `baseUrl` and `tenant` using the provided credentials. If authentication is successful, the controller will automatically add the `Authorization` header or cookies to all requests proxied to the `baseUrl`. If no authentication is provided, the client must login, for example using `cy.login()` as part of the test.
+On startup, `c8yctrl` will authenticate with the Cumulocity tenant configured in `baseUrl` and `tenant` using the provided credentials. If authentication is successful, the controller will automatically add the `Authorization` header or cookies to all requests proxied to the `baseUrl`. If no authentication is provided, the client must login, for example using `cy.login()` as part of the test.
 
 When receiving a request, `c8yctrl` will check if the request path matches a file in the `staticRoot` folder. If a file is found, the controller will serve the file and not proxy the request to the `baseUrl`. If no file is found, the controller will proxy the request to the `baseUrl`.
 
@@ -210,12 +254,13 @@ When receiving a request, `c8yctrl` will check if the request path matches a fil
 
 ### POST /c8yctrl/current
 
-The `/c8yctrl/current` endpoint allows creating a new recording for a give id or title. The endpoint accepts a JSON body or query parameters with the following properties:
+The `/c8yctrl/current` endpoint allows creating a new recording for a given id or title. The endpoint accepts a JSON body or query parameters with the following properties:
 
 ```json
 {
   "title": "Test case title",
-  "recording": true,
+  "mode": "apply",
+  "recordingMode": "append",
   "clear": true,
   "strictMocking": true
 }
@@ -224,9 +269,10 @@ The `/c8yctrl/current` endpoint allows creating a new recording for a give id or
 #### Parameters
 
 - `title` - The title of the test case being recorded. An `id` is generated from the title and used to store the recording. Might be an array of strings representing the suite hierarchy and test case title.
-- `recording` - If set to `true`, the controller will record proxied requests and responses. If set to `false`, the controller will mock responses using the existing recording without sending requests to the `baseUrl`.
+- `mode` - The mode the controller is running in. Possible values are `apply`, `mock`, `record`, `forward`.
+- `recordingMode` - The recording mode to use for recording requests and responses. Possible values are `append`, `new`, `replace`, `refresh`.
 - `clear` - If set to `true`, the controller will clear the existing recording before recording new following requests.
-- `strictMocking` - If set to `true`, the controller will send an `errorResponseRecord` if no recording is available to mock the response. If set to `false`, the controller will forward the request to `baseUrl` (without recording the response)
+- `strictMocking` - If set to `true`, the controller will send an `errorResponseRecord` if no recording is available to mock the response. If set to `false`, the controller will forward the request to `baseUrl` (without recording the response).
 
 ### GET /c8yctrl/current
 
@@ -236,15 +282,23 @@ Gets the current `C8yPact` including its configuration (`C8yPactInfo`) and numbe
 
 Resets the current `C8yPact`. This will however not delete any data!
 
-### GET /c8yctrl/current/request?<keys>
+### POST /c8yctrl/current/clear
+
+Clears the current `C8yPact` records. This will not delete the pact itself.
+
+### GET /c8yctrl/current/request?
 
 Returns an object with the provided keys per request from the current pact. Supports special key `size` to get the size in byte of a request body.
 
 Useful to retrieve for example urls of requests without getting all pact data. 
 
-### GET /c8yctrl/current/response?<keys>
+### GET /c8yctrl/current/response?
 
 Returns an object with the provided keys per response from the current pact. Supports special key `size` to get the size in byte of a response body.
+
+### GET /c8yctrl/log
+
+Gets the current log level of the controller.
 
 ### POST /c8yctrl/log
 
@@ -334,26 +388,4 @@ function c8yctrl(title: string | string[] = Cypress.currentTest.titlePath) {
 
 ### For microservices
 
-## Todo
-
-- [X] document recording for before() hooks from your tests
-- [X] document recording tests suite for a separate id
-- [X] save pact file only when first record is added - no file for empty suites
-- [X] allow multiple request logger
-- [ ] allow adding custom request handlers (maybe for logging or other purposes)
-- [ ] new C8Y_PACT_MODE to enable testing without recording or mocking
-- [X] avoid recording of requests that are already recorded (configurable)
-- [ ] join pact ids with suite ids
-- [ ] pass C8yPactConfigOptions and TestConfigOverrides to store in pact file
-- [ ] store tags from test cases in recording
-- [X] rename interface to /c8yctrl/current
-- [ ] add support for recording realtime notifications API
-- [ ] automatically reduce timeouts when mocking, e.g. in visitAndWaitForSelector
-- [ ] pass auth user and alias to store in record
-- [ ] allow mocking configurable requests or cypress hooks
-- [X] allow passing strictMocking as parameter to /c8yctrl/current
-- [X] add logging from via c8yctrl from cypress tests 
-- [ ] disable login via cy.session when recording
-- [X] read parameters for c8yctrl from query and body
-- [X] add sample config file to contributions folder
-- [X] add /c8yctrl/current/? endpoint for statistics, incl. urls, count, etc.
+tbd
