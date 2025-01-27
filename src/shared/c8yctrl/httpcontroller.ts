@@ -398,7 +398,7 @@ export class C8yPactHttpController {
           if (!current) {
             res
               .status(404)
-              .send(`Not found. Could not find pact with id ${id}.`);
+              .send(`Not found. Could not find pact with id ${_.escape(id)}.`);
             return;
           } else {
             this.currentPact = C8yDefaultPact.from(current);
