@@ -98,7 +98,7 @@
     "ajv-formats": "^2.1.1",
     "body-parser": "^1.20.2",
     "chokidar": "^4.0.1",
-    "cookie": "^0.6.0",
+    "cookie": "^0.7.2",
     "cookie-parser": "^1.4.6",
     "cosmiconfig": "^9.0.0",
     "cosmiconfig-typescript-loader": "^5.0.0",
