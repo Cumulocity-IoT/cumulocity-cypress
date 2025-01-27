@@ -16,9 +16,10 @@
     "copy-files": "copyfiles --up 1 -V './src/**/*.js' './src/**/*.d.ts' dist/ && copyfiles '*.md' package.json dist/",
     "build": "npm run clean && npm run screenshot:schema && npm run copy-files && tsc -b -v src/ && npm run build:plugin",
     "build:plugin": "rollup -c rollup.config.mjs",
-    "package": "npm run build && npm run clean:package:folder && cd dist/ && npm run clean:package:json",
+    "package": "npm run build && npm run clean:package:folder && npm run clean:package:c8yctrl && cd dist/ && npm run clean:package:json",
     "yalc:runner": "npm run yalc:publish && cd packages/pactrunner && yalc add cumulocity-cypress",
-    "yalc:publish": "npm run clean && npm run build && cd dist/ && yalc publish && cd ..",
+    "yalc:publish": "npm run clean && npm run package && cd dist/ && yalc publish && cd ..",
+    "clean:package:c8yctrl": "rimraf -v -g './dist/http-controller' && mv dist/c8yctrl/startup.js dist/c8yctrl/c8yctrl.js && rm -f dist/c8yctrl/*.config.js",
     "clean:package:folder": "rimraf -v -g './dist/**/*.tsbuildinfo'",
     "clean:package:json": "npm pkg delete 'devDependencies' && npm pkg delete 'scripts'",
     "lint": "eslint ./",
@@ -42,7 +43,7 @@
     "url": "https://github.com/Cumulocity-IoT/cumulocity-cypress/issues"
   },
   "bin": {
-    "c8yctrl": "./bin/c8yctrl.js",
+    "c8yctrl": "./c8yctrl/c8yctrl.js",
     "c8yscrn": "./screenshot/startup.js"
   },
   "workspaces": [
@@ -66,8 +67,8 @@
       "default": "./lib/commands/c8ypact.js"
     },
     "./c8yctrl": {
-      "types": "./bin/c8yctrl.d.ts",
-      "default": "./bin/c8yctrl.js"
+      "types": "./c8yctrl/c8yctrl.d.ts",
+      "default": "./c8yctrl/c8yctrl.js"
     },
     "./commands/*": "./lib/commands/*"
   },
@@ -77,7 +78,7 @@
         "./c8ypact.d.ts"
       ],
       "c8yctrl": [
-        "./bin/c8yctrl.d.ts"
+        "./c8yctrl/c8yctrl.d.ts"
       ],
       "commands": [
         "./lib/commands/index.d.ts"

@@ -6,12 +6,12 @@
       "name": "Launch c8yctrl",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/packages/pact-http-controller/src/startup.ts",
+      "program": "${workspaceFolder}/src/http-controller/startup.ts",
       "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "envFile": "${workspaceFolder}/packages/pact-http-controller/.env",
-      "args": ["--config", "packages/pact-http-controller/c8yctrl-dev.config.ts"],
+      "envFile": "${workspaceFolder}/src/http-controller/.env",
+      "args": ["--config", "src/http-controller/c8yctrl-dev.config.ts"],
       "skipFiles": [
         "<node_internals>/**",
         "${workspaceFolder}/node_modules/**"

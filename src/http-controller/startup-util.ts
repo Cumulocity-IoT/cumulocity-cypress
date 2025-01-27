@@ -21,13 +21,13 @@ import {
   C8yPactRecordingModeValues,
   C8yPactHttpControllerDefaultMode,
   C8yPactHttpControllerDefaultRecordingMode,
-} from "../../shared/c8yctrl";
+} from "../shared/c8yctrl";
 
 import { RequestHandler } from "express";
 import {
   getPackageVersion,
   safeStringify,
-} from "../../shared/util";
+} from "../shared/util";
 
 import debug from "debug";
 const log = debug("c8y:ctrl:startup");

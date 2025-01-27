@@ -38,11 +38,11 @@ export default [
     plugins: [dts()],
   },
   {
-    input:
-      "./dist/http-controller/src/startup.js",
+    input: glob.sync('./dist/http-controller/**/*.js'),
     output: [
       {
-        dir: "dist",
+        name: "c8yctrl",
+        dir: "dist/c8yctrl",
         format: "commonjs",
       },
     ],
@@ -56,7 +56,7 @@ export default [
       shebang(
         {
           include: [
-            "dist/http-controller/src/startup.js",
+            "dist/c8yscrn/startup.js",
           ]
         }
       )
@@ -64,7 +64,7 @@ export default [
   },
   {
     input: "dist/shared/c8yctrl/index.d.ts",
-    output: [{ file: "dist/bin/c8yctrl.d.ts", format: "es", sourcemap: false }],
+    output: [{ file: "dist/c8yctrl/c8yctrl.d.ts", format: "es", sourcemap: false }],
     plugins: [dts()],
   },
   {

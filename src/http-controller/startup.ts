@@ -7,7 +7,7 @@ import { config as dotenv } from "dotenv";
 import {
   C8yPactHttpController,
   C8yPactHttpControllerOptions,
-} from "../../shared/c8yctrl";
+} from "../shared/c8yctrl";
 
 import { cosmiconfig } from "cosmiconfig";
 import { TypeScriptLoader } from "cosmiconfig-typescript-loader";
