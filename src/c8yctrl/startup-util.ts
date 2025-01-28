@@ -390,7 +390,6 @@ const applyDefaultLogConfig = (
 
   if (!("errorLogger" in config) && config.errorLogger == null) {
     if ((morgan as any)["error-object"] == null) {
-      // eslint-disable-next-line import/no-named-as-default-member
       morgan.token("error-object", (req, res) => {
         let resBody = (res as any).body;
         if (
@@ -401,7 +400,7 @@ const applyDefaultLogConfig = (
         ) {
           try {
             resBody = JSON.parse(resBody);
-          } catch (e) {
+          } catch {
             // ignore, use body as string
           }
         }

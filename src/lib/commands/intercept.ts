@@ -153,7 +153,6 @@ const wrapFunctionRouteHandler = (fn: any) => {
       ) {
         reqContinue(resFn);
       } else {
-        // eslint-disable-next-line prefer-const
         let [record, response] = responseFromPact({}, req);
         if (_.isFunction(Cypress.c8ypact.on?.mockRecord)) {
           record = Cypress.c8ypact.on.mockRecord(record || undefined);
@@ -242,7 +241,6 @@ const wrapEmptyRouteHandler = () => {
         res.send();
       });
     } else {
-      // eslint-disable-next-line prefer-const
       let [record, response] = responseFromPact({}, req);
       if (_.isFunction(Cypress.c8ypact.on?.mockRecord)) {
         record = Cypress.c8ypact.on.mockRecord(record || undefined);

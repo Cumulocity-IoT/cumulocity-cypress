@@ -117,7 +117,7 @@ export class C8yDefaultPact implements C8yPact {
 
   appendRecord(record: C8yPactRecord, skipIfExists: boolean = false): boolean {
     if (skipIfExists) {
-      if (!record.request.url) null;
+      if (!record.request.url) return false;
       const matches = this.getRecordsMatchingRequest(record.request);
       if (matches && !_.isEmpty(matches)) return false;
     }

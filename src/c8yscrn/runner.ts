@@ -306,7 +306,6 @@ export class C8yScreenshotRunner {
         ) {
           // we need to wait for the element to transition and animate into final
           // position before we can calculate the absolute highlight area
-          // eslint-disable-next-line cypress/no-unnecessary-waiting
           cy.wait(500, { log: false }).then(() => {
             let $parent = findCommonParent($element);
             if (!$parent) {

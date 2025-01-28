@@ -1,4 +1,3 @@
-/* eslint-disable import/no-named-as-default-member */
 import _ from "lodash";
 
 import express, { Express, RequestHandler } from "express";

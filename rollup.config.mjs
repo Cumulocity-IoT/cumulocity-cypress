@@ -4,7 +4,6 @@ import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
 import shebang from 'rollup-plugin-shebang-bin'
 
-// eslint-disable-next-line import/no-named-as-default
 import glob from 'glob';
 
 import path from "node:path";
@@ -69,7 +68,6 @@ export default [
   {
     input: Object.fromEntries(
       // https://rollupjs.org/configuration-options/#input
-      // eslint-disable-next-line import/no-named-as-default-member
       glob.sync("dist/c8yscrn/*.js").map((file) => [
         path.relative(
           "dist/",

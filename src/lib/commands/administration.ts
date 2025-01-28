@@ -296,7 +296,6 @@ Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
     .then((userResponse) => {
       const userId = userResponse.body.id;
       consoleProps.userId = userId;
-      expect(userId).to.not.be.undefined;
       if (permissions && !_.isEmpty(permissions)) {
         consoleProps.permissions = permissions;
         cy.wrap(permissions, { log: false }).each((permission) => {
@@ -592,7 +591,6 @@ Cypress.Commands.add("getTenantId", { prevSubject: "optional" }, (...args) => {
   cy.wrap(auth, { log: false })
     .c8yclient()
     .then((c) => {
-      expect(c.core.tenant).to.not.be.undefined;
       Cypress.env("C8Y_TENANT", c.core.tenant);
       cy.wrap(c.core.tenant);
     });
