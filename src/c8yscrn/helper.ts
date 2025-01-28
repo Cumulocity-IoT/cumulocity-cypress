@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import debug from "debug";
 
-import schema from "./../screenshot/schema.json";
+import schema from "./schema.json";
 
 import {
   C8yScreenshotOptions,

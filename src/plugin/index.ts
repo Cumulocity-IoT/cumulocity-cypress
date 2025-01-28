@@ -28,10 +28,10 @@ import {
   DiffOptions,
   ScreenshotSetup,
 } from "../lib/screenshots/types";
-import { loadConfigFile } from "../screenshot/helper";
+import { loadConfigFile } from "../c8yscrn/helper";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
-export { readYamlFile, loadConfigFile } from "../screenshot/helper";
+export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
 
 /**
  * Configuration options for the Cumulocity Cypress plugin.
