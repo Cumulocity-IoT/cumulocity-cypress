@@ -182,7 +182,7 @@ export async function wrapFetchResponse(
       fetchOptions && _.isString(fetchOptions?.body)
         ? JSON.parse(fetchOptions.body)
         : fetchOptions?.body;
-  } catch (error) {
+  } catch {
     responseObj.requestBody = fetchOptions?.body;
   }
   // res.ok = response.ok,

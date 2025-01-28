@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   projects: [
     {
       roots: ["<rootDir>/src"],
