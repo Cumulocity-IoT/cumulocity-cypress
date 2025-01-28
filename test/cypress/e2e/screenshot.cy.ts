@@ -1,4 +1,4 @@
-import { findCommonParent } from "../../../src/screenshot/runner-helper";
+import { findCommonParent } from "../../../src/c8yscrn/runner-helper";
 
 describe("screenshot", () => {
   describe("findCommonParent", () => {

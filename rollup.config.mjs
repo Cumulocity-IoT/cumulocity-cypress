@@ -1,7 +1,6 @@
 import dts from "rollup-plugin-dts";
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import alias from "@rollup/plugin-alias";
 import json from "@rollup/plugin-json";
 import shebang from 'rollup-plugin-shebang-bin'
 
@@ -38,7 +37,7 @@ export default [
     plugins: [dts()],
   },
   {
-    input: glob.sync('./dist/http-controller/**/*.js'),
+    input: glob.sync('./dist/c8yscrn/*.js'),
     output: [
       {
         name: "c8yctrl",
@@ -69,10 +68,11 @@ export default [
   },
   {
     input: Object.fromEntries(
+      // https://rollupjs.org/configuration-options/#input
       // eslint-disable-next-line import/no-named-as-default-member
-      glob.sync("dist/screenshot/*.js").map((file) => [
+      glob.sync("dist/c8yscrn/*.js").map((file) => [
         path.relative(
-          "dist",
+          "dist/",
           file.slice(0, file.length - path.extname(file).length)
         ),
         fileURLToPath(new URL(file, import.meta.url)),
@@ -80,7 +80,7 @@ export default [
     ),
     output: [
       {
-        dir: "dist",
+        dir: "dist/",
         format: "commonjs",
       },
     ],
@@ -93,7 +93,7 @@ export default [
       shebang(
         {
           include: [
-            "dist/screenshot/startup.js",
+            "dist/c8yscrn/startup.js",
           ]
         }
       )
