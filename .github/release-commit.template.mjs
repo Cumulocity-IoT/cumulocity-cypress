@@ -1,4 +1,4 @@
-export default `{{#if type}}
+export default `
 *{{#if scope}} **{{scope}}:**
 {{~/if}} {{#if subject}}
   {{~subject}}
@@ -63,5 +63,5 @@ export default `{{#if type}}
   {{body}}
 
   
-{{/if}} 
+{{/if}}
 `;
