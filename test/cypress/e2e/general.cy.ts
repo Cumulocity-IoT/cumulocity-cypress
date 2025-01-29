@@ -110,6 +110,23 @@ describe("general", () => {
         });
       });
     });
+
+    it("disableCookieBanner should remove cookieBanner", () => {
+      cy.disableCookieBanner()
+        .as("interception")
+        .then(() =>
+          $.get(url(`/apps/public/public-options@app-cockpit/options.json?_=c`))
+        )
+        .then((response) => {
+          expect(response.cookieBanner).to.be.undefined;
+          expect(response.cookiePreferences).to.not.be.undefined;
+          cy.window().then((win) => {
+            const cookie = win.localStorage.getItem("acceptCookieNotice");
+            expect(cookie).to.be.null;
+          });
+        })
+        .wait("@interception");
+    });
   });
 
   context("setLanguage", () => {
