@@ -30,6 +30,8 @@ jobs:
           # Extract bin paths from package.json
           BIN_PATHS=$(jq -r '.bin[]' package.json)
           
+          cd dist/
+          
           # Check if each bin path exists and is executable
           for BIN_PATH in $BIN_PATHS; do
             if [ ! -f "$BIN_PATH" ]; then
