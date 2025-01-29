@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node", "jest"],
+    "types": ["node", "jest", "cypress"],
     "resolveJsonModule": true,
     "strict": true,
     "strictNullChecks": false,
