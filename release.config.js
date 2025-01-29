@@ -4,7 +4,7 @@ const commitTemplate = require("./.github/release-commit.template");
 module.exports = {
   branches: [
     {
-      name: "release/v+([0-9])?(.{+([0-9]),x}).x",
+      name: "release/v+([0-9]+)\\.([0-9]+).x",
       range: "${name.replace(/^release\\/v/g, '')}",
       channel: "${name.replace(/release\\/(v[0-9]+)\\..*/, '$1-lts')}",
     },
