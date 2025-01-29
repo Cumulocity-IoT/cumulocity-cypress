@@ -1,6 +1,6 @@
 // use javascript instead of typescript to avoid typescript compilation
 const { defineConfig } = require("cypress");
-const { configureC8yScreenshotPlugin } = require("../../../plugin");
+const { configureC8yScreenshotPlugin } = require("../../plugin");
 
 module.exports = defineConfig({
   e2e: {

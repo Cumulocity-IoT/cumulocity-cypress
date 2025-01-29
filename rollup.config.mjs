@@ -36,7 +36,7 @@ export default [
     plugins: [dts()],
   },
   {
-    input: glob.sync('./dist/c8yscrn/*.js'),
+    input: glob.sync('./dist/c8yctrl/*.js'),
     output: [
       {
         name: "c8yctrl",
@@ -54,7 +54,7 @@ export default [
       shebang(
         {
           include: [
-            "dist/c8yscrn/startup.js",
+            "dist/c8yctrl/startup.js",
           ]
         }
       )

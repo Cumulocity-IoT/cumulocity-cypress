@@ -45,7 +45,7 @@
   },
   "bin": {
     "c8yctrl": "./c8yctrl/c8yctrl.js",
-    "c8yscrn": "./c8yscrn/startup.js"
+    "c8yscrn": "./c8yscrn/c8yscrn.js"
   },
   "workspaces": [
     "packages/*"
@@ -71,6 +71,7 @@
       "types": "./c8yctrl/c8yctrl.d.ts",
       "default": "./c8yctrl/c8yctrl.js"
     },
+    "./shared/*": "./shared/*",
     "./commands/*": "./lib/commands/*"
   },
   "typesVersions": {
