@@ -3,7 +3,8 @@
 import _ from "lodash";
 
 import { C8yDefaultPact } from "./c8ydefaultpact";
-import { C8yDefaultPactRecord, isPact } from "./c8ypact";
+import { isPact } from "./c8ypact";
+import { C8yDefaultPactRecord } from "./c8ydefaultpactrecord";
 
 /**
  * Wrapper for protected methods and properties of C8yDefaultPact for testing.
@@ -134,7 +135,9 @@ describe("c8defaultpact", () => {
     it("appendRecord()", function () {
       const clone = _.cloneDeep(record!);
       clone.request.url = "http://localhost:8080/tenant/currentTenant";
-      pact!.appendRecord(clone!);
+      expect(pact!.records.length).toBe(1);
+      const result = pact!.appendRecord(clone!);
+      expect(result).toBe(true);
       expect(pact!.records.length).toBe(2);
       expect(pact!.records[1]).toBe(clone!);
     });
@@ -142,7 +145,8 @@ describe("c8defaultpact", () => {
     it("appendRecord() with skipIfExists for existing record", function () {
       const clone = _.cloneDeep(record!);
       clone.response.status = 404;
-      pact!.appendRecord(clone!, true);
+      const result = pact!.appendRecord(clone!, true);
+      expect(result).toBe(false);
       expect(pact!.records.length).toBe(1);
       expect(pact!.records[0]).toBe(record);
       expect(pact!.records[0].response.status).toBe(201);
@@ -151,7 +155,9 @@ describe("c8defaultpact", () => {
     it("replaceRecord()", function () {
       const clone = _.cloneDeep(record!);
       clone.response.status = 404;
-      pact!.replaceRecord(clone!);
+      expect(pact!.records.length).toBe(1);
+      const result = pact!.replaceRecord(clone);
+      expect(result).toBe(true);
       expect(pact!.records.length).toBe(1);
       expect(pact!.records[0]).toBe(clone!);
     });
@@ -159,7 +165,9 @@ describe("c8defaultpact", () => {
     it("replaceRecord() with new record", function () {
       const clone = _.cloneDeep(record!);
       clone.request.url = "http://localhost:8080/tenant/currentTenant";
-      pact!.replaceRecord(clone!);
+      expect(pact!.records.length).toBe(1);
+      const result = pact!.replaceRecord(clone!);
+      expect(result).toBe(true);
       expect(pact!.records.length).toBe(2);
       expect(pact!.records[0]).toBe(record!);
       expect(pact!.records[1]).toBe(clone!);
@@ -172,25 +180,29 @@ describe("c8defaultpact", () => {
 
       const clone = _.cloneDeep(record!);
       clone.response.status = 404;
-      pact!.replaceRecord(clone!);
+      const result1 = pact!.replaceRecord(clone!);
+      expect(result1).toBe(true);
       expect(pact!.records.length).toBe(3);
       expect(pact!.records[0]).toBe(clone!);
       expect(pact!.records[1]).toBe(record!);
       expect(pact!.records[2]).toBe(record!);
 
-      pact!.replaceRecord(clone!);
+      const result2 = pact!.replaceRecord(clone!);
+      expect(result2).toBe(true);
       expect(pact!.records.length).toBe(3);
       expect(pact!.records[0]).toBe(clone!);
       expect(pact!.records[1]).toBe(clone!);
       expect(pact!.records[2]).toBe(record!);
 
-      pact!.replaceRecord(clone!);
+      const result3 = pact!.replaceRecord(clone!);
+      expect(result3).toBe(true);
       expect(pact!.records.length).toBe(3);
       expect(pact!.records[0]).toBe(clone!);
       expect(pact!.records[1]).toBe(clone!);
       expect(pact!.records[2]).toBe(clone!);
 
-      pact!.replaceRecord(clone!);
+      const result4 = pact!.replaceRecord(clone!);
+      expect(result4).toBe(true);
       expect(pact!.records.length).toBe(4);
       expect(pact!.records[3]).toBe(clone!);
     });

@@ -17,7 +17,8 @@ import {
   C8yCypressEnvPreprocessor,
   isPact,
   isPactRecord,
-} from "cumulocity-cypress";
+  getEnvVar,
+} from "cumulocity-cypress/c8ypact";
 
 const { _ } = Cypress;
 
@@ -195,6 +196,24 @@ describe("c8ypact", () => {
       stubEnv({ C8Y_PACT_IGNORE: "true" });
       expect(Cypress.c8ypact.isEnabled()).to.be.false;
       expect(Cypress.c8ypact.isRecordingEnabled()).to.be.false;
+    });
+  });
+
+  context("c8ypact env variables", () => {
+    it("should use env variable as is", function () {
+      stubEnv({ C8Y_BASEURL: "http://mytenant.cumulocity.com" });
+      expect(getEnvVar("C8Y_BASEURL")).to.eq("http://mytenant.cumulocity.com");
+    });
+
+    it("should use env variable with CYPRESS_ prefix", function () {
+      stubEnv({ CYPRESS_baseurl: "http://mytenant.cumulocity.com" });
+      expect(getEnvVar("BASEURL")).to.eq("http://mytenant.cumulocity.com");
+      expect(getEnvVar("C8Y_BASEURL")).to.eq("http://mytenant.cumulocity.com");
+    });
+
+    it("should use camelCase env variable without prefix", function () {
+      stubEnv({ pactMode: "recording" });
+      expect(getEnvVar("PACT_MODE")).to.eq("recording");
     });
   });
 

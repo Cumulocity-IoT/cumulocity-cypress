@@ -14,12 +14,12 @@ import {
 } from "@c8y/client";
 import {
   C8yPactRecord,
-  C8ySchemaMatcher,
   isCypressResponse,
   isPactRecord,
-} from "./c8ypact";
+} from "./c8ypact/c8ypact";
 
 import * as setCookieParser from "set-cookie-parser";
+import { C8ySchemaMatcher } from "./c8ypact/schema";
 
 declare global {
   interface Response {
@@ -182,7 +182,7 @@ export async function wrapFetchResponse(
       fetchOptions && _.isString(fetchOptions?.body)
         ? JSON.parse(fetchOptions.body)
         : fetchOptions?.body;
-  } catch (error) {
+  } catch {
     responseObj.requestBody = fetchOptions?.body;
   }
   // res.ok = response.ok,
@@ -539,9 +539,9 @@ export async function oauthLogin(
   auth: C8yAuthOptions,
   baseUrl?: string
 ): Promise<C8yAuthOptions> {
-  if (!auth) {
+  if (!auth || !auth.user || !auth.password) {
     const error = new Error(
-      "Authentication required. oauthLogin requires full authentication."
+      "Authentication required. oauthLogin requires full authentication including user and password."
     );
     error.name = "C8yPactError";
     throw error;

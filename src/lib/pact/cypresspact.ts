@@ -7,9 +7,7 @@ import {
   C8yPactID,
   C8yPactInfo,
   C8yPactRecord,
-  C8yDefaultPactPreprocessor,
   C8yPactPreprocessor,
-  C8yPactPreprocessorOptions,
   C8ySchemaGenerator,
   C8ySchemaMatcher,
   C8yDefaultPactMatcher,
@@ -22,8 +20,10 @@ import {
   C8yPactRecordingModeValues,
   C8yPactModeValues,
   pactId,
+  validatePactMode,
+  getEnvVar,
 } from "../../shared/c8ypact";
-import { C8yDefaultPactRunner } from "./runner";
+import { C8yDefaultPactRunner, C8yPactRunner } from "./runner";
 import { C8yAuthOptions } from "../../shared/auth";
 import { C8yClient } from "../../shared/c8yclient";
 import {
@@ -40,6 +40,8 @@ const { _ } = Cypress;
 
 import { FetchClient, IAuthentication } from "@c8y/client";
 import { C8yPactFetchClient } from "./fetchclient";
+import { validateBaseUrl } from "cumulocity-cypress/shared/c8ypact/url";
+import { C8yCypressEnvPreprocessor } from "./cypresspreprocessor";
 
 declare global {
   namespace Cypress {
@@ -235,57 +237,6 @@ declare global {
   type C8yPactNextRecord = { record: C8yPactRecord; info?: C8yPactInfo };
 }
 
-/**
- * The C8yCypressEnvPreprocessor is a preprocessor implementation that uses
- * Cypress environment variables to configure C8yPactPreprocessorOptions.
- *
- * Options are deep merged in the following order:
- * - Cypress environment variables
- * - C8yPactPreprocessorOptions passed to the apply method
- * - C8yPactPreprocessorOptions passed to the constructor
- * - Cypress.c8ypact.config value for preprocessor
- */
-export class C8yCypressEnvPreprocessor extends C8yDefaultPactPreprocessor {
-  apply(
-    obj: Partial<Cypress.Response<any> | C8yPactRecord | C8yPact>,
-    options?: C8yPactPreprocessorOptions
-  ): void {
-    super.apply(obj, this.resolveOptions(options));
-  }
-
-  resolveOptions(
-    options?: Partial<C8yPactPreprocessorOptions>
-  ): C8yPactPreprocessorOptions {
-    let preprocessorConfigValue: C8yPactPreprocessorOptions = {};
-    if (
-      Cypress.c8ypact &&
-      typeof Cypress.c8ypact.getConfigValue === "function"
-    ) {
-      preprocessorConfigValue =
-        Cypress.c8ypact.getConfigValue<C8yPactPreprocessorOptions>(
-          "preprocessor"
-        ) ?? {};
-    }
-
-    return _.defaultsDeep(
-      {
-        ignore: Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE"),
-        obfuscate: Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
-        obfuscationPattern: Cypress.env("C8Y_PACT_PREPROCESSOR_PATTERN"),
-      } as C8yPactPreprocessorOptions,
-      options,
-      this.options,
-      preprocessorConfigValue,
-      {
-        ignore: [],
-        obfuscate: [],
-        obfuscationPattern:
-          C8yDefaultPactPreprocessor.defaultObfuscationPattern,
-      }
-    );
-  }
-}
-
 // initialize the following only once. note, cypresspact.ts could be imported multiple times
 // resulting in multiple initializations of the c8ypact object as well as before and beforeEach hooks.
 if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
@@ -399,7 +350,6 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
 
   beforeEach(function () {
     Cypress.c8ypact.current = null;
-    validatePactMode();
 
     let consoleProps: any = {};
     let logger: Cypress.Log | undefined = undefined;
@@ -410,6 +360,7 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
         isRecordingEnabled: Cypress.c8ypact.isRecordingEnabled(),
         isMockingEnabled: Cypress.c8ypact.isMockingEnabled(),
         mode: Cypress.c8ypact.mode(),
+        baseUrl: getBaseUrlFromEnv(),
         recordingMode: Cypress.c8ypact.recordingMode(),
         matcher: Cypress.c8ypact.matcher || null,
         pactRunner: Cypress.c8ypact.pactRunner || null,
@@ -434,6 +385,14 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
       });
     }
 
+    try {
+      validatePactMode(getEnvVar("C8Y_PACT_MODE"));
+      validateBaseUrl(getBaseUrlFromEnv());
+    } catch (error) {
+      logger?.end();
+      throw error;
+    }
+
     if (!isEnabled()) {
       logger?.end();
       return;
@@ -450,24 +409,28 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
     Cypress.c8ypact.loadCurrent().then((pact) => {
       Cypress.c8ypact.current = pact;
       consoleProps.current = pact;
-      logger?.end();
 
       // set tenant and baseUrl from pact info if not configured
       // this is needed to not require tenant and baseUrl for fully mocked tests
       if (!Cypress.env("C8Y_TENANT") && pact?.info?.tenant) {
         Cypress.env("C8Y_TENANT", pact?.info?.tenant);
       }
+
+      const baseUrl = getBaseUrlFromEnv();
+      const pactBaseUrl = pact?.info?.baseUrl;
       if (
-        !Cypress.env("C8Y_BASEURL") &&
-        !Cypress.env("baseUrl") &&
-        pact?.info?.baseUrl
+        baseUrl == null ||
+        (pactBaseUrl != null && baseUrl === Cypress.config().baseUrl)
       ) {
-        Cypress.env("C8Y_BASEURL", pact?.info?.baseUrl);
+        Cypress.env("C8Y_BASEURL", pactBaseUrl);
+        consoleProps.baseUrl = getBaseUrlFromEnv();
       }
 
       if (pact != null && _.isFunction(Cypress.c8ypact.on.loadPact)) {
         Cypress.c8ypact.on.loadPact(pact);
       }
+
+      logger?.end();
     });
   });
 }
@@ -501,23 +464,6 @@ function isRecordingEnabled(): boolean {
 function isMockingEnabled(): boolean {
   const values = ["apply", "mock", "mocking"];
   return isEnabled() && values.includes(Cypress.c8ypact.mode());
-}
-
-/**
- * Validates the pact mode and throws an error if the mode is not supported.
- */
-function validatePactMode() {
-  const mode = Cypress.env("C8Y_PACT_MODE") || "disabled";
-  const values = Object.values(C8yPactModeValues) as string[];
-  if (!_.isString(mode) || !values.includes(mode.toLowerCase())) {
-    const error = new Error(
-      `Unsupported pact mode: ${mode}. Supported values are: ${values.join(
-        ", "
-      )}`
-    );
-    error.name = "C8yPactError";
-    throw error;
-  }
 }
 
 function mode(): C8yPactMode {

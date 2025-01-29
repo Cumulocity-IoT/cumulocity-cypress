@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-const commitTemplate = require("./.github/release-commit.template");
+import commitTemplate  from "./.github/release-commit.template.mjs";
 
-module.exports = {
+export default {
   branches: [
     {
       name: "release/v+([0-9])?(.{+([0-9]),x}).x",

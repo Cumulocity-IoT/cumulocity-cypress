@@ -1,4 +1,4 @@
-module.exports = `
+export default `{{#if type}}
 *{{#if scope}} **{{scope}}:**
 {{~/if}} {{#if subject}}
   {{~subject}}

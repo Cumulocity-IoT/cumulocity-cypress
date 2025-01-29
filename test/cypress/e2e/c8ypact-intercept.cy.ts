@@ -1,4 +1,4 @@
-import { C8yDefaultPact } from "cumulocity-cypress";
+import { C8yDefaultPact } from "cumulocity-cypress/c8ypact";
 import { stubCypressPactConfig, url } from "../support/testutils";
 
 import { C8yQicktypeSchemaGenerator } from "cumulocity-cypress/contrib/quicktype";

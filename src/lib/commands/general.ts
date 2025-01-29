@@ -3,22 +3,38 @@ const { _ } = Cypress;
 export {};
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Cypress {
     interface Chainable {
       /**
-       * Disables the Cumulocity cookie banner.
+       * Hides the Cumulocity cookie banner by accepting all cookies. See `acceptCookieBanner`.
+       * @deprecated Use `acceptCookieBanner` instead.
        */
       hideCookieBanner(): Chainable<void>;
 
       /**
        * Accept the cookie banner with the provided configuration for current, functional and marketing cookies.
+       * As the cookie banner requires the cookie set to match the current policy version, accepting the cookie
+       * banner adds an interception for the public options to get the current policy version. Make sure to call
+       * this command before visiting the page. `cy.login` will call this command automatically with the
+       * default values. If the cookie banner has been accepted or hidden using `acceptCookieBanner` or `hideCookieBanner`,
+       * you can reset it by calling `showCookieBanner`.
+       *
+       * To fully disable the cookie banner, you can use `cy.disableCookieBanner`. This will not set the required
+       * cookies, but instead disable the cookie banner completely.
        */
       acceptCookieBanner(
         required: boolean,
         functional: boolean,
         marketing: boolean
       ): Chainable<void>;
+
+      /**
+       * Disables the cookie banner without setting any cookies. This will disable the cookie banner completely.
+       * Use if you want to disable the cookie banner for all policy versions. See `acceptCookieBanner` for more
+       * information.
+       * @see acceptCookieBanner
+       */
+      disableCookieBanner(): Chainable<void>;
 
       /**
        * Ensure the cookie banner is shown on visit. If the cookie banner has been
@@ -97,6 +113,7 @@ Cypress.Commands.add(
 
     const setLocalCookie = (c: { [key: string]: string | boolean }) => {
       const cookie = JSON.stringify(c);
+      window.localStorage.removeItem("__ccHideCookieBanner");
       Cypress.on("window:before:load", (window) => {
         window.localStorage.setItem(COOKIE_NAME, cookie);
       });
@@ -114,6 +131,10 @@ Cypress.Commands.add(
           if (response.statusCode !== 200) {
             return;
           }
+          if (window.localStorage.getItem("__ccHideCookieBanner") === "false") {
+            return;
+          }
+
           const policyVersion = response.body.cookieBanner?.policyVersion;
           const denyCookies: { [key: string]: string | boolean } = {
             required: !!required,
@@ -126,7 +147,7 @@ Cypress.Commands.add(
           setLocalCookie(denyCookies);
         });
       }
-    ).as("publicOptions");
+    );
   }
 );
 
@@ -134,10 +155,31 @@ Cypress.Commands.add("showCookieBanner", () => {
   Cypress.log({
     name: "showCookieBanner",
   });
+
   Cypress.on("window:before:load", (window) => {
     window.localStorage.removeItem("acceptCookieNotice");
   });
   window.localStorage.removeItem("acceptCookieNotice");
+  window.localStorage.setItem("__ccHideCookieBanner", "false");
+});
+
+Cypress.Commands.add("disableCookieBanner", () => {
+  Cypress.log({
+    name: "disableCookieBanner",
+    message: "",
+  });
+
+  cy.intercept(
+    {
+      pathname: /\/apps\/public\/public-options(@app-[^/]+)?\/options.json/,
+    },
+    (req) => {
+      req.continue((res) => {
+        res.body.cookieBanner = undefined;
+        res.send();
+      });
+    }
+  );
 });
 
 Cypress.Commands.add(

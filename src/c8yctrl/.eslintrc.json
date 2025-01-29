@@ -1,0 +1,15 @@
+{
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["cumulocity-cypress/lib/**/*", ".*/**/lib/**/*"],
+            "message": "Importing from src/lib is not supported in src/shared. Shared sources assume node.js runtime. Sources in lib however might require Cypress runtime."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 import "cumulocity-cypress/lib/commands/";
-import "cumulocity-cypress/lib/commands/c8ypact";
+import "cumulocity-cypress/c8ypact";
 import "cumulocity-cypress/lib/commands/oauthlogin";
 
 before(() => {

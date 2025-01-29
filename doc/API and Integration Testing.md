@@ -675,7 +675,7 @@ tbd. Needs to be published as in a registry.
 
 ### Running tests
 
-The `./packages/pactrunner/pactrunner` script is the easiest way to run the pact runner. It will start the docker container and pass the required arguments to the runner. 
+The `./packages/pact-runner/pact-runner` script is the easiest way to run the pact runner. It will start the docker container and pass the required arguments to the runner. 
 
 ```bash
 pactrunner ./pactfiles cypress.env.json

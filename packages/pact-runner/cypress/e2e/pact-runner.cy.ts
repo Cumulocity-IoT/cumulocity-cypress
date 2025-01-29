@@ -1,4 +1,7 @@
-import { C8yDefaultPact, C8yDefaultPactMatcher } from "cumulocity-cypress";
+import {
+  C8yDefaultPact,
+  C8yDefaultPactMatcher,
+} from "cumulocity-cypress/c8ypact";
 import { C8yAjvJson6SchemaMatcher } from "cumulocity-cypress/contrib/ajv";
 
 const { _ } = Cypress;

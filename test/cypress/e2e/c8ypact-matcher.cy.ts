@@ -6,7 +6,7 @@ import {
   C8yPactMatcherOptions,
   C8yCypressEnvPreprocessor,
   C8ySchemaMatcher,
-} from "cumulocity-cypress";
+} from "cumulocity-cypress/c8ypact";
 
 import {
   C8yAjvJson6SchemaMatcher,

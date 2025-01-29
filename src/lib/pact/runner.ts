@@ -8,41 +8,39 @@ import {
 import { getBaseUrlFromEnv } from "../utils";
 const { _ } = Cypress;
 
-declare global {
+/**
+ * Configuration options for C8yPactRunner.
+ */
+export interface C8yPactRunnerOptions {
   /**
-   * Configuration options for C8yPactRunner.
+   * Filter for consumer name.
    */
-  interface C8yPactRunnerOptions {
-    /**
-     * Filter for consumer name.
-     */
-    consumer?: string;
-    /**
-     * Filter for producer name.
-     */
-    producer?: string;
-  }
+  consumer?: string;
+  /**
+   * Filter for producer name.
+   */
+  producer?: string;
+}
+
+/**
+ * Runtime for C8yPact objects. A runner will create the tests dynamically based on
+ * the pact objects information and rerun recorded requests.
+ */
+export interface C8yPactRunner {
+  /**
+   * Runs all pact objects. Will create the tests dynamically for each pact object.
+   *
+   * @param pacts Pact objects to run.
+   * @param options Runner options.
+   */
+  run: (pacts: C8yPact[], options?: C8yPactRunnerOptions) => void;
 
   /**
-   * Runtime for C8yPact objects. A runner will create the tests dynamically based on
-   * the pact objects information and rerun recorded requests.
+   * Runs a single pact object. Needs to run within a test-case.
+   *
+   * @param pact Pact object to run.
    */
-  interface C8yPactRunner {
-    /**
-     * Runs all pact objects. Will create the tests dynamically for each pact object.
-     *
-     * @param pacts Pact objects to run.
-     * @param options Runner options.
-     */
-    run: (pacts: C8yPact[], options?: C8yPactRunnerOptions) => void;
-
-    /**
-     * Runs a single pact object. Needs to run within a test-case.
-     *
-     * @param pact Pact object to run.
-     */
-    runTest: (pact: C8yPact) => void;
-  }
+  runTest: (pact: C8yPact) => void;
 }
 
 type TestHierarchyTree<T> = { [key: string]: T | TestHierarchyTree<T> };

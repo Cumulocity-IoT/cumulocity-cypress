@@ -1,13 +1,13 @@
 import { mount } from "cypress/angular";
 
 import "./auth";
-import "./c8ypact";
+import "../../c8ypact";
 import "./intercept";
 import "./oauthlogin";
 
 import { FetchClient } from "@c8y/client";
 import { getAuthOptionsFromEnv, getBaseUrlFromEnv } from "../utils";
-import { C8yAuthOptions } from "../../shared/c8yclient";
+import { C8yAuthOptions } from "../../shared/auth";
 
 declare global {
   namespace Cypress {

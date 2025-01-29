@@ -5,26 +5,15 @@ import lodash1 from "lodash";
 import * as lodash2 from "lodash";
 const _ = lodash1 || lodash2;
 
-import {
-  C8yPactPreprocessor,
-  C8yPactPreprocessorOptions,
-} from "./preprocessor";
-import { C8yClient, C8yClientOptions } from "../c8yclient";
-import { C8ySchemaGenerator } from "./schema";
-import { removeBaseUrlFromRequestUrl } from "./url";
-import {
-  C8yAuthOptions,
-  C8yPactAuthObject,
-  toPactAuthObject,
-  isAuthOptions,
-  isPactAuthObject,
-} from "../auth";
-import { C8yDefaultPact } from "./c8ydefaultpact";
+import { C8yPactPreprocessorOptions } from "./preprocessor";
+import { C8yClientOptions } from "../c8yclient";
+import { C8yPactAuthObject } from "../auth";
 
 export const C8yPactModeValues = [
   "record",
   "recording",
   "apply",
+  "forward",
   "disabled",
   "mock",
 ] as const;
@@ -33,8 +22,9 @@ export const C8yPactModeValues = [
  * - `record`: Records the requests and responses and stores them in a pact file.
  * - `apply`: Mocks or matches the requests and responses from the recorded pact file.
  * - `disabled`: Disables the pact recording and mocking (same as undefined).
+ * - `forward`: Forward requests without recording or mocking (might not be supported in all contexts).
  * - `recording` (deprecated): same as `record`, use `record` instead.
- * - `mock: (deprecated): same as `apply`, use `apply` instead.
+ * - `mock`: Mock responses for requests. Same as `apply`, but `apply` could also mean matching the requests and responses depending on the context.
  */
 export type C8yPactMode = (typeof C8yPactModeValues)[number];
 
@@ -160,13 +150,18 @@ export interface C8yPact {
   /**
    * Appends a new record to the pact. If skipIfExists is true, the record is
    * only appended if no record with the same request exists.
+   * @param record The record to add.
+   * @param skipIfExists If true, the record is only appended if no record for the same request exists.
+   * @returns True if the record was appended, false otherwise.
    */
-  appendRecord(record: C8yPactRecord, skipIfExists?: boolean): void;
+  appendRecord(record: C8yPactRecord, skipIfExists?: boolean): boolean;
   /**
    * Replaces an existing record with a new record. If no record with the same
    * request exists, the record is appended.
+   * @param record The record to be replaced.
+   * @returns True if the record was replaced, false otherwise.
    */
-  replaceRecord(record: C8yPactRecord): void;
+  replaceRecord(record: C8yPactRecord): boolean;
   /**
    * Returns the next pact record or null if no more records are available.
    */
@@ -176,13 +171,19 @@ export interface C8yPact {
    * based ob criteria like url and method. Returns null if no record is found.
    */
   nextRecordMatchingRequest(
-    request: Partial<Request>,
+    request: Partial<Request> | { url: string; method: string },
     baseUrl?: string
   ): C8yPactRecord | null;
   /**
    * Returns an iterator for the pact records.
    */
   [Symbol.iterator](): Iterator<C8yPactRecord | null>;
+}
+
+export interface C8yPactInfoVersion {
+  system?: string;
+  c8ypact?: string;
+  runner?: string;
 }
 
 /**
@@ -277,111 +278,6 @@ export interface C8yPactRecord {
   date(): Date | null;
 }
 
-/**
- * Default implementation of C8yPactRecord. Use C8yDefaultPactRecord.from to create
- * a C8yPactRecord from a Cypress.Response object or an C8yPactRecord object.
- */
-export class C8yDefaultPactRecord implements C8yPactRecord {
-  request: C8yPactRequest;
-  response: C8yPactResponse<any>;
-  options?: C8yClientOptions;
-  auth?: C8yPactAuthObject;
-  createdObject?: string;
-  modifiedResponse?: C8yPactResponse<any>;
-
-  constructor(
-    request: C8yPactRequest,
-    response: C8yPactResponse<any>,
-    options?: C8yClientOptions,
-    auth?: C8yPactAuthObject,
-    createdObject?: string,
-    modifiedResponse?: C8yPactResponse<any>
-  ) {
-    this.request = request;
-    this.response = response;
-
-    if (options) this.options = options;
-    if (auth) this.auth = auth;
-    if (createdObject) this.createdObject = createdObject;
-    if (modifiedResponse) this.modifiedResponse = modifiedResponse;
-
-    if (request?.method?.toLowerCase() === "post") {
-      const newId = response.body?.id;
-      if (newId) {
-        this.createdObject = newId;
-      }
-    }
-  }
-
-  /**
-   * Creates a C8yPactRecord from a Cypress.Response or an C8yPactRecord object.
-   * @param obj The Cypress.Response<any> or C8yPactRecord object.
-   * @param client The C8yClient for options and auth information.
-   */
-  static from(
-    obj: Cypress.Response<any> | C8yPactRecord | Partial<Cypress.Response<any>>,
-    auth?: C8yAuthOptions,
-    client?: C8yClient
-  ): C8yPactRecord {
-    // if (obj == null) return obj;
-    if ("request" in obj && "response" in obj) {
-      return new C8yDefaultPactRecord(
-        _.get(obj, "request"),
-        _.get(obj, "response"),
-        _.get(obj, "options") || {},
-        _.get(obj, "auth"),
-        _.get(obj, "createdObject"),
-        _.get(obj, "modifiedResponse")
-      );
-    }
-
-    const r = _.cloneDeep(obj);
-    return new C8yDefaultPactRecord(
-      toPactRequest(r) || {},
-      toPactResponse(r) || {},
-      client?._options,
-      isAuthOptions(auth) || isPactAuthObject(auth)
-        ? toPactAuthObject(auth)
-        : client?._auth
-        ? toPactAuthObject(client?._auth)
-        : undefined
-    );
-  }
-
-  /**
-   * Returns the date of the response.
-   */
-  date(): Date | null {
-    const date = _.get(this.response, "headers.date");
-    if ((date && _.isString(date)) || _.isNumber(date) || _.isDate(date)) {
-      return new Date(date);
-    }
-    return null;
-  }
-
-  /**
-   * Converts the C8yPactRecord to a Cypress.Response object.
-   */
-  toCypressResponse<T>(): Cypress.Response<T> {
-    const result = _.cloneDeep(this.response);
-    _.extend(result, {
-      ...(result.status && {
-        isOkStatusCode: result.status > 199 && result.status < 300,
-      }),
-      ...(this.request.headers && {
-        requestHeaders: Object.fromEntries(
-          Object.entries(this.request.headers || [])
-        ),
-      }),
-      ...(this.request.url && { url: this.request.url }),
-      ...(result.allRequestResponses && { allRequestResponses: [] }),
-      ...(this.request.body && { requestBody: this.request.body }),
-      method: this.request.method || this.response.method || "GET",
-    });
-    return result as Cypress.Response<T>;
-  }
-}
-
 export function isValidPactId(value: string): boolean {
   if (value == null || value.length > 1000 || !_.isString(value)) return false;
   const validPactIdRegex = /^[a-zA-Z0-9_-]+(__[a-zA-Z0-9_-]+)*$/;
@@ -412,6 +308,26 @@ export function pactId(value: string | string[]): C8yPactID | undefined {
     return !value ? (value as C8yPactID) : (undefined as any);
   }
   return result;
+}
+
+/**
+ * Validate the given pact mode. Throws an error if the mode is not supported
+ * or undefined.
+ * @param mode The pact mode to validate.
+ */
+export function validatePactMode(mode?: string) {
+  if (mode != null) {
+    const values = Object.values(C8yPactModeValues) as string[];
+    if (!_.isString(mode) || !values.includes(mode.toLowerCase())) {
+      const error = new Error(
+        `Unsupported pact mode: "${mode}". Supported values are: ${values.join(
+          ", "
+        )} or undefined.`
+      );
+      error.name = "C8yPactError";
+      throw error;
+    }
+  }
 }
 
 /**
@@ -537,147 +453,56 @@ export function toPactResponse<T>(
 
 export type C8yPactSaveKeys = "id" | "info" | "records";
 
-export async function toPactSerializableObject(
-  response: Partial<Cypress.Response<any>>,
-  info: C8yPactInfo,
-  options: {
-    preprocessor?: C8yPactPreprocessor;
-    client?: C8yClient;
-    modifiedResponse?: Cypress.Response<any>;
-    schemaGenerator?: C8ySchemaGenerator;
-    loggedInUser?: string;
-    loggedInUserAlias?: string;
-    authType?: string;
-  } = {}
-): Promise<Pick<C8yPact, C8yPactSaveKeys>> {
-  const recordOptions = {
-    loggedInUser: options?.loggedInUser,
-    loggedInUserAlias: options?.loggedInUserAlias,
-    authType: options?.authType,
-  };
-  const record = createPactRecord(response, options?.client, recordOptions);
-  removeBaseUrlFromRequestUrl(record, info.baseUrl);
-  const pact = new C8yDefaultPact([record], info, info.id);
+/**
+ * Returns the value of the environment variable with the given name. The function
+ * tries to find the value in the global `process.env` or `Cypress.env()`. If `env`
+ * is provided, the function uses the given object as environment.
+ *
+ * The function tries to find the value in the following order:
+ * - `name`
+ * - `camelCase(name)`
+ * - `CYPRESS_name`
+ * - `name.replace(/^C8Y_/i, "")`
+ * - `CYPRESS_camelCase(name)`
+ * - `CYPRESS_camelCase(name.replace(/^C8Y_/i, ""))`
+ *
+ * @param name The name of the environment variable.
+ * @param env The environment object to use. Default is `process.env` or `Cypress.env()`
+ *
+ * @returns The value of the environment variable or `undefined` if not found.
+ */
+export function getEnvVar(
+  name: string,
+  env?: { [key: string]: string }
+): string | undefined {
+  if (!name) return undefined;
 
-  if (
-    options?.modifiedResponse &&
-    isCypressResponse(options?.modifiedResponse)
-  ) {
-    const modifiedPactRecord = createPactRecord(
-      options.modifiedResponse,
-      options?.client,
-      recordOptions
-    );
-    pact.records[pact.records.length - 1].modifiedResponse =
-      modifiedPactRecord.response;
+  const e: { [key: string]: string } =
+    env ||
+    (typeof window !== "undefined" && window.Cypress
+      ? Cypress.env()
+      : process.env);
+
+  function getFromEnv(key: string): string | undefined {
+    return e[key] as string | undefined;
   }
 
-  options?.preprocessor?.apply(pact);
-
-  const keysToSave: C8yPactSaveKeys[] = ["id", "info", "records"];
-  try {
-    await Promise.all(
-      pact.records
-        .filter((record_1: C8yPactRecord) => !record_1.response.$body)
-        .map((record_2) =>
-          options?.schemaGenerator
-            ?.generate(record_2.response.body, { name: "body" })
-            .then((schema) => {
-              record_2.response.$body = schema;
-              return record_2;
-            })
-        )
-    );
-    return { ..._.pick(pact, keysToSave) };
-  } catch (error) {
-    console.error(error);
-    return { ..._.pick(pact, keysToSave) };
+  function getForName(name: string): string | undefined {
+    return getFromEnv(name) || getFromEnv(`CYPRESS_${name}`);
   }
+
+  const plainName = name.replace(/^C8Y_/i, "");
+  const camelCasedName = _.camelCase(name).replace(/^c8Y/i, "c8y");
+  const camelCasedPlainName = _.camelCase(plainName);
+  return (
+    getForName(name) ||
+    getForName(camelCasedName) ||
+    getForName(plainName) ||
+    getForName(camelCasedPlainName)
+  );
 }
 
-export function createPactRecord(
-  response: Partial<Cypress.Response<any>>,
-  client?: C8yClient,
-  options: {
-    loggedInUser?: string;
-    loggedInUserAlias?: string;
-    authType?: string;
-  } = {}
-): C8yPactRecord {
-  let auth: C8yAuthOptions | undefined = undefined;
-  const envUser = options.loggedInUser;
-  const envAlias = options.loggedInUserAlias;
-  const envType = options.authType;
-  const envAuth = {
-    ...(envUser && { user: envUser }),
-    ...(envAlias && { userAlias: envAlias }),
-    ...(envAlias && { type: envType ?? "CookieAuth" }),
-  };
-
-  if (client?._auth) {
-    // do not pick the password. passwords must not be stored in the pact.
-    auth = _.defaultsDeep(client._auth, envAuth);
-    if (client._auth.constructor != null) {
-      if (!auth) {
-        auth = { type: client._auth.constructor.name };
-      } else {
-        auth.type = client._auth.constructor.name;
-      }
-    }
-  }
-  if (!auth && (envUser || envAlias)) {
-    auth = envAuth;
-  }
-
-  // only store properties that need to be exposed. do not store password.
-  auth = auth ? toPactAuthObject(auth) : auth;
-  return C8yDefaultPactRecord.from(response, auth, client);
-}
-
-export function updateURLs(
-  value: string,
-  info: C8yPactInfo,
-  options?: { tenantId?: string; baseUrl?: string }
-): string {
-  if (!value || !info) return value;
-  let result = value;
-
-  const tenantUrl = (baseUrl?: string, tenant?: string): URL | undefined => {
-    if (!baseUrl || !tenant) return undefined;
-    try {
-      const url = new URL(baseUrl);
-      const instance = url.host.split(".")?.slice(1)?.join(".");
-      url.host = `${tenant}.${instance}`;
-      return url;
-    } catch {
-      // no-op
-    }
-    return undefined;
-  };
-
-  const infoUrl = tenantUrl(info.baseUrl, info.tenant)
-    ?.toString()
-    ?.replace(/\/$/, "");
-  const url =
-    (
-      tenantUrl(options?.baseUrl, options?.tenantId)?.toString() ??
-      options?.baseUrl
-    )?.replace(/\/$/, "") ?? "";
-
-  if (infoUrl && url) {
-    const regexp = new RegExp(`${infoUrl}`, "g");
-    result = result.replace(regexp, url);
-  }
-
-  if (options?.baseUrl && info.baseUrl) {
-    const regexp = new RegExp(`${info.baseUrl}`, "g");
-    result = result.replace(regexp, options?.baseUrl);
-  }
-
-  if (info.tenant && options?.tenantId) {
-    const regexp = new RegExp(`${info.tenant}`, "g");
-    result = result.replace(regexp, options?.tenantId);
-  }
-
-  return result;
+export function isOneOfStrings(value: string, values: string[]): boolean {
+  if (!_.isString(value) || _.isEmpty(value)) return false;
+  return values.includes(value.toLowerCase());
 }

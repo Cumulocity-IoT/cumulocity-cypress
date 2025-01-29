@@ -1,0 +1,61 @@
+#!/bin/bash
+
+while (( "$#" )); do
+  case "$1" in
+    --static)
+      static=$2
+      shift 2
+      ;;
+    --pact)
+      pact=$2
+      shift 2
+      ;;
+    --env)
+      dotenv=$2
+      shift 2
+      ;;
+    --port)
+      port=$2
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      echo "Error: unsupported argument $1"
+      exit 1
+  esac
+done
+
+if [ -z "$static" ] || [ -z "$pact" ] || [ -z "$dotenv" ]; then
+  echo "Usage: $0 --static <static root> --pact <pact location> --env <env file>"
+  exit 1
+fi
+
+if [ -z "$port" ]; then
+  port=3000
+fi
+
+if [ ! -d "$pact" ]; then
+  echo "Error: pact location does not exist or is not a directory."
+  exit 1
+fi
+
+if [ ! -d "$static" ]; then
+  echo "Error: static root does not exist or is not a directory."
+  exit 1
+fi
+
+if [ ! -f "$dotenv" ]; then
+  echo "Error: env file missing. Pass .env file to pass environment variables to the http-controller."
+  exit 1
+fi
+
+args="-v $pact:/app/recordings -v $dotenv:/app/.env -v $static:/app/static"
+
+if [ "$#" -eq 5 ]; then
+  docker run -p $port:3000 --rm $args -it c8ypact-http-controller "$5"
+else 
+  docker run -p $port:3000 --rm $args -it c8ypact-http-controller
+fi 

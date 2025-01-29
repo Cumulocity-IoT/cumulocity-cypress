@@ -8,7 +8,7 @@ import {
   resolveConfigOptions,
   resolveScreenshotFolder,
 } from "./helper";
-import schema from "./../screenshot/schema.json";
+import schema from "./schema.json";
 
 jest.spyOn(process, "cwd").mockReturnValue("/home/user/test");
 

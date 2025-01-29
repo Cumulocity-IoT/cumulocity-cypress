@@ -1,4 +1,7 @@
-import { C8yDefaultPactRunner, C8yDefaultPactRecord } from "cumulocity-cypress";
+import {
+  C8yDefaultPactRunner,
+  C8yDefaultPactRecord,
+} from "cumulocity-cypress/c8ypact";
 
 const { _ } = Cypress;
 

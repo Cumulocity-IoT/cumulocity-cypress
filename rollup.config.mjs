@@ -1,11 +1,9 @@
 import dts from "rollup-plugin-dts";
-import resolve from "rollup-plugin-node-resolve";
-import commonjs from "rollup-plugin-commonjs";
-// import typescript from "rollup-plugin-typescript2";
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
 import shebang from 'rollup-plugin-shebang-bin'
 
-// eslint-disable-next-line import/no-named-as-default
 import glob from 'glob';
 
 import path from "node:path";
@@ -24,7 +22,7 @@ export default [
     ],
     plugins: [
       resolve({
-        only: ["./src/**"],
+        resolveOnly: ["./src/**"],
       }),
       commonjs(),
       json(),
@@ -32,15 +30,47 @@ export default [
   },
   {
     input: "dist/plugin/index.d.ts",
-    output: [{ file: "dist/plugin/index.d.ts", format: "es", sourcemap: true }],
+    output: [
+      { file: "dist/plugin/index.d.ts", format: "es", sourcemap: false },
+    ],
+    plugins: [dts()],
+  },
+  {
+    input: glob.sync('./dist/c8yscrn/*.js'),
+    output: [
+      {
+        name: "c8yctrl",
+        dir: "dist/c8yctrl",
+        format: "commonjs",
+      },
+    ],
+    plugins: [
+      resolve({
+        resolveOnly: ["./src/**"],
+        preferBuiltins: true,
+      }),
+      commonjs(),
+      json(),
+      shebang(
+        {
+          include: [
+            "dist/c8yscrn/startup.js",
+          ]
+        }
+      )
+    ],
+  },
+  {
+    input: "dist/shared/c8yctrl/index.d.ts",
+    output: [{ file: "dist/c8yctrl/c8yctrl.d.ts", format: "es", sourcemap: false }],
     plugins: [dts()],
   },
   {
     input: Object.fromEntries(
-      // eslint-disable-next-line import/no-named-as-default-member
-      glob.sync("dist/screenshot/*.js").map((file) => [
+      // https://rollupjs.org/configuration-options/#input
+      glob.sync("dist/c8yscrn/*.js").map((file) => [
         path.relative(
-          "dist",
+          "dist/",
           file.slice(0, file.length - path.extname(file).length)
         ),
         fileURLToPath(new URL(file, import.meta.url)),
@@ -48,20 +78,20 @@ export default [
     ),
     output: [
       {
-        dir: "dist",
+        dir: "dist/",
         format: "commonjs",
       },
     ],
     plugins: [
       resolve({
-        only: ["./src/**"],
+        resolveOnly: ["./src/**"],
       }),
       commonjs(),
       json(),
       shebang(
         {
           include: [
-            "dist/screenshot/startup.js",
+            "dist/c8yscrn/startup.js",
           ]
         }
       )
