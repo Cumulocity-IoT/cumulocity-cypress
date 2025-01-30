@@ -64,12 +64,12 @@
       "default": "./lib/commands/index.js"
     },
     "./c8ypact": {
-      "types": "./lib/commands/c8ypact.d.ts",
-      "default": "./lib/commands/c8ypact.js"
+      "types": "./c8ypact.d.ts",
+      "default": "./c8ypact.js"
     },
     "./c8yctrl": {
-      "types": "./c8yctrl/c8yctrl.d.ts",
-      "default": "./c8yctrl/c8yctrl.js"
+      "types": "./c8yctrl/index.d.ts",
+      "default": "./c8yctrl/index.js"
     },
     "./shared/*": "./shared/*",
     "./commands/*": "./lib/commands/*"

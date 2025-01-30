@@ -9,7 +9,7 @@ import {
   C8yPactFileAdapter,
   C8yPactMode,
   C8yPactRecordingMode,
-} from "cumulocity-cypress/shared/c8ypact";
+} from "../c8ypact";
 
 import { Request, RequestHandler } from "express";
 import { ClientRequest, IncomingMessage, ServerResponse } from "http";
@@ -125,7 +125,7 @@ export interface C8yPactHttpControllerOptions {
    * RequestHandler to use for logging errors. Default is morgan logger
    * that logs error object with url, status, request and response details.
    */
-  errorLogger?: RequestHandler;
+  errorLogger?: RequestHandler | "common" | "combined" | "dev" | "short" | "tiny" | string;
   /**
    * Log level to use for logging. Default is info.
    */
