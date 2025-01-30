@@ -225,11 +225,15 @@ export class C8yPactHttpController {
         );
       }
 
+      const errorHandler = _.isString(this.options.errorLogger)
+        ? morgan(this.options.errorLogger, morganErrorOptions(this.logger))
+        : this.options.errorLogger;
+
       if (!this.proxyHandler) {
         this.proxyHandler = this.app.use(
           createMiddleware(this, {
             ...this.options,
-            errorHandler: this.options.errorLogger,
+            errorHandler,
           })
         );
       }
@@ -748,4 +752,24 @@ export class C8yPactHttpController {
       return x;
     });
   }
+}
+
+export function morganErrorOptions(
+  logger: winston.Logger | undefined = undefined
+) {
+  const options = {
+    skip: (req, res) => {
+      return (
+        res.statusCode < 400 || req.url.startsWith("/notification/realtime")
+      );
+    },
+  } as morgan.Options<express.Request, express.Response>;
+  if (logger != null) {
+    options.stream = {
+      write: (message: string) => {
+        logger.error(message.trim());
+      },
+    };
+  }
+  return options;
 }
