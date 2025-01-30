@@ -9,7 +9,7 @@ import {
   C8yPactFileAdapter,
   C8yPactMode,
   C8yPactRecordingMode,
-} from "cumulocity-cypress/shared/c8ypact";
+} from "../c8ypact";
 
 import { Request, RequestHandler } from "express";
 import { ClientRequest, IncomingMessage, ServerResponse } from "http";

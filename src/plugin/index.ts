@@ -13,7 +13,7 @@ import {
 import {
   C8yPactHttpController,
   C8yPactHttpControllerOptions,
-} from "../shared/c8yctrl";
+} from "../c8yctrl";
 import {
   C8yPact,
   getEnvVar,

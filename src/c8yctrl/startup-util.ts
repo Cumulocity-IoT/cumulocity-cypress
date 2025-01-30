@@ -21,7 +21,8 @@ import {
   C8yPactRecordingModeValues,
   C8yPactHttpControllerDefaultMode,
   C8yPactHttpControllerDefaultRecordingMode,
-} from "../shared/c8yctrl";
+} from "./index";
+
 
 import { RequestHandler } from "express";
 import {
