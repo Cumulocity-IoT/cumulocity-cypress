@@ -2,12 +2,10 @@
 
 import _ from "lodash";
 import debug from "debug";
+import { inspect } from "util";
 import { config as dotenv } from "dotenv";
 
-import {
-  C8yPactHttpController,
-  C8yPactHttpControllerOptions,
-} from "./index";
+import { C8yPactHttpController, C8yPactHttpControllerOptions } from "./index";
 
 import { cosmiconfig } from "cosmiconfig";
 import { TypeScriptLoader } from "cosmiconfig-typescript-loader";
@@ -62,13 +60,20 @@ const log = debug("c8y:ctrl:startup");
   }
 
   // now config is complete and we can start the controller
+  const c = config as C8yPactHttpControllerOptions;
   try {
-    const c = config as C8yPactHttpControllerOptions;
     validateConfig(config);
     const controller = new C8yPactHttpController(c);
     config.on?.beforeStart?.(controller, c);
     await controller.start();
   } catch (error: any) {
-    console.error("Error starting c8yctrl:", error.message);
+    if (c.logger != null) {
+      c.logger?.error(
+        `Error starting c8yctrl: ${inspect(error, { depth: null })}`
+      );
+    } else {
+      console.error(`Error starting c8yctrl`);
+      console.error(error);
+    }
   }
 })();

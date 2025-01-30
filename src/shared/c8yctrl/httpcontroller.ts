@@ -1,4 +1,5 @@
 import _ from "lodash";
+import { inspect } from "util";
 
 import express, { Express, RequestHandler } from "express";
 
@@ -201,7 +202,11 @@ export class C8yPactHttpController {
           this.logger.info(`oauthLogin -> ${this.baseUrl} (${a.user})`);
           _.extend(this.authOptions, _.pick(a, ["bearer", "xsrfToken"]));
         } catch (error) {
-          this.logger.error(`Login failed ${this.baseUrl} (${user})`, error);
+          this.logger.error(
+            `Login failed ${this.baseUrl} (${user})\n${inspect(error, {
+              depth: null,
+            })}`
+          );
         }
       }
     }
@@ -245,15 +250,10 @@ export class C8yPactHttpController {
 
     this.registerC8yctrlInterface();
 
-    try {
-      this.server = await this.app.listen(this.port);
-      this.logger.info(
-        `Started: ${this.hostname}:${this.port} (mode: ${this.mode})`
-      );
-    } catch (error) {
-      this.logger.error("Error starting server:", error);
-      throw error;
-    }
+    this.server = await this.app.listen(this.port);
+    this.logger.info(
+      `Started: ${this.hostname}:${this.port} (mode: ${this.mode})`
+    );
   }
 
   /**
@@ -315,9 +315,8 @@ export class C8yPactHttpController {
         log(`${relativePath} -> ${appFolder}`);
         this.app.use(relativePath, express.static(appFolder));
       } catch (error) {
-        this.logger.error(
-          `  error reading or parsing ${cumulocityJsonPath} - ${error}`
-        );
+        this.logger.error(`error reading or parsing ${cumulocityJsonPath}`);
+        this.logger.error(inspect(error, { depth: null }));
       }
     }
   }
@@ -739,6 +738,7 @@ export class C8yPactHttpController {
       return result;
     } catch (error) {
       this.logger.error(`Failed to save pact ${error}`);
+      this.logger.error(inspect(error, { depth: null }));
       return false;
     }
   }
