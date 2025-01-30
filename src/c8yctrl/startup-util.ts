@@ -23,6 +23,7 @@ import {
   C8yPactHttpControllerDefaultRecordingMode,
 } from "./index";
 
+import {  morganErrorOptions } from "../shared/c8yctrl/httpcontroller"
 
 import { RequestHandler } from "express";
 import {
@@ -423,18 +424,7 @@ const applyDefaultLogConfig = (
       log("default morgan error-object token compiled and registered");
     }
 
-    config.errorLogger = morgan(":error-object", {
-      skip: (req, res) => {
-        return (
-          res.statusCode < 400 || req.url.startsWith("/notification/realtime")
-        );
-      },
-      stream: {
-        write: (message: string) => {
-          config.logger?.error(message.trim());
-        },
-      },
-    });
+    config.errorLogger = morgan(":error-object", morganErrorOptions(config.logger));
     log("configured default error logger");
   }
 

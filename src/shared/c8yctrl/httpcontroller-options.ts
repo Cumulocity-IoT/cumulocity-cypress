@@ -124,8 +124,10 @@ export interface C8yPactHttpControllerOptions {
   /**
    * RequestHandler to use for logging errors. Default is morgan logger
    * that logs error object with url, status, request and response details.
+   * Use "common", "combined", "dev", "short" or "tiny" to use predefined 
+   * mporgan log formats.
    */
-  errorLogger?: RequestHandler;
+  errorLogger?: RequestHandler | "common" | "combined" | "dev" | "short" | "tiny" | string;
   /**
    * Log level to use for logging. Default is info.
    */
