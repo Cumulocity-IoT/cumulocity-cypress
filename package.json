@@ -116,10 +116,11 @@
     "quicktype": "^23.0.81",
     "semver": "^7.5.2",
     "set-cookie-parser": "^2.6.0",
+    "swagger-ui-express": "^5.0.1",
     "tslib": "^2.6.2",
     "winston": "^3.13.0",
     "ws": "^8.18.0",
-    "yaml": "^2.5.1",
+    "yaml": "^2.7.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
@@ -142,6 +143,7 @@
     "@types/node": "^20.10.6",
     "@types/semver": "^7.5.8",
     "@types/set-cookie-parser": "^2.4.7",
+    "@types/swagger-ui-express": "^4.1.7",
     "copyfiles": "^2.4.1",
     "cross-env": "^7.0.3",
     "eslint": "^9.19.0",

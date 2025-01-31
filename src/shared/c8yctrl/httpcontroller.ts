@@ -46,6 +46,9 @@ import path from "path";
 import { isVersionSatisfyingRequirements } from "../versioning";
 import { getPackageVersion, safeStringify } from "../util";
 
+import swaggerUi from 'swagger-ui-express';
+import yaml from 'yaml';
+
 import debug from "debug";
 const log = debug("c8y:ctrl:http");
 
@@ -224,6 +227,18 @@ export class C8yPactHttpController {
       // is needed before any other handlers dealing with request bodies
       const ignoredPaths = [this.resourcePath];
 
+      try {
+        const openapiPath = path.join(__dirname, 'openapi.yaml');
+        const fileContent = fs.readFileSync(openapiPath, "utf-8");
+        const document = yaml.parse(fileContent);
+  
+        this.app.use(`${this.resourcePath}/openapi/`, swaggerUi.serve, swaggerUi.setup(document));
+        this.logger.info(`OpenAPI: ${this.resourcePath}/openapi/`);
+      } catch (error: any) {
+        this.logger.warn(`Failed to load OpenAPI document: ${error.message}`);
+        this.logger.debug(inspect(error, { depth: null }));
+      }
+  
       if (!this.mockHandler) {
         this.mockHandler = this.app.use(
           wrapPathIgnoreHandler(this.mockRequestHandler, ignoredPaths)
