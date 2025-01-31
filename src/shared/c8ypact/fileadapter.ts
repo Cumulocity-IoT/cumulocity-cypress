@@ -44,6 +44,7 @@ export interface C8yPactFileAdapter {
   pactExists(id: string): boolean;
   /**
    * Provides some custom description of the adapter.
+   * @example C8yPactFileAdapter
    */
   description(): string;
 }

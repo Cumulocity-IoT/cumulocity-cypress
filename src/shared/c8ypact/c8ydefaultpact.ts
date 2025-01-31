@@ -18,6 +18,7 @@ import {
 import { C8ySchemaGenerator } from "./schema";
 import { C8yPactPreprocessor } from "./preprocessor";
 import { C8yDefaultPactRecord, createPactRecord } from "./c8ydefaultpactrecord";
+import { C8yBaseUrl } from "../types";
 
 /**
  * Default implementation of C8yPact. Use C8yDefaultPact.from to create a C8yPact from
@@ -162,7 +163,7 @@ export class C8yDefaultPact implements C8yPact {
 
   nextRecordMatchingRequest(
     request: Partial<Request> | { url: string; method: string },
-    baseUrl?: string
+    baseUrl?: C8yBaseUrl
   ): C8yPactRecord | null {
     if (!request?.url) return null;
     const key = this.indexMapKey(request, baseUrl);
@@ -187,7 +188,7 @@ export class C8yDefaultPact implements C8yPact {
 
   protected indexMapKey(
     request: Partial<Request> | C8yPactRequest,
-    baseUrl?: string
+    baseUrl?: C8yBaseUrl
   ): string | undefined {
     if (!request.url) return undefined;
     const url = this.normalizeUrl(request.url, undefined, baseUrl);
@@ -198,7 +199,7 @@ export class C8yDefaultPact implements C8yPact {
   protected normalizeUrl(
     url: string | URL,
     parametersToRemove?: string[],
-    baseUrl?: string
+    baseUrl?: C8yBaseUrl
   ) {
     const urlObj = isURL(url)
       ? url
@@ -225,7 +226,7 @@ export class C8yDefaultPact implements C8yPact {
   protected matchUrls(
     url1: string | URL,
     url2: string | URL,
-    baseUrl?: string
+    baseUrl?: C8yBaseUrl
   ): boolean {
     if (!url1 || !url2) return false;
 
@@ -249,7 +250,7 @@ export class C8yDefaultPact implements C8yPact {
    */
   getRecordsMatchingRequest(
     req: Partial<Request> | C8yPactRequest,
-    baseUrl?: string
+    baseUrl?: C8yBaseUrl
   ): C8yPactRecord[] | null {
     const records = this.records.filter((record) => {
       return (

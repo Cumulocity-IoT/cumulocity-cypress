@@ -5,7 +5,7 @@ import {
   STATIC_RESPONSE_WITH_OPTIONS_KEYS,
 } from "../pact/constants";
 import { getBaseUrlFromEnv } from "../utils";
-import { isAbsoluteURL } from "cumulocity-cypress/shared/c8ypact/url";
+import { isAbsoluteURL } from "../../shared/c8ypact/url";
 
 const { _ } = Cypress;
 

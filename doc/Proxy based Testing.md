@@ -20,16 +20,6 @@ Use `c8yctrl` for
   - [Configuration File](#configuration-file)
 - [How it works](#how-it-works)
 - [Rest Interface](#rest-interface)
-  - [POST /c8yctrl/current](#post-c8yctrlcurrent)
-    - [Parameters](#parameters-1)
-  - [GET /c8yctrl/current](#get-c8yctrlcurrent)
-  - [DELETE /c8yctrl/current](#delete-c8yctrlcurrent)
-  - [POST /c8yctrl/current/clear](#post-c8yctrlcurrentclear)
-  - [GET /c8yctrl/current/request?](#get-c8yctrlcurrentrequest)
-  - [GET /c8yctrl/current/response?](#get-c8yctrlcurrentresponse)
-  - [GET /c8yctrl/log](#get-c8yctrllog)
-  - [POST /c8yctrl/log](#post-c8yctrllog)
-  - [PUT /c8yctrl/log](#put-c8yctrllog)
   - [Using c8yctrl with cumulocity-cypress](#using-c8yctrl-with-cumulocity-cypress)
   - [From Cypress tests](#from-cypress-tests)
   - [For microservices](#for-microservices)
@@ -247,80 +237,13 @@ When receiving a request, `c8yctrl` will check if the request path matches a fil
 
 ## Rest Interface
 
-`c8yctrl` provides a REST interface to configure the HTTP controller at runtime. The interface is available via `/c8yctrl` and provides the following endpoints.
+`c8yctrl` provides a REST interface to configure the HTTP controller at runtime. The interface is available via `/c8yctrl`.
 
-### POST /c8yctrl/current
-
-The `/c8yctrl/current` endpoint allows creating a new recording for a given id or title. The endpoint accepts a JSON body or query parameters with the following properties:
-
-```json
-{
-  "title": "Test case title",
-  "mode": "apply",
-  "recordingMode": "append",
-  "clear": true,
-  "strictMocking": true
-}
-```
-
-#### Parameters
-
-- `title` - The title of the test case being recorded. An `id` is generated from the title and used to store the recording. Might be an array of strings representing the suite hierarchy and test case title.
-- `mode` - The mode the controller is running in. Possible values are `apply`, `mock`, `record`, `forward`.
-- `recordingMode` - The recording mode to use for recording requests and responses. Possible values are `append`, `new`, `replace`, `refresh`.
-- `clear` - If set to `true`, the controller will clear the existing recording before recording new following requests.
-- `strictMocking` - If set to `true`, the controller will send an `errorResponseRecord` if no recording is available to mock the response. If set to `false`, the controller will forward the request to `baseUrl` (without recording the response).
-
-### GET /c8yctrl/current
-
-Gets the current `C8yPact` including its configuration (`C8yPactInfo`) and number of recorded requests.
-
-### DELETE /c8yctrl/current
-
-Resets the current `C8yPact`. This will however not delete any data!
-
-### POST /c8yctrl/current/clear
-
-Clears the current `C8yPact` records. This will not delete the pact itself.
-
-### GET /c8yctrl/current/request?
-
-Returns an object with the provided keys per request from the current pact. Supports special key `size` to get the size in byte of a request body.
-
-Useful to retrieve for example urls of requests without getting all pact data. 
-
-### GET /c8yctrl/current/response?
-
-Returns an object with the provided keys per response from the current pact. Supports special key `size` to get the size in byte of a response body.
-
-### GET /c8yctrl/log
-
-Gets the current log level of the controller.
-
-### POST /c8yctrl/log
-
-Sends a log message to the controller. The log message is forwarded to the logger registered in the controller. The body of the request should be a JSON object with the following properties:
-
-```json
-{
-  "level": "info",
-  "message": "This is a log message"
-}
-```
-
-### PUT /c8yctrl/log
-
-Update logger configuration. Supports config parameters via body or query.
-
-```json
-{
-  "level": "debug",
-}
-```
-
-The body of the request should be a JSON object. Only property currently supported is `level`. Possible values are `debug`, `info`, `warn`, `error`.
+You can access the OpenAPI documentation using `/c8yctrl/openapi`
 
 ### Using c8yctrl with cumulocity-cypress
+
+tbd.
 
 ### From Cypress tests
 

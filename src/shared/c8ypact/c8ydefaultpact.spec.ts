@@ -5,6 +5,7 @@ import _ from "lodash";
 import { C8yDefaultPact } from "./c8ydefaultpact";
 import { isPact } from "./c8ypact";
 import { C8yDefaultPactRecord } from "./c8ydefaultpactrecord";
+import { C8yBaseUrl } from "../types";
 
 /**
  * Wrapper for protected methods and properties of C8yDefaultPact for testing.
@@ -40,7 +41,7 @@ class TestPact extends C8yDefaultPact {
 }
 
 const BASE_URL = "http://localhost:4200";
-const url = (path: string, baseUrl: string = BASE_URL) => {
+const url = (path: string, baseUrl: C8yBaseUrl = BASE_URL) => {
   if (baseUrl && !baseUrl.toLowerCase().startsWith("http")) {
     baseUrl = `https://${baseUrl}`;
   }

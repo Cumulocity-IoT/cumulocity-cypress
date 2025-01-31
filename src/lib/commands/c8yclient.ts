@@ -27,6 +27,7 @@ import {
 } from "../../shared/c8yclient";
 import { C8yAuthentication, isAuthOptions } from "../../shared/auth";
 import "../pact/c8ymatch";
+import { C8yBaseUrl } from "../../shared/types";
 
 declare global {
   namespace Cypress {
@@ -338,7 +339,7 @@ function runClient(
   client: C8yClient,
   fns: C8yClientFnArg,
   prevSubject: any,
-  baseUrl: string
+  baseUrl: C8yBaseUrl
 ) {
   storeClient(client);
   if (!fns) {
@@ -354,7 +355,7 @@ function runClient(
 function authenticateClient(
   auth: C8yAuthentication,
   options: C8yClientOptions,
-  baseUrl: string
+  baseUrl: C8yBaseUrl
 ): Cypress.Chainable<C8yClient> {
   return cy.then({ timeout: options.timeout }, async () => {
     const clientCore = new FetchClient(auth, baseUrl);
@@ -374,7 +375,7 @@ function run(
   fns: C8yClientFnArg,
   prevSubject: any,
   options: C8yClientOptions,
-  baseUrl: string
+  baseUrl: C8yBaseUrl
 ) {
   const clientFn = isArrayOfFunctions(fns) ? fns.shift() : fns;
   if (!clientFn) {

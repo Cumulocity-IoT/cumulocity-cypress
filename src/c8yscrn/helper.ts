@@ -10,6 +10,7 @@ import {
   ScreenshotSetup,
 } from "../lib/screenshots/types";
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
+import { C8yBaseUrl } from "../shared/types";
 
 export function readYamlFile(filePath: string): any {
   const fileContent = fs.readFileSync(filePath, "utf-8");
@@ -55,7 +56,7 @@ export function loadConfigFile(
   return configData;
 }
 
-export function createInitConfig(baseUrl: string): string {
+export function createInitConfig(baseUrl: C8yBaseUrl): string {
   return `
 # yaml-language-server: $schema=${__dirname}/schema.json
 

@@ -8,6 +8,7 @@ const _ = lodash1 || lodash2;
 import { C8yPactPreprocessorOptions } from "./preprocessor";
 import { C8yClientOptions } from "../c8yclient";
 import { C8yPactAuthObject } from "../auth";
+import { C8yBaseUrl, C8yTenant } from "../types";
 
 export const C8yPactModeValues = [
   "record",
@@ -45,12 +46,13 @@ export type C8yPactRecordingMode = (typeof C8yPactRecordingModeValues)[number];
 
 /**
  * ID representing a pact object. Should be unique.
+ * @example api__get__permission_failure_tests
  */
 export type C8yPactID = string;
 
 export interface C8yPactRequestMatchingOptions {
   ignoreUrlParameters?: string[];
-  baseUrl?: string;
+  baseUrl?: C8yBaseUrl;
 }
 
 export interface C8yPactConfigOptions {
@@ -114,7 +116,7 @@ export interface C8yPactConfigOptions {
 export type C8yPactConfigKeys = keyof C8yPactConfigOptions;
 
 export interface C8yPactEnv {
-  tenant?: string;
+  tenant?: C8yTenant;
   loggedInUser?: string;
   loggedInUserAlias?: string;
   testTitlePath?: string[];
@@ -172,7 +174,7 @@ export interface C8yPact {
    */
   nextRecordMatchingRequest(
     request: Partial<Request> | { url: string; method: string },
-    baseUrl?: string
+    baseUrl?: C8yBaseUrl
   ): C8yPactRecord | null;
   /**
    * Returns an iterator for the pact records.
@@ -208,11 +210,11 @@ export interface C8yPactInfo extends C8yPactConfigOptions {
   /**
    * Base URL when recording the pact.
    */
-  baseUrl: string;
+  baseUrl: C8yBaseUrl;
   /**
    * Tenant when recording the pact.
    */
-  tenant?: string;
+  tenant?: C8yTenant;
 }
 
 /**
