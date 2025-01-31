@@ -29,6 +29,7 @@ import {
   ScreenshotSetup,
 } from "../lib/screenshots/types";
 import { loadConfigFile } from "../c8yscrn/helper";
+import { C8yBaseUrl } from "../shared/types";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
 export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
@@ -163,7 +164,7 @@ export function configureC8yPlugin(
 
   async function login(options: {
     auth: C8yAuthOptions;
-    baseUrl: string;
+    baseUrl: C8yBaseUrl;
   }): Promise<C8yAuthOptions> {
     log(
       `login() - ${options?.auth?.user}:${options?.auth?.password} -> ${options?.baseUrl}`

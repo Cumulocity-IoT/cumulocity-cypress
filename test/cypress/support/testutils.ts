@@ -2,6 +2,7 @@ import { IncomingMessage } from "http";
 import { getBaseUrlFromEnv } from "../../../src/lib/utils";
 import { encodeBase64 } from "../../../src/shared/c8yclient";
 import * as setCookieParser from "set-cookie-parser";
+import { C8yTenant } from "../../../src/shared/types";
 
 const { _, sinon } = Cypress;
 
@@ -44,7 +45,7 @@ export function initRequestStub(): void {
 export function initLoginRequestStub(
   xsrf?: string,
   authorization?: string,
-  tenant?: string
+  tenant?: C8yTenant
 ): void {
   Cypress.env("C8Y_TENANT", tenant);
   const headers = new Headers();

@@ -15,6 +15,7 @@ import {
   getBaseUrlFromEnv,
   getC8yClientAuthentication,
 } from "../utils";
+import { C8yBaseUrl } from "../../shared/types";
 
 const { _ } = Cypress;
 
@@ -28,7 +29,7 @@ export class C8yPactFetchClient extends FetchClient {
 
   constructor(options: {
     auth?: C8yAuthOptions | IAuthentication | string;
-    baseUrl?: string;
+    baseUrl?: C8yBaseUrl;
     cypresspact?: CypressC8yPact;
   }) {
     const auth = getC8yClientAuthentication(options.auth);

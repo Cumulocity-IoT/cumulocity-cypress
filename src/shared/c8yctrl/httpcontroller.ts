@@ -22,6 +22,7 @@ import {
   C8yPactMode,
   C8yPactRecordingModeValues,
   C8yPactModeValues,
+  C8yPactID,
 } from "../c8ypact";
 
 import {
@@ -49,6 +50,8 @@ import { getPackageVersion, safeStringify } from "../util";
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
 
+import { C8yBaseUrl, C8yTenant } from "../types";
+
 import debug from "debug";
 const log = debug("c8y:ctrl:http");
 
@@ -58,9 +61,9 @@ export class C8yPactHttpController {
   readonly port: number;
   readonly hostname: string;
 
-  protected _baseUrl?: string;
+  protected _baseUrl?: C8yBaseUrl;
   protected _staticRoot?: string;
-  readonly tenant?: string;
+  readonly tenant?: C8yTenant;
 
   adapter?: C8yPactFileAdapter;
   protected _recordingMode: C8yPactRecordingMode = "append";
@@ -138,10 +141,18 @@ export class C8yPactHttpController {
     this.authOptions = options.auth;
   }
 
+  /**
+   * Base URL of the target server to proxy requests to.
+   * @example "https://mytenant.eu-latest.cumulocity.com"
+   */
   get baseUrl(): string | undefined {
     return this._baseUrl;
   }
 
+  /**
+   * Root folder for static files to serve. The controller will serve static files from this folder.
+   * @example "/path/to/static/root"
+   */
   get staticRoot(): string | undefined {
     return this._staticRoot;
   }
@@ -357,7 +368,7 @@ export class C8yPactHttpController {
     this.app.post(`${this.resourcePath}/current`, async (req, res) => {
       const parameters = { ...req.body, ...req.query };
       const { mode, clear, recordingMode, strictMocking } = parameters;
-      const id = pactId(parameters.id) || pactId(parameters.title);
+      const id: C8yPactID | undefined = pactId(parameters.id) || pactId(parameters.title);
 
       this.mode = mode as C8yPactMode;
       this.recordingMode = recordingMode as C8yPactRecordingMode;

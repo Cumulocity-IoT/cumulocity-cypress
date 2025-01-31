@@ -1,3 +1,4 @@
+import { C8yTenant } from "../../shared/types";
 import { getAuthOptions, resetClient } from "../utils";
 import { C8yAuthOptions, isAuthOptions } from "./auth";
 
@@ -101,7 +102,7 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
       consoleProps.auth = auth || null;
       consoleProps.options = options || null;
 
-      const loginRequest = (tenant: string) => {
+      const loginRequest = (tenant: C8yTenant) => {
         // cookie banner adds interception, set before login
         if (options.hideCookieBanner === true) {
           cy.hideCookieBanner();
@@ -126,7 +127,7 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
           });
       };
 
-      const tenant: string = auth?.tenant || Cypress.env("C8Y_TENANT");
+      const tenant: C8yTenant = auth?.tenant || Cypress.env("C8Y_TENANT");
       consoleProps.tenant = tenant || null;
 
       if (options.useSession === true) {

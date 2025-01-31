@@ -19,12 +19,13 @@ import type {
   C8yCtrlHeader,
   C8yPactHttpResponse,
 } from "./httpcontroller-options";
+import { C8yBaseUrl } from "../types";
 
 export function createMiddleware(
   c8yctrl: C8yPactHttpController,
   options: {
     auth?: C8yAuthOptions;
-    baseUrl?: string;
+    baseUrl?: C8yBaseUrl;
     logger?: winston.Logger;
     ignoredPaths?: string[];
     errorHandler?: RequestHandler;

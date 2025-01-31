@@ -1,3 +1,4 @@
+import { C8yBaseUrl, C8yTenant } from "../types";
 import { C8yPactRecord } from "./c8ypact";
 import _ from "lodash";
 
@@ -14,7 +15,7 @@ export function relativeURL(url: URL | string): string | undefined {
   }
 }
 
-export function removeBaseUrlFromString(url: string, baseUrl?: string): string {
+export function removeBaseUrlFromString(url: string, baseUrl?: C8yBaseUrl): string {
   if (!url || !baseUrl) {
     return url;
   }
@@ -31,7 +32,7 @@ export function removeBaseUrlFromString(url: string, baseUrl?: string): string {
 
 export function removeBaseUrlFromRequestUrl(
   record: C8yPactRecord,
-  baseUrl?: string
+  baseUrl?: C8yBaseUrl
 ): void {
   if (!record?.request?.url || !baseUrl || !_.isString(baseUrl)) {
     return;
@@ -44,8 +45,8 @@ function normalizeUrl(url: string): string {
 }
 
 export function tenantUrl(
-  baseUrl?: string,
-  tenant?: string
+  baseUrl?: C8yBaseUrl,
+  tenant?: C8yTenant
 ): string | undefined {
   if (!baseUrl || !tenant) return undefined;
 
@@ -67,8 +68,8 @@ export function tenantUrl(
 
 export function updateURLs(
   value: string,
-  from: { baseUrl: string; tenant?: string },
-  to: { baseUrl: string; tenant?: string }
+  from: { baseUrl: C8yBaseUrl; tenant?: C8yTenant },
+  to: { baseUrl: C8yBaseUrl; tenant?: C8yTenant }
 ): string {
   if (!value || !from || !to) return value;
   let result = value;
@@ -117,7 +118,7 @@ export function isAbsoluteURL(url: string) {
  *
  * @param baseUrl The url to validate.
  */
-export function validateBaseUrl(baseUrl?: string) {
+export function validateBaseUrl(baseUrl?: C8yBaseUrl) {
   if (baseUrl != null && !isAbsoluteURL(baseUrl)) {
     const error = new Error(
       `Invalid value for C8Y_BASEURL. C8Y_BASEURL must be an absolute URL or undefined.`

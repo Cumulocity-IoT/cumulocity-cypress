@@ -3,6 +3,7 @@
 // using & to combine types is not supported by JSON schema and will
 // result in copying the properties of the intersection into the resulting
 // subschemas.
+import { C8yBaseUrl } from "../../shared/types";
 import { ODiffOptions } from "odiff-bin";
 
 export type ScreenshotSetup = {
@@ -10,7 +11,7 @@ export type ScreenshotSetup = {
    * The base URL used for all relative requests.
    * @format uri
    */
-  baseUrl?: string;
+  baseUrl?: C8yBaseUrl;
   /**
    * The title used for root group of screenshot workflows
    */

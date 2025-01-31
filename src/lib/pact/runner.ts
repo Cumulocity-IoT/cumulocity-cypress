@@ -1,3 +1,4 @@
+import { C8yBaseUrl, C8yTenant } from "../../shared/types";
 import { C8yClientOptions } from "../../shared/c8yclient";
 import {
   C8yPact,
@@ -247,7 +248,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
     if (!value || !info) return value;
     let result = value;
 
-    const tenantUrl = (baseUrl: string, tenant?: string): URL | undefined => {
+    const tenantUrl = (baseUrl: C8yBaseUrl, tenant?: C8yTenant): URL | undefined => {
       if (!baseUrl || !tenant) return undefined;
       try {
         const url = new URL(baseUrl);
