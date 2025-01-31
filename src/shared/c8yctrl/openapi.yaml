@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: cumulocity-cypress c8yctl API
+  title: C8YCTRL API Documentation
   version: 1.0.0
 paths:
   /c8yctrl:
@@ -12,6 +12,7 @@ paths:
   /c8yctrl/status:
     get:
       summary: Get the status of the server
+      description: Returns the status of the server including the uptime, version, and current configuration. 
       responses:
         '200':
           description: Server status
@@ -22,6 +23,7 @@ paths:
   /c8yctrl/current:
     get:
       summary: Get the current pact
+      description: Gets the current `C8yPact` including its configuration (`C8yPactInfo`) and number of recorded requests.
       responses:
         '200':
           description: Current pact
@@ -33,45 +35,46 @@ paths:
           description: No pact is set
     post:
       summary: Set the current pact
+      description: Sets a new `C8yPact` for recording or mocking requests. If there is no pact with the provided id, a new pact is created. If there is already a pact with the provided id, the pact is updated.
       parameters:
         - in: query
           name: id
           schema:
             type: string
           required: false
-          description: Pact ID
+          description: The ID of the pact.
         - in: query
           name: title
           schema:
             type: string
           required: false
-          description: Pact title
+          description: The title of the test case being recorded. An `id` is generated from the title and used to store the recording. Might be an array of strings representing the suite hierarchy and test case title.
         - in: query
           name: mode
           schema:
             type: string
             enum: ["apply", "mock", "record", "recording", "forward"]
           required: false
-          description: Pact mode
+          description: The mode the controller is running in.
         - in: query
           name: clear
           schema:
             type: string
           required: false
-          description: Clear pact records
+          description: If set to `true`, the controller will clear the existing recording before recording new following requests.
         - in: query
           name: recordingMode
           schema:
             type: string
             enum: ["append", "new", "replace", "refresh"]
           required: false
-          description: Recording mode
+          description: The recording mode to use for recording requests and responses.
         - in: query
           name: strictMocking
           schema:
             type: boolean
           required: false
-          description: Enable strict mocking
+          description: If set to `true`, the controller will send an `errorResponseRecord` if no recording is available to mock the response. If set to `false`, the controller will forward the request to `baseUrl` (without recording the response).
       requestBody:
         content:
           application/json:
@@ -88,12 +91,14 @@ paths:
           description: Pact not found
     delete:
       summary: Clear the current pact
+      description: Resets the current `C8yPact`. This will however not delete any data!
       responses:
         '204':
           description: Pact cleared
   /c8yctrl/current/clear:
     post:
       summary: Clear records of the current pact
+      description: Clears the current `C8yPact` records. This will not delete the pact itself.
       responses:
         '204':
           description: No pact is set
@@ -106,6 +111,7 @@ paths:
   /c8yctrl/current/request:
     get:
       summary: Get requests of the current pact
+      description: Returns an object with the provided keys per request from the current pact. Supports special key `size` to get the size in byte of a request body.
       parameters:
         - in: query
           name: keys
@@ -114,7 +120,7 @@ paths:
             items:
               type: string
           required: false
-          description: Keys to filter the requests
+          description: Keys to filter the requests.
       responses:
         '200':
           description: Pact requests
@@ -129,6 +135,7 @@ paths:
   /c8yctrl/current/response:
     get:
       summary: Get responses of the current pact
+      description: Returns an object with the provided keys per response from the current pact. Supports special key `size` to get the size in byte of a response body.
       parameters:
         - in: query
           name: keys
@@ -137,7 +144,7 @@ paths:
             items:
               type: string
           required: false
-          description: Keys to filter the responses
+          description: Keys to filter the responses.
       responses:
         '200':
           description: Pact responses
@@ -152,6 +159,7 @@ paths:
   /c8yctrl/log:
     get:
       summary: Get the current log level
+      description: Gets the current log level of the controller.
       responses:
         '200':
           description: Current log level
@@ -166,6 +174,7 @@ paths:
                     example: "info"
     post:
       summary: Log a message
+      description: Sends a log message to the controller. The log message is forwarded to the logger registered in the controller.
       parameters:
         - in: query
           name: message
@@ -200,6 +209,7 @@ paths:
           description: Invalid log level
     put:
       summary: Set the log level
+      description: Update logger configuration. Supports config parameters via body or query.
       parameters:
         - in: query
           name: level
