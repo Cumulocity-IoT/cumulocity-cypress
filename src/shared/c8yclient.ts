@@ -20,6 +20,7 @@ import {
 
 import * as setCookieParser from "set-cookie-parser";
 import { C8ySchemaMatcher } from "./c8ypact/schema";
+import { C8yBaseUrl } from "./types";
 
 declare global {
   interface Response {
@@ -47,7 +48,7 @@ export type C8yClientOptions = Partial<Cypress.Loggable> &
   Partial<Pick<Cypress.Failable, "failOnStatusCode">> &
   Partial<{
     auth: IAuthentication;
-    baseUrl: string;
+    baseUrl: C8yBaseUrl;
     client: Client;
     preferBasicAuth: boolean;
     skipClientAuthentication: boolean;
@@ -537,7 +538,7 @@ export function getAuthCookies(response: Response | Cypress.Response<any>):
 
 export async function oauthLogin(
   auth: C8yAuthOptions,
-  baseUrl?: string
+  baseUrl?: C8yBaseUrl
 ): Promise<C8yAuthOptions> {
   if (!auth || !auth.user || !auth.password) {
     const error = new Error(

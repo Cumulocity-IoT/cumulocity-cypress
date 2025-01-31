@@ -19,12 +19,13 @@ import type {
   C8yCtrlHeader,
   C8yPactHttpResponse,
 } from "./httpcontroller-options";
+import { C8yBaseUrl } from "../types";
 
 export function createMiddleware(
   c8yctrl: C8yPactHttpController,
   options: {
     auth?: C8yAuthOptions;
-    baseUrl?: string;
+    baseUrl?: C8yBaseUrl;
     logger?: winston.Logger;
     ignoredPaths?: string[];
     errorHandler?: RequestHandler;
@@ -38,6 +39,7 @@ export function createMiddleware(
       cookieDomainRewrite: "",
       selfHandleResponse: true,
       logger: options.logger || c8yctrl.logger,
+      followRedirects: false,
 
       on: {
         proxyReq: createRequestHandler(c8yctrl, options.auth),
@@ -122,6 +124,16 @@ export function createResponseInterceptor(
         addC8yCtrlHeader(res, "x-c8yctrl-type", "skip");
         return resBody;
       }
+    }
+
+    // Rewrite the Location header if present
+    const locationHeader = res.getHeader("location");
+    if (locationHeader) {
+      const newLocation = locationHeader.toString().replace(
+        /^https?:\/\/[^/]+/,
+        `${req.protocol}://${req.get("host")}`
+      );
+      res.setHeader("location", newLocation);
     }
 
     if (c8yctrl.isRecordingEnabled() === false) return responseBuffer;

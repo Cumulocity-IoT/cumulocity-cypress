@@ -9,7 +9,8 @@ import {
   C8yPactFileAdapter,
   C8yPactMode,
   C8yPactRecordingMode,
-} from "cumulocity-cypress/shared/c8ypact";
+  C8yPactID,
+} from "../c8ypact";
 
 import { Request, RequestHandler } from "express";
 import { ClientRequest, IncomingMessage, ServerResponse } from "http";
@@ -17,6 +18,7 @@ import { ClientRequest, IncomingMessage, ServerResponse } from "http";
 import { FormatFn } from "morgan";
 import winston from "winston";
 import { C8yAuthOptions } from "../auth";
+import { C8yBaseUrl, C8yTenant } from "../types";
 
 type LogFormat =
   | "json"
@@ -52,7 +54,7 @@ export interface C8yPactHttpControllerOptions {
   /**
    * Base URL of the target server to proxy requests to.
    */
-  baseUrl?: string;
+  baseUrl?: C8yBaseUrl;
   /**
    * Authentication options to use for authenticating against the target server.
    */
@@ -68,7 +70,7 @@ export interface C8yPactHttpControllerOptions {
   /**
    * Tenant id of the target server to proxy requests to.
    */
-  tenant?: string;
+  tenant?: C8yTenant;
   /**
    * Root folder for static files to serve.
    */
@@ -104,7 +106,7 @@ export interface C8yPactHttpControllerOptions {
   /**
    * Id of the pact to use for recording and mocking. Default is undefined.
    */
-  pactId?: string;
+  pactId?: C8yPactID;
   /**
    * Record to use for error responses when no mock is found.
    */
@@ -124,8 +126,17 @@ export interface C8yPactHttpControllerOptions {
   /**
    * RequestHandler to use for logging errors. Default is morgan logger
    * that logs error object with url, status, request and response details.
+   * Use "common", "combined", "dev", "short" or "tiny" to use predefined
+   * mporgan log formats.
    */
-  errorLogger?: RequestHandler;
+  errorLogger?:
+    | RequestHandler
+    | "common"
+    | "combined"
+    | "dev"
+    | "short"
+    | "tiny"
+    | string;
   /**
    * Log level to use for logging. Default is info.
    */
@@ -140,6 +151,7 @@ export interface C8yPactHttpControllerOptions {
   /**
    * The app names and version to use from static folder. E.g. "cockpit: 1020".
    * The version must be a semver range.
+   * @example { "cockpit": ">1020.0.0", "dtm": "^1018.1.0" }
    */
   appsVersions?: { [key: string]: string };
   /**

@@ -40,8 +40,9 @@ const { _ } = Cypress;
 
 import { FetchClient, IAuthentication } from "@c8y/client";
 import { C8yPactFetchClient } from "./fetchclient";
-import { validateBaseUrl } from "cumulocity-cypress/shared/c8ypact/url";
+import { validateBaseUrl } from "../../shared/c8ypact/url";
 import { C8yCypressEnvPreprocessor } from "./cypresspreprocessor";
+import { C8yBaseUrl } from "../../shared/types";
 
 declare global {
   namespace Cypress {
@@ -175,7 +176,7 @@ declare global {
      */
     createFetchClient(
       auth: C8yAuthOptions | IAuthentication | undefined,
-      baseUrl: string
+      baseUrl: C8yBaseUrl
     ): FetchClient;
     /**
      * Callbacks for hooking into the pact object lifecycle.
@@ -331,7 +332,7 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
         },
       };
     },
-    createFetchClient: (auth: C8yAuthOptions, baseUrl: string) => {
+    createFetchClient: (auth: C8yAuthOptions, baseUrl: C8yBaseUrl) => {
       return new C8yPactFetchClient({
         cypresspact: Cypress.c8ypact,
         auth,

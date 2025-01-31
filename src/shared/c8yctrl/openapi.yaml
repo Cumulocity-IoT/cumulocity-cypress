@@ -1,0 +1,400 @@
+openapi: 3.0.0
+info:
+  title: C8YCTRL API Documentation
+  version: 1.0.0
+paths:
+  /c8yctrl:
+    head:
+      summary: Check if the server is running
+      responses:
+        '200':
+          description: Server is running
+  /c8yctrl/status:
+    get:
+      summary: Get the status of the server
+      description: Returns the status of the server including the uptime, version, and current configuration. 
+      responses:
+        '200':
+          description: Server status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+  /c8yctrl/current:
+    get:
+      summary: Get the current pact
+      description: Gets the current `C8yPact` including its configuration (`C8yPactInfo`) and number of recorded requests.
+      responses:
+        '200':
+          description: Current pact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pact'
+        '204':
+          description: No pact is set
+    post:
+      summary: Set the current pact
+      description: Sets a new `C8yPact` for recording or mocking requests. If there is no pact with the provided id, a new pact is created. If there is already a pact with the provided id, the pact is updated.
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+          required: false
+          description: The ID of the pact.
+        - in: query
+          name: title
+          schema:
+            type: string
+          required: false
+          description: The title of the test case being recorded. An `id` is generated from the title and used to store the recording. Might be an array of strings representing the suite hierarchy and test case title.
+        - in: query
+          name: mode
+          schema:
+            type: string
+            enum: ["apply", "mock", "record", "recording", "forward"]
+          required: false
+          description: The mode the controller is running in.
+        - in: query
+          name: clear
+          schema:
+            type: string
+          required: false
+          description: If set to `true`, the controller will clear the existing recording before recording new following requests.
+        - in: query
+          name: recordingMode
+          schema:
+            type: string
+            enum: ["append", "new", "replace", "refresh"]
+          required: false
+          description: The recording mode to use for recording requests and responses.
+        - in: query
+          name: strictMocking
+          schema:
+            type: boolean
+          required: false
+          description: If set to `true`, the controller will send an `errorResponseRecord` if no recording is available to mock the response. If set to `false`, the controller will forward the request to `baseUrl` (without recording the response).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PactParameters'
+      responses:
+        '201':
+          description: Pact created
+        '200':
+          description: Pact updated
+        '204':
+          description: Missing or invalid pact id
+        '404':
+          description: Pact not found
+    delete:
+      summary: Clear the current pact
+      description: Resets the current `C8yPact`. This will however not delete any data!
+      responses:
+        '204':
+          description: Pact cleared
+  /c8yctrl/current/clear:
+    post:
+      summary: Clear records of the current pact
+      description: Clears the current `C8yPact` records. This will not delete the pact itself.
+      responses:
+        '204':
+          description: No pact is set
+        '200':
+          description: Pact records cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pact'
+  /c8yctrl/current/request:
+    get:
+      summary: Get requests of the current pact
+      description: Returns an object with the provided keys per request from the current pact. Supports special key `size` to get the size in byte of a request body.
+      parameters:
+        - in: query
+          name: keys
+          schema:
+            type: array
+            items:
+              type: string
+          required: false
+          description: Keys to filter the requests.
+      responses:
+        '200':
+          description: Pact requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Request'
+        '204':
+          description: No pact is set
+  /c8yctrl/current/response:
+    get:
+      summary: Get responses of the current pact
+      description: Returns an object with the provided keys per response from the current pact. Supports special key `size` to get the size in byte of a response body.
+      parameters:
+        - in: query
+          name: keys
+          schema:
+            type: array
+            items:
+              type: string
+          required: false
+          description: Keys to filter the responses.
+      responses:
+        '200':
+          description: Pact responses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Response'
+        '204':
+          description: No pact is set
+  /c8yctrl/log:
+    get:
+      summary: Get the current log level
+      description: Gets the current log level of the controller.
+      responses:
+        '200':
+          description: Current log level
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  level:
+                    type: string
+                    enum: ["info", "debug", "warn", "error"]
+                    example: "info"
+    post:
+      summary: Log a message
+      description: Sends a log message to the controller. The log message is forwarded to the logger registered in the controller.
+      parameters:
+        - in: query
+          name: message
+          schema:
+            type: string
+          required: false
+          description: Log message
+        - in: query
+          name: level
+          schema:
+            type: string
+            enum: ["info", "debug", "warn", "error"]
+          required: false
+          description: Log level
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "This is a log message"
+                level:
+                  type: string
+                  enum: ["info", "debug", "warn", "error"]
+                  example: "info"
+      responses:
+        '204':
+          description: Message logged
+        '400':
+          description: Invalid log level
+    put:
+      summary: Set the log level
+      description: Update logger configuration. Supports config parameters via body or query.
+      parameters:
+        - in: query
+          name: level
+          schema:
+            type: string
+            enum: ["info", "debug", "warn", "error"]
+          required: false
+          description: Log level
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                level:
+                  type: string
+                  enum: ["info", "debug", "warn", "error"]
+                  example: "debug"
+      responses:
+        '204':
+          description: Log level updated
+        '400':
+          description: Invalid log level
+components:
+  schemas:
+    Status:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "ok"
+        uptime:
+          type: number
+          example: 12345
+        version:
+          type: string
+          example: "1.0.0"
+        adapter:
+          type: string
+          nullable: true
+          example: "C8yPactDefaultFileAdapter"
+        baseUrl:
+          type: string
+          nullable: true
+          example: "http://mytenant.eu-latest.cumulocity.com"
+        tenant:
+          type: string
+          nullable: true
+          example: "t123456"
+        current:
+          type: object
+          properties:
+            id:
+              type: string
+              nullable: true
+              example: "api__get__permission_failure_tests"
+        static:
+          type: object
+          properties:
+            root:
+              type: string
+              nullable: true
+              example: "/my/path/to/static/resources"
+            required:
+              type: object
+              nullable: true
+              example: { "cockpit": ">1020.0.0", "dtm": "^1018.1.0" }
+            apps:
+              type: object
+              nullable: true
+              example: { "cockpit": "1021.35.0", "dtm": "1018.0.2" }
+        mode:
+          type: string
+          example: "apply"
+        supportedModes:
+          type: array
+          items:
+            type: string
+          example: ["apply", "mock", "record", "recording", "forward"]
+        recording:
+          type: object
+          properties:
+            recordingMode:
+              type: string
+              example: "append"
+            supportedRecordingModes:
+              type: array
+              items:
+                type: string
+              example: ["append", "new", "replace", "refresh"]
+            isRecordingEnabled:
+              type: boolean
+              example: true
+        mocking:
+          type: object
+          properties:
+            isMockingEnabled:
+              type: boolean
+              example: true
+            strictMocking:
+              type: boolean
+              example: true
+        logger:
+          type: object
+          properties:
+            level:
+              type: string
+              example: "info"
+    Pact:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "api__get__permission_failure_tests"
+        info:
+          type: object
+          properties:
+            baseUrl:
+              type: string
+              example: "http://mytenant.eu-latest.cumulocity.com"
+            requestMatching:
+              type: object
+              nullable: true
+            preprocessor:
+              type: object
+              nullable: true
+            strictMocking:
+              type: boolean
+            title:
+              type: string
+            producer:
+              type: string
+            consumer:
+              type: string
+            version:
+              type: string
+            tags:
+              type: array
+              items:
+                type: string
+            description:
+              type: string
+        records:
+          type: array
+          items:
+            type: object
+            properties:
+              request:
+                $ref: '#/components/schemas/Request'
+              response:
+                $ref: '#/components/schemas/Response'
+    PactParameters:
+      type: object
+      properties:
+        id:
+          type: string
+        mode:
+          type: string
+          enum: ["apply", "mock", "record", "recording", "forward"]
+        clear:
+          type: string
+        recordingMode:
+          type: string
+          enum: ["append", "new", "replace", "refresh"]
+        strictMocking:
+          type: boolean
+    Request:
+      type: object
+      properties:
+        method:
+          type: string
+        url:
+          type: string
+        headers:
+          type: object
+        body:
+          type: string
+    Response:
+      type: object
+      properties:
+        status:
+          type: integer
+        statusText:
+          type: string
+        headers:
+          type: object
+        body:
+          type: string

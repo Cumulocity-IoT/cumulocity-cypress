@@ -15,7 +15,7 @@ import {
   C8yPactDefaultFileAdapter,
   C8yPactHttpControllerDefaultMode,
   C8yPactHttpControllerDefaultRecordingMode,
-} from "../shared/c8yctrl";
+} from "../c8yctrl";
 
 describe("startup util tests", () => {
   describe("getConfigFromArgs", () => {

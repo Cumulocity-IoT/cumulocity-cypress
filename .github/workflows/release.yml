@@ -8,7 +8,7 @@ on:
       - next
 jobs:
   release:
-    name: "Run sementic release"
+    name: "Run semantic release"
     permissions:
       contents: write
       issues: write

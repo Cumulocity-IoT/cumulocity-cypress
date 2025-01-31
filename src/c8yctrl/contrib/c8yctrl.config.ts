@@ -2,7 +2,7 @@ import _ from "lodash";
 import fs from "fs";
 import path from "path";
 
-import { C8yPactHttpControllerConfig } from "cumulocity-cypress/shared/c8yctrl";
+import { C8yPactHttpControllerConfig } from "cumulocity-cypress/c8yctrl";
 
 import { createLogger, format, transports } from "winston";
 // https://github.com/winstonjs/winston/issues/2430

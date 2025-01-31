@@ -1,4 +1,4 @@
 {
   "extends": "../tsconfig.json",
-  "include": ["lib/screenshots/types.ts"]
+  "include": ["lib/screenshots/types.ts", "shared/types.ts"]
 }

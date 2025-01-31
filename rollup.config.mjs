@@ -61,8 +61,8 @@ export default [
     ],
   },
   {
-    input: "dist/shared/c8yctrl/index.d.ts",
-    output: [{ file: "dist/c8yctrl/c8yctrl.d.ts", format: "es", sourcemap: false }],
+    input: "dist/c8yctrl/index.d.ts",
+    output: [{ file: "dist/c8yctrl/index.d.ts", format: "es", sourcemap: false }],
     plugins: [dts()],
   },
   {
