@@ -102,6 +102,7 @@ export class C8yScreenshotRunner {
       });
 
       beforeEach(() => {
+        Cypress.session.clearAllSavedSessions();
         if (Cypress.env("C8Y_CTRL_MODE") != null) {
           cy.wrap(c8yctrl(), { log: false });
         }
@@ -207,7 +208,7 @@ export class C8yScreenshotRunner {
               if (handler) {
                 if (
                   isScreenshotAction(action) &&
-                  !_.isString(action.screenshot)
+                  !(_.isString(action.screenshot) || _.isArray(action.screenshot))
                 ) {
                   const clipArea = action.screenshot?.clip;
                   if (clipArea) {
@@ -247,12 +248,12 @@ export class C8yScreenshotRunner {
   }
 
   protected click(action: Action["click"]) {
-    const click = _.isString(action) ? { selector: action } : action;
-    const selector = getSelector(click, this.config.selectors);
+    const selector = getSelector(action, this.config.selectors);
+    const click = !_.isObject(action) ? { selector } : action;
     if (selector == null) return;
 
-    const multiple = click?.multiple ?? false;
-    const force = click?.force ?? false;
+    const multiple = _.get(click, "multiple", false);
+    const force = _.get(click, "force", false);
     cy.get(selector).click(_.omitBy({ multiple, force }, (v) => v === false));
   }
 
