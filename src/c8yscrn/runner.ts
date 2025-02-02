@@ -123,6 +123,11 @@ export class C8yScreenshotRunner {
           annotations.tags = _.isArray(tags) ? tags : [tags];
         }
 
+        annotations.scrollBehavior = false;
+        if (item.scrollBehavior != null) {
+          annotations.scrollBehavior = item.scrollBehavior;
+        } 
+
         let fn = item.only === true ? it.only : it;
         fn = item.skip === true ? it.skip : fn;
 

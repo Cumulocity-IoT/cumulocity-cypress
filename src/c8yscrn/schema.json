@@ -958,6 +958,17 @@
                     "description": "Whether to scale the app to fit into the browser viewport.",
                     "type": "boolean"
                 },
+                "scrollBehavior": {
+                    "default": false,
+                    "description": "Viewport position to which an element should be scrolled before executing commands. The default is false.",
+                    "enum": [
+                        "bottom",
+                        "center",
+                        false,
+                        "nearest",
+                        "top"
+                    ]
+                },
                 "shell": {
                     "description": "The shell is used to dermine the version of the application used by \"requires\" (optional)",
                     "examples": [
@@ -1099,6 +1110,17 @@
                         ],
                         "format": "semver-range",
                         "type": "string"
+                    },
+                    "scrollBehavior": {
+                        "default": false,
+                        "description": "Viewport position to which an element should be scrolled before executing commands. The default is false.",
+                        "enum": [
+                            "bottom",
+                            "center",
+                            false,
+                            "nearest",
+                            "top"
+                        ]
                     },
                     "settings": {
                         "$ref": "#/definitions/ScreenshotSettings",

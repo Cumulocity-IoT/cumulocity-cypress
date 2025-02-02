@@ -83,6 +83,11 @@ export interface ScreenshotOptions {
    * @examples ["2024-09-26T19:17:35+02:00"]
    */
   date?: string;
+  /**
+   * Viewport position to which an element should be scrolled before executing commands. The default is false.
+   * @default false
+   */
+  scrollBehavior?: 'center' | 'top' | 'bottom' | 'nearest' | false;
 }
 
 export interface Screenshot {
@@ -380,7 +385,7 @@ export interface Action {
   /**
    * The screenshot action triggers a screenshot of the current state of the application.
    */
-  screenshot?: string | ScreenshotAction & Partial<Selectable>;
+  screenshot?: string | (ScreenshotAction & Partial<Selectable>);
   /**
    * A text action modifies the text value of selected DOM element.
    */
