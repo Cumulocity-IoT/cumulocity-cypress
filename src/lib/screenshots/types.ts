@@ -25,7 +25,7 @@ export type ScreenshotSetup = {
    */
   selectors?: SharedSelector | SharedSelector[];
   /**
-   * The screensht workflows
+   * The screenshot workflows
    */
   screenshots: (Screenshot & ScreenshotOptions)[];
 };

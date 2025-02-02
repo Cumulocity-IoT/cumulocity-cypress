@@ -11,6 +11,8 @@ describe("startup", () => {
   describe("getSelector", () => {
     const predefinedSelectors: ScreenshotSetup["selectors"] = [
       { "testSelector": ".test-class" },
+      { "p1": "predefined 1" },
+      { "p2": "predefined 2" },
     ];
 
     it("should return the selector string if input is a string", () => {
@@ -39,6 +41,58 @@ describe("startup", () => {
       const selector = "nonExistentSelector";
       const result = getSelector(selector, predefinedSelectors);
       expect(result).toBe("nonExistentSelector");
+    });
+
+    it("should return the selector string if input is a array of strings", () => {
+      const result = getSelector(["my", "test", "selector"], predefinedSelectors);
+      expect(result).toBe("my test selector");
+    });
+
+    it("should return the selector string if input is a array of strings with predefined", () => {
+      const result = getSelector(["p1 test selector"], predefinedSelectors);
+      expect(result).toBe("predefined 1 test selector");
+    });
+
+    it("should return the selector string if input is a array of strings with multiple predefined", () => {
+      const result = getSelector("p1 abcd p2", predefinedSelectors);
+      expect(result).toBe("predefined 1 abcd predefined 2");
+    });
+
+    it("should return the selector string if predefined is undefined", () => {
+      const result = getSelector("p1 abcd p2", undefined);
+      expect(result).toBe("p1 abcd p2");
+    });
+
+    it("should return the selector string if predefined is object", () => {
+      const result = getSelector("p1 abcd p2", {
+        "p1": "predefined 1",
+        "p2": "predefined 2",
+      });
+      expect(result).toBe("predefined 1 abcd predefined 2");
+    });
+
+    it("should replace multiple occurences of same predefined selector", () => {
+      const result = getSelector("p1 p1", {
+        "p1": "predefined 1",
+      });
+      expect(result).toBe("predefined 1 predefined 1");
+    });
+
+    it("should use the longest key from predefined first", () => {
+      const result = getSelector("p1.2 abcd p1    p1.2.3", {
+        "p1": "predefined 1",
+        "p1.2": "predefined 1.2",
+        "p1.2.3": "predefined 1.2.3",
+      });
+      expect(result).toBe("predefined 1.2 abcd predefined 1    predefined 1.2.3");
+    });
+
+    it("should not remove > selector elements", () => {
+      const result = getSelector("p1 > abcd > p2", [
+        { "p1": "predefined 1" },
+        { "p2": "predefined 2" },
+      ]);
+      expect(result).toBe("predefined 1 > abcd > predefined 2");
     });
   });
 

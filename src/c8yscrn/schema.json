@@ -1031,7 +1031,7 @@
             "type": "object"
         },
         "screenshots": {
-            "description": "The screensht workflows",
+            "description": "The screenshot workflows",
             "items": {
                 "additionalProperties": false,
                 "properties": {

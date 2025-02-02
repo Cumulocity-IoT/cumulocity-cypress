@@ -7,12 +7,43 @@ export function getSelector(
   predefined?: ScreenshotSetup["selectors"]
 ): string | undefined {
   if (!selector) return undefined;
-  if (_.isString(selector)) {
-    const sharedSelector = _.isArrayLike(predefined)
-      ? _.get(_.first(predefined.filter((s) => selector in s)), selector)
-      : _.get(predefined, selector);
-    return sharedSelector ?? selector;
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const getPredefinedSelector = (name: string) => {
+    const sharedSelector = _.isArray(predefined)
+      ? _.get(_.first(predefined.filter((s) => name in s)), name)
+      : _.get(predefined, name);
+      
+    return sharedSelector ?? name;
+  };
+
+  const getResolvedSelector = (name: string) => {
+    if (!predefined) return name;
+    let result = name;
+    if (_.isArray(predefined)) {
+      for (const item of predefined) {
+        const sortedKeys = Object.keys(item).sort((a, b) => b.length - a.length);
+        for (const key of sortedKeys) {
+            result = result.split(key).join(item[key]);
+        }
+      }
+    } else {
+      const sortedKeys = Object.keys(predefined).sort((a, b) => b.length - a.length);
+      for (const key of sortedKeys) {
+        result = result.split(key).join(predefined[key]);
+      }
+    }
+    return result;
+  };
+
+  if (_.isArray(selector)) {
+    return selector.map((s) => getResolvedSelector(s)).join(" ");
   }
+
+  if (_.isString(selector)) {
+    return getResolvedSelector(selector);
+  }
+  
   if (_.isPlainObject(selector)) {
     if ("data-cy" in selector) {
       return `[data-cy=${_.get(selector, "data-cy")}]`;
@@ -21,6 +52,7 @@ export function getSelector(
       return getSelector(selector.selector as Selector, predefined);
     }
   }
+  
   return undefined;
 }
 
@@ -45,11 +77,11 @@ export function findCommonParent(
     );
     const r = parent.getBoundingClientRect();
     // When an element has display: contents, it is rendered as if it weren't there
-    // at all. Its children are rendered as if they were direct children of its parent. 
-    // This means that the element itself doesn't have a bounding rectangle, which is 
+    // at all. Its children are rendered as if they were direct children of its parent.
+    // This means that the element itself doesn't have a bounding rectangle, which is
     // why getBoundingClientRect() returns 0 for all values.
     // Make sure that the parent has a width and height so the parent is actually visible
-    if (isCommonParent === true && (r.width > 0 && r.height > 0)) {
+    if (isCommonParent === true && r.width > 0 && r.height > 0) {
       return parent;
     }
   }
@@ -75,7 +107,10 @@ export function hasParent(element: HTMLElement, parent: HTMLElement): boolean {
   return false;
 }
 
-export function getElementPositionWithinParent($e: HTMLElement, $p: HTMLElement) {
+export function getElementPositionWithinParent(
+  $e: HTMLElement,
+  $p: HTMLElement
+) {
   const childRect = $e.getBoundingClientRect();
   const parentRect = $p.getBoundingClientRect();
 
