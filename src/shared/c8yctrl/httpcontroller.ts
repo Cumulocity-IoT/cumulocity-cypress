@@ -231,6 +231,8 @@ export class C8yPactHttpController {
 
     await this.registerStaticRootRequestHandler();
 
+    this.registerOpenAPIRequestHandler();
+
     if (this.baseUrl) {
       this.logger.info(`BaseURL: ${this.baseUrl}`);
       // register proxy handler first requires to make the proxy ignore certain paths
@@ -238,18 +240,6 @@ export class C8yPactHttpController {
       // is needed before any other handlers dealing with request bodies
       const ignoredPaths = [this.resourcePath];
 
-      try {
-        const openapiPath = path.join(__dirname, 'openapi.yaml');
-        const fileContent = fs.readFileSync(openapiPath, "utf-8");
-        const document = yaml.parse(fileContent);
-  
-        this.app.use(`${this.resourcePath}/openapi/`, swaggerUi.serve, swaggerUi.setup(document));
-        this.logger.info(`OpenAPI: ${this.resourcePath}/openapi/`);
-      } catch (error: any) {
-        this.logger.warn(`Failed to load OpenAPI document: ${error.message}`);
-        this.logger.debug(inspect(error, { depth: null }));
-      }
-  
       if (!this.mockHandler) {
         this.mockHandler = this.app.use(
           wrapPathIgnoreHandler(this.mockRequestHandler, ignoredPaths)
@@ -288,6 +278,22 @@ export class C8yPactHttpController {
   async stop(): Promise<void> {
     await this.server?.close();
     this.logger.info("Stopped server");
+  }
+
+  protected registerOpenAPIRequestHandler() {
+    try {
+      const openapiPath = path.join(path.dirname(__filename), 'openapi.yaml');
+      log(`loading openapi from ${openapiPath}`);
+      const fileContent = fs.readFileSync(openapiPath, "utf-8");
+      const document = yaml.parse(fileContent);
+
+      this.app.use(`${this.resourcePath}/openapi/`, swaggerUi.serve, swaggerUi.setup(document));
+      this.logger.info(`OpenAPI: ${this.resourcePath}/openapi/`);
+    } catch (error: any) {
+      log(`loading openapi failed: ${error.message}`);
+      this.logger.warn(`Failed to load OpenAPI document: ${error.message}`);
+      this.logger.debug(inspect(error, { depth: null }));
+    }
   }
 
   protected async registerStaticRootRequestHandler() {
