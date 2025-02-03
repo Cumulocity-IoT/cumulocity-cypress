@@ -241,6 +241,8 @@ export interface ClickAction {
 export interface TypeAction {
   /**
    * The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.
+   * 
+   * For multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form.
    */
   value: string | string[] | string[][];
   /**
@@ -248,7 +250,9 @@ export interface TypeAction {
    * @default false
    */
   clear?: boolean;
-
+  /**
+   * The submit selector is triggered for every entry value. Use to go over multistep forms. If the submit selector is not found, the form is not automatically continued and multistep finishes.
+   */
   submit?: string | Selectable;
 }
 
