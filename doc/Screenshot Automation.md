@@ -720,6 +720,7 @@ In the example, the `c8y-form-group` is a multistep form with 3 steps. Each step
     styles: object
     width: number
     height: number
+    clear: boolean
 ```
 
 Highlights the specified element. Useful for drawing attention to specific parts of the UI in documentation screenshots. `border` is a shorthand for setting the border style, and `styles` allows for more advanced styling. Values can be any valid CSS border or style property.
@@ -735,6 +736,8 @@ Highlighting works differently depending if the selector returns one or multiple
 - selector: "#main-content"
   border: 2px solid green
 ```
+
+By using `clear`, all previously highlighted changes will be reverted before adding the new highlight. This is useful for workflows taking more than just one screenshot.
 
 **fileUpload**
 ```yaml
