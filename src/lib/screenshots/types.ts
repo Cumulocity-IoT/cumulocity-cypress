@@ -335,6 +335,11 @@ export interface HighlightAction {
    * Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.
    */
   height?: number;
+  /**
+   * If true, existing highlights will be cleared before highlighting. The default is false.
+   * @default false
+   */
+  clear?: boolean;
 }
 
 export type SelectableHighlightAction = HighlightAction & Selectable;

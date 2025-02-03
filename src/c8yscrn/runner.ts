@@ -35,6 +35,9 @@ const taskLog = { log: true };
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
 
+  private customizedElements: Array<[JQuery<HTMLElement>, any]> = [];
+  private highlightElements: Array<JQuery<HTMLElement>> = [];
+
   actionHandlers: {
     [key: string]: C8yScreenshotActionHandler;
   };
@@ -111,6 +114,9 @@ export class C8yScreenshotRunner {
       this.config.screenshots?.forEach((item) => {
         const annotations: any = {};
 
+        this.customizedElements = [];
+        this.highlightElements = [];
+
         const required = item.requires ?? global?.requires;
         if (required != null) {
           annotations.requires = {
@@ -126,7 +132,7 @@ export class C8yScreenshotRunner {
         annotations.scrollBehavior = false;
         if (item.scrollBehavior != null) {
           annotations.scrollBehavior = item.scrollBehavior;
-        } 
+        }
 
         let fn = item.only === true ? it.only : it;
         fn = item.skip === true ? it.skip : fn;
@@ -213,7 +219,10 @@ export class C8yScreenshotRunner {
               if (handler) {
                 if (
                   isScreenshotAction(action) &&
-                  !(_.isString(action.screenshot) || _.isArray(action.screenshot))
+                  !(
+                    _.isString(action.screenshot) ||
+                    _.isArray(action.screenshot)
+                  )
                 ) {
                   const clipArea = action.screenshot?.clip;
                   if (clipArea) {
@@ -300,6 +309,20 @@ export class C8yScreenshotRunner {
     const highlights = _.isArray(action) ? action : [action];
 
     highlights?.forEach((highlight) => {
+      cy.then(() => {
+        if (_.isObject(highlight) && (highlight?.clear ?? false) === true) {
+          this.customizedElements.forEach(([$element, styles]) => {
+            $element.css(styles);
+          });
+          this.highlightElements.forEach(($element) => {
+            $element.remove();
+          });
+
+          this.customizedElements = [];
+          this.highlightElements = [];
+        }
+      });
+
       const selector = getSelector(highlight, this.config.selectors);
       if (selector == null) return;
 
@@ -378,8 +401,12 @@ export class C8yScreenshotRunner {
               "<div _c8yscrn-highlight-container></div>"
             ).css(css);
             Cypress.$($parent).append($container);
+            this.highlightElements.push($container);
           });
         } else {
+          const styledProperties = Object.keys(styles);
+          const currentStyles = $element.css(styledProperties);
+          this.customizedElements.push([$element, currentStyles]);
           $element.css(styles);
         }
       };
