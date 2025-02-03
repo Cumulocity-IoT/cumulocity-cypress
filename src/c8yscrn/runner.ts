@@ -271,16 +271,26 @@ export class C8yScreenshotRunner {
       }
       cy.get(selector).type(action.value);
     } else if (_.isArrayLike(action.value)) {
-      cy.get(selector).within(() => {
-        cy.get("input[type=text]").then(($elements) => {
-          const length = Math.min($elements.length, action.value.length);
-          (action.value as string[]).forEach((value: string, index: number) => {
+      const values = _.isArray(action.value) ? action.value : [action.value];
+      values.forEach((formInput) => {
+        cy.get(selector).within(($withElement) => {
+          const $elements = Cypress.$($withElement).find("input[type=text]");
+          const length = Math.min($elements.length, formInput.length);
+          (formInput as string[]).forEach((value: string, index: number) => {
             if (index >= length) return;
             if (action.clear === true) {
               cy.get(selector).clear();
             }
             cy.get("input[type=text]").eq(index).type(value);
           });
+        });
+        cy.then(() => {
+          const submit = getSelector(action.submit, this.config.selectors);
+          if (submit == null) return;
+          const elementExists = Cypress.$(submit).length > 0;
+          if (!elementExists) return;
+          cy.get(submit).click();
+          cy.wait(500, { log: false });
         });
       });
     }
