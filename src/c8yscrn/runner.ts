@@ -331,11 +331,24 @@ export class C8yScreenshotRunner {
               Cypress.$($parent).css("position", "relative");
             }
 
-            const getRect = getElementPositionWithinParent;
-            const firstRect = getRect($element[0], $parent);
-            const lastRect = getRect($element[$element.length - 1], $parent);
+            const unionRect = $element.toArray().reduce(
+              (acc, el) => {
+                const rect = getElementPositionWithinParent(el, $parent);
+                acc.top = Math.min(acc.top, rect.top);
+                acc.left = Math.min(acc.left, rect.left);
+                acc.bottom = Math.max(acc.bottom, rect.bottom);
+                acc.right = Math.max(acc.right, rect.right);
+                return acc;
+              },
+              {
+                top: Infinity,
+                left: Infinity,
+                bottom: -Infinity,
+                right: -Infinity,
+              }
+            );
 
-            let width = lastRect.right - firstRect.left;
+            let width = unionRect.right - unionRect.left;
             if (!_.isString(highlight) && highlight?.width != null) {
               width =
                 highlight.width <= 1
@@ -343,17 +356,18 @@ export class C8yScreenshotRunner {
                   : highlight.width;
             }
 
-            let height = lastRect.bottom - firstRect.top;
+            let height = unionRect.bottom - unionRect.top;
             if (!_.isString(highlight) && highlight?.height != null) {
               height =
                 highlight.height <= 1
                   ? height * highlight.height
                   : highlight.height;
             }
+
             const css = {
               position: "absolute",
-              top: `${firstRect.top}px`,
-              left: `${firstRect.left}px`,
+              top: `${unionRect.top}px`,
+              left: `${unionRect.left}px`,
               width: `${width}px`,
               height: `${height}px`,
               zIndex: 9999,
