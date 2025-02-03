@@ -242,12 +242,14 @@ export interface TypeAction {
   /**
    * The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.
    */
-  value: string | string[];
+  value: string | string[] | string[][];
   /**
    * If true, the text input is cleared before typing. The default is false.
    * @default false
    */
   clear?: boolean;
+
+  submit?: string | Selectable;
 }
 
 export interface TextAction {

@@ -447,11 +447,67 @@
                                         }
                                     ]
                                 },
+                                "submit": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "selector": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "data-cy": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "data-cy"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "selector"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "data-cy"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
                                 "value": {
                                     "anyOf": [
                                         {
                                             "items": {
                                                 "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": {
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "type": "array"
                                             },
                                             "type": "array"
                                         },
@@ -479,11 +535,67 @@
                                 "data-cy": {
                                     "type": "string"
                                 },
+                                "submit": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "selector": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "data-cy": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "data-cy"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "selector"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "data-cy"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
                                 "value": {
                                     "anyOf": [
                                         {
                                             "items": {
                                                 "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": {
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "type": "array"
                                             },
                                             "type": "array"
                                         },
