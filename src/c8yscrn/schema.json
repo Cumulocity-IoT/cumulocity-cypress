@@ -214,6 +214,11 @@
                                         "1px solid red"
                                     ]
                                 },
+                                "clear": {
+                                    "default": false,
+                                    "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "height": {
                                     "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                     "type": "number"
@@ -265,6 +270,11 @@
                                     "examples": [
                                         "1px solid red"
                                     ]
+                                },
+                                "clear": {
+                                    "default": false,
+                                    "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                    "type": "boolean"
                                 },
                                 "data-cy": {
                                     "type": "string"
@@ -811,6 +821,11 @@
                                 "1px solid red"
                             ]
                         },
+                        "clear": {
+                            "default": false,
+                            "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                            "type": "boolean"
+                        },
                         "height": {
                             "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                             "type": "number"
@@ -862,6 +877,11 @@
                             "examples": [
                                 "1px solid red"
                             ]
+                        },
+                        "clear": {
+                            "default": false,
+                            "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                            "type": "boolean"
                         },
                         "data-cy": {
                             "type": "string"
