@@ -35,6 +35,9 @@ const taskLog = { log: true };
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
 
+  private customizedElements: Array<[JQuery<HTMLElement>, any]> = [];
+  private highlightElements: Array<JQuery<HTMLElement>> = [];
+
   actionHandlers: {
     [key: string]: C8yScreenshotActionHandler;
   };
@@ -102,6 +105,7 @@ export class C8yScreenshotRunner {
       });
 
       beforeEach(() => {
+        Cypress.session.clearAllSavedSessions();
         if (Cypress.env("C8Y_CTRL_MODE") != null) {
           cy.wrap(c8yctrl(), { log: false });
         }
@@ -109,6 +113,9 @@ export class C8yScreenshotRunner {
 
       this.config.screenshots?.forEach((item) => {
         const annotations: any = {};
+
+        this.customizedElements = [];
+        this.highlightElements = [];
 
         const required = item.requires ?? global?.requires;
         if (required != null) {
@@ -120,6 +127,11 @@ export class C8yScreenshotRunner {
         const tags = item.tags ?? this.config.global?.tags;
         if (tags != null) {
           annotations.tags = _.isArray(tags) ? tags : [tags];
+        }
+
+        annotations.scrollBehavior = false;
+        if (item.scrollBehavior != null) {
+          annotations.scrollBehavior = item.scrollBehavior;
         }
 
         let fn = item.only === true ? it.only : it;
@@ -207,7 +219,10 @@ export class C8yScreenshotRunner {
               if (handler) {
                 if (
                   isScreenshotAction(action) &&
-                  !_.isString(action.screenshot)
+                  !(
+                    _.isString(action.screenshot) ||
+                    _.isArray(action.screenshot)
+                  )
                 ) {
                   const clipArea = action.screenshot?.clip;
                   if (clipArea) {
@@ -247,12 +262,12 @@ export class C8yScreenshotRunner {
   }
 
   protected click(action: Action["click"]) {
-    const click = _.isString(action) ? { selector: action } : action;
-    const selector = getSelector(click, this.config.selectors);
+    const selector = getSelector(action, this.config.selectors);
+    const click = !_.isObject(action) ? { selector } : action;
     if (selector == null) return;
 
-    const multiple = click?.multiple ?? false;
-    const force = click?.force ?? false;
+    const multiple = _.get(click, "multiple", false);
+    const force = _.get(click, "force", false);
     cy.get(selector).click(_.omitBy({ multiple, force }, (v) => v === false));
   }
 
@@ -265,16 +280,26 @@ export class C8yScreenshotRunner {
       }
       cy.get(selector).type(action.value);
     } else if (_.isArrayLike(action.value)) {
-      cy.get(selector).within(() => {
-        cy.get("input[type=text]").then(($elements) => {
-          const length = Math.min($elements.length, action.value.length);
-          (action.value as string[]).forEach((value: string, index: number) => {
+      const values = _.isArray(action.value) ? action.value : [action.value];
+      values.forEach((formInput) => {
+        cy.get(selector).within(($withElement) => {
+          const $elements = Cypress.$($withElement).find("input[type=text]");
+          const length = Math.min($elements.length, formInput.length);
+          (formInput as string[]).forEach((value: string, index: number) => {
             if (index >= length) return;
             if (action.clear === true) {
               cy.get(selector).clear();
             }
             cy.get("input[type=text]").eq(index).type(value);
           });
+        });
+        cy.then(() => {
+          const submit = getSelector(action.submit, this.config.selectors);
+          if (submit == null) return;
+          const elementExists = Cypress.$(submit).length > 0;
+          if (!elementExists) return;
+          cy.get(submit).click();
+          cy.wait(500, { log: false });
         });
       });
     }
@@ -284,6 +309,20 @@ export class C8yScreenshotRunner {
     const highlights = _.isArray(action) ? action : [action];
 
     highlights?.forEach((highlight) => {
+      cy.then(() => {
+        if (_.isObject(highlight) && (highlight?.clear ?? false) === true) {
+          this.customizedElements.forEach(([$element, styles]) => {
+            $element.css(styles);
+          });
+          this.highlightElements.forEach(($element) => {
+            $element.remove();
+          });
+
+          this.customizedElements = [];
+          this.highlightElements = [];
+        }
+      });
+
       const selector = getSelector(highlight, this.config.selectors);
       if (selector == null) return;
 
@@ -315,11 +354,24 @@ export class C8yScreenshotRunner {
               Cypress.$($parent).css("position", "relative");
             }
 
-            const getRect = getElementPositionWithinParent;
-            const firstRect = getRect($element[0], $parent);
-            const lastRect = getRect($element[$element.length - 1], $parent);
+            const unionRect = $element.toArray().reduce(
+              (acc, el) => {
+                const rect = getElementPositionWithinParent(el, $parent);
+                acc.top = Math.min(acc.top, rect.top);
+                acc.left = Math.min(acc.left, rect.left);
+                acc.bottom = Math.max(acc.bottom, rect.bottom);
+                acc.right = Math.max(acc.right, rect.right);
+                return acc;
+              },
+              {
+                top: Infinity,
+                left: Infinity,
+                bottom: -Infinity,
+                right: -Infinity,
+              }
+            );
 
-            let width = lastRect.right - firstRect.left;
+            let width = unionRect.right - unionRect.left;
             if (!_.isString(highlight) && highlight?.width != null) {
               width =
                 highlight.width <= 1
@@ -327,17 +379,18 @@ export class C8yScreenshotRunner {
                   : highlight.width;
             }
 
-            let height = lastRect.bottom - firstRect.top;
+            let height = unionRect.bottom - unionRect.top;
             if (!_.isString(highlight) && highlight?.height != null) {
               height =
                 highlight.height <= 1
                   ? height * highlight.height
                   : highlight.height;
             }
+
             const css = {
               position: "absolute",
-              top: `${firstRect.top}px`,
-              left: `${firstRect.left}px`,
+              top: `${unionRect.top}px`,
+              left: `${unionRect.left}px`,
               width: `${width}px`,
               height: `${height}px`,
               zIndex: 9999,
@@ -348,8 +401,12 @@ export class C8yScreenshotRunner {
               "<div _c8yscrn-highlight-container></div>"
             ).css(css);
             Cypress.$($parent).append($container);
+            this.highlightElements.push($container);
           });
         } else {
+          const styledProperties = Object.keys(styles);
+          const currentStyles = $element.css(styledProperties);
+          this.customizedElements.push([$element, currentStyles]);
           $element.css(styles);
         }
       };

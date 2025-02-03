@@ -25,7 +25,7 @@ export type ScreenshotSetup = {
    */
   selectors?: SharedSelector | SharedSelector[];
   /**
-   * The screensht workflows
+   * The screenshot workflows
    */
   screenshots: (Screenshot & ScreenshotOptions)[];
 };
@@ -83,6 +83,11 @@ export interface ScreenshotOptions {
    * @examples ["2024-09-26T19:17:35+02:00"]
    */
   date?: string;
+  /**
+   * Viewport position to which an element should be scrolled before executing commands. The default is false.
+   * @default false
+   */
+  scrollBehavior?: 'center' | 'top' | 'bottom' | 'nearest' | false;
 }
 
 export interface Screenshot {
@@ -236,13 +241,19 @@ export interface ClickAction {
 export interface TypeAction {
   /**
    * The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.
+   * 
+   * For multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form.
    */
-  value: string | string[];
+  value: string | string[] | string[][];
   /**
    * If true, the text input is cleared before typing. The default is false.
    * @default false
    */
   clear?: boolean;
+  /**
+   * The submit selector is triggered for every entry value. Use to go over multistep forms. If the submit selector is not found, the form is not automatically continued and multistep finishes.
+   */
+  submit?: string | Selectable;
 }
 
 export interface TextAction {
@@ -317,13 +328,18 @@ export interface HighlightAction {
    */
   styles?: any;
   /**
-   * Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.
+   * Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.
    */
   width?: number;
   /**
-   * Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.
+   * Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.
    */
   height?: number;
+  /**
+   * If true, existing highlights will be cleared before highlighting. The default is false.
+   * @default false
+   */
+  clear?: boolean;
 }
 
 export type SelectableHighlightAction = HighlightAction & Selectable;
@@ -380,7 +396,7 @@ export interface Action {
   /**
    * The screenshot action triggers a screenshot of the current state of the application.
    */
-  screenshot?: string | ScreenshotAction & Partial<Selectable>;
+  screenshot?: string | (ScreenshotAction & Partial<Selectable>);
   /**
    * A text action modifies the text value of selected DOM element.
    */

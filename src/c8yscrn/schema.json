@@ -214,8 +214,13 @@
                                         "1px solid red"
                                     ]
                                 },
+                                "clear": {
+                                    "default": false,
+                                    "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "height": {
-                                    "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
+                                    "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                     "type": "number"
                                 },
                                 "selector": {
@@ -248,7 +253,7 @@
                                     ]
                                 },
                                 "width": {
-                                    "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
+                                    "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
                                     "type": "number"
                                 }
                             },
@@ -266,11 +271,16 @@
                                         "1px solid red"
                                     ]
                                 },
+                                "clear": {
+                                    "default": false,
+                                    "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "data-cy": {
                                     "type": "string"
                                 },
                                 "height": {
-                                    "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
+                                    "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                     "type": "number"
                                 },
                                 "styles": {
@@ -284,7 +294,7 @@
                                     ]
                                 },
                                 "width": {
-                                    "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
+                                    "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
                                     "type": "number"
                                 }
                             },
@@ -447,6 +457,54 @@
                                         }
                                     ]
                                 },
+                                "submit": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "selector": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "data-cy": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "data-cy"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "selector"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "data-cy"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The submit selector is triggered for every entry value. Use to go over multistep forms. If the submit selector is not found, the form is not automatically continued and multistep finishes."
+                                },
                                 "value": {
                                     "anyOf": [
                                         {
@@ -456,10 +514,19 @@
                                             "type": "array"
                                         },
                                         {
+                                            "items": {
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "type": "array"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
                                             "type": "string"
                                         }
                                     ],
-                                    "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array."
+                                    "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form."
                                 }
                             },
                             "required": [
@@ -479,6 +546,54 @@
                                 "data-cy": {
                                     "type": "string"
                                 },
+                                "submit": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "selector": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "data-cy": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "data-cy"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "selector"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "data-cy"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The submit selector is triggered for every entry value. Use to go over multistep forms. If the submit selector is not found, the form is not automatically continued and multistep finishes."
+                                },
                                 "value": {
                                     "anyOf": [
                                         {
@@ -488,10 +603,19 @@
                                             "type": "array"
                                         },
                                         {
+                                            "items": {
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "type": "array"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
                                             "type": "string"
                                         }
                                     ],
-                                    "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array."
+                                    "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form."
                                 }
                             },
                             "required": [
@@ -697,8 +821,13 @@
                                 "1px solid red"
                             ]
                         },
+                        "clear": {
+                            "default": false,
+                            "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                            "type": "boolean"
+                        },
                         "height": {
-                            "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
+                            "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                             "type": "number"
                         },
                         "selector": {
@@ -731,7 +860,7 @@
                             ]
                         },
                         "width": {
-                            "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
+                            "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
                             "type": "number"
                         }
                     },
@@ -749,11 +878,16 @@
                                 "1px solid red"
                             ]
                         },
+                        "clear": {
+                            "default": false,
+                            "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                            "type": "boolean"
+                        },
                         "data-cy": {
                             "type": "string"
                         },
                         "height": {
-                            "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
+                            "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                             "type": "number"
                         },
                         "styles": {
@@ -767,7 +901,7 @@
                             ]
                         },
                         "width": {
-                            "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
+                            "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
                             "type": "number"
                         }
                     },
@@ -958,6 +1092,17 @@
                     "description": "Whether to scale the app to fit into the browser viewport.",
                     "type": "boolean"
                 },
+                "scrollBehavior": {
+                    "default": false,
+                    "description": "Viewport position to which an element should be scrolled before executing commands. The default is false.",
+                    "enum": [
+                        "bottom",
+                        "center",
+                        false,
+                        "nearest",
+                        "top"
+                    ]
+                },
                 "shell": {
                     "description": "The shell is used to dermine the version of the application used by \"requires\" (optional)",
                     "examples": [
@@ -1031,7 +1176,7 @@
             "type": "object"
         },
         "screenshots": {
-            "description": "The screensht workflows",
+            "description": "The screenshot workflows",
             "items": {
                 "additionalProperties": false,
                 "properties": {
@@ -1099,6 +1244,17 @@
                         ],
                         "format": "semver-range",
                         "type": "string"
+                    },
+                    "scrollBehavior": {
+                        "default": false,
+                        "description": "Viewport position to which an element should be scrolled before executing commands. The default is false.",
+                        "enum": [
+                            "bottom",
+                            "center",
+                            false,
+                            "nearest",
+                            "top"
+                        ]
                     },
                     "settings": {
                         "$ref": "#/definitions/ScreenshotSettings",
