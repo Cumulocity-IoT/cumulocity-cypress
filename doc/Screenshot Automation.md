@@ -671,8 +671,9 @@ Clicks on the specified element. Use the `multiple` option to click on all match
 ```yaml
 - type:
     selector: string or object
-    value: string | string[]
+    value: string or string[] or string[][]
     clear: boolean
+    submit: string or object
 ```
 
 Types the specified value into the selected input field. If the `clear` option is set to true, the input field will be cleared before typing the new value. If the `value` is an array, the values will be typed in sequence into the text input fields with the selector.
@@ -693,6 +694,23 @@ Types the specified value into the selected input field. If the `clear` option i
 ```
 
 The array of values might have more elements than the number of text input fields with the selector. In this case, the remaining values are ignored.
+
+For multistep forms, the `value` can be configured an array of array, with each item in the array containing the values for `input[type="text"]` entry fields. The entry fields will be filled in order. At the end of the form(groupd), the `submit` selector is triggered to continue to the next step of the multistep form. Values are filled automatically as long as there are items in the `value` array.
+
+```yaml
+- type:
+    selector: "c8y-form-group"
+    value:
+      - ["ABC", "DEF", "GHI"],
+      - ["ABC", "DEF", "GHI", "JKL"],
+      - ["ABC", "DEF"],
+    submit: "[data-cy=continue-button]"
+```
+
+In the example, the `c8y-form-group` is a multistep form with 3 steps. Each step is continued by triggering the `submit` selector.
+
+> **Note:**
+> Only type `text` input fields are supported. Only fields within the selector of the type action are used.
 
 **highlight**
 ```yaml
