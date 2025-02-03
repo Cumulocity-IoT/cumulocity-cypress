@@ -215,7 +215,7 @@
                                     ]
                                 },
                                 "height": {
-                                    "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
+                                    "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                     "type": "number"
                                 },
                                 "selector": {
@@ -248,7 +248,7 @@
                                     ]
                                 },
                                 "width": {
-                                    "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
+                                    "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
                                     "type": "number"
                                 }
                             },
@@ -270,7 +270,7 @@
                                     "type": "string"
                                 },
                                 "height": {
-                                    "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
+                                    "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                     "type": "number"
                                 },
                                 "styles": {
@@ -284,7 +284,7 @@
                                     ]
                                 },
                                 "width": {
-                                    "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
+                                    "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
                                     "type": "number"
                                 }
                             },
@@ -812,7 +812,7 @@
                             ]
                         },
                         "height": {
-                            "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
+                            "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                             "type": "number"
                         },
                         "selector": {
@@ -845,7 +845,7 @@
                             ]
                         },
                         "width": {
-                            "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
+                            "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
                             "type": "number"
                         }
                     },
@@ -867,7 +867,7 @@
                             "type": "string"
                         },
                         "height": {
-                            "description": "Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.",
+                            "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                             "type": "number"
                         },
                         "styles": {
@@ -881,7 +881,7 @@
                             ]
                         },
                         "width": {
-                            "description": "Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.",
+                            "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
                             "type": "number"
                         }
                     },

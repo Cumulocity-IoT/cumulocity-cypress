@@ -328,11 +328,11 @@ export interface HighlightAction {
    */
   styles?: any;
   /**
-   * Overwrite the width of the highlighted element. If smaller than 0, the value is used as percentage of the element width.
+   * Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.
    */
   width?: number;
   /**
-   * Overwrite the height of the highlighted element. If smaller than 0, the value is used as percentage of the element height.
+   * Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.
    */
   height?: number;
 }
