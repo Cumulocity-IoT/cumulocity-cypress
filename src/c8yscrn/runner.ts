@@ -516,7 +516,8 @@ export class C8yScreenshotRunner {
         {
           fileContent: attachData,
           fileName: fileUpload?.fileName ?? file.filename,
-          ..._.pick(fileUpload, ["encoding", "lastModified"]),
+          ..._.pick(file, ["encoding", "lastModified", "mimeType"]),
+          ..._.pick(fileUpload, ["encoding", "lastModified", "mimeType"]),
         },
         _.isNil
       );

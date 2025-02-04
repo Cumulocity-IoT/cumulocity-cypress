@@ -513,6 +513,16 @@ export function getFileUploadOptions(
     return null;
   }
 
+  const mimeTypeMap: { [extension: string]: string } = {
+    ".json": "application/json",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".csv": "text/csv",
+    ".txt": "text/plain",
+  };
+
   const textFileExtensions = [".csv", ".txt", ".json"];
   const binaryFileExtensions = [".png", ".jpg", ".jpeg", ".gif"];
   const extension = [file.fileName, file.path]
@@ -523,8 +533,14 @@ export function getFileUploadOptions(
     log(`Required extension to upload file. Skipping ${p}`);
     return null;
   }
-  let encoding = file.encoding;
 
+  let mimeType: string | undefined = undefined;
+  if (mimeTypeMap[extension] != null) {
+    mimeType = mimeTypeMap[extension];
+    log(`Using mimeType ${mimeType}`);
+  }
+
+  let encoding = file.encoding;
   let data: any = undefined;
   if (extension === ".json") {
     encoding = encoding ?? "utf8";
@@ -551,6 +567,8 @@ export function getFileUploadOptions(
     encoding,
     path: p,
     filename: file.fileName ?? path.basename(p),
+    mimeType,
   };
+
   return result;
 }

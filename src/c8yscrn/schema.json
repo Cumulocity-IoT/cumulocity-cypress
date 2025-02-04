@@ -109,6 +109,15 @@
                                     "description": "If true, the file is uploaded even if the element is not visible. The default is false.",
                                     "type": "boolean"
                                 },
+                                "mimeType": {
+                                    "description": "The MIME type of the file. If not provided, the MIME type is determined automatically.",
+                                    "examples": [
+                                        "application/json",
+                                        "text/csv",
+                                        "image/png"
+                                    ],
+                                    "type": "string"
+                                },
                                 "selector": {
                                     "anyOf": [
                                         {
@@ -180,6 +189,15 @@
                                     "default": false,
                                     "description": "If true, the file is uploaded even if the element is not visible. The default is false.",
                                     "type": "boolean"
+                                },
+                                "mimeType": {
+                                    "description": "The MIME type of the file. If not provided, the MIME type is determined automatically.",
+                                    "examples": [
+                                        "application/json",
+                                        "text/csv",
+                                        "image/png"
+                                    ],
+                                    "type": "string"
                                 },
                                 "subjectType": {
                                     "default": "input",
