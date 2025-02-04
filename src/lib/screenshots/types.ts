@@ -314,6 +314,11 @@ export interface UploadFileAction {
    * @default false
    */
   force?: boolean;
+  /**
+   * The MIME type of the file. If not provided, the MIME type is determined automatically.
+   * @examples ["application/json", "text/csv", "image/png"]
+   */
+  mimeType?: string;
 }
 
 export interface HighlightAction {
@@ -451,4 +456,5 @@ export interface C8yScreenshotFileUploadOptions {
   path: string;
   filename: string;
   encoding: string;
+  mimeType?: string;
 }
