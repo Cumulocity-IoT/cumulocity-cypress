@@ -244,7 +244,7 @@ export interface TypeAction {
    * 
    * For multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form.
    */
-  value: string | string[] | string[][];
+  value: string | (string | null)[] | (string | null)[][];
   /**
    * If true, the text input is cleared before typing. The default is false.
    * @default false
