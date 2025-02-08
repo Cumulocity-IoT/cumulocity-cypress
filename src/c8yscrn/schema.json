@@ -527,14 +527,20 @@
                                     "anyOf": [
                                         {
                                             "items": {
-                                                "type": "string"
+                                                "type": [
+                                                    "null",
+                                                    "string"
+                                                ]
                                             },
                                             "type": "array"
                                         },
                                         {
                                             "items": {
                                                 "items": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "null",
+                                                        "string"
+                                                    ]
                                                 },
                                                 "type": "array"
                                             },
@@ -616,14 +622,20 @@
                                     "anyOf": [
                                         {
                                             "items": {
-                                                "type": "string"
+                                                "type": [
+                                                    "null",
+                                                    "string"
+                                                ]
                                             },
                                             "type": "array"
                                         },
                                         {
                                             "items": {
                                                 "items": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "null",
+                                                        "string"
+                                                    ]
                                                 },
                                                 "type": "array"
                                             },
