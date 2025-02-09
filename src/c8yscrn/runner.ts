@@ -335,11 +335,12 @@ export class C8yScreenshotRunner {
       const selector = getSelector(highlight, this.config.selectors);
       if (selector == null) return;
 
-      const highlightStyle = that?.config.global?.highlightStyle ?? {
+      const highlightStyle = {
         outline: "2px",
         "outline-style": "solid",
         "outline-offset": "-2px",
         "outline-color": "#FF9300",
+        ...that?.config.global?.highlightStyle ?? {},
       };
 
       const applyHighlightStyle = (
