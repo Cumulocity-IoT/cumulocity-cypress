@@ -224,6 +224,12 @@
                 "highlight": {
                     "anyOf": [
                         {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        },
+                        {
                             "additionalProperties": false,
                             "properties": {
                                 "border": {
@@ -323,7 +329,109 @@
                         },
                         {
                             "items": {
-                                "$ref": "#/definitions/SelectableHighlightAction"
+                                "anyOf": [
+                                    {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "border": {
+                                                "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
+                                                "examples": [
+                                                    "1px solid red"
+                                                ]
+                                            },
+                                            "clear": {
+                                                "default": false,
+                                                "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                                "type": "boolean"
+                                            },
+                                            "height": {
+                                                "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
+                                                "type": "number"
+                                            },
+                                            "selector": {
+                                                "anyOf": [
+                                                    {
+                                                        "additionalProperties": false,
+                                                        "properties": {
+                                                            "data-cy": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "data-cy"
+                                                        ],
+                                                        "type": "object"
+                                                    },
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            },
+                                            "styles": {
+                                                "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
+                                                "examples": [
+                                                    [
+                                                        "background-color: yellow",
+                                                        "outline: dashed",
+                                                        "outline-offset: +3px"
+                                                    ]
+                                                ]
+                                            },
+                                            "width": {
+                                                "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
+                                                "type": "number"
+                                            }
+                                        },
+                                        "required": [
+                                            "selector"
+                                        ],
+                                        "type": "object"
+                                    },
+                                    {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "border": {
+                                                "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
+                                                "examples": [
+                                                    "1px solid red"
+                                                ]
+                                            },
+                                            "clear": {
+                                                "default": false,
+                                                "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                                "type": "boolean"
+                                            },
+                                            "data-cy": {
+                                                "type": "string"
+                                            },
+                                            "height": {
+                                                "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
+                                                "type": "number"
+                                            },
+                                            "styles": {
+                                                "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
+                                                "examples": [
+                                                    [
+                                                        "background-color: yellow",
+                                                        "outline: dashed",
+                                                        "outline-offset: +3px"
+                                                    ]
+                                                ]
+                                            },
+                                            "width": {
+                                                "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
+                                                "type": "number"
+                                            }
+                                        },
+                                        "required": [
+                                            "data-cy"
+                                        ],
+                                        "type": "object"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
                             },
                             "type": "array"
                         },
@@ -839,108 +947,6 @@
                 }
             },
             "type": "object"
-        },
-        "SelectableHighlightAction": {
-            "anyOf": [
-                {
-                    "additionalProperties": false,
-                    "properties": {
-                        "border": {
-                            "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
-                            "examples": [
-                                "1px solid red"
-                            ]
-                        },
-                        "clear": {
-                            "default": false,
-                            "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
-                            "type": "boolean"
-                        },
-                        "height": {
-                            "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
-                            "type": "number"
-                        },
-                        "selector": {
-                            "anyOf": [
-                                {
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        "data-cy": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "data-cy"
-                                    ],
-                                    "type": "object"
-                                },
-                                {
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "styles": {
-                            "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
-                            "examples": [
-                                [
-                                    "background-color: yellow",
-                                    "outline: dashed",
-                                    "outline-offset: +3px"
-                                ]
-                            ]
-                        },
-                        "width": {
-                            "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
-                            "type": "number"
-                        }
-                    },
-                    "required": [
-                        "selector"
-                    ],
-                    "type": "object"
-                },
-                {
-                    "additionalProperties": false,
-                    "properties": {
-                        "border": {
-                            "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
-                            "examples": [
-                                "1px solid red"
-                            ]
-                        },
-                        "clear": {
-                            "default": false,
-                            "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
-                            "type": "boolean"
-                        },
-                        "data-cy": {
-                            "type": "string"
-                        },
-                        "height": {
-                            "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
-                            "type": "number"
-                        },
-                        "styles": {
-                            "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
-                            "examples": [
-                                [
-                                    "background-color: yellow",
-                                    "outline: dashed",
-                                    "outline-offset: +3px"
-                                ]
-                            ]
-                        },
-                        "width": {
-                            "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
-                            "type": "number"
-                        }
-                    },
-                    "required": [
-                        "data-cy"
-                    ],
-                    "type": "object"
-                }
-            ]
         },
         "Visit": {
             "additionalProperties": false,
