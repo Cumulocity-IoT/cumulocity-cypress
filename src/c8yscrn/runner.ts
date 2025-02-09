@@ -279,18 +279,27 @@ export class C8yScreenshotRunner {
         cy.get(selector).clear();
       }
       cy.get(selector).type(action.value);
-    } else if (_.isArrayLike(action.value)) {
-      const values = _.isArray(action.value) ? action.value : [action.value];
+    } else if (_.isArray(action.value)) {
+      const values: (string | null)[][] = _.isArray(action.value)
+        ? _.isArray(action.value[0])
+          ? (action.value as string[][])
+          : [action.value as string[]]
+        : [[action.value]];
+
       values.forEach((formInput) => {
         cy.get(selector).within(($withElement) => {
-          const $elements = Cypress.$($withElement).find("input[type=text]");
+          const $elements = Cypress.$($withElement).find(
+            "input[type=text], textarea"
+          );
           const length = Math.min($elements.length, formInput.length);
-          (formInput as string[]).forEach((value: string, index: number) => {
+          formInput.forEach((value, index) => {
             if (index >= length) return;
-            if (action.clear === true) {
-              cy.get(selector).clear();
+            if (value != null && value !== "") {
+              if (action.clear === true) {
+                cy.wrap($elements[index]).clear();
+              }
+              cy.wrap($elements[index]).type(value);
             }
-            cy.get("input[type=text]").eq(index).type(value);
           });
         });
         cy.then(() => {
@@ -326,11 +335,12 @@ export class C8yScreenshotRunner {
       const selector = getSelector(highlight, this.config.selectors);
       if (selector == null) return;
 
-      const highlightStyle = that?.config.global?.highlightStyle ?? {
+      const highlightStyle = {
         outline: "2px",
         "outline-style": "solid",
         "outline-offset": "-2px",
         "outline-color": "#FF9300",
+        ...that?.config.global?.highlightStyle ?? {},
       };
 
       const applyHighlightStyle = (
