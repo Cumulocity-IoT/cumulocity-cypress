@@ -397,7 +397,7 @@ export interface Action {
   /**
    * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
    */
-  highlight?: string | SelectableHighlightAction | SelectableHighlightAction[];
+  highlight?: string | string[] | SelectableHighlightAction | (string | SelectableHighlightAction)[];
   /**
    * The screenshot action triggers a screenshot of the current state of the application.
    */

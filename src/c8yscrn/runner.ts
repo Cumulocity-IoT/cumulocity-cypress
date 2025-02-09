@@ -295,7 +295,7 @@ export class C8yScreenshotRunner {
           formInput.forEach((value, index) => {
             if (index >= length) return;
             if (value != null && value !== "") {
-            if (action.clear === true) {
+              if (action.clear === true) {
                 cy.wrap($elements[index]).clear();
               }
               cy.wrap($elements[index]).type(value);
