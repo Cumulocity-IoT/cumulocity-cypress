@@ -295,7 +295,7 @@ export class C8yScreenshotRunner {
           formInput.forEach((value, index) => {
             if (index >= length) return;
             if (value != null && value !== "") {
-            if (action.clear === true) {
+              if (action.clear === true) {
                 cy.wrap($elements[index]).clear();
               }
               cy.wrap($elements[index]).type(value);
@@ -335,11 +335,12 @@ export class C8yScreenshotRunner {
       const selector = getSelector(highlight, this.config.selectors);
       if (selector == null) return;
 
-      const highlightStyle = that?.config.global?.highlightStyle ?? {
+      const highlightStyle = {
         outline: "2px",
         "outline-style": "solid",
         "outline-offset": "-2px",
         "outline-color": "#FF9300",
+        ...that?.config.global?.highlightStyle ?? {},
       };
 
       const applyHighlightStyle = (
