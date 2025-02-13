@@ -449,6 +449,7 @@ export interface C8yScreenshotOptions {
   diff: boolean;
   diffFolder: string;
   diffSkip: boolean;
+  highlight: boolean;
 }
 
 export interface C8yScreenshotFileUploadOptions {

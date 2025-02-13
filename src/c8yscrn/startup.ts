@@ -85,6 +85,10 @@ const log = debug("c8y:scrn:startup");
       process.env.C8Y_BROWSER_LAUNCH_ARGS ??
       "";
 
+    if (args.highlight === false ) {
+      log(`Disabling highlights in screenshots`);
+    }
+
     const diffFolder =
       args.diffFolder != null
         ? resolveScreenshotFolder(args.diffFolder)
@@ -111,6 +115,7 @@ const log = debug("c8y:scrn:startup");
         env: {
           ...envs,
           ...{
+            _c8yscrnHighlight: args.highlight,
             _c8yscrnCli: true,
             _c8yscrnConfigFile: yamlFile,
             _c8yscrnyaml: configData,
@@ -224,6 +229,13 @@ function runOptions(yargs: Argv) {
       default: true,
       requiresArg: false,
       description: "Skip screenshots without difference",
+    })
+    .option("highlight", {
+      type: "boolean",
+      alias: "h",
+      default: true,
+      requiresArg: true,
+      description: "Enable or disable highlights in screenshots",
     })
     .option("tags", {
       alias: "t",

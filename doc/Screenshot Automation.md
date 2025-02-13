@@ -125,6 +125,7 @@ Options:
       --diff        Enable image diffing                                  [boolean] [default: false]
       --diffFolder  Optional target folder for the diff images                              [string]
       --diffSkip    Skip screenshots without difference                    [boolean] [default: true]
+  -h, --highlight   Enable or disable highlights in screenshots            [boolean] [default: true]
   -t, --tags        Run only screenshot workflows with the given tags                        [array]
 ```
 
