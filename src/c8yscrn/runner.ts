@@ -62,11 +62,14 @@ export class C8yScreenshotRunner {
     this.actionHandlers = {};
     this.registerActionHandler("click", this.click);
     this.registerActionHandler("type", this.type);
-    this.registerActionHandler("highlight", this.highlight);
     this.registerActionHandler("screenshot", this.screenshot);
     this.registerActionHandler("text", this.text);
     this.registerActionHandler("wait", this.wait);
     this.registerActionHandler("fileUpload", this.fileUpload);
+
+    if ((Cypress.env("_c8yscrnHighlight") ?? false) != false) {
+      this.registerActionHandler("highlight", this.highlight);
+    }
   }
 
   registerActionHandler(key: string, handler: C8yScreenshotActionHandler) {
