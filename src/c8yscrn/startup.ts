@@ -19,7 +19,10 @@ import {
 import { C8yScreenshotOptions, DiffOptions } from "./../lib/screenshots/types";
 
 import debug from "debug";
+import { sanitizeStringifiedObject } from "../shared/util";
+
 const log = debug("c8y:scrn:startup");
+const logEnv = debug("c8y:scrn:env");
 
 (async () => {
   try {
@@ -53,12 +56,22 @@ const log = debug("c8y:scrn:startup");
     }
 
     const tags = (args.tags ?? []).join(",");
+    log(`Running with tags: ${tags}`);
+    
     const envs = {
       ...(dotenv().parsed ?? {}),
       ...(dotenv({ path: ".c8yscrn" }).parsed ?? {}),
       ...(tags.length > 0 ? { grepTags: tags } : {}),
-      ..._.pickBy(process.env, (value, key) => key.startsWith("C8Y_")),
+      ..._.pickBy(
+        process.env,
+        (value, key) =>
+          key.startsWith("C8Y_") ||
+          key.endsWith("_username") ||
+          key.endsWith("_password")
+      ),
     };
+
+    logEnv(sanitizeStringifiedObject(JSON.stringify(envs, null, 2)));
 
     // we need to read config here to get some config values
     const configData = loadConfigFile(yamlFile);
