@@ -40,3 +40,13 @@ export function getPackageVersion() {
   }
   return "unknown";
 }
+
+export function sanitizeStringifiedObject(value: string) {
+  if (!value || typeof value !== "string") {
+    return value;
+  }
+  return value.replace(
+    /("?)(password)("?):\s+("?).*?(")?(\s*,?[\s\n}]+)/gi,
+    '$1$2$3: $4***$5$6'
+  );
+}
