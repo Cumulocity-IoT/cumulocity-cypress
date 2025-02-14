@@ -9,17 +9,13 @@ import {
   C8yScreenshotFileUploadOptions,
   Screenshot,
   ScreenshotSetup,
+  SelectableHighlightAction,
   Visit,
 } from "../lib/screenshots/types";
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
-import {
-  findCommonParent,
-  getElementPositionWithinParent,
-  getSelector,
-  imageName,
-} from "./runner-helper";
+import { getSelector, imageName } from "./runner-helper";
 
 const { _ } = Cypress;
 
@@ -34,9 +30,6 @@ const taskLog = { log: true };
 
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
-
-  private customizedElements: Array<[JQuery<HTMLElement>, any]> = [];
-  private highlightElements: Array<JQuery<HTMLElement>> = [];
 
   actionHandlers: {
     [key: string]: C8yScreenshotActionHandler;
@@ -117,10 +110,7 @@ export class C8yScreenshotRunner {
       this.config.screenshots?.forEach((item) => {
         const annotations: any = {};
 
-        this.customizedElements = [];
-        this.highlightElements = [];
-
-        const required = item.requires ?? global?.requires;
+       const required = item.requires ?? global?.requires;
         if (required != null) {
           annotations.requires = {
             shell: _.isArray(required) ? required : [required],
@@ -319,139 +309,42 @@ export class C8yScreenshotRunner {
 
   protected highlight(action: Action["highlight"], that: C8yScreenshotRunner) {
     const highlights = _.isArray(action) ? action : [action];
+    cy.wrap(highlights).each(
+      (highlight: string | SelectableHighlightAction | undefined) => {
+        const selector = getSelector(highlight, this.config.selectors);
+        if (selector == null) return;
 
-    highlights?.forEach((highlight) => {
-      cy.then(() => {
-        if (_.isObject(highlight) && (highlight?.clear ?? false) === true) {
-          this.customizedElements.forEach(([$element, styles]) => {
-            $element.css(styles);
-          });
-          this.highlightElements.forEach(($element) => {
-            $element.remove();
-          });
+        const highlightStyle = {
+          outline: "2px",
+          "outline-style": "solid",
+          "outline-offset": "-2px",
+          "outline-color": "#FF9300",
+          ...(that?.config.global?.highlightStyle ?? {}),
+        };
 
-          this.customizedElements = [];
-          this.highlightElements = [];
-        }
-      });
-
-      const selector = getSelector(highlight, this.config.selectors);
-      if (selector == null) return;
-
-      const highlightStyle = {
-        outline: "2px",
-        "outline-style": "solid",
-        "outline-offset": "-2px",
-        "outline-color": "#FF9300",
-        ...that?.config.global?.highlightStyle ?? {},
-      };
-
-      const applyHighlightStyle = (
-        $element: JQuery<HTMLElement>,
-        styles: any
-      ) => {
-        if ($element.length === 0) return;
-        if (
-          $element.length > 1 ||
-          (!_.isString(highlight) &&
-            (highlight?.width != null || highlight?.height != null))
-        ) {
-          // we need to wait for the element to transition and animate into final
-          // position before we can calculate the absolute highlight area
-          cy.wait(500, { log: false }).then(() => {
-            let $parent = findCommonParent($element);
-            if (!$parent) {
-              $parent = Cypress.$("body").get(0);
-            } else {
-              // make sure the new container is positioned correctly
-              Cypress.$($parent).css("position", "relative");
-            }
-
-            const unionRect = $element.toArray().reduce(
-              (acc, el) => {
-                const rect = getElementPositionWithinParent(el, $parent);
-                acc.top = Math.min(acc.top, rect.top);
-                acc.left = Math.min(acc.left, rect.left);
-                acc.bottom = Math.max(acc.bottom, rect.bottom);
-                acc.right = Math.max(acc.right, rect.right);
-                return acc;
-              },
-              {
-                top: Infinity,
-                left: Infinity,
-                bottom: -Infinity,
-                right: -Infinity,
-              }
-            );
-
-            let width = unionRect.right - unionRect.left;
-            if (!_.isString(highlight) && highlight?.width != null) {
-              width =
-                highlight.width <= 1
-                  ? width * highlight.width
-                  : highlight.width;
-            }
-
-            let height = unionRect.bottom - unionRect.top;
-            if (!_.isString(highlight) && highlight?.height != null) {
-              height =
-                highlight.height <= 1
-                  ? height * highlight.height
-                  : highlight.height;
-            }
-
-            const css = {
-              position: "absolute",
-              top: `${unionRect.top}px`,
-              left: `${unionRect.left}px`,
-              width: `${width}px`,
-              height: `${height}px`,
-              zIndex: 9999,
-              pointerEvents: "none",
-              ...styles,
-            };
-            const $container = Cypress.$(
-              "<div _c8yscrn-highlight-container></div>"
-            ).css(css);
-            Cypress.$($parent).append($container);
-            this.highlightElements.push($container);
-          });
-        } else {
-          const styledProperties = Object.keys(styles);
-          const currentStyles = $element.css(styledProperties);
-          this.customizedElements.push([$element, currentStyles]);
-          $element.css(styles);
-        }
-      };
-
-      cy.get(selector).then(($element) => {
-        const style = {};
-        if (!_.isString(highlight)) {
+        if (_.isObject(highlight)) {
           if (highlight?.styles != null) {
-            _.extend(style, highlight.styles);
+            _.extend(highlightStyle, highlight.styles);
           }
           if (highlight?.border != null) {
             if (_.isString(highlight.border)) {
-              _.extend(style, { border: highlight.border });
+              _.extend(highlightStyle, { border: highlight.border });
             } else {
-              _.extend(style, {
-                ...highlightStyle,
-                ...highlight.border,
-              });
+              _.extend(highlightStyle, { ...highlight.border });
             }
           }
-          if (
-            _.isEmpty(style) &&
-            (highlight?.width != null || highlight?.height != null)
-          ) {
-            _.extend(style, highlightStyle);
+          if (highlight?.clear === true) {
+            cy.clearHighlights();
+            highlight.clear = false;
           }
-          applyHighlightStyle($element, style);
-        } else {
-          applyHighlightStyle($element, highlightStyle);
         }
-      });
-    });
+
+        cy.get(selector).highlight(
+          highlightStyle,
+          _.isObject(highlight) ? highlight : {}
+        );
+      }
+    );
   }
 
   protected text(action: Action["text"]) {
