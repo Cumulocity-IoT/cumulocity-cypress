@@ -85,7 +85,7 @@ const log = debug("c8y:scrn:startup");
       process.env.C8Y_BROWSER_LAUNCH_ARGS ??
       "";
 
-    if (args.highlight === false ) {
+    if (args.highlight === false) {
       log(`Disabling highlights in screenshots`);
     }
 
@@ -129,13 +129,27 @@ const log = debug("c8y:scrn:startup");
     if (args.open === true) {
       await cypress.open(config);
     } else {
-      await cypress.run(config);
+      const result = await cypress.run(config);
+      if (isFailedRunResult(result)) {
+        console.error(result.message);
+        process.exit(result.failures);
+      } else {
+        process.exit(result.totalFailed);
+      }
     }
   } catch (error: any) {
     console.error(error.message);
     process.exit(1);
   }
 })();
+
+function isFailedRunResult(
+  result:
+    | CypressCommandLine.CypressRunResult
+    | CypressCommandLine.CypressFailedRunResult
+): result is CypressCommandLine.CypressFailedRunResult {
+  return "status" in result && result.status === "failed";
+}
 
 export function getConfigFromArgs(): Partial<C8yScreenshotOptions> {
   const result = yargs(hideBin(process.argv))
