@@ -197,6 +197,9 @@ export function configureC8yScreenshotPlugin(
   setup?: string | ScreenshotSetup
 ) {
   const log = debug("c8y:scrn:plugin");
+  const logRun = debug("c8y:scrn:run");
+  const logScreenshot = debug("c8y:scrn:run:screenshot");
+
   let configData: string | ScreenshotSetup | undefined = setup;
   if (typeof configData === "object") {
     log(`Using config from object`);
@@ -330,24 +333,24 @@ export function configureC8yScreenshotPlugin(
   });
 
   on("after:screenshot", (details) => {
-    log(`Starting screenshot ${JSON.stringify(details)}`);
+    logScreenshot(`Starting screenshot ${JSON.stringify(details)}`);
     return new Promise((resolve, reject) => {
       const finish = (result: Cypress.AfterScreenshotReturnObject | string) => {
         const resolveObject: Cypress.AfterScreenshotReturnObject = {
           ...details,
           ...(typeof result === "string" && { path: result }),
         };
-        log(`Finished screenshot ${JSON.stringify(resolveObject)}`);
+        logScreenshot(`Finished screenshot ${JSON.stringify(resolveObject)}`);
         resolve(resolveObject);
       };
 
       const moveFile = (source: string, target: string) => {
         fs.rename(source, target, (err) => {
           if (err) {
-            log(`Error moving file: ${err}`);
+            logScreenshot(`Error moving file: ${err}`);
             return reject(err);
           }
-          log(`Moved ${source} to ${target} (${overwrite})`);
+          logScreenshot(`Moved ${source} to ${target} (${overwrite})`);
         });
       };
 
@@ -356,7 +359,7 @@ export function configureC8yScreenshotPlugin(
         details.specName.trim() == ""
           ? details.path
           : details.path?.replace(`${details.specName}${path.sep}`, "");
-      log(`details.path: ${details.path} -> newPath: ${newPath}`);
+          logRun(`details.path: ${details.path} -> newPath: ${newPath}`);
 
       const screenshotTarget = path.dirname(newPath);
       const diffTarget =
@@ -367,7 +370,7 @@ export function configureC8yScreenshotPlugin(
       const isTestFailure = details.testFailure === true;
       const isDiffEnabled = diffOptions != null && !isTestFailure;
       if (isDiffEnabled && !diffTarget) {
-        log(`Diffing enabled but no target folder found`);
+        logScreenshot(`Diffing enabled but no target folder found`);
         finish(details);
       }
 
@@ -391,7 +394,7 @@ export function configureC8yScreenshotPlugin(
       });
 
       if (!screenshotTarget) {
-        log(`No screenshot target folder configured`);
+        logScreenshot(`No screenshot target folder configured`);
         finish(details);
       }
 
@@ -402,7 +405,7 @@ export function configureC8yScreenshotPlugin(
       if (isTestFailure && failureFolder != null) {
         const failureFileName = path.basename(details.path);
         const failureTarget = path.join(failureFolder, failureFileName);
-        log(`Moving failure screenshot to: ${failureTarget}`);
+        logScreenshot(`Moving failure screenshot to: ${failureTarget}`);
         moveFile(details.path, failureTarget);
         finish(details);
       } else if (!isDiffEnabled) {
@@ -410,12 +413,12 @@ export function configureC8yScreenshotPlugin(
         finish(newPath);
       } else {
         const diffFile = path.join(diffTarget, `${details.name}.diff.png`);
-        log(`Diff file: ${diffFile}`);
+        logScreenshot(`Diff file: ${diffFile}`);
         compare(details.path, screenshotFile, diffFile, diffOptions).then(
           (diffResult) => {
-            log(`Diff result: ${JSON.stringify(diffResult)}`);
+            logScreenshot(`Diff result: ${JSON.stringify(diffResult)}`);
             if (diffOptions.skipMove === true && diffResult.match === true) {
-              log(
+              logScreenshot(
                 `Skipping ${screenshotFile} (skipMove: ${diffOptions.skipMove})`
               );
             } else {
@@ -430,7 +433,7 @@ export function configureC8yScreenshotPlugin(
 
   on("task", {
     debug: (message: string) => {
-      log(message.slice(0, 100));
+      logRun(message.slice(0, 100));
       return null;
     },
     "c8yscrn:file": (file: {
@@ -515,7 +518,7 @@ export function getFileUploadOptions(
   configFilePath: string | undefined,
   projectRoot: string
 ): C8yScreenshotFileUploadOptions | null {
-  const log = debug("c8y:scrn:plugin:upload");
+  const log = debug("c8y:scrn:run:fileupload");
 
   const p = path.resolve(
     configFilePath != null ? path.dirname(configFilePath) : projectRoot,
