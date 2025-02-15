@@ -19,7 +19,10 @@ import {
 import { C8yScreenshotOptions, DiffOptions } from "./../lib/screenshots/types";
 
 import debug from "debug";
+import { sanitizeStringifiedObject } from "../shared/util";
+
 const log = debug("c8y:scrn:startup");
+const logEnv = debug("c8y:scrn:env");
 
 (async () => {
   try {
@@ -53,12 +56,22 @@ const log = debug("c8y:scrn:startup");
     }
 
     const tags = (args.tags ?? []).join(",");
+    log(`Running with tags: ${tags}`);
+
     const envs = {
       ...(dotenv().parsed ?? {}),
       ...(dotenv({ path: ".c8yscrn" }).parsed ?? {}),
       ...(tags.length > 0 ? { grepTags: tags } : {}),
-      ..._.pickBy(process.env, (value, key) => key.startsWith("C8Y_")),
+      ..._.pickBy(
+        process.env,
+        (value, key) =>
+          key.startsWith("C8Y_") ||
+          key.endsWith("_username") ||
+          key.endsWith("_password")
+      ),
     };
+
+    logEnv(sanitizeStringifiedObject(JSON.stringify(envs, null, 2)));
 
     // we need to read config here to get some config values
     const configData = loadConfigFile(yamlFile);
@@ -85,9 +98,18 @@ const log = debug("c8y:scrn:startup");
       process.env.C8Y_BROWSER_LAUNCH_ARGS ??
       "";
 
+    if (args.highlight === false) {
+      log(`Disabling highlights in screenshots`);
+    }
+
     const diffFolder =
       args.diffFolder != null
         ? resolveScreenshotFolder(args.diffFolder)
+        : undefined;
+
+    const failureFolder =
+      args.failureFolder != null
+        ? resolveScreenshotFolder(args.failureFolder)
         : undefined;
 
     let diffOptions: (DiffOptions & ODiffOptions) | undefined = undefined;
@@ -111,11 +133,13 @@ const log = debug("c8y:scrn:startup");
         env: {
           ...envs,
           ...{
+            _c8yscrnHighlight: args.highlight,
             _c8yscrnCli: true,
             _c8yscrnConfigFile: yamlFile,
             _c8yscrnyaml: configData,
             _c8yscrnBrowserLaunchArgs: browserLaunchArgs,
             _c8yscrnDiffOptions: diffOptions,
+            _c8yscrnFailureFolder: failureFolder,
           },
         },
       },
@@ -124,13 +148,27 @@ const log = debug("c8y:scrn:startup");
     if (args.open === true) {
       await cypress.open(config);
     } else {
-      await cypress.run(config);
+      const result = await cypress.run(config);
+      if (isFailedRunResult(result)) {
+        console.error(result.message);
+        process.exit(result.failures);
+      } else {
+        process.exit(result.totalFailed);
+      }
     }
   } catch (error: any) {
     console.error(error.message);
     process.exit(1);
   }
 })();
+
+function isFailedRunResult(
+  result:
+    | CypressCommandLine.CypressRunResult
+    | CypressCommandLine.CypressFailedRunResult
+): result is CypressCommandLine.CypressFailedRunResult {
+  return "status" in result && result.status === "failed";
+}
 
 export function getConfigFromArgs(): Partial<C8yScreenshotOptions> {
   const result = yargs(hideBin(process.argv))
@@ -189,6 +227,18 @@ function runOptions(yargs: Argv) {
       requiresArg: true,
       description: "The target folder for the screenshots",
     })
+    .option("failureFolder", {
+      alias: "e",
+      type: "string",
+      requiresArg: true,
+      description: "The target folder for failure screenshots",
+    })
+    .option("skipFailure", {
+      type: "boolean",
+      requiresArg: false,
+      description: "Disable failure screenshots",
+      default: false,
+    })
     .option("clear", {
       type: "boolean",
       requiresArg: false,
@@ -224,6 +274,13 @@ function runOptions(yargs: Argv) {
       default: true,
       requiresArg: false,
       description: "Skip screenshots without difference",
+    })
+    .option("highlight", {
+      type: "boolean",
+      alias: "h",
+      default: true,
+      requiresArg: true,
+      description: "Enable or disable highlights in screenshots",
     })
     .option("tags", {
       alias: "t",

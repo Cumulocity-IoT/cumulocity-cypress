@@ -53,6 +53,7 @@ Contents of this document:
   - [For Standalone Users](#for-standalone-users)
     - [Installation](#installation)
     - [Command Line Options](#command-line-options)
+    - [Logging](#logging)
   - [Integrate in to existing Cypress Projects](#integrate-in-to-existing-cypress-projects)
     - [Installation](#installation-1)
     - [Configuration](#configuration)
@@ -117,15 +118,20 @@ c8yscrn run
 Run workflows in headless mode
 
 Options:
-  -c, --config      The yaml config file                   [string] [default: "c8yscrn.config.yaml"]
-  -f, --folder      The target folder for the screenshots                                   [string]
-  -u, --baseUrl     The Cumulocity base url                                                 [string]
-      --clear       Clear the target folder and remove all data           [boolean] [default: false]
-  -b, --browser     Browser to use                                      [string] [default: "chrome"]
-      --diff        Enable image diffing                                  [boolean] [default: false]
-      --diffFolder  Optional target folder for the diff images                              [string]
-      --diffSkip    Skip screenshots without difference                    [boolean] [default: true]
-  -t, --tags        Run only screenshot workflows with the given tags                        [array]
+      --version        Show version number                                                 [boolean]
+      --help           Show help                                                           [boolean]
+  -c, --config         The yaml config file                [string] [default: "c8yscrn.config.yaml"]
+  -u, --baseUrl        The Cumulocity base url                                              [string]
+  -f, --folder         The target folder for the screenshots                                [string]
+  -e, --failureFolder  The target folder for failure screenshots                            [string]
+      --skipFailure    Disable failure screenshots                        [boolean] [default: false]
+      --clear          Clear the target folder and remove all data        [boolean] [default: false]
+  -b, --browser        Browser to use                                   [string] [default: "chrome"]
+      --diff           Enable image diffing                               [boolean] [default: false]
+      --diffFolder     Optional target folder for the diff images                           [string]
+      --diffSkip       Skip screenshots without difference                 [boolean] [default: true]
+  -h, --highlight      Enable or disable highlights in screenshots         [boolean] [default: true]
+  -t, --tags           Run only screenshot workflows with the given tags                     [array]
 ```
 
 When using `open` instead of `run`, the Cypress test runner will open in Cypress application. This can be useful for debugging and developing new screenshot workflows.
@@ -147,6 +153,29 @@ Options:
   -c, --config   The yaml config file                      [string] [default: "c8yscrn.config.yaml"]
   -u, --baseUrl  The Cumulocity base url                                                    [string]
 ```
+
+#### Logging
+
+Logging can be enabled using the `DEBUG` environment variable. 
+
+```
+DEBUG=c8y:scrn:* npx c8yscrn run
+```
+
+or 
+
+```
+DEBUG=c8y:scrn:run npx c8yscrn run
+```
+
+The following logger are currently available:
+* `c8y:scrn:config`
+* `c8y:scrn:env`
+* `c8y:scrn:startup`
+* `c8y:scrn:plugin`
+* `c8y:scrn:run`
+* `c8y:scrn:run:screenshot`
+* `c8y:scrn:run:fileupload`
 
 ### Integrate in to existing Cypress Projects
 

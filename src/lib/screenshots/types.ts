@@ -3,7 +3,7 @@
 // using & to combine types is not supported by JSON schema and will
 // result in copying the properties of the intersection into the resulting
 // subschemas.
-import { C8yBaseUrl } from "../../shared/types";
+import { C8yBaseUrl, C8yHighlightOptions } from "../../shared/types";
 import { ODiffOptions } from "odiff-bin";
 
 export type ScreenshotSetup = {
@@ -87,7 +87,7 @@ export interface ScreenshotOptions {
    * Viewport position to which an element should be scrolled before executing commands. The default is false.
    * @default false
    */
-  scrollBehavior?: 'center' | 'top' | 'bottom' | 'nearest' | false;
+  scrollBehavior?: "center" | "top" | "bottom" | "nearest" | false;
 }
 
 export interface Screenshot {
@@ -241,7 +241,7 @@ export interface ClickAction {
 export interface TypeAction {
   /**
    * The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.
-   * 
+   *
    * For multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form.
    */
   value: string | (string | null)[] | (string | null)[][];
@@ -321,31 +321,7 @@ export interface UploadFileAction {
   mimeType?: string;
 }
 
-export interface HighlightAction {
-  /**
-   * The border style. Use any valid CSS border style. If provided an object, keys override the default border style.
-   * @examples ["1px solid red"]
-   */
-  border?: string | any;
-  /**
-   * The CSS styles to apply to the DOM element. Use any valid CSS styles.
-   * @examples [["background-color: yellow", "outline: dashed", "outline-offset: +3px"]]
-   */
-  styles?: any;
-  /**
-   * Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.
-   */
-  width?: number;
-  /**
-   * Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.
-   */
-  height?: number;
-  /**
-   * If true, existing highlights will be cleared before highlighting. The default is false.
-   * @default false
-   */
-  clear?: boolean;
-}
+export interface HighlightAction extends C8yHighlightOptions {}
 
 export type SelectableHighlightAction = HighlightAction & Selectable;
 
@@ -397,7 +373,11 @@ export interface Action {
   /**
    * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
    */
-  highlight?: string | string[] | SelectableHighlightAction | (string | SelectableHighlightAction)[];
+  highlight?:
+    | string
+    | string[]
+    | SelectableHighlightAction
+    | (string | SelectableHighlightAction)[];
   /**
    * The screenshot action triggers a screenshot of the current state of the application.
    */
@@ -438,6 +418,8 @@ export interface C8yScreenshotOptions {
   baseUrl: string;
   config: string;
   folder: string;
+  failureFolder: string;
+  skipFailure: boolean;
   open: boolean;
   browser: "chrome" | "firefox" | "electron";
   browserLaunchArgs: string;
@@ -449,6 +431,7 @@ export interface C8yScreenshotOptions {
   diff: boolean;
   diffFolder: string;
   diffSkip: boolean;
+  highlight: boolean;
 }
 
 export interface C8yScreenshotFileUploadOptions {

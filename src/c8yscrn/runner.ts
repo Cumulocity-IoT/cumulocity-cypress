@@ -9,17 +9,13 @@ import {
   C8yScreenshotFileUploadOptions,
   Screenshot,
   ScreenshotSetup,
+  SelectableHighlightAction,
   Visit,
 } from "../lib/screenshots/types";
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
-import {
-  findCommonParent,
-  getElementPositionWithinParent,
-  getSelector,
-  imageName,
-} from "./runner-helper";
+import { getSelector, imageName } from "./runner-helper";
 
 const { _ } = Cypress;
 
@@ -34,9 +30,6 @@ const taskLog = { log: true };
 
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
-
-  private customizedElements: Array<[JQuery<HTMLElement>, any]> = [];
-  private highlightElements: Array<JQuery<HTMLElement>> = [];
 
   actionHandlers: {
     [key: string]: C8yScreenshotActionHandler;
@@ -62,11 +55,14 @@ export class C8yScreenshotRunner {
     this.actionHandlers = {};
     this.registerActionHandler("click", this.click);
     this.registerActionHandler("type", this.type);
-    this.registerActionHandler("highlight", this.highlight);
     this.registerActionHandler("screenshot", this.screenshot);
     this.registerActionHandler("text", this.text);
     this.registerActionHandler("wait", this.wait);
     this.registerActionHandler("fileUpload", this.fileUpload);
+
+    if ((Cypress.env("_c8yscrnHighlight") ?? false) != false) {
+      this.registerActionHandler("highlight", this.highlight);
+    }
   }
 
   registerActionHandler(key: string, handler: C8yScreenshotActionHandler) {
@@ -99,7 +95,35 @@ export class C8yScreenshotRunner {
         const login = global?.login ?? global?.user;
         cy.getAuth(login as any).then((auth) => {
           if (auth != null && login !== false) {
-            cy.wrap(auth, { log: false }).getShellVersion(global?.shell);
+            cy.wrap(auth, { log: false })
+              .getShellVersion(global?.shell)
+              .then((version) => {
+                debug(
+                  `Set shell version ${version} for ${
+                    global?.shell ?? Cypress.env("C8Y_SHELL_NAME")
+                  } `
+                );
+              });
+            cy.wrap(auth, { log: false })
+              .getTenantId()
+              .then((tenantId) => {
+                debug(`Set tenantId ${tenantId} `);
+              });
+          } else {
+            const hint =
+              login === false
+                ? "Login disabled."
+                : "No login or auth configured.";
+            debug(
+              `Skipped setting shellVersion. ${hint} Falling back to C8Y_SHELL_VERSION: ${Cypress.env(
+                "C8Y_SHELL_VERSION"
+              )}`
+            );
+            debug(
+              `Skipped setting tenantId. ${hint} Falling back to C8Y_TENANT: ${Cypress.env(
+                "C8Y_TENANT"
+              )}`
+            );
           }
         });
       });
@@ -113,9 +137,6 @@ export class C8yScreenshotRunner {
 
       this.config.screenshots?.forEach((item) => {
         const annotations: any = {};
-
-        this.customizedElements = [];
-        this.highlightElements = [];
 
         const required = item.requires ?? global?.requires;
         if (required != null) {
@@ -145,13 +166,10 @@ export class C8yScreenshotRunner {
             const login =
               item.login ?? global?.login ?? item.user ?? global?.user;
 
-            const user = login === false ? undefined : login;
-            cy.getAuth(user as any).then((auth) => {
-              if (auth != null && login !== false) {
-                cy.wrap(auth, { log: false }).getTenantId();
-              }
-            });
+            debug(`Running screenshot: ${item.image}`);
+            debug(`Using annotations: ${JSON.stringify(annotations)}`);
 
+            const user = login === false ? undefined : login;
             const width =
               item.settings?.viewportWidth ?? global?.viewportWidth ?? 1440;
             const height =
@@ -168,12 +186,25 @@ export class C8yScreenshotRunner {
 
             const visitDate = item.date ?? global?.date;
             if (visitDate) {
+              debug(`Setting visit date to ${visitDate}`);
               cy.clock(new Date(visitDate));
             }
 
             cy.getAuth(user as any).then((auth) => {
               if (auth != null && login !== false) {
-                cy.wrap(user, { log: false }).login();
+                const username = auth.user ?? auth.username ?? auth.userAlias;
+                debug(`Logging in as ${username}`);
+                cy.wrap(auth, { log: false }).login();
+              } else {
+                if (login !== false) {
+                  debug(
+                    `Skipped login. ${
+                      user ? user + "not" : "No login or auth"
+                    } configured.`
+                  );
+                } else {
+                  debug(`Skipped login. Login is disabled.`);
+                }
               }
             });
 
@@ -183,11 +214,7 @@ export class C8yScreenshotRunner {
               visitObject?.selector ??
               global?.visitWaitSelector ??
               "c8y-drawer-outlet c8y-app-icon .c8y-icon";
-            cy.task(
-              "debug",
-              `Visiting ${url} Selector: ${visitSelector}`,
-              taskLog
-            );
+            debug(`Visiting ${url} Selector: ${visitSelector}`);
             const visitTimeout = visitObject?.timeout;
 
             const language = item.language ?? global?.language ?? "en";
@@ -251,8 +278,8 @@ export class C8yScreenshotRunner {
               !isScreenshotAction(lastAction)
             ) {
               const name = imageName(item.image);
-              cy.task("debug", `Taking screenshot ${name}`, taskLog);
-              cy.task("debug", `Options: ${JSON.stringify(options)}`, taskLog);
+              debug(`Taking screenshot ${name}`);
+              debug(`Options: ${JSON.stringify(options)}`);
               cy.screenshot(name, options);
             }
           },
@@ -316,139 +343,42 @@ export class C8yScreenshotRunner {
 
   protected highlight(action: Action["highlight"], that: C8yScreenshotRunner) {
     const highlights = _.isArray(action) ? action : [action];
+    cy.wrap(highlights).each(
+      (highlight: string | SelectableHighlightAction | undefined) => {
+        const selector = getSelector(highlight, this.config.selectors);
+        if (selector == null) return;
 
-    highlights?.forEach((highlight) => {
-      cy.then(() => {
-        if (_.isObject(highlight) && (highlight?.clear ?? false) === true) {
-          this.customizedElements.forEach(([$element, styles]) => {
-            $element.css(styles);
-          });
-          this.highlightElements.forEach(($element) => {
-            $element.remove();
-          });
+        const highlightStyle = {
+          outline: "2px",
+          "outline-style": "solid",
+          "outline-offset": "-2px",
+          "outline-color": "#FF9300",
+          ...(that?.config.global?.highlightStyle ?? {}),
+        };
 
-          this.customizedElements = [];
-          this.highlightElements = [];
-        }
-      });
-
-      const selector = getSelector(highlight, this.config.selectors);
-      if (selector == null) return;
-
-      const highlightStyle = {
-        outline: "2px",
-        "outline-style": "solid",
-        "outline-offset": "-2px",
-        "outline-color": "#FF9300",
-        ...that?.config.global?.highlightStyle ?? {},
-      };
-
-      const applyHighlightStyle = (
-        $element: JQuery<HTMLElement>,
-        styles: any
-      ) => {
-        if ($element.length === 0) return;
-        if (
-          $element.length > 1 ||
-          (!_.isString(highlight) &&
-            (highlight?.width != null || highlight?.height != null))
-        ) {
-          // we need to wait for the element to transition and animate into final
-          // position before we can calculate the absolute highlight area
-          cy.wait(500, { log: false }).then(() => {
-            let $parent = findCommonParent($element);
-            if (!$parent) {
-              $parent = Cypress.$("body").get(0);
-            } else {
-              // make sure the new container is positioned correctly
-              Cypress.$($parent).css("position", "relative");
-            }
-
-            const unionRect = $element.toArray().reduce(
-              (acc, el) => {
-                const rect = getElementPositionWithinParent(el, $parent);
-                acc.top = Math.min(acc.top, rect.top);
-                acc.left = Math.min(acc.left, rect.left);
-                acc.bottom = Math.max(acc.bottom, rect.bottom);
-                acc.right = Math.max(acc.right, rect.right);
-                return acc;
-              },
-              {
-                top: Infinity,
-                left: Infinity,
-                bottom: -Infinity,
-                right: -Infinity,
-              }
-            );
-
-            let width = unionRect.right - unionRect.left;
-            if (!_.isString(highlight) && highlight?.width != null) {
-              width =
-                highlight.width <= 1
-                  ? width * highlight.width
-                  : highlight.width;
-            }
-
-            let height = unionRect.bottom - unionRect.top;
-            if (!_.isString(highlight) && highlight?.height != null) {
-              height =
-                highlight.height <= 1
-                  ? height * highlight.height
-                  : highlight.height;
-            }
-
-            const css = {
-              position: "absolute",
-              top: `${unionRect.top}px`,
-              left: `${unionRect.left}px`,
-              width: `${width}px`,
-              height: `${height}px`,
-              zIndex: 9999,
-              pointerEvents: "none",
-              ...styles,
-            };
-            const $container = Cypress.$(
-              "<div _c8yscrn-highlight-container></div>"
-            ).css(css);
-            Cypress.$($parent).append($container);
-            this.highlightElements.push($container);
-          });
-        } else {
-          const styledProperties = Object.keys(styles);
-          const currentStyles = $element.css(styledProperties);
-          this.customizedElements.push([$element, currentStyles]);
-          $element.css(styles);
-        }
-      };
-
-      cy.get(selector).then(($element) => {
-        const style = {};
-        if (!_.isString(highlight)) {
+        if (_.isObject(highlight)) {
           if (highlight?.styles != null) {
-            _.extend(style, highlight.styles);
+            _.extend(highlightStyle, highlight.styles);
           }
           if (highlight?.border != null) {
             if (_.isString(highlight.border)) {
-              _.extend(style, { border: highlight.border });
+              _.extend(highlightStyle, { border: highlight.border });
             } else {
-              _.extend(style, {
-                ...highlightStyle,
-                ...highlight.border,
-              });
+              _.extend(highlightStyle, { ...highlight.border });
             }
           }
-          if (
-            _.isEmpty(style) &&
-            (highlight?.width != null || highlight?.height != null)
-          ) {
-            _.extend(style, highlightStyle);
+          if (highlight?.clear === true) {
+            cy.clearHighlights();
+            highlight.clear = false;
           }
-          applyHighlightStyle($element, style);
-        } else {
-          applyHighlightStyle($element, highlightStyle);
         }
-      });
-    });
+
+        cy.get(selector).highlight(
+          highlightStyle,
+          _.isObject(highlight) ? highlight : {}
+        );
+      }
+    );
   }
 
   protected text(action: Action["text"]) {
@@ -503,7 +433,7 @@ export class C8yScreenshotRunner {
     const selector = getSelector(fileUpload, this.config.selectors);
     const filePath = fileUpload?.file;
     if (selector == null || filePath == null) {
-      cy.task("debug", `File upload selector or file path is missing`, taskLog);
+      debug(`File upload selector or file path is missing`);
       return;
     }
 
@@ -512,11 +442,11 @@ export class C8yScreenshotRunner {
       ..._.pick(fileUpload, ["encoding", "fileName"]),
     }).then((file) => {
       if (file == null) {
-        cy.task("debug", `File ${filePath} not found`, taskLog);
+        debug(`File ${filePath} not found`);
         return;
       }
 
-      cy.task("debug", `Uploading file ${filePath} to ${selector}`, taskLog);
+      debug(`Uploading file ${filePath} to ${selector}`);
 
       const attachData =
         file.encoding === "binary"
@@ -536,18 +466,14 @@ export class C8yScreenshotRunner {
         _.isNil
       );
 
-      cy.task(
-        "debug",
+      debug(
         `Fixture data: ${JSON.stringify({
           ...fixtureData,
           fileContent: "...",
-        })}`,
-        taskLog
+        })}`
       );
-      cy.task(
-        "debug",
-        `File processing options: ${JSON.stringify(fileProcessingOptions)}`,
-        taskLog
+      debug(
+        `File processing options: ${JSON.stringify(fileProcessingOptions)}`
       );
 
       cy.get(selector).attachFile(fixtureData, fileProcessingOptions);
@@ -565,9 +491,8 @@ export class C8yScreenshotRunner {
       ? getSelector(action, this.config.selectors)
       : undefined;
 
-    const logmessage = `Taking screenshot ${name} Selector: ${selector}`;
-    cy.task("debug", logmessage, taskLog);
-    cy.task("debug", `Options: ${JSON.stringify(options)}`, taskLog);
+    debug(`Taking screenshot ${name} selector: ${selector}`);
+    debug(`Options: ${JSON.stringify(options)}`);
 
     if (selector != null) {
       cy.get(selector).screenshot(imageName(name), options);
@@ -603,6 +528,10 @@ export function c8yctrl(
       body: "{}",
     }
   );
+}
+
+function debug(message: string, options?: any) {
+  cy.task("debug", message, options ?? taskLog);
 }
 
 export function isRecording(): boolean {
