@@ -57,7 +57,7 @@ const logEnv = debug("c8y:scrn:env");
 
     const tags = (args.tags ?? []).join(",");
     log(`Running with tags: ${tags}`);
-    
+
     const envs = {
       ...(dotenv().parsed ?? {}),
       ...(dotenv({ path: ".c8yscrn" }).parsed ?? {}),
@@ -107,6 +107,11 @@ const logEnv = debug("c8y:scrn:env");
         ? resolveScreenshotFolder(args.diffFolder)
         : undefined;
 
+    const failureFolder =
+      args.failureFolder != null
+        ? resolveScreenshotFolder(args.failureFolder)
+        : undefined;
+
     let diffOptions: (DiffOptions & ODiffOptions) | undefined = undefined;
     if (args.diff === true) {
       diffOptions = {
@@ -134,6 +139,7 @@ const logEnv = debug("c8y:scrn:env");
             _c8yscrnyaml: configData,
             _c8yscrnBrowserLaunchArgs: browserLaunchArgs,
             _c8yscrnDiffOptions: diffOptions,
+            _c8yscrnFailureFolder: failureFolder,
           },
         },
       },
@@ -220,6 +226,18 @@ function runOptions(yargs: Argv) {
       type: "string",
       requiresArg: true,
       description: "The target folder for the screenshots",
+    })
+    .option("failureFolder", {
+      alias: "e",
+      type: "string",
+      requiresArg: true,
+      description: "The target folder for failure screenshots",
+    })
+    .option("skipFailure", {
+      type: "boolean",
+      requiresArg: false,
+      description: "Disable failure screenshots",
+      default: false,
     })
     .option("clear", {
       type: "boolean",

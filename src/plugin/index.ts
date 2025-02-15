@@ -271,6 +271,11 @@ export function configureC8yScreenshotPlugin(
     config.baseUrl ?? configData?.baseUrl ?? "http://localhost:8080";
   log(`Using baseUrl ${config.baseUrl}`);
 
+  const failureFolder = config.env._c8yscrnFailureFolder;
+  if (failureFolder != null) {
+    log(`Using failure folder ${failureFolder}`);
+  }
+
   const diffOptions: DiffOptions | undefined = config.env._c8yscrnDiffOptions;
   if (diffOptions != null) {
     log(`Using diff options ${JSON.stringify(diffOptions)}`);
@@ -342,7 +347,7 @@ export function configureC8yScreenshotPlugin(
             log(`Error moving file: ${err}`);
             return reject(err);
           }
-          log(`Moved ${details.path} to ${screenshotFile} (${overwrite})`);
+          log(`Moved ${source} to ${target} (${overwrite})`);
         });
       };
 
@@ -367,6 +372,9 @@ export function configureC8yScreenshotPlugin(
       }
 
       const folders = [screenshotTarget];
+      if (isTestFailure && failureFolder != null) {
+        folders.push(failureFolder);
+      }
       if (isDiffEnabled && diffTarget) {
         folders.push(
           path.join(diffTarget, ...details.name.split("/").slice(0, -1))
@@ -391,7 +399,13 @@ export function configureC8yScreenshotPlugin(
       const screenshotFile =
         overwrite === true ? newPath : appendCountIfPathExists(newPath);
 
-      if (!isDiffEnabled) {
+      if (isTestFailure && failureFolder != null) {
+        const failureFileName = path.basename(details.path);
+        const failureTarget = path.join(failureFolder, failureFileName);
+        log(`Moving failure screenshot to: ${failureTarget}`);
+        moveFile(details.path, failureTarget);
+        finish(details);
+      } else if (!isDiffEnabled) {
         moveFile(details.path, screenshotFile);
         finish(newPath);
       } else {
