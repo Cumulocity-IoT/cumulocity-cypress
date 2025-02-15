@@ -53,6 +53,7 @@ Contents of this document:
   - [For Standalone Users](#for-standalone-users)
     - [Installation](#installation)
     - [Command Line Options](#command-line-options)
+    - [Logging](#logging)
   - [Integrate in to existing Cypress Projects](#integrate-in-to-existing-cypress-projects)
     - [Installation](#installation-1)
     - [Configuration](#configuration)
@@ -152,6 +153,29 @@ Options:
   -c, --config   The yaml config file                      [string] [default: "c8yscrn.config.yaml"]
   -u, --baseUrl  The Cumulocity base url                                                    [string]
 ```
+
+#### Logging
+
+Logging can be enabled using the `DEBUG` environment variable. 
+
+```
+DEBUG=c8y:scrn:* npx c8yscrn run
+```
+
+or 
+
+```
+DEBUG=c8y:scrn:run npx c8yscrn run
+```
+
+The following logger are currently available:
+* `c8y:scrn:config`
+* `c8y:scrn:env`
+* `c8y:scrn:startup`
+* `c8y:scrn:plugin`
+* `c8y:scrn:run`
+* `c8y:scrn:run:screenshot`
+* `c8y:scrn:run:fileupload`
 
 ### Integrate in to existing Cypress Projects
 
