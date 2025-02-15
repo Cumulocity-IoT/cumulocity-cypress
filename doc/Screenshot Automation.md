@@ -117,16 +117,20 @@ c8yscrn run
 Run workflows in headless mode
 
 Options:
-  -c, --config      The yaml config file                   [string] [default: "c8yscrn.config.yaml"]
-  -f, --folder      The target folder for the screenshots                                   [string]
-  -u, --baseUrl     The Cumulocity base url                                                 [string]
-      --clear       Clear the target folder and remove all data           [boolean] [default: false]
-  -b, --browser     Browser to use                                      [string] [default: "chrome"]
-      --diff        Enable image diffing                                  [boolean] [default: false]
-      --diffFolder  Optional target folder for the diff images                              [string]
-      --diffSkip    Skip screenshots without difference                    [boolean] [default: true]
-  -h, --highlight   Enable or disable highlights in screenshots            [boolean] [default: true]
-  -t, --tags        Run only screenshot workflows with the given tags                        [array]
+      --version        Show version number                                                 [boolean]
+      --help           Show help                                                           [boolean]
+  -c, --config         The yaml config file                [string] [default: "c8yscrn.config.yaml"]
+  -u, --baseUrl        The Cumulocity base url                                              [string]
+  -f, --folder         The target folder for the screenshots                                [string]
+  -e, --failureFolder  The target folder for failure screenshots                            [string]
+      --skipFailure    Disable failure screenshots                        [boolean] [default: false]
+      --clear          Clear the target folder and remove all data        [boolean] [default: false]
+  -b, --browser        Browser to use                                   [string] [default: "chrome"]
+      --diff           Enable image diffing                               [boolean] [default: false]
+      --diffFolder     Optional target folder for the diff images                           [string]
+      --diffSkip       Skip screenshots without difference                 [boolean] [default: true]
+  -h, --highlight      Enable or disable highlights in screenshots         [boolean] [default: true]
+  -t, --tags           Run only screenshot workflows with the given tags                     [array]
 ```
 
 When using `open` instead of `run`, the Cypress test runner will open in Cypress application. This can be useful for debugging and developing new screenshot workflows.
