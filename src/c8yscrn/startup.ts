@@ -233,6 +233,12 @@ function runOptions(yargs: Argv) {
       requiresArg: true,
       description: "The target folder for failure screenshots",
     })
+    .option("skipFailure", {
+      type: "boolean",
+      requiresArg: false,
+      description: "Disable failure screenshots",
+      default: false,
+    })
     .option("clear", {
       type: "boolean",
       requiresArg: false,

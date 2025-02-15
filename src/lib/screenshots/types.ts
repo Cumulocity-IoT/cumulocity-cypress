@@ -419,6 +419,7 @@ export interface C8yScreenshotOptions {
   config: string;
   folder: string;
   failureFolder: string;
+  skipFailure: boolean;
   open: boolean;
   browser: "chrome" | "firefox" | "electron";
   browserLaunchArgs: string;

@@ -119,6 +119,7 @@ export function resolveConfigOptions(args: Partial<C8yScreenshotOptions>): any {
     config: {
       e2e: {
         baseUrl,
+        screenshotOnRunFailure: !(args.skipFailure ?? false),
         screenshotsFolder,
         trashAssetsBeforeRuns: args.clear ?? false,
         spec: path.join(cypressFolder, "screenshots.cy.js"),
