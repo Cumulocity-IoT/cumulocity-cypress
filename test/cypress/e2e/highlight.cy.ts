@@ -32,7 +32,7 @@ describe("highlight", () => {
   it("should highlight multiple elements using multi option", () => {
     cy.get("#div, #foo").highlight(
       { border: "2px solid blue" },
-      { multi: true }
+      { multiple: true }
     );
     cy.get("body > div[_c8yscrn-highlight-container]").should("not.exist");
     cy.get("#div").should("have.css", "border", "2px solid rgb(0, 0, 255)");
@@ -86,7 +86,7 @@ describe("highlight", () => {
   it("should highlight using width and height with multi option", () => {
     cy.get("#div, #foo").highlight(
       { backgroundColor: "yellow" },
-      { width: 0.5, height: 0.5, multi: true }
+      { width: 0.5, height: 0.5, multiple: true }
     );
     cy.get("div[_c8yscrn-highlight-container]")
       .should("exist")
