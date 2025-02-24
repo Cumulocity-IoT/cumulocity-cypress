@@ -74,85 +74,115 @@ Cypress.Commands.add(
       autoEnd: false,
     });
 
-    if (subject.length === 0) return;
-
-    if (
-      subject.length > 1 ||
-      options?.width != null ||
-      options?.height != null
-    ) {
-      // we need to wait for the element to transition and animate into final
-      // position before we can calculate the absolute highlight area
-      cy.wait(500, { log: false }).then(() => {
-        let $parent = findCommonParent(subject);
-        if (!$parent) {
-          $parent = Cypress.$("body").get(0);
-        } else {
-          // make sure the new container is positioned correctly
-          Cypress.$($parent).css("position", "relative");
-        }
-
-        const unionRect = subject.toArray().reduce(
-          (acc, el) => {
-            const rect = getElementPositionWithinParent(el, $parent);
-            acc.top = Math.min(acc.top, rect.top);
-            acc.left = Math.min(acc.left, rect.left);
-            acc.bottom = Math.max(acc.bottom, rect.bottom);
-            acc.right = Math.max(acc.right, rect.right);
-            return acc;
-          },
-          {
-            top: Infinity,
-            left: Infinity,
-            bottom: -Infinity,
-            right: -Infinity,
-          }
-        );
-
-        let width = unionRect.right - unionRect.left;
-        if (options?.width != null) {
-          width = options.width <= 1 ? width * options.width : options.width;
-        }
-
-        let height = unionRect.bottom - unionRect.top;
-        if (options?.height != null) {
-          height =
-            options.height <= 1 ? height * options.height : options.height;
-        }
-
-        const css = {
-          position: "absolute",
-          top: `${unionRect.top}px`,
-          left: `${unionRect.left}px`,
-          width: `${width}px`,
-          height: `${height}px`,
-          pointerEvents: "none",
-          ...style,
-        };
-
-        const $container = Cypress.$(
-          "<div _c8yscrn-highlight-container></div>"
-        ).css(css);
-        Cypress.$($parent).append($container);
-        highlightElements.push($container);
-
-        consoleProps.unionRect = unionRect || null;
-        consoleProps.containerStyle = css || null;
-        consoleProps.containerElement = $container || null;
-        consoleProps.parentElement = $parent || null;
-      });
-    } else {
-      const styledProperties = Object.keys(style);
-      const currentStyles = subject.css(styledProperties);
-      customizedElements.push([subject, currentStyles]);
-      subject.css(style);
-      logger.set({ $el: subject });
+    if (subject.length === 0) {
+      logger.end();
+      return;
     }
+
+    const applyElementStyle = ($elements: JQuery<HTMLElement>) => {
+      const styledProperties = Object.keys(style);
+      const currentStyles = $elements.css(styledProperties);
+      customizedElements.push([$elements, currentStyles]);
+      $elements.css(style);
+      logger.set({ $el: $elements });
+    };
+
+    const applyMultiStyle = (
+      $elements: JQuery<HTMLElement>,
+      width?: number,
+      height?: number
+    ) => {
+      let $parent = findCommonParent($elements);
+      if (!$parent) {
+        $parent = Cypress.$("body").get(0);
+      } else {
+        // make sure the new container is positioned correctly
+        Cypress.$($parent).css("position", "relative");
+      }
+
+      const unionRect = $elements.toArray().reduce(
+        (acc, el) => {
+          const rect = getElementPositionWithinParent(el, $parent);
+          acc.top = Math.min(acc.top, rect.top);
+          acc.left = Math.min(acc.left, rect.left);
+          acc.bottom = Math.max(acc.bottom, rect.bottom);
+          acc.right = Math.max(acc.right, rect.right);
+          return acc;
+        },
+        {
+          top: Infinity,
+          left: Infinity,
+          bottom: -Infinity,
+          right: -Infinity,
+        }
+      );
+
+      let _w = unionRect.right - unionRect.left;
+      if (width != null) {
+        _w = width <= 1 ? _w * width : width;
+      }
+
+      let _h = unionRect.bottom - unionRect.top;
+      if (height != null) {
+        _h = height <= 1 ? _h * height : height;
+      }
+
+      const css = {
+        position: "absolute",
+        top: `${unionRect.top}px`,
+        left: `${unionRect.left}px`,
+        width: `${_w}px`,
+        height: `${_h}px`,
+        pointerEvents: "none",
+        ...style,
+      };
+
+      const $container = Cypress.$(
+        "<div _c8yscrn-highlight-container></div>"
+      ).css(css);
+      Cypress.$($parent).append($container);
+      highlightElements.push($container);
+
+      const container = {
+        unionRect: unionRect || null,
+        style: css || null,
+        element: $container || null,
+        parent: $parent || null,
+      };
+
+      if (consoleProps.container) {
+        if (_.isArray(consoleProps.container)) {
+          consoleProps.container.push(container);
+        } else {
+          consoleProps.container = [consoleProps.container, container];
+        }
+      } else {
+        consoleProps.container = container;
+      }
+    };
+
+    const needsSizeConstraints =
+      options?.width != null || options?.height != null;
+
+    // we need to wait for the element to transition and animate into final
+    // position before we can calculate the absolute highlight area
+    cy.wait(500, { log: false }).then(() => {
+      const e = options?.multiple === true ? subject.toArray() : [subject];
+
+      e.forEach(($el) => {
+        const $element = !isJQueryElement($el) ? Cypress.$($el) : $el;
+        if ($element.length > 1 || needsSizeConstraints) {
+          applyMultiStyle($element, options?.width, options?.height);
+        } else {
+          applyElementStyle($element);
+        }
+      });
+    });
+
     cy.then(() => {
       Cypress.env("_c8yscrnCustomizedElements", customizedElements);
       Cypress.env("_c8yscrnHighlightElements", highlightElements);
       logger.end();
-
       return subject;
     });
   }
@@ -180,6 +210,12 @@ Cypress.Commands.add("clearHighlights", () => {
   highlightElements.forEach(($element) => $element.remove());
   highlightElements = [];
 });
+
+function isJQueryElement(obj: any): obj is JQuery<HTMLElement> {
+  return (
+    obj instanceof Cypress.$ && _.isArray(obj) && obj[0] instanceof HTMLElement
+  );
+}
 
 function findCommonParent(
   $elements: JQuery<HTMLElement>
