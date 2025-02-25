@@ -9,7 +9,7 @@ import { watch, FSWatcher } from "chokidar";
 import {
   C8yPactFileAdapter,
   C8yPactDefaultFileAdapter,
-} from "../shared/c8ypact/fileadapter";
+} from "../shared/c8ypact/adapter/fileadapter";
 import {
   C8yPactHttpController,
   C8yPactHttpControllerOptions,
