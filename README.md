@@ -126,7 +126,7 @@ module.exports = defineConfig({
 To use the `cumulocity-cypress` commands in your Cypress tests, import the commands in  your projects `e2e.supportFile` (e.g. `cypress/support/e2e.ts`).
 
 ```typescript
-import "cumulocity-cypress/lib/commands";
+import "cumulocity-cypress/commands";
 ```
 
 This will import the standard commands, including for example login, authentication, date conversion, administration. 
@@ -135,11 +135,11 @@ Optional commands for import (only import if really needed):
 
 ```typescript
 // Import extension for cy.request() to support authentication
-import "cumulocity-cypress/lib/commands/request";
+import "cumulocity-cypress/commands/request";
 // Import commands for recording and mocking of requests and responses
-import "cumulocity-cypress/lib/commands/c8ypact";
+import "cumulocity-cypress/commands/c8ypact";
 // Enable recording and mocking for cy.intercept()
-import "cumulocity-cypress/lib/commands/intercept";
+import "cumulocity-cypress/commands/intercept";
 ```
 
 See [API and Integration Testing](./doc/API%20and%20Integration%20Testing.md) for more information on how to enable recording and matching of requests and responses using `cy.c8yclient` and `cy.intercept`.
@@ -147,7 +147,7 @@ See [API and Integration Testing](./doc/API%20and%20Integration%20Testing.md) fo
 Import the `mount` command for component testing of Cumulocity Angular components.
 
 ```typescript
-import "cumulocity-cypress/lib/commands/mount";
+import "cumulocity-cypress/commands/mount";
 ```
 
 ### Environment variables
@@ -286,7 +286,7 @@ Cypress.env("C8Y_PASSWORD", "password");
 
 #### Passing authentication to cy.request
 
-With `import "cumulocity-cypress/lib/commands/request"`, it is also possible to add authentication support to `cy.request()` command. If enabled, `cy.request()` will use authentication from environment, `useAuth()` and test case auth annotation. As this feature is considered experimental, it is not automatically imported.
+With `import "cumulocity-cypress/commands/request"`, it is also possible to add authentication support to `cy.request()` command. If enabled, `cy.request()` will use authentication from environment, `useAuth()` and test case auth annotation. As this feature is considered experimental, it is not automatically imported.
 
 Note: chaining authentication into `cy.request()` is not supported as `cy.request()` does not support previous subject and always is a parent in the Cypress chain.
 
