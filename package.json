@@ -71,8 +71,14 @@
       "types": "./c8yctrl/index.d.ts",
       "default": "./c8yctrl/index.js"
     },
+    "./contrib": {
+      "types": "./src/contrib/index.d.ts",
+      "default": "./src/contrib/index.js"
+    },
     "./shared/*": "./shared/*",
-    "./commands/*": "./lib/commands/*"
+    "./commands/*": "./lib/commands/*",
+    "./contrib/*": "./src/contrib/*",
+    "./lib/*": "./lib/*"
   },
   "typesVersions": {
     "*": {
@@ -90,6 +96,12 @@
       ],
       "commands/*": [
         "./lib/commands/*.d.ts"
+      ],
+      "lib/*": [
+        "./lib/*"
+      ],
+      "contrib/*": [
+        "./src/contrib/*"
       ]
     }
   },
