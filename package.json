@@ -72,12 +72,12 @@
       "default": "./c8yctrl/index.js"
     },
     "./contrib": {
-      "types": "./src/contrib/index.d.ts",
-      "default": "./src/contrib/index.js"
+      "types": "./contrib/index.d.ts",
+      "default": "./contrib/index.js"
     },
     "./shared/*": "./shared/*",
     "./commands/*": "./lib/commands/*",
-    "./contrib/*": "./src/contrib/*",
+    "./contrib/*": "./contrib/*",
     "./lib/*": "./lib/*"
   },
   "typesVersions": {
@@ -101,7 +101,7 @@
         "./lib/*"
       ],
       "contrib/*": [
-        "./src/contrib/*"
+        "./contrib/*"
       ]
     }
   },
