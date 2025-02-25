@@ -354,12 +354,21 @@ export function configureC8yScreenshotPlugin(
         });
       };
 
+      const deleteFile = (source: string) => {
+        fs.unlink(source, (err) => {
+          if (err) {
+            logScreenshot(`Error deleting file: ${err}`);
+            return reject(err);
+          }
+          logScreenshot(`Deleted ${source}`);
+        });
+      };
       // path contains spec name, remove it. might only be required for run() mode however
       const newPath =
         details.specName.trim() == ""
           ? details.path
           : details.path?.replace(`${details.specName}${path.sep}`, "");
-          logRun(`details.path: ${details.path} -> newPath: ${newPath}`);
+      logRun(`details.path: ${details.path} -> newPath: ${newPath}`);
 
       const screenshotTarget = path.dirname(newPath);
       const diffTarget =
@@ -421,6 +430,8 @@ export function configureC8yScreenshotPlugin(
               logScreenshot(
                 `Skipping ${screenshotFile} (skipMove: ${diffOptions.skipMove})`
               );
+              // discard the screenshot if there is a match and skipMove is false
+              if (!diffOptions.skipMove) deleteFile(details.path);
             } else {
               moveFile(details.path, screenshotFile);
             }
