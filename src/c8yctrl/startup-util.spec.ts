@@ -12,10 +12,11 @@ import {
 
 import {
   C8yPactHttpControllerOptions,
-  C8yPactDefaultFileAdapter,
   C8yPactHttpControllerDefaultMode,
   C8yPactHttpControllerDefaultRecordingMode,
 } from "../c8yctrl";
+
+import { C8yPactDefaultFileAdapter } from "../shared/c8ypact/adapter/fileadapter";
 
 describe("startup util tests", () => {
   describe("getConfigFromArgs", () => {

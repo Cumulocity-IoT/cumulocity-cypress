@@ -6,11 +6,11 @@ import {
   C8yPactRequestMatchingOptions,
   C8yPactResponse,
   C8ySchemaGenerator,
-  C8yPactFileAdapter,
   C8yPactMode,
   C8yPactRecordingMode,
   C8yPactID,
 } from "../c8ypact";
+import { C8yPactFileAdapter } from "../c8ypact/adapter/fileadapter";
 
 import { Request, RequestHandler } from "express";
 import { ClientRequest, IncomingMessage, ServerResponse } from "http";

@@ -37,7 +37,7 @@ import {
 } from "./middleware";
 
 import { toBoolean } from "./httpcontroller-utils";
-import { C8yPactFileAdapter } from "../c8ypact/fileadapter";
+import { C8yPactFileAdapter } from "../c8ypact/adapter/fileadapter";
 import { C8yAuthOptions } from "../auth";
 import { oauthLogin } from "../c8yclient";
 

@@ -82,7 +82,7 @@ For general introduction of Cypress capabilities for API testing, see [Cypress A
 `cumulocity-cypress` comes with some basic extensions to `cy.request`. To enable authentication and custom command for retrying of requests an additional import is required in your support file.
 
 ```typescript
-import "cumulocity-cypress/lib/commands/request";
+import "cumulocity-cypress/commands/request";
 ```
 
 Automatic retrying of failed request can be used via `cy.retryRequest` as in the following example.
@@ -361,10 +361,10 @@ Update the project's `e2e.supportFile` (e.g. `cypress/support/e2e.ts`) to import
 Overview of commands:
 
 ```typescript
-import "cumulocity-cypress/lib/commands/";
-import "cumulocity-cypress/lib/commands/c8ypact";
-import "cumulocity-cypress/lib/commands/intercept";
-import "cumulocity-cypress/lib/commands/request";
+import "cumulocity-cypress/commands/";
+import "cumulocity-cypress/commands/c8ypact";
+import "cumulocity-cypress/commands/intercept";
+import "cumulocity-cypress/commands/request";
 ```
 
 By importing `request` command, only authentication and retrying of requests is enabled for `cy.request`. There is currently no support for recording or matching of requests and responses supported by `cy.request`.
@@ -379,7 +379,7 @@ For storing and loading from or to custom locations and formats, implement a cus
 
 ```typescript
 const { defineConfig } = require("cypress");
-const { configureC8yPlugin } = require("cumulocity-cypress/lib/plugin/");
+const { configureC8yPlugin } = require("cumulocity-cypress/plugin/");
 
 module.exports = defineConfig({
   e2e: {

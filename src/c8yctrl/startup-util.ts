@@ -15,7 +15,6 @@ import morgan from "morgan";
 import {
   C8yPactHttpControllerConfig,
   C8yDefaultPactPreprocessor,
-  C8yPactDefaultFileAdapter,
   C8yPactHttpControllerLogLevel,
   C8yPactModeValues,
   C8yPactRecordingModeValues,
@@ -23,13 +22,11 @@ import {
   C8yPactHttpControllerDefaultRecordingMode,
 } from "./index";
 
-import {  morganErrorOptions } from "../shared/c8yctrl/httpcontroller"
+import { C8yPactDefaultFileAdapter } from "../shared/c8ypact/adapter/fileadapter";
+import { morganErrorOptions } from "../shared/c8yctrl/httpcontroller";
 
 import { RequestHandler } from "express";
-import {
-  getPackageVersion,
-  safeStringify,
-} from "../shared/util";
+import { getPackageVersion, safeStringify } from "../shared/util";
 
 import debug from "debug";
 const log = debug("c8y:ctrl:startup");
@@ -99,7 +96,9 @@ export function getConfigFromArgs(): [
       requiresArg: true,
       default: getEnvVar("C8Y_PACT_MODE") || C8yPactHttpControllerDefaultMode,
       defaultDescription: C8yPactHttpControllerDefaultMode,
-      description: `One of ${Object.values(C8yPactModeValues).filter((m) => m !== "recording").join(", ")}`,
+      description: `One of ${Object.values(C8yPactModeValues)
+        .filter((m) => m !== "recording")
+        .join(", ")}`,
     })
     .option("recordingMode", {
       type: "string",
@@ -424,7 +423,10 @@ const applyDefaultLogConfig = (
       log("default morgan error-object token compiled and registered");
     }
 
-    config.errorLogger = morgan(":error-object", morganErrorOptions(config.logger));
+    config.errorLogger = morgan(
+      ":error-object",
+      morganErrorOptions(config.logger)
+    );
     log("configured default error logger");
   }
 
