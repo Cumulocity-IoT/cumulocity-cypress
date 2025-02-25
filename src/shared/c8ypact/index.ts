@@ -4,7 +4,6 @@ export * from "./c8ydefaultpactrecord";
 export * from "./schema";
 export * from "./matcher";
 export * from "./preprocessor";
-export * from "./fileadapter";
 
 export {
   isCypressError,

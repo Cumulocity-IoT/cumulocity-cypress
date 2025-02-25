@@ -2,9 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as glob from "glob";
 import debug from "debug";
-import { C8yPact, C8yPactSaveKeys, pactId } from "./c8ypact";
+import { C8yPact, C8yPactSaveKeys, pactId } from "../c8ypact";
 
-import { safeStringify } from "../util";
+import { safeStringify } from "../../util";
 
 import lodash1 from "lodash";
 import * as lodash2 from "lodash";

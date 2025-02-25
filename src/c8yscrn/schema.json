@@ -247,6 +247,11 @@
                                     "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                     "type": "number"
                                 },
+                                "multiple": {
+                                    "default": false,
+                                    "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "selector": {
                                     "anyOf": [
                                         {
@@ -307,6 +312,11 @@
                                     "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                     "type": "number"
                                 },
+                                "multiple": {
+                                    "default": false,
+                                    "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "styles": {
                                     "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                                     "examples": [
@@ -347,6 +357,11 @@
                                             "height": {
                                                 "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                                 "type": "number"
+                                            },
+                                            "multiple": {
+                                                "default": false,
+                                                "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
+                                                "type": "boolean"
                                             },
                                             "selector": {
                                                 "anyOf": [
@@ -407,6 +422,11 @@
                                             "height": {
                                                 "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                                 "type": "number"
+                                            },
+                                            "multiple": {
+                                                "default": false,
+                                                "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
+                                                "type": "boolean"
                                             },
                                             "styles": {
                                                 "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",

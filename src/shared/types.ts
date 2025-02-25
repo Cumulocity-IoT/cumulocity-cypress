@@ -34,4 +34,9 @@ export interface C8yHighlightOptions {
      * @default false
      */
     clear?: boolean;
+    /**
+     * If true, the highlight is applied to all elements in the selection. The default is false.
+     * @default false
+     */
+    multiple?: boolean;
   }
