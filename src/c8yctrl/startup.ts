@@ -31,32 +31,33 @@ const log = debug("c8y:ctrl:startup");
   // load defaults and merge them with the current config
   applyDefaultConfig(config);
 
+  const searchPlaces = configFile ? [configFile] : ["c8yctrl.config.ts"];
   // load config file if provided and merge it with the current config
-  if (configFile) {
-    const configLoader = cosmiconfig("cumulocity-cypress", {
-      searchPlaces: [configFile, "c8yctrl.config.ts"],
-      loaders: {
-        ".ts": TypeScriptLoader(),
-      },
-    });
+  const configLoader = cosmiconfig("cumulocity-cypress", {
+    searchPlaces,
+    loaders: {
+      ".ts": TypeScriptLoader(),
+    },
+  });
 
-    const result = await configLoader.search(process.cwd());
-    if (result) {
-      log("loaded config:", result.filepath);
-      if (_.isFunction(result.config)) {
-        log("config exported a function");
-        const configClone = _.cloneDeep(config);
-        // assign logger after deep cloning: https://github.com/winstonjs/winston/issues/1730
-        configClone.logger = defaultLogger;
-        const c = result.config(configClone);
-        _.assignIn(config, c || configClone);
-      } else {
-        log("config exported an object");
-        _.assignIn(config, result.config);
-      }
-
-      config.logger?.info("Config: " + result.filepath);
+  const result = await configLoader.search(process.cwd());
+  if (result) {
+    log("loaded config:", result.filepath);
+    if (_.isFunction(result.config)) {
+      log("config exported a function");
+      const configClone = _.cloneDeep(config);
+      // assign logger after deep cloning: https://github.com/winstonjs/winston/issues/1730
+      configClone.logger = defaultLogger;
+      const c = result.config(configClone);
+      _.assignIn(config, c || configClone);
+    } else {
+      log("config exported an object");
+      _.assignIn(config, result.config);
     }
+
+    config.logger?.info("Config: " + result.filepath);
+  } else {
+    log("no config file found in:", searchPlaces);
   }
 
   // now config is complete and we can start the controller
