@@ -8,6 +8,11 @@ describe("highlight", () => {
     cy.get("#foo").should("have.css", "border", "2px solid rgb(255, 0, 0)");
   });
 
+  it("should highlight a single element with default styles", () => {
+    cy.get("#foo").highlight();
+    cy.get("#foo").should("have.css", "outline-color", "rgb(255, 147, 0)");
+  });
+
   it("should highlight multiple elements by adding container element - 2 elements", () => {
     cy.get("#div, #foo").highlight({ border: "2px solid blue" });
 

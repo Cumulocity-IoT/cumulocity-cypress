@@ -19,8 +19,18 @@ declare global {
        * area is calculated based on the union area of all elements with the
        * width and height options applied. If the clear option is true, existing
        * highlights will be cleared before highlighting.
+       * 
+       * Default highlight style:
+       * ```json
+       * {
+       *   "outline": "2px",
+       *   "outline-style": "solid",
+       *   "outline-offset": "-2px",
+       *   "outline-color": "#FF9300",
+       * }
        *
        * @example
+       * cy.get('button').highlight();
        * cy.get('button').highlight({ border: '1px solid red' });
        *
        * @param {Object} style - The CSS styles to apply to the DOM element
@@ -36,13 +46,20 @@ declare global {
        * original state. This command is useful to clean up the DOM after
        * highlighting elements and before possibly highlighting new elements.
        */
-      clearHighlights(): Chainable<JQuery<HTMLElement>>;
+      clearHighlights(): Chainable<void>;
     }
   }
 
   interface HighlightOptions
     extends Omit<C8yHighlightOptions, "styles" | "border"> {}
 }
+
+const HighlightStyleDefaults: any = {
+  outline: "2px",
+  "outline-style": "solid",
+  "outline-offset": "-2px",
+  "outline-color": "#FF9300",
+};
 
 Cypress.Commands.add(
   "highlight",
@@ -60,7 +77,7 @@ Cypress.Commands.add(
       highlightElements = [];
     }
 
-    const style = { ...highlightStyle };
+    const style = { ...(highlightStyle ?? HighlightStyleDefaults) };
     const consoleProps: any = {
       style: style || null,
       options: options || null,
