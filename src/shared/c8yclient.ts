@@ -3,6 +3,7 @@ import _ from "lodash";
 import { C8yAuthentication } from "./auth";
 
 import {
+  BasicAuth,
   Client,
   FetchClient,
   IAuthentication,
@@ -542,7 +543,7 @@ export async function oauthLogin(
 ): Promise<C8yAuthOptions> {
   if (!auth || !auth.user || !auth.password) {
     const error = new Error(
-      "Authentication required. oauthLogin requires full authentication including user and password."
+      "Authentication required. oauthLogin requires user and password for authentication."
     );
     error.name = "C8yPactError";
     throw error;
@@ -550,22 +551,31 @@ export async function oauthLogin(
 
   if (!baseUrl) {
     const error = new Error(
-      "Base URL required. Use C8Y_BASEURL env variable for component testing."
+      "Base URL required. oauthLogin requires absolute url for login."
     );
     error.name = "C8yPactError";
     throw error;
   }
 
-  const tenant = auth.tenant;
+  let tenant = auth.tenant;
   if (!tenant) {
-    const error = new Error(
-      "Tenant required. Use C8Y_TENANT env variable or pass it as part of auth object."
-    );
-    error.name = "C8yPactError";
-    throw error;
+    const fetchClient = new FetchClient(baseUrl);
+    const credentials = new BasicAuth(auth);
+    fetchClient.setAuth(credentials);
+    const res = await fetchClient.fetch("/tenant/currentTenant");
+    credentials.logout();
+
+    if (res.status !== 200) {
+      const error = new Error(
+        `Getting tenant id failed for ${baseUrl} with status code ${res.status}. Use env variable or pass it as part of auth object.`
+      );
+      error.name = "C8yPactError";
+      throw error;
+    }
+    const { name } = await res.json();
+    tenant = name;
   }
 
-  const fetchClient = new FetchClient(baseUrl);
   const url = `/tenant/oauth?tenant_id=${tenant}`;
   const params = new URLSearchParams({
     grant_type: "PASSWORD",
@@ -574,6 +584,7 @@ export async function oauthLogin(
     ...(auth.tfa && { tfa_code: auth.tfa }),
   });
 
+  const fetchClient = new FetchClient(baseUrl);
   const res = await fetchClient.fetch(url, {
     method: "POST",
     body: params.toString(),
