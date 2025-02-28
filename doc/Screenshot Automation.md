@@ -462,7 +462,7 @@ screenshots: array
 
 **baseUrl**
 - **Type**: string
-- **Description**: The base URL used for all relative requests in your screenshot workflows. This value can be also passed and overwritten using the `--baseUrl` command-line option or the `C8Y_BASE_URL` env variable.
+- **Description**: The base URL used for all relative requests in your screenshot workflows. This value can be also passed and overwritten using the `--baseUrl` command-line option or the `C8Y_BASEURL` env variable.
 - **Example**: `https://your-cumulocity-tenant.com`
 
 **title**

@@ -1,6 +1,6 @@
 # c8yctrl
 
-With the `c8yctrl` command, `cumulocity-cypress` provides a tool providing a HTTP controller that allows serving static builds of Web SDK based applications or plugins and proxying API requests to Cumulocity. As an intermediary service, `c8yctrl` can record and mock proxied requests and with this allow running tests without requiring a Cumulocity backend.
+With the `c8yctrl` command, `cumulocity-cypress` provides a HTTP controller that allows serving static builds of Web SDK based applications or plugins and proxying API requests to Cumulocity. As an intermediary service, `c8yctrl` can record and mock proxied requests and with this allow running tests without requiring a Cumulocity backend.
 
 Use `c8yctrl` for 
 - testing shell and remotes without deploying them to Cumulocity
@@ -59,7 +59,18 @@ To start `c8yctrl` at least the baseUrl of the Cumulocity tenant must be provide
 npx c8yctrl --baseUrl https://abc.eu-latest.cumulocity.com --port 8181
 ```
 
-For all configuration options see the [Configuration](#configuration) section. 
+Running `c8yctrl` and Cypress tests from command line, use for example [start-server-and-test](https://www.npmjs.com/package/start-server-and-test) to start `c8yctrl` and run tests when it responds on a given port.
+
+```shell
+export C8YCTRL_BASEURL=https://mytenant.eu-latest.cumulocity.com 
+npx start-server-and-test "npx c8yctrl --port 4200 --folder ./rec --mode mock --apps cockpit/1020" :4200/c8yctrl "cypress run --env C8YCTRL_MODE=mock,C8Y_SHELL_VERSION=1020.0.0,grepTags=@myTag"
+```
+
+This command will use `start-server-and-test` to start `c8yctrl` on port `4200` using https://mytenant.eu-latest.cumulocity.com as it's base url, wait until it responds on `:4200/c8yctrl` and then run the Cypress tests. Make sure to have `http://localhost:4200` configured as the baseUrl in your Cypress tests.
+
+It is recommended to pass the base url of the tenant when recording or forwarding requests and responses using the `C8YCTRL_BASEURL` env variable instead of passing it using the `--baseUrl` command line argument. This allows scripting, for example in package.json, without the need to change the script when running against different tenants.
+
+For more details on configuration options see the [Configuration](#configuration) section. 
 
 ### Static sources
 
@@ -81,7 +92,24 @@ A folder structure could look like this:
 When starting `c8yctrl` with the following command, all files from the `/path/to/my/root` folder will be served as static files and are not proxied to the configured baseUrl. 
 
 ```shell
-npx c8yctrl --baseUrl https://abc.eu-latest.cumulocity.com --port 8181 --staticRoot /path/to/my/root
+npx c8yctrl --staticRoot /path/to/my/root
+```
+
+You can also host multiple versions of the same plugin or shell in the static root folder. `c8yctrl` will either serve the latest version of the plugin or shell or the version that matches the semver range provided in the `--apps` configuration option. The version itself is read from `cumulocity.json` file in the plugin or shell folder.
+
+```
+/path/to/my/root
+  /app
+    /myapp-1019.0.0
+    /myapp-1020.0.0
+    /myapp-1020.1.0
+    /myapp-1021.0.0
+```
+
+By providing the `--apps` configuration option, `c8yctrl` will serve the plugin or shell that matches the semver range. The following command will serve the plugin or shell with version `1020.1.0` from the `/path/to/my/root` folder.
+
+```shell
+npx c8yctrl --staticRoot /path/to/my/root --apps myapp/1020.1.0
 ```
 
 ### Recording and mocking
@@ -90,7 +118,7 @@ As an intermediary service in between your tests and a Cumulocity tenant, `c8yct
 
 To mock responses, `c8yctrl` will use the existing recordings and return the recorded response if it matches the request. If no recording is available, `c8yctrl` will return an error response or if `strictMocking` is disabled, forward the request to the configured Cumulocity tenant.
 
-There is different ways to enable recording and mocking. When starting `c8yctrl`, use the `--recording` option with value `true` or the `C8Y_PACT_MODE` environment variable with value `recording` to enable recording of all requests and responses. 
+There is different ways to enable recording and mocking. When starting `c8yctrl`, use the `--recording` option with value `true` or the `C8YCTRL_MODE` environment variable with value `recording` to enable recording of all requests and responses. 
 
 Another option is to use the REST interface of `c8yctrl` to enable recording and mocking at runtime. This is meant to change the recording mode in between your tests and allows to run tests in your suites with different recording modes. See the [Rest Interface](#rest-interface) section for more details.
 
@@ -107,14 +135,14 @@ The section on [Configuration File](#configuration-file) provides details on cus
 The following environment variables are currently supported:
 
 ```shell
-C8Y_PACT_FOLDER=/path/to/my/recordings
-C8Y_BASE_URL=https://abc.eu-latest.cumulocity.com
-C8Y_BASE_USERNAME=myuser
-C8Y_BASE_PASSWORD=mypassword
-C8Y_BASE_TENANT=t123456
-C8Y_STATIC_ROOT=/path/to/my/static/files
-C8Y_HTTP_PORT=8181
-C8Y_PACT_MODE=recording
+C8YCTRL_FOLDER=/path/to/my/recordings
+C8YCTRL_BASEURL=https://abc.eu-latest.cumulocity.com
+C8YCTRL_USERNAME=myuser
+C8YCTRL_PASSWORD=mypassword
+C8YCTRL_TENANT=t123456
+C8YCTRL_ROOT=/path/to/my/static/files
+C8YCTRL_PORT=8181
+C8YCTRL_MODE=record
 ```
 
 It's recommended to use `.env` or `.c8yctrl` files to store environment variables. Both files will be automatically loaded by `c8yctrl`.
@@ -131,7 +159,7 @@ npx c8yctrl --folder /path/to/my/recordings \
             --tenant t123456 \
             --staticRoot /path/to/my/static/files \
             --port 8181 \
-            --mode apply \
+            --mode record \
             --recordingMode append \
             --log true \
             --logLevel info \
@@ -145,21 +173,21 @@ The following table maps command line arguments to their corresponding environme
 
 | Command Line Argument | Environment Variable       |
 |-----------------------|----------------------------|
-| `--folder`            | `C8Y_PACT_FOLDER`          |
-| `--baseUrl`           | `C8Y_BASE_URL`             |
-| `--user`              | `C8Y_BASE_USERNAME`        |
-| `--password`          | `C8Y_BASE_PASSWORD`        |
-| `--tenant`            | `C8Y_BASE_TENANT`          |
-| `--staticRoot`        | `C8Y_STATIC_ROOT`          |
-| `--port`              | `C8Y_HTTP_PORT`            |
-| `--mode`              | `C8Y_PACT_MODE`            |
-| `--recordingMode`     | `C8Y_PACT_RECORDING_MODE`  |
-| `--log`               | `C8Y_LOG`                  |
-| `--logLevel`          | `C8Y_LOG_LEVEL`            |
-| `--logFile`           | `C8Y_LOG_FILE`             |
-| `--accessLogFile`     | `C8Y_ACCESS_LOG_FILE`      |
-| `--apps`              | `C8Y_APPS`                 |
-| `--config`            | `C8Y_CONFIG`               |
+| `--folder`            | `C8YCTRL_FOLDER`           |
+| `--baseUrl`           | `C8YCTRL_BASEURL`          |
+| `--user`              | `C8YCTRL_USERNAME`         |
+| `--password`          | `C8YCTRL_PASSWORD`         |
+| `--tenant`            | `C8YCTRL_TENANT`           |
+| `--staticRoot`        | `C8YCTRL_ROOT`             |
+| `--port`              | `C8YCTRL_PORT`             |
+| `--mode`              | `C8YCTRL_MODE`             |
+| `--recordingMode`     | `C8YCTRL_RECORDING_MODE`   |
+| `--log`               | `C8YCTRL_LOG`              |
+| `--logLevel`          | `C8YCTRL_LOG_LEVEL`        |
+| `--logFile`           | `C8YCTRL_LOG_FILE`         |
+| `--accessLogFile`     | `C8YCTRL_ACCESS_LOG_FILE`  |
+| `--apps`              | `C8YCTRL_APPS`             |
+| `--config`            | `C8YCTRL_CONFIG`           |
 
 ### Parameters
 
@@ -214,7 +242,7 @@ Sample `c8yctrl.config.ts` registering a file logger with custom log format and 
 ```typescript
 import { C8yPactHttpControllerConfig } from 'cumulocity-cypress-ctrl';
 
-export default (config: Partial<C8yPactHttpControllerConfig>) => {
+export default (config: C8yPactHttpControllerConfig) => {
   config.logLevel = "debug";
   config.preprocessor = new C8yDefaultPactPreprocessor({
     obfuscate: ["request.headers.Authorization", "response.body.password"],
@@ -288,7 +316,7 @@ function getSuiteTitles(suite) {
 
 // sample wrapper for c8yctrl REST interface. extend as needed.
 function c8yctrl(title: string | string[] = Cypress.currentTest.titlePath) {
-  const recording = Cypress.env('C8Y_PACT_MODE') === 'recording';
+  const recording = Cypress.env('C8YCTRL_MODE') === 'record';
   const parameter: string = recording ? '?recording=true&clear' : '?recording=false';
 
   return (cy.state('window') as Cypress.AUTWindow).fetch(
