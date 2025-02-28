@@ -148,7 +148,7 @@ export class C8yScreenshotRunner {
 
       beforeEach(() => {
         Cypress.session.clearAllSavedSessions();
-        if (Cypress.env("C8Y_CTRL_MODE") != null) {
+        if (Cypress.env("C8YCTRL_MODE") != null) {
           cy.wrap(c8yctrl(), { log: false });
         }
       });
@@ -653,7 +653,7 @@ function debug(message: string, options?: any) {
 }
 
 export function isRecording(): boolean {
-  return Cypress.env("C8Y_CTRL_MODE") === "recording";
+  return Cypress.env("C8YCTRL_MODE") === "recording" || Cypress.env("C8YCTRL_MODE") === "record";
 }
 
 export function isScreenshotAction(action: Action): boolean {

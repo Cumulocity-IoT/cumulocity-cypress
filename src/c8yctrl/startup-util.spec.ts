@@ -7,6 +7,7 @@ import {
   getConfigFromArgs,
   getConfigFromArgsOrEnvironment,
   getConfigFromEnvironment,
+  parseApps,
   validateConfig,
 } from "./startup-util";
 
@@ -18,7 +19,15 @@ import {
 
 import { C8yPactDefaultFileAdapter } from "../shared/c8ypact/adapter/fileadapter";
 
+const originalProcess = { ...process };
+
 describe("startup util tests", () => {
+  beforeEach(() => {
+    // Restore the original process object before each test
+    process.argv = [...originalProcess.argv];
+    process.env = { ...originalProcess.env };
+  });
+
   describe("getConfigFromArgs", () => {
     test("getConfigFromArgs should return partial config", () => {
       process.argv = [
@@ -121,19 +130,21 @@ describe("startup util tests", () => {
 
   describe("getConfigFromEnvironment", () => {
     test("getConfigFromEnvironment should return partial config", () => {
-      process.env.C8Y_PACT_FOLDER = "/my/folder";
-      process.env.C8Y_HTTP_PORT = "1234";
-      process.env.C8Y_BASE_URL = "http://example.com";
-      process.env.C8Y_BASE_USERNAME = "user";
-      process.env.C8Y_BASE_PASSWORD = "password";
-      process.env.C8Y_BASE_TENANT = "tenant";
-      process.env.C8Y_STATIC_ROOT = "/my/static/root";
-      process.env.C8Y_PACT_MODE = "record";
-      process.env.C8Y_PACT_RECORDING_MODE = "replace";
-      process.env.C8Y_LOG_FILE = "combined.log";
-      process.env.C8Y_ACCESS_LOG_FILE = "access.log";
-      process.env.C8Y_LOG = "false";
-      process.env.C8Y_LOG_LEVEL = "debug";
+      process.env.C8YCTRL_FOLDER = "/my/folder";
+      process.env.C8YCTRL_PORT = "1234";
+      process.env.C8YCTRL_BASEURL = "http://example.com";
+      process.env.C8YCTRL_USERNAME = "user";
+      process.env.C8YCTRL_PASSWORD = "password";
+      process.env.C8YCTRL_TENANT = "tenant";
+      process.env.C8YCTRL_ROOT = "/my/static/root";
+      process.env.C8YCTRL_MODE = "record";
+      process.env.C8YCTRL_RECORDING_MODE = "replace";
+      process.env.C8YCTRL_LOG_FILE = "combined.log";
+      process.env.C8YCTRL_ACCESS_LOG_FILE = "access.log";
+      process.env.C8YCTRL_LOG = "false";
+      process.env.C8YCTRL_LOG_LEVEL = "debug";
+      process.env.C8YCTRL_APPS = "app1/1019,app2/1020";
+      process.env.C8YCTRL_CONFIG = "myc8yctrl.config.ts";
       const config = getConfigFromEnvironment();
       expect(config.folder).toBe("/my/folder");
       expect(config.port).toBe(1234);
@@ -148,6 +159,7 @@ describe("startup util tests", () => {
       expect(config.recordingMode).toBe("replace");
       expect(config.log).toBeFalsy();
       expect(config.logLevel).toBe("debug");
+      expect(config.appsVersions).toMatchObject({ app1: "1019", app2: "1020" });
     });
   });
 
@@ -170,8 +182,6 @@ describe("startup util tests", () => {
         "tenant",
         "--staticRoot",
         "static",
-        "--config",
-        "c8yctrl.config.ts",
       ];
       const [config, configFile] = getConfigFromArgsOrEnvironment();
       expect(config.folder).toBe("/my/folder");
@@ -185,14 +195,16 @@ describe("startup util tests", () => {
     });
 
     test("should return config from environment", () => {
-      process.env.C8Y_PACT_FOLDER = "/my/folder";
-      process.env.C8Y_HTTP_PORT = "1234";
-      process.env.C8Y_BASE_URL = "http://example.com";
-      process.env.C8Y_BASE_USERNAME = "user";
-      process.env.C8Y_BASE_PASSWORD = "password";
-      process.env.C8Y_BASE_TENANT = "tenant";
-      process.env.C8Y_STATIC_ROOT = "/my/static/root";
-      process.env.C8Y_PACT_MODE = "record";
+      process.env.C8YCTRL_FOLDER = "/my/folder";
+      process.env.C8YCTRL_PORT = "1234";
+      process.env.C8YCTRL_BASEURL = "http://example.com";
+      process.env.C8YCTRL_USERNAME = "user";
+      process.env.C8YCTRL_PASSWORD = "password";
+      process.env.C8YCTRL_TENANT = "tenant";
+      process.env.C8YCTRL_ROOT = "/my/static/root";
+      process.env.C8YCTRL_MODE = "record";
+      process.env.C8YCTRL_CONFIG = "myc8yctrl.config.ts";
+      process.env.C8YCTRL_APPS = "app1/1019,app2/1020";
       process.argv = ["node", "script.js"];
       const [config, configFile] = getConfigFromArgsOrEnvironment();
       expect(config.folder).toBe("/my/folder");
@@ -203,14 +215,15 @@ describe("startup util tests", () => {
       expect(config.tenant).toBe("tenant");
       expect(config.staticRoot).toBe("/my/static/root");
       expect(config.mode).toBe("record");
-      expect(configFile).toBeUndefined();
+      expect(configFile).toBe("myc8yctrl.config.ts");
     });
 
     test("should return config from args and environment", () => {
-      process.env.C8Y_PACT_FOLDER = "/my/folder";
-      process.env.C8Y_HTTP_PORT = "1234";
-      process.env.C8Y_BASE_URL = "http://example.com";
-      process.env.C8Y_PACT_RECORDING_MODE = "replace";
+      process.env.C8YCTRL_FOLDER = "/my/folder";
+      process.env.C8YCTRL_PORT = "1234";
+      process.env.C8YCTRL_BASEURL = "http://example.com";
+      process.env.C8YCTRL_RECORDING_MODE = "replace";
+      process.env.C8YCTRL_APPS = "app1/1019,app2/1020";
       process.argv = [
         "node",
         "script.js",
@@ -223,7 +236,7 @@ describe("startup util tests", () => {
         "--staticRoot",
         "/my/static/root",
         "--config",
-        "c8yctrl.config.ts",
+        "myc8yctrl.config.ts",
         "--mode",
         "record",
       ];
@@ -237,7 +250,8 @@ describe("startup util tests", () => {
       expect(config.staticRoot).toBe("/my/static/root");
       expect(config.mode).toBe("record");
       expect(config.recordingMode).toBe("replace");
-      expect(configFile).toBe("c8yctrl.config.ts");
+      expect(config.appsVersions).toMatchObject({ app1: "1019", app2: "1020" });
+      expect(configFile).toBe("myc8yctrl.config.ts");
     });
   });
 
@@ -310,6 +324,60 @@ describe("startup util tests", () => {
         recordingMode: C8yPactHttpControllerDefaultRecordingMode,
       } as any;
       expect(() => validateConfig(config)).not.toThrow();
+    });
+  });
+
+  describe("parseApps", () => {
+    test("should parse apps", () => {
+      const apps = "app1/1019,app2/1020";
+      const result = parseApps(apps);
+      expect(result).toMatchObject({ app1: "1019", app2: "1020" });
+    });
+
+    test("should parse single app", () => {
+      const apps = "app1/1019";
+      const result = parseApps(apps);
+      expect(result).toMatchObject({ app1: "1019" });
+    });
+
+    test("should parse empty apps", () => {
+      const apps = "";
+      const result = parseApps(apps);
+      expect(result).toMatchObject({});
+    });
+
+    test("should trim items", () => {
+      const apps = " app1/1019 , app2/1020 ";
+      const result = parseApps(apps);
+      expect(result).toMatchObject({ app1: "1019", app2: "1020" });
+    });
+
+    test("should parse undefined", () => {
+      const apps = undefined as any;
+      const result = parseApps(apps);
+      expect(result).toBeUndefined();
+    });
+
+    test("should parse array of apps", () => {
+      const apps = ["app1/1019", "app2/1020"];
+      const result = parseApps(apps);
+      expect(result).toMatchObject({ app1: "1019", app2: "1020" });
+    });
+
+    test("should parse complex semver versions", () => {
+      const apps = [
+        "app1/1.0.0",
+        "app2/1.0.0-beta.1",
+        "app3/^1.0.0",
+        "app4/>=1018.0.0 <1020.0.0",
+      ];
+      const result = parseApps(apps);
+      expect(result).toMatchObject({
+        app1: "1.0.0",
+        app2: "1.0.0-beta.1",
+        app3: "^1.0.0",
+        app4: ">=1018.0.0 <1020.0.0",
+      });
     });
   });
 });

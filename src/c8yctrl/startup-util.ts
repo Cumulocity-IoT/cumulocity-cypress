@@ -59,7 +59,11 @@ export function getConfigFromArgs(): [
     .option("port", {
       type: "number",
       requiresArg: true,
-      default: +(getEnvVar("C8Y_HTTP_PORT") || 3000),
+      default: +(
+        getEnvVar("C8YCTRL_PORT") ||
+        getEnvVar("C8Y_HTTP_PORT") ||
+        3000
+      ),
       defaultDescription: "3000",
       description: "The HTTP port c8yctrl listens on",
     })
@@ -94,7 +98,7 @@ export function getConfigFromArgs(): [
     .option("mode", {
       type: "string",
       requiresArg: true,
-      default: getEnvVar("C8Y_PACT_MODE") || C8yPactHttpControllerDefaultMode,
+      default: getEnvVar("C8YCTRL_MODE") || C8yPactHttpControllerDefaultMode,
       defaultDescription: C8yPactHttpControllerDefaultMode,
       description: `One of ${Object.values(C8yPactModeValues)
         .filter((m) => m !== "recording")
@@ -104,7 +108,7 @@ export function getConfigFromArgs(): [
       type: "string",
       requiresArg: true,
       default:
-        getEnvVar("C8Y_PACT_RECORDING_MODE") ||
+        getEnvVar("C8YCTRL_RECORDING_MODE") ||
         C8yPactHttpControllerDefaultRecordingMode,
       defaultDescription: C8yPactHttpControllerDefaultRecordingMode,
       description: `One of ${Object.values(C8yPactRecordingModeValues).join(
@@ -114,18 +118,19 @@ export function getConfigFromArgs(): [
     .option("config", {
       type: "string",
       requiresArg: true,
+      default: getEnvVar("C8YCTRL_CONFIG") || "c8yctrl.config.ts",
       description: "The path to the config file",
     })
     .option("log", {
       type: "boolean",
-      default: getEnvVar("C8Y_LOG") !== "false",
+      default: getEnvVar("C8YCTRL_LOG") !== "false",
       defaultDescription: "true",
       requiresArg: false,
       description: "Enable or disable logging",
     })
     .option("logLevel", {
       type: "string",
-      default: getEnvVar("C8Y_LOG_LEVEL") || "info",
+      default: getEnvVar("C8YCTRL_LOG_LEVEL") || "info",
       defaultDescription: "info",
       requiresArg: true,
       description: "The log level used for logging",
@@ -145,17 +150,7 @@ export function getConfigFromArgs(): [
       requiresArg: true,
       description:
         "Array of of static folder app names and semver ranges separated by '/'",
-      coerce: (arg) => {
-        const result: { [key: string]: string } = {};
-        arg.forEach((item: string) => {
-          const [key, ...value] = item.split("/");
-          const semverRange = value.join("/");
-          if (key != null && value != null && semverRange != null) {
-            result[key] = semverRange;
-          }
-        });
-        return result;
-      },
+      coerce: (arg) => parseApps(arg),
     })
     .help()
     .wrap(120)
@@ -191,19 +186,25 @@ export function getConfigFromArgs(): [
 
 export function getConfigFromEnvironment(): Partial<C8yPactHttpControllerConfig> {
   return {
-    folder: getEnvVar("C8Y_PACT_FOLDER"),
-    port: +(getEnvVar("C8Y_HTTP_PORT") || 3000),
-    baseUrl: getEnvVar("C8Y_BASE_URL") || getEnvVar("C8Y_BASEURL"),
-    user: getEnvVar("C8Y_BASE_USERNAME") || getEnvVar("C8Y_USERNAME"),
-    password: getEnvVar("C8Y_BASE_PASSWORD") || getEnvVar("C8Y_PASSWORD"),
-    tenant: getEnvVar("C8Y_BASE_TENANT") || getEnvVar("C8Y_TENANT"),
-    staticRoot: getEnvVar("C8Y_STATIC_ROOT") || getEnvVar("C8Y_STATIC"),
-    logFilename: getEnvVar("C8Y_LOG_FILE"),
-    accessLogFilename: getEnvVar("C8Y_ACCESS_LOG_FILE"),
-    log: getEnvVar("C8Y_LOG") !== "false",
-    logLevel: getEnvVar("C8Y_LOG_LEVEL"),
-    mode: getEnvVar("C8Y_PACT_MODE"),
-    recordingMode: getEnvVar("C8Y_PACT_RECORDING_MODE"),
+    folder: getEnvVar("C8YCTRL_FOLDER"),
+    port: +(getEnvVar("C8YCTRL_PORT") || getEnvVar("C8Y_HTTP_PORT") || 3000),
+    baseUrl: getEnvVar("C8YCTRL_BASEURL") || getEnvVar("C8Y_BASE_URL"),
+    user: getEnvVar("C8YCTRL_USERNAME") || getEnvVar("C8Y_USERNAME"),
+    password: getEnvVar("C8YCTRL_PASSWORD") || getEnvVar("C8Y_PASSWORD"),
+    tenant: getEnvVar("C8YCTRL_TENANT") || getEnvVar("C8Y_TENANT"),
+    staticRoot:
+      getEnvVar("C8YCTRL_ROOT") ||
+      // compatibility with old env var names
+      getEnvVar("C8Y_STATIC") ||
+      getEnvVar("C8Y_STATIC_ROOT"),
+    logFilename: getEnvVar("C8YCTRL_LOG_FILE"),
+    accessLogFilename: getEnvVar("C8YCTRL_ACCESS_LOG_FILE"),
+    log: getEnvVar("C8YCTRL_LOG") !== "false",
+    logLevel: getEnvVar("C8YCTRL_LOG_LEVEL"),
+    mode: getEnvVar("C8YCTRL_MODE"),
+    recordingMode: getEnvVar("C8YCTRL_RECORDING_MODE"),
+    config: getEnvVar("C8YCTRL_CONFIG"),
+    appsVersions: parseApps(getEnvVar("C8YCTRL_APPS")),
   } as Partial<C8yPactHttpControllerConfig>;
 }
 
@@ -451,4 +452,19 @@ const applyDefaultLogConfig = (
       log(`configured file access logger ${p}`);
     }
   }
+};
+
+export const parseApps = (
+  value: string | string[] | undefined
+): { [key: string]: string } | undefined => {
+  if (value == null) return undefined;
+  const apps: { [key: string]: string } = {};
+  (_.isArray(value) ? value : value.split(",")).forEach((item) => {
+    const [key, ...value] = item.trim().split("/");
+    const semverRange = value.join("/");
+    if (key != null && value != null && semverRange != null) {
+      apps[key] = semverRange;
+    }
+  });
+  return apps;
 };
