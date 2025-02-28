@@ -162,6 +162,7 @@
     "eslint-plugin-cypress": "^4.1.0",
     "eslint-plugin-import": "^2.31.0",
     "express": "^4.19.2",
+    "glob": "^11.0.1",
     "jest": "^29.7.0",
     "memfs": "^4.8.2",
     "rimraf": "^6.0.1",
