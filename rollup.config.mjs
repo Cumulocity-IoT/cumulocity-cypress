@@ -4,7 +4,7 @@ import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
 import shebang from 'rollup-plugin-shebang-bin'
 
-import glob from 'glob';
+import { glob } from 'glob';
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
