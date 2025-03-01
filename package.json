@@ -170,7 +170,7 @@
     "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-includepaths": "^0.2.4",
     "rollup-plugin-node-resolve": "^5.2.0",
-    "rollup-plugin-shebang-bin": "^0.0.7",
+    "rollup-plugin-shebang-bin": "^0.1.0",
     "semantic-release": "^24.2.2",
     "semver": "^7.6.3",
     "start-server-and-test": "^2.0.0",
