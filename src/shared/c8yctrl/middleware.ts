@@ -156,7 +156,7 @@ export function createResponseInterceptor(
           return libCookie.serialize(
             cookie.name,
             cookie.value,
-            cookie as libCookie.CookieSerializeOptions
+            cookie as libCookie.SerializeOptions
           );
         })
       );
