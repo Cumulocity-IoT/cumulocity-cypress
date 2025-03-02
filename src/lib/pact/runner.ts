@@ -83,7 +83,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
       }
 
       if (!info?.title) {
-        info.title = info?.id?.split("__");
+        pact.info.title = pact.id?.split("__");
       }
       tests.push(pact);
     }
@@ -97,7 +97,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
   ): TestHierarchyTree<C8yPact> {
     const tree: TestHierarchyTree<C8yPact> = {};
     pactObjects.forEach((pact) => {
-      const titles = pact.info.title;
+      const titles = pact.info.title ?? [pact.id];
 
       let currentNode = tree;
       const protectedKeys = ["__proto__", "constructor", "prototype"];
