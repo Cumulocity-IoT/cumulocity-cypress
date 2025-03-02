@@ -35,7 +35,7 @@
     "set-cookie-parser": "^2.6.0"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.4",
+    "@types/chai": "^5.0.1",
     "@types/glob": "^8.1.0",
     "@types/node": "^22.13.5",
     "typescript": "^5.0.2"
