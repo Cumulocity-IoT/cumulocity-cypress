@@ -52,6 +52,9 @@ type TestHierarchyTree<T> = { [key: string]: T | TestHierarchyTree<T> };
  * Default implementation of C8yPactRunner. Runtime for C8yPact objects that will
  * create the tests dynamically and rerun recorded requests. Supports Basic and Cookie based
  * authentication, id mapping, consumer and producer filtering and URL replacement.
+ * 
+ * Use `C8Y_PACT_RUNNER_AUTH` to set the authentication type for the runner and overwrite
+ * the authentication type detected in the pact records. Supported values are `CookieAuth` and `BasicAuth`.
  */
 export class C8yDefaultPactRunner implements C8yPactRunner {
   constructor() {}
