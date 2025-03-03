@@ -93,7 +93,10 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
   date(): Date | null {
     const date = _.get(this.response, "headers.date");
     if ((date && _.isString(date)) || _.isNumber(date) || _.isDate(date)) {
-      return new Date(date);
+      const result = new Date(date);
+      if (!isNaN(result.getTime())) {
+        return result;
+      }
     }
     return null;
   }
@@ -118,6 +121,26 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
       method: this.request.method || this.response.method || "GET",
     });
     return result as Cypress.Response<T>;
+  }
+
+  hasRequestHeader(key: string) {
+    return Object.keys(this.request.headers ?? {})
+      .map((k) => k.toLowerCase())
+      .includes(key?.toLowerCase());
+  }
+
+  authType() {
+    const type = this.auth?.type;
+    if (type === "BasicAuth" || type === "CookieAuth") {
+      return type;
+    }
+    if (this.hasRequestHeader("x-xsrf-token")) {
+      return "CookieAuth";
+    }
+    if (this.hasRequestHeader("authorization")) {
+      return "BasicAuth";
+    }
+    return undefined;
   }
 }
 
