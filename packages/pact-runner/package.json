@@ -1,12 +1,17 @@
 {
   "name": "cumulocity-cypress-pact-runner",
-  "version": "0.3.2",
   "description": "Cypress runner for Cumulocity pact recordings",
   "scripts": {
+    "clean": "rimraf dist/ && rimraf .yalc && rimraf yalc.lock",
+    "clean:dist": "rimraf dist/",
+    "package": "npm install && npm run clean:dist && tsc -b -v .",
+    "package:latest": "npm install cumulocity-cypress@latest && npm run package",
+    "package:dev": "npx yalc add cumulocity-cypress && npm run package",
     "cypress": "cypress run --config-file cypress.config.ts --spec cypress/e2e/pact-runner.cy.ts",
     "cypress:open": "cypress open",
     "docker": "docker build --platform linux/arm64 -t c8ypact-runner --target prod .",
-    "docker:dev": "docker build --platform linux/arm64 -t c8ypact-runner --target dev ."
+    "docker:dev": "docker build --platform linux/arm64 -t c8ypact-runner --target dev .",
+    "docker:test": "cypress run --config-file cypress.config.js --spec cypress/e2e/pact-runner.cy.js"
   },
   "repository": {
     "type": "git",
@@ -24,20 +29,9 @@
     "url": "git+https://github.com/Cumulocity-IoT/cumulocity-cypress/issues"
   },
   "dependencies": {
-    "@angular/common": "^16.2.0",
-    "@c8y/client": "1019.4.8",
-    "ajv": "^8.12.0",
-    "ajv-formats": "^2.1.1",
-    "cypress": "^13.3.2",
-    "date-fns": "^2.30.0",
-    "quicktype": "^23.0.81",
-    "semver": "^7.5.2",
-    "set-cookie-parser": "^2.6.0"
-  },
-  "devDependencies": {
-    "@types/chai": "^4.3.4",
-    "@types/glob": "^8.1.0",
-    "@types/node": "^20.10.6",
-    "typescript": "^5.0.2"
+    "@angular/common": "^19.2.0",
+    "@c8y/client": "1021.38.1",
+    "cumulocity-cypress": "latest",
+    "cypress": "^14.1.0"
   }
 }

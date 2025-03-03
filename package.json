@@ -47,9 +47,6 @@
     "c8yctrl": "./c8yctrl/c8yctrl.js",
     "c8yscrn": "./c8yscrn/c8yscrn.js"
   },
-  "workspaces": [
-    "packages/*"
-  ],
   "exports": {
     ".": {
       "types": "./index.d.ts",
