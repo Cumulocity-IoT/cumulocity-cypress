@@ -5,8 +5,8 @@ if [ "$#" -lt 2 ]; then
   exit 1
 fi
 
-pactLocation="$1"
-cypressEnv="$2"
+pactLocation=$(realpath "$1")
+cypressEnv=$(realpath "$2")
 
 if [ ! -d "$pactLocation" ]; then
   echo "Error: pact location does not exist or is not a directory."
