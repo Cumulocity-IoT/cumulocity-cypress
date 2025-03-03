@@ -278,6 +278,14 @@ export interface C8yPactRecord {
    * Returns the date of the response.
    */
   date(): Date | null;
+  /**
+   * Returns if the record has a request header with the given key. Comparison is case-insensitive.
+   */
+  hasRequestHeader(key: string): boolean;
+  /**
+   * Returns the auth type of the record. Currently supports `BasicAuth`, `CookieAuth` or undefined.
+   */
+  authType(): "BasicAuth" | "CookieAuth" | "BearerAuth" | undefined;
 }
 
 export function isValidPactId(value: string): boolean {

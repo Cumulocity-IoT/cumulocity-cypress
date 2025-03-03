@@ -49,7 +49,7 @@ const url = (path: string, baseUrl: C8yBaseUrl = BASE_URL) => {
 };
 
 // more tests of still in c8ypact.cy.ts
-describe("c8defaultpact", () => {
+describe("c8ydefaultpact", () => {
   // response to create a test pact object
   const response: Cypress.Response<any> = {
     status: 200,
