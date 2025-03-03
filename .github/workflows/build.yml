@@ -7,7 +7,7 @@ on:
       - develop
 
 jobs:
-  library:
+  cumulocity-cypress:
     runs-on: ubuntu-latest
 
     steps:
@@ -53,3 +53,30 @@ jobs:
               exit 1
             fi
           done
+  
+  pact-runner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install yalc
+        run: npm install -g yalc
+
+      - name: Run yalc publish
+        run: npm run yalc:publish
+
+      - name: Build pact runner
+        run: |
+          cd packages/pact-runner
+          npm run package:dev
+          

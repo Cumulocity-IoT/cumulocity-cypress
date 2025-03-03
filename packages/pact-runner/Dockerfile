@@ -5,8 +5,8 @@ FROM cypress/base as base
 
 WORKDIR /usr/src/app
 
-COPY cypress /usr/src/app/cypress
-COPY cypress.config.js /usr/src/app/cypress.config.js
+COPY dist/cypress /usr/src/app/cypress
+COPY dist/cypress.config.js /usr/src/app/cypress.config.js
 COPY package.json /usr/src/app/package.json
 COPY package-lock.json /usr/src/app/package-lock.json
 
@@ -22,12 +22,12 @@ COPY yalc.lock /usr/src/app/yalc.lock
 
 RUN npm install
 
-CMD ["npm", "run", "test"]
+CMD ["npm", "run", "docker:test"]
 
 # Production stage
 FROM base as prod
 
 RUN npm install
 
-CMD ["npm", "run", "test"]
+CMD ["npm", "run", "docker:test"]
 
