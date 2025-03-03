@@ -1,5 +1,5 @@
 import { C8yBaseUrl, C8yTenant } from "../../shared/types";
-import { C8yClientOptions } from "../../shared/c8yclient";
+import { C8yAuthOptions, C8yClientOptions } from "../../shared/c8yclient";
 import {
   C8yPact,
   C8yPactInfo,
@@ -7,6 +7,8 @@ import {
   isPact,
 } from "../../shared/c8ypact";
 import { getBaseUrlFromEnv } from "../utils";
+import { Client } from "@c8y/client";
+
 const { _ } = Cypress;
 
 /**
@@ -50,6 +52,9 @@ type TestHierarchyTree<T> = { [key: string]: T | TestHierarchyTree<T> };
  * Default implementation of C8yPactRunner. Runtime for C8yPact objects that will
  * create the tests dynamically and rerun recorded requests. Supports Basic and Cookie based
  * authentication, id mapping, consumer and producer filtering and URL replacement.
+ * 
+ * Use `C8Y_PACT_RUNNER_AUTH` to set the authentication type for the runner and overwrite
+ * the authentication type detected in the pact records. Supported values are `CookieAuth` and `BasicAuth`.
  */
 export class C8yDefaultPactRunner implements C8yPactRunner {
   constructor() {}
@@ -118,6 +123,11 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
     keys.forEach((key: string) => {
       const subTree = hierarchy[key];
       if (isPact(subTree)) {
+        beforeEach(() => {
+          if (!Cypress.env("C8Y_TENANT")) {
+            cy.getAuth().getTenantId({ ignorePact: true });
+          }
+        });
         it(key, () => {
           this.runTest(subTree);
         });
@@ -133,6 +143,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
   runTest(pact: C8yPact) {
     Cypress.c8ypact.current = pact;
     this.idMapper = {};
+    let currentAuth: C8yAuthOptions | undefined = undefined;
 
     for (const record of pact?.records || []) {
       cy.then(() => {
@@ -140,7 +151,18 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           pact.info?.strictMatching != null ? pact.info.strictMatching : true;
 
         const url = this.createURL(record, pact.info);
+        if (!url) {
+          cy.log("Skipping request without URL.");
+          return;
+        }
         const clientFetchOptions = this.createFetchOptions(record, pact.info);
+
+        if (clientFetchOptions.method.toLowerCase() === "post") {
+          if (!clientFetchOptions.body) {
+            cy.log("Skipping POST request without body: " + url);
+            return;
+          }
+        }
 
         let user = record.auth?.userAlias || record.auth?.user;
         if ((user || "").split("/").length > 1) {
@@ -179,21 +201,30 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           }
         };
 
-        if (record.auth && record.auth.type === "CookieAuth") {
-          if (user) {
-            cy.getAuth(user).login();
+        const envAuth = Cypress.env("C8Y_PACT_RUNNER_AUTH");
+
+        const isCookieAuth =
+          (envAuth ?? record.authType()) === "CookieAuth" &&
+          envAuth !== "BasicAuth";
+
+        const isBasicAuth = (envAuth ?? record.authType()) === "BasicAuth";
+        const f = (c: Client) => c.core.fetch(url, clientFetchOptions);
+
+        (user ? cy.getAuth(user) : cy.getAuth()).then((auth) => {
+          if (user !== "devicebootstrap" && isCookieAuth) {
+            if (currentAuth == null || auth?.user !== currentAuth?.user) {
+              cy.wrap(auth).login();
+              currentAuth = auth;
+            }
+            cy.c8yclient(f, cOpts).then(responseFn);
+          } else {
+            if (isBasicAuth) {
+              cy.wrap(auth).c8yclient(f, cOpts).then(responseFn);
+            } else {
+              cy.c8yclient(f, cOpts).then(responseFn);
+            }
           }
-          if (url) {
-            cy.c8yclient(
-              (c) => c.core.fetch(url, clientFetchOptions),
-              cOpts
-            ).then(responseFn);
-          }
-        } else if (user && url) {
-          cy.getAuth(user)
-            .c8yclient((c) => c.core.fetch(url, clientFetchOptions), cOpts)
-            .then(responseFn);
-        }
+        });
       });
     }
   }
@@ -201,7 +232,9 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
   protected createHeader(pact: C8yPactRecord): any {
     const headers = _.omit(pact.request.headers || {}, [
       "X-XSRF-TOKEN",
+      "x-xsrf-token",
       "Authorization",
+      "authorization",
     ]);
     return headers;
   }
@@ -248,7 +281,10 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
     if (!value || !info) return value;
     let result = value;
 
-    const tenantUrl = (baseUrl: C8yBaseUrl, tenant?: C8yTenant): URL | undefined => {
+    const tenantUrl = (
+      baseUrl: C8yBaseUrl,
+      tenant?: C8yTenant
+    ): URL | undefined => {
       if (!baseUrl || !tenant) return undefined;
       try {
         const url = new URL(baseUrl);
