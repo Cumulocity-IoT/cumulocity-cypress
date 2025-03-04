@@ -23,6 +23,18 @@ export interface C8yPactRunnerOptions {
    * Filter for producer name.
    */
   producer?: string;
+  /**
+   * Filter for methods.
+   */
+  methods?: string[];
+  /**
+   * Authentication type for the runner. Supported values are `CookieAuth` and `BasicAuth`.
+   */
+  authType?: "CookieAuth" | "BasicAuth";
+  /**
+   * Path prefix filter for the runner.
+   */
+  paths?: string[];
 }
 
 /**
@@ -43,7 +55,7 @@ export interface C8yPactRunner {
    *
    * @param pact Pact object to run.
    */
-  runTest: (pact: C8yPact) => void;
+  runTest: (pact: C8yPact, options?: C8yPactRunnerOptions) => void;
 }
 
 type TestHierarchyTree<T> = { [key: string]: T | TestHierarchyTree<T> };
@@ -52,7 +64,7 @@ type TestHierarchyTree<T> = { [key: string]: T | TestHierarchyTree<T> };
  * Default implementation of C8yPactRunner. Runtime for C8yPact objects that will
  * create the tests dynamically and rerun recorded requests. Supports Basic and Cookie based
  * authentication, id mapping, consumer and producer filtering and URL replacement.
- * 
+ *
  * Use `C8Y_PACT_RUNNER_AUTH` to set the authentication type for the runner and overwrite
  * the authentication type detected in the pact records. Supported values are `CookieAuth` and `BasicAuth`.
  */
@@ -94,7 +106,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
     }
 
     const testHierarchy = this.buildTestHierarchy(tests);
-    this.createTestsFromHierarchy(testHierarchy);
+    this.createTestsFromHierarchy(testHierarchy, options);
   }
 
   protected buildTestHierarchy(
@@ -118,34 +130,58 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
     return tree;
   }
 
-  protected createTestsFromHierarchy(hierarchy: TestHierarchyTree<C8yPact>) {
+  protected createTestsFromHierarchy(
+    hierarchy: TestHierarchyTree<C8yPact>,
+    options: C8yPactRunnerOptions
+  ): void {
     const keys = Object.keys(hierarchy);
     keys.forEach((key: string) => {
       const subTree = hierarchy[key];
       if (isPact(subTree)) {
+        const annotations: Cypress.TestConfigOverrides = {
+          tags: subTree.info?.tags,
+        };
+
         beforeEach(() => {
           if (!Cypress.env("C8Y_TENANT")) {
             cy.getAuth().getTenantId({ ignorePact: true });
           }
         });
-        it(key, () => {
-          this.runTest(subTree);
+
+        it(key, annotations, () => {
+          this.runTest(subTree, options);
         });
       } else {
         const that = this;
         context(key, function () {
-          that.createTestsFromHierarchy(subTree);
+          that.createTestsFromHierarchy(subTree, options);
         });
       }
     });
   }
 
-  runTest(pact: C8yPact) {
+  runTest(pact: C8yPact, options: C8yPactRunnerOptions = {}): void {
     Cypress.c8ypact.current = pact;
     this.idMapper = {};
     let currentAuth: C8yAuthOptions | undefined = undefined;
 
+    const methods = options.methods?.map((m) => m.toLowerCase()) || [];
     for (const record of pact?.records || []) {
+      if (
+        record.request.method != null &&
+        !_.isEmpty(methods) &&
+        !methods.includes(record.request.method.toLowerCase())
+      ) {
+        continue;
+      }
+
+      if (record.request.url != null && !_.isEmpty(options.paths)) {
+        const url = record.request.url;
+        if (!options.paths?.some((p) => url.startsWith(p))) {
+          continue;
+        }
+      }
+
       cy.then(() => {
         Cypress.c8ypact.config.strictMatching =
           pact.info?.strictMatching != null ? pact.info.strictMatching : true;
@@ -328,4 +364,46 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
     }
     return result;
   }
+}
+
+export function getOptionsFromEnvironment(): C8yPactRunnerOptions {
+  let methods = Cypress.env("C8Y_PACT_RUNNER_METHODS");
+  if (methods != null) {
+    if (_.isString(methods)) {
+      methods = methods.split(",");
+    }
+    if (_.isArray(methods)) {
+      methods = methods.map((m) => m.trim().toLowerCase());
+    } else {
+      methods = undefined;
+    }
+  }
+
+  let paths = Cypress.env("C8Y_PACT_RUNNER_PATHS");
+  if (paths != null) {
+    if (_.isString(paths)) {
+      paths = paths.split(",");
+    }
+    if (_.isArray(paths)) {
+      paths = paths.map((p) => p.trim());
+    } else {
+      paths = undefined;
+    }
+  }
+
+  let authType = Cypress.env(
+    "C8Y_PACT_RUNNER_AUTH"
+  ) as C8yPactRunnerOptions["authType"];
+  if (
+    authType &&
+    !["basicauth", "cookieauth"].includes(authType.toLowerCase())
+  ) {
+    authType = undefined;
+  }
+
+  return {
+    authType,
+    methods,
+    paths,
+  };
 }
