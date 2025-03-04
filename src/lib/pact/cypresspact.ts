@@ -51,14 +51,17 @@ declare global {
     }
 
     interface SuiteConfigOverrides {
+      tags?: string[];
       c8ypact?: C8yPactConfigOptions;
     }
 
     interface TestConfigOverrides {
+      tags?: string[];
       c8ypact?: C8yPactConfigOptions;
     }
 
     interface RuntimeConfigOptions {
+      tags?: string[];
       c8ypact?: C8yPactConfigOptions;
     }
   }

@@ -4,7 +4,7 @@
   "scripts": {
     "clean": "rimraf dist/ && rimraf .yalc && rimraf yalc.lock",
     "clean:dist": "rimraf dist/",
-    "package": "npm install && npm run clean:dist && tsc -b -v .",
+    "package": "npm install && npm run clean:dist && tsc -b -v tsconfig.build.json",
     "package:latest": "npm install cumulocity-cypress@latest && npm run package",
     "package:dev": "npx yalc add cumulocity-cypress && npm run package",
     "cypress": "cypress run --config-file cypress.config.ts --spec cypress/e2e/pact-runner.cy.ts",
