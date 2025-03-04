@@ -47,8 +47,8 @@ import path from "path";
 import { isVersionSatisfyingRequirements } from "../versioning";
 import { getPackageVersion, safeStringify } from "../util";
 
-import swaggerUi from 'swagger-ui-express';
-import yaml from 'yaml';
+import swaggerUi from "swagger-ui-express";
+import yaml from "yaml";
 
 import { C8yBaseUrl, C8yTenant } from "../types";
 
@@ -282,12 +282,16 @@ export class C8yPactHttpController {
 
   protected registerOpenAPIRequestHandler() {
     try {
-      const openapiPath = path.join(path.dirname(__filename), 'openapi.yaml');
+      const openapiPath = path.join(path.dirname(__filename), "openapi.yaml");
       log(`loading openapi from ${openapiPath}`);
       const fileContent = fs.readFileSync(openapiPath, "utf-8");
       const document = yaml.parse(fileContent);
 
-      this.app.use(`${this.resourcePath}/openapi/`, swaggerUi.serve, swaggerUi.setup(document));
+      this.app.use(
+        `${this.resourcePath}/openapi/`,
+        swaggerUi.serve,
+        swaggerUi.setup(document)
+      );
       this.logger.info(`OpenAPI: ${this.resourcePath}/openapi/`);
     } catch (error: any) {
       log(`loading openapi failed: ${error.message}`);
@@ -374,7 +378,8 @@ export class C8yPactHttpController {
     this.app.post(`${this.resourcePath}/current`, async (req, res) => {
       const parameters = { ...req.body, ...req.query };
       const { mode, clear, recordingMode, strictMocking } = parameters;
-      const id: C8yPactID | undefined = pactId(parameters.id) || pactId(parameters.title);
+      const id: C8yPactID | undefined =
+        pactId(parameters.id) || pactId(parameters.title);
 
       this.mode = mode as C8yPactMode;
       this.recordingMode = recordingMode as C8yPactRecordingMode;
@@ -487,9 +492,11 @@ export class C8yPactHttpController {
         res.send(204);
         return;
       }
+
+      const { keys } = { ...req.query };
       const result = this.getObjectWithKeys(
         this.currentPact!.records.map((r) => r.request),
-        Object.keys(req.query)
+        keys ?? (Object.keys(req.query) as any)
       );
       res.setHeader("content-type", "application/json");
       res.status(200).send(JSON.stringify(result, null, 2));
@@ -499,11 +506,12 @@ export class C8yPactHttpController {
         res.send(204);
         return;
       }
+      const { keys } = { ...req.query };
       const result = this.getObjectWithKeys(
         this.currentPact!.records.map((r) => {
           return { ...r.response, url: r.request.url };
         }),
-        Object.keys(req.query)
+        keys ?? (Object.keys(req.query) as any)
       );
       res.setHeader("content-type", "application/json");
       res.status(200).send(JSON.stringify(result, null, 2));
