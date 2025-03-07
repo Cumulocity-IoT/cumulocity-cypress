@@ -3,6 +3,7 @@
 import {
   C8yDefaultPactPreprocessor,
   C8yPactPreprocessorOptions,
+  toSensitivePath,
 } from "./preprocessor";
 
 import _ from "lodash";
@@ -73,6 +74,18 @@ describe("C8yDefaultPactPreprocessor", () => {
         C8yDefaultPactPreprocessor.defaultObfuscationPattern
       );
     });
+
+    it("should obfuscate case with insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.Name", "requestBody.Id"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response!);
+
+      expect(response!.body.name).toBe("******");
+      expect(response!.requestBody.id).toBe("******");
+    });
   });
 
   describe("removal", () => {
@@ -119,9 +132,37 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.headers["set-cookie"]).toBeUndefined();
       expect(response!.requestHeaders["cookie"]).toBeUndefined();
     });
+
+    it("should use case insensitive cookie header", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["headers.Set-Cookie", "requestHeaders.Cookie"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response!);
+
+      expect(response!.headers["set-cookie"]).toBeUndefined();
+      expect(response!.requestHeaders["cookie"]).toBeUndefined();
+    });
+
+    it("should match case sensitive if ignoreCase is false", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["headers.Set-Cookie", "requestHeaders.Cookie"],
+        ignoreCase: false,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response!);
+
+      expect(response!.headers["set-cookie"]).toStrictEqual([
+        "authorization=secret; Max-Age=1209600; Path=/; Expires=Wed, 19 Mar 2025 17:26:23 GMT; HttpOnly",
+        "XSRF-TOKEN=token; Max-Age=1209600; Path=/; Expires=Wed, 19 Mar 2025 17:26:23 GMT",
+      ]);
+      expect(response!.requestHeaders["cookie"]).toStrictEqual(
+        "authorization=secret; XSRF-TOKEN=token"
+      );
+    });
   });
 
-  describe("cookie obfuscation", () => {
+  describe("cookie", () => {
     it("should obfuscate all cookies", () => {
       const options: C8yPactPreprocessorOptions = {
         obfuscate: ["headers.set-cookie", "requestHeaders.cookie"],
@@ -137,17 +178,6 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.requestHeaders["cookie"]).toStrictEqual(
         "authorization=******; XSRF-TOKEN=******"
       );
-    });
-
-    it("should remove cookie header", () => {
-      const options: C8yPactPreprocessorOptions = {
-        ignore: ["headers.set-cookie", "requestHeaders.cookie"],
-      };
-      const preprocessor = new C8yDefaultPactPreprocessor(options);
-      preprocessor.apply(response!);
-
-      expect(response!.headers["set-cookie"]).toBeUndefined();
-      expect(response!.requestHeaders["cookie"]).toBeUndefined();
     });
 
     it("should obfuscate specified cookies by name", () => {
@@ -195,6 +225,83 @@ describe("C8yDefaultPactPreprocessor", () => {
 
       expect(response!.headers["set-cookie"]).toBeUndefined();
       expect(response!.requestHeaders["cookie"]).toBeUndefined();
+    });
+
+    it("should obfuscate with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: [
+          "headers.set-cookie.AUTHORIZATION",
+          "requestHeaders.cookie.AUTHORIZATION",
+          "headers.set-cookie.Xsrf-Token",
+        ],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response!);
+
+      expect(response!.headers["set-cookie"]).toStrictEqual([
+        "authorization=******; Max-Age=1209600; Path=/; Expires=Wed, 19 Mar 2025 17:26:23 GMT; HttpOnly",
+        "XSRF-TOKEN=******; Max-Age=1209600; Path=/; Expires=Wed, 19 Mar 2025 17:26:23 GMT",
+      ]);
+      expect(response!.requestHeaders["cookie"]).toStrictEqual(
+        "authorization=******; XSRF-TOKEN=token"
+      );
+    });
+
+    it("should obfuscate with case insensitive keys in entire path", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: [
+          "headers.Set-Cookie.AUTHORIZATION",
+          "HEADers.Set-COOKIE.Xsrf-Token",
+          "RequestHeaders.Cookie.AUTHORIZATION",
+        ],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response!);
+
+      expect(response!.headers["set-cookie"]).toStrictEqual([
+        "authorization=******; Max-Age=1209600; Path=/; Expires=Wed, 19 Mar 2025 17:26:23 GMT; HttpOnly",
+        "XSRF-TOKEN=******; Max-Age=1209600; Path=/; Expires=Wed, 19 Mar 2025 17:26:23 GMT",
+      ]);
+      expect(response!.requestHeaders["cookie"]).toStrictEqual(
+        "authorization=******; XSRF-TOKEN=token"
+      );
+    });
+
+    it ("should match case sensitive if ignoreCase is false", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: [
+          "headers.Set-Cookie.AUTHORIZATION",
+          "headers.set-cookie.XSRF-TOKEN",
+          "RequestHeaders.Cookie.AUTHORIZATION",
+          "requestHeaders.cookie.XSRF-TOKEN",
+        ],
+        obfuscationPattern: "******",
+        ignoreCase: false,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response!);
+
+      expect(response!.headers["set-cookie"]).toStrictEqual([
+        "authorization=secret; Max-Age=1209600; Path=/; Expires=Wed, 19 Mar 2025 17:26:23 GMT; HttpOnly",
+        "XSRF-TOKEN=******; Max-Age=1209600; Path=/; Expires=Wed, 19 Mar 2025 17:26:23 GMT",
+      ]);
+      expect(response!.requestHeaders["cookie"]).toStrictEqual(
+        "authorization=secret; XSRF-TOKEN=******"
+      );
+    });
+
+  });
+
+  describe("toSensitivePath", () => {
+    it("should get case sensitive path", () => {
+      const path1 = toSensitivePath(response!, "HEADERS.Set-Cookie");
+      expect(path1).toBe("headers.set-cookie");
+      const path2 = toSensitivePath(response!, "REQUESTHEADERS.Cookie");
+      expect(path2).toBe("requestHeaders.cookie");
+      const path3 = toSensitivePath(response!, "HEaders.Set-Cookie.AUTHORIZATION");
+      expect(path3).toBe("headers.set-cookie.AUTHORIZATION");
     });
   });
 });
