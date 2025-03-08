@@ -44,7 +44,8 @@ import fs from "fs";
 import path from "path";
 
 import { isVersionSatisfyingRequirements } from "../versioning";
-import { getPackageVersion, safeStringify, toBoolean } from "../util";
+import { safeStringify, toBoolean } from "../util";
+import { getPackageVersion } from "../util-node";
 
 import swaggerUi from "swagger-ui-express";
 import yaml from "yaml";

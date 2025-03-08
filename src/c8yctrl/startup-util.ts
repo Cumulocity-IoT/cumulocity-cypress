@@ -26,7 +26,8 @@ import { C8yPactDefaultFileAdapter } from "../shared/c8ypact/adapter/fileadapter
 import { morganErrorOptions } from "../shared/c8yctrl/httpcontroller";
 
 import { RequestHandler } from "express";
-import { getPackageVersion, safeStringify } from "../shared/util";
+import { safeStringify } from "../shared/util";
+import { getPackageVersion } from "../shared/util-node";
 
 import debug from "debug";
 const log = debug("c8y:ctrl:startup");
