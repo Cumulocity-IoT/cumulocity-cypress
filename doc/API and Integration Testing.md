@@ -37,6 +37,7 @@ Contents of this document:
   - [Preprocessing](#preprocessing)
     - [Cookie obfuscation and removal](#cookie-obfuscation-and-removal)
     - [Case sensitivity](#case-sensitivity)
+    - [Default preprocessor configuration](#default-preprocessor-configuration)
   - [Recording JSON-Schema](#recording-json-schema)
   - [Recording of created objects](#recording-of-created-objects)
   - [Interceptions](#interceptions)
@@ -532,6 +533,14 @@ This is useful if you want to validate cookies in your tests without exposing se
 By default, preprocessor is case insensitive. This is useful to ignore case differences in headers or properties without knowing the exact case of header or property names.
 
 To enable case sensitivity, set `C8Y_PACT_PREPROCESSOR_IGNORE_CASE` to `false`. This will cause the preprocessor to match keys case sensitive and ignore only exact matches.
+
+#### Default preprocessor configuration
+
+The default preprocessor configuration can be imported and updated from
+
+```typescript
+import {  C8yPactPreprocessorDefaultOptions } from "cumulocity-cypress/c8ypact";
+``` 
 
 ### Recording JSON-Schema
 
