@@ -21,7 +21,7 @@ import {
 } from "../shared/c8ypact/c8ypact";
 import { C8yAuthOptions, oauthLogin } from "../shared/c8yclient";
 import { validateBaseUrl } from "../shared/c8ypact/url";
-import { getPackageVersion } from "../shared/util";
+import { getPackageVersion } from "../shared/util-node";
 
 import {
   C8yScreenshotFileUploadOptions,

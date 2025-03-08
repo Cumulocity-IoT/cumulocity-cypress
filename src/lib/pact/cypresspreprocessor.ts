@@ -1,3 +1,4 @@
+import { toBoolean } from "../../shared/util";
 import {
   C8yDefaultPactPreprocessor,
   C8yPact,
@@ -44,6 +45,10 @@ export class C8yCypressEnvPreprocessor extends C8yDefaultPactPreprocessor {
         ignore: Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE"),
         obfuscate: Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
         obfuscationPattern: Cypress.env("C8Y_PACT_PREPROCESSOR_PATTERN"),
+        ignoreCase: toBoolean(
+          Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE_CASE"),
+          true
+        ),
       } as C8yPactPreprocessorOptions,
       options,
       this.options,
@@ -53,6 +58,7 @@ export class C8yCypressEnvPreprocessor extends C8yDefaultPactPreprocessor {
         obfuscate: [],
         obfuscationPattern:
           C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+        ignoreCase: true,
       }
     );
   }

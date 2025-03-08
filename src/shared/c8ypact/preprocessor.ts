@@ -2,6 +2,7 @@ import _ from "lodash";
 import { C8yPact, C8yPactRecord } from "./c8ypact";
 import * as setCookieParser from "set-cookie-parser";
 import * as libCookie from "cookie";
+import { toSensitiveObjectKeyPath } from "../util";
 
 /**
  * Preprocessor for C8yPact objects. Use C8yPactPreprocessor to preprocess any
@@ -48,21 +49,26 @@ export interface C8yPactPreprocessorOptions {
    * Obfuscation pattern to use. Default is ********.
    */
   obfuscationPattern?: string;
+  /**
+   * Whether to ignore case when matching keys.
+   */
+  ignoreCase?: boolean;
 }
 
 /**
  * Default implementation of C8yPactPreprocessor. Preprocessor for C8yPact objects
  * that can be used to obfuscate or remove sensitive data from the pact objects.
- * Use C8ypactPreprocessorOptions to configure the preprocessor. Also uses environment
- * variables C8Y_PACT_PREPROCESSOR_OBFUSCATE and C8Y_PACT_PREPROCESSOR_IGNORE.
- * 
- * Removes cookies and set-cookie headers by appending the key to the `cookie` or `set-cookie` 
+ * Use C8ypactPreprocessorOptions to configure the preprocessor. 
+ *
+ * Removes cookies and set-cookie headers by appending the key to the `cookie` or `set-cookie`
  * key as for example `headers.cookie.authorization` or `headers.set-cookie.authorization`.
  */
 export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
   static defaultObfuscationPattern = "********";
 
   options?: C8yPactPreprocessorOptions;
+
+  protected reservedKeys = ["id", "pact", "info", "records"];
 
   constructor(options?: C8yPactPreprocessorOptions) {
     this.options = this.resolveOptions(options);
@@ -76,82 +82,68 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     const objs = "records" in obj ? _.get(obj, "records") : [obj];
     if (!_.isArray(objs)) return;
 
-    const reservedKeys = ["id", "pact", "info", "records"];
     const o = this.resolveOptions(options);
-    const keysToObfuscate = o.obfuscate || [];
-    const keysToRemove = o.ignore || [];
+    const ignoreCase = o.ignoreCase;
     const obfuscationPattern =
       o.obfuscationPattern ??
       C8yDefaultPactPreprocessor.defaultObfuscationPattern;
 
+    const mapSensitiveKeys = (keys: string[]) =>
+      keys.map((k) => (ignoreCase === true ? toSensitiveObjectKeyPath(obj, k) ?? k : k));
+
+    const keysToObfuscate = mapSensitiveKeys(o.obfuscate ?? []);
+    const keysToRemove = mapSensitiveKeys(o.ignore ?? []);
+
     objs.forEach((obj) => {
-      this.handleObfuscation(
-        obj,
-        keysToObfuscate,
-        reservedKeys,
-        obfuscationPattern
-      );
-      this.handleRemoval(obj, keysToRemove, reservedKeys);
+      this.handleObfuscation(obj, keysToObfuscate, obfuscationPattern);
+      this.handleRemoval(obj, keysToRemove);
     });
   }
 
   private handleObfuscation(
     obj: any,
     keysToObfuscate: string[],
-    reservedKeys: string[],
     obfuscationPattern: string
   ): void {
-    const validKeys = this.filterValidKeys(obj, keysToObfuscate, reservedKeys);
+    const validKeys = this.filterValidKeys(obj, keysToObfuscate);
     validKeys.forEach((key) => {
       this.obfuscateKey(obj, key, obfuscationPattern);
     });
   }
 
-  private handleRemoval(
-    obj: any,
-    keysToRemove: string[],
-    reservedKeys: string[]
-  ): void {
-    const validKeys = this.filterValidKeys(obj, keysToRemove, reservedKeys);
+  private handleRemoval(obj: any, keysToRemove: string[]): void {
+    const validKeys = this.filterValidKeys(obj, keysToRemove);
     validKeys.forEach((key) => {
       this.removeKey(obj, key);
     });
   }
 
   private removeKey(obj: any, key: string): void {
-    const keyParts = key.split(".");
+    const keyPath = key.split(".");
 
-    if (keyParts.includes("set-cookie")) {
-      this.removeSetCookie(obj, keyParts);
-    } else if (keyParts.includes("cookie")) {
-      this.removeCookie(obj, keyParts);
+    if (this.hasKey(keyPath, "set-cookie")) {
+      this.removeSetCookie(obj, keyPath);
+    } else if (this.hasKey(keyPath, "cookie")) {
+      this.removeCookie(obj, keyPath);
     } else {
       _.unset(obj, key);
     }
   }
 
   private removeSetCookie(obj: any, keyParts: string[]): void {
-    let name: string | undefined = undefined;
-    if (_.last(keyParts)?.toLowerCase() !== "set-cookie") {
-      name = _.last(keyParts);
-      keyParts = keyParts.slice(0, -1);
-    }
+    const { name, keyPath, cookieHeader } = this.getCookieObject(obj, keyParts);
+    if (!cookieHeader) return;
 
-    const keyPath = keyParts.join(".");
-    const setCookieHeader = _.get(obj, keyPath);
-
-    // If no specific cookie name is provided, remove the entire header
     if (!name) {
       _.unset(obj, keyPath);
       return;
     }
 
-    // Otherwise filter out the specified cookie
     const cookies =
-      setCookieParser.parse(setCookieHeader, { decodeValues: false }) ?? [];
+      setCookieParser.parse(cookieHeader, { decodeValues: false }) ?? [];
     if (cookies.length) {
       const filteredCookies = cookies
-        .filter((cookie) => cookie.name !== name)
+        .filter((cookie) => cookie.name.toLowerCase() !== name.toLowerCase())
         .map((cookie) =>
           libCookie.serialize(
             cookie.name,
@@ -169,14 +161,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
   }
 
   private removeCookie(obj: any, keyParts: string[]): void {
-    let name: string | undefined = undefined;
-    if (_.last(keyParts)?.toLowerCase() !== "cookie") {
-      name = _.last(keyParts);
-      keyParts = keyParts.slice(0, -1);
-    }
-
-    const keyPath = keyParts.join(".");
-    const cookieHeader = _.get(obj, keyPath);
+    const { name, keyPath, cookieHeader } = this.getCookieObject(obj, keyParts);
     if (!cookieHeader) return;
 
     if (!name) {
@@ -191,42 +176,26 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     if (remainingCookies.length === 0) {
       _.unset(obj, keyPath);
     } else {
-      _.set(
-        obj,
-        keyPath,
-        remainingCookies.map(([name, value]) => `${name}=${value}`).join("; ")
-      );
+      const v = remainingCookies
+        .map(([name, value]) => `${name}=${value}`)
+        .join("; ");
+      _.set(obj, keyPath, v);
     }
   }
 
-  private filterValidKeys(
-    obj: any,
-    keys: string[],
-    reservedKeys: string[]
-  ): string[] {
-    const notExistingKeys = keys.filter((key) => {
-      return (
-        _.get(obj, key) == null &&
-        !key.includes(".set-cookie") &&
-        !key.includes(".cookie")
-      );
-    });
-    return _.without(keys, ...reservedKeys, ...notExistingKeys);
+  private filterValidKeys(obj: any, keys: string[]): string[] {
+    return _.without(keys, ...this.reservedKeys);
   }
 
-  private obfuscateKey(
-    obj: any,
-    key: string,
-    obfuscationPattern: string
-  ): void {
+  private obfuscateKey(obj: any, key: string, pattern: string): void {
     const keyParts = key.split(".");
-
-    if (keyParts.includes("set-cookie")) {
-      this.obfuscateSetCookie(obj, keyParts, obfuscationPattern);
-    } else if (keyParts.includes("cookie")) {
-      this.obfuscateCookie(obj, keyParts, obfuscationPattern);
+    if (this.hasKey(keyParts, "set-cookie")) {
+      this.obfuscateSetCookie(obj, keyParts, pattern);
+    } else if (this.hasKey(keyParts, "cookie")) {
+      this.obfuscateCookie(obj, keyParts, pattern);
     } else {
-      _.set(obj, key, obfuscationPattern);
+      if (_.get(obj, key) == null) return;
+      _.set(obj, key, pattern);
     }
   }
 
@@ -235,20 +204,16 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     keyParts: string[],
     obfuscationPattern: string
   ): void {
-    let name: string | undefined = undefined;
-    if (_.last(keyParts)?.toLowerCase() !== "set-cookie") {
-      name = _.last(keyParts);
-      keyParts = keyParts.slice(0, -1);
-    }
+    const { name, keyPath, cookieHeader } = this.getCookieObject(obj, keyParts);
+    if (!cookieHeader) return;
 
-    const keyPath = keyParts.join(".");
-    const setCookieHeader = _.get(obj, keyPath);
     const cookies =
-      setCookieParser.parse(setCookieHeader, { decodeValues: false }) ?? [];
+      setCookieParser.parse(cookieHeader, { decodeValues: false }) ?? [];
 
     if (cookies.length) {
       const fixedCookies = cookies.reduce((acc, cookie) => {
-        const shouldObfuscate = !name || (name && name === cookie.name);
+        const n = name?.toLowerCase();
+        const shouldObfuscate = !n || (n && n === cookie.name?.toLowerCase());
         const cookieValue = shouldObfuscate
           ? obfuscationPattern ?? ""
           : cookie.value;
@@ -272,30 +237,19 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     keyParts: string[],
     obfuscationPattern: string
   ): void {
-    let name: string | undefined = undefined;
-    if (_.last(keyParts)?.toLowerCase() !== "cookie") {
-      name = _.last(keyParts);
-      keyParts = keyParts.slice(0, -1);
-    }
-
-    const keyPath = keyParts.join(".");
-    const cookieHeader = _.get(obj, keyPath);
+    const { name, keyPath, cookieHeader } = this.getCookieObject(obj, keyParts);
     if (!cookieHeader) return;
 
     const cookies = libCookie.parse(cookieHeader);
 
-    if (name != null) {
-      if (cookies[name] != null) {
-        cookies[name] = obfuscationPattern;
-      }
-    } else {
-      Object.keys(cookies).forEach((cookieName) => {
-        cookies[cookieName] = obfuscationPattern;
-      });
-    }
+    Object.keys(cookies).forEach((cookieName) => {
+      if (name != null && cookieName.toLowerCase() !== name.toLowerCase())
+        return;
+      cookies[cookieName] = obfuscationPattern;
+    });
 
     const result = Object.entries(cookies)
-      .map(([name, value]) => `${name}=${value}`)
+      .map(([n, v]) => `${n}=${v}`)
       .join("; ");
     _.set(obj, keyPath, result);
   }
@@ -307,6 +261,36 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
       ignore: [],
       obfuscate: [],
       obfuscationPattern: C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+      ignoreCase: true,
     });
   }
+
+  private hasKey(keyPath: string | string[], key: string): boolean {
+    return (
+      (_.isArray(keyPath) ? keyPath : keyPath.split(".")).filter(
+        (k) => k.toLowerCase() === key.toLowerCase()
+      ).length > 0
+    );
+  }
+
+  private getCookieObject(
+    obj: any,
+    keyParts: string[]
+  ): {
+    name: string | undefined;
+    keyPath: string;
+    cookieHeader: string | undefined;
+  } {
+    let name: string | undefined = undefined;
+    const l = _.last(keyParts)?.toLowerCase();
+    if (l !== "cookie" && l !== "set-cookie") {
+      name = _.last(keyParts);
+      keyParts = keyParts.slice(0, -1);
+    }
+
+    const keyPath = keyParts.join(".");
+    const cookieHeader = _.get(obj, keyPath);
+    return { name, keyPath, cookieHeader };
+  }
 }
+
