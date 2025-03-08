@@ -2,10 +2,17 @@
 
 import {
   C8yDefaultPactPreprocessor,
+  C8yPactPreprocessorDefaultOptions,
   C8yPactPreprocessorOptions,
 } from "./preprocessor";
 
 import _ from "lodash";
+
+class TestC8yDefaultPactPreprocessor extends C8yDefaultPactPreprocessor {
+  public test_resolveOptions(options?: C8yPactPreprocessorOptions) {
+    return this.resolveOptions(options);
+  }
+}
 
 describe("C8yDefaultPactPreprocessor", () => {
   const BASE_URL = "http://localhost:4200";
@@ -40,6 +47,69 @@ describe("C8yDefaultPactPreprocessor", () => {
       const r = { ...response };
       preprocessor.apply(response!, undefined);
       expect(response).toStrictEqual(r);
+    });
+  });
+
+  describe("resolveOptions", () => {
+    it("should resolve options", () => {
+      const preprocessor = new TestC8yDefaultPactPreprocessor();
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.name", "requestBody.id"],
+        obfuscate: ["body.name", "requestBody.id"],
+        obfuscationPattern: "xxxxx",
+        ignoreCase: false,
+      };
+      const resolvedOptions = preprocessor.test_resolveOptions(options);
+      expect(resolvedOptions).toStrictEqual(options);
+    });
+
+    it("should resolve options with default values", () => {
+      const preprocessor = new TestC8yDefaultPactPreprocessor();
+      const resolvedOptions = preprocessor.test_resolveOptions()
+      expect(resolvedOptions).toStrictEqual(C8yPactPreprocessorDefaultOptions);
+    });
+
+    it("should resolve options with default values and options", () => {
+      const preprocessor = new TestC8yDefaultPactPreprocessor();
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.name", "requestBody.id"],
+        obfuscate: ["body.name", "requestBody.id"],
+      };
+      const resolvedOptions = preprocessor.test_resolveOptions(options);
+      expect(resolvedOptions).toStrictEqual({
+        ...C8yPactPreprocessorDefaultOptions,
+        ...options,
+      });
+    });
+
+    it("should resolve options with default values and class options", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.name", "requestBody.id"],
+        obfuscate: ["body.name", "requestBody.id"],
+      };
+      const preprocessor = new TestC8yDefaultPactPreprocessor(options);
+      const resolvedOptions = preprocessor.test_resolveOptions(options);
+      expect(resolvedOptions).toStrictEqual({
+        ...C8yPactPreprocessorDefaultOptions,
+        ...options,
+      });
+    });
+
+    it("should overwrite class options with options", () => {
+      const classOptions: C8yPactPreprocessorOptions = {
+        ignore: ["body.name", "requestBody.id"],
+        obfuscate: ["body.name", "requestBody.id"],
+      };
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["abc"],
+        obfuscate: ["def"],
+      };
+      const preprocessor = new TestC8yDefaultPactPreprocessor(classOptions);
+      const resolvedOptions = preprocessor.test_resolveOptions(options);
+      expect(resolvedOptions).toStrictEqual({
+        ...C8yPactPreprocessorDefaultOptions,
+        ...options
+      });
     });
   });
 

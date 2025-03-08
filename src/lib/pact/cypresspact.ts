@@ -261,9 +261,7 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
     schemaGenerator: undefined,
     schemaMatcher: undefined,
     debugLog: false,
-    preprocessor: new C8yCypressEnvPreprocessor({
-      obfuscate: ["request.headers.Authorization", "response.body.password"],
-    }),
+    preprocessor: new C8yCypressEnvPreprocessor(),
     on: {},
     config: {
       log: false,
