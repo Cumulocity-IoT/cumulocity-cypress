@@ -86,6 +86,31 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.body.name).toBe("******");
       expect(response!.requestBody.id).toBe("******");
     });
+
+    it("should not add key if it does not exist", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.nonexistent"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response!);
+
+      expect(response!.body.nonexistent).toBeUndefined();
+      expect(response!.body).not.toHaveProperty("nonexistent");
+    })
+
+    it("should not add key with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["BODY.nonexistent", "requestBody.Id"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response!);
+
+      expect(response!.body.nonexistent).toBeUndefined();
+      expect(response!.body).not.toHaveProperty("nonexistent");
+      expect(response!.requestBody.id).toBe("******");
+    });
   });
 
   describe("removal", () => {

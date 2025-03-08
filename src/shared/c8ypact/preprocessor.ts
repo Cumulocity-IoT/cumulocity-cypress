@@ -57,8 +57,7 @@ export interface C8yPactPreprocessorOptions {
 /**
  * Default implementation of C8yPactPreprocessor. Preprocessor for C8yPact objects
  * that can be used to obfuscate or remove sensitive data from the pact objects.
- * Use C8ypactPreprocessorOptions to configure the preprocessor. Also uses environment
- * variables C8Y_PACT_PREPROCESSOR_OBFUSCATE and C8Y_PACT_PREPROCESSOR_IGNORE.
+ * Use C8ypactPreprocessorOptions to configure the preprocessor. 
  *
  * Removes cookies and set-cookie headers by appending the key to the `cookie` or `set-cookie`
  * key as for example `headers.cookie.authorization` or `headers.set-cookie.authorization`.
@@ -194,6 +193,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     } else if (this.hasKey(keyParts, "cookie")) {
       this.obfuscateCookie(obj, keyParts, pattern);
     } else {
+      if (_.get(obj, key) == null) return;
       _.set(obj, key, pattern);
     }
   }
