@@ -36,7 +36,6 @@ import {
   wrapPathIgnoreHandler,
 } from "./middleware";
 
-import { toBoolean } from "./httpcontroller-utils";
 import { C8yPactFileAdapter } from "../c8ypact/adapter/fileadapter";
 import { C8yAuthOptions } from "../auth";
 import { oauthLogin } from "../c8yclient";
@@ -45,7 +44,8 @@ import fs from "fs";
 import path from "path";
 
 import { isVersionSatisfyingRequirements } from "../versioning";
-import { getPackageVersion, safeStringify } from "../util";
+import { safeStringify, toBoolean } from "../util";
+import { getPackageVersion } from "../util-node";
 
 import swaggerUi from "swagger-ui-express";
 import yaml from "yaml";
