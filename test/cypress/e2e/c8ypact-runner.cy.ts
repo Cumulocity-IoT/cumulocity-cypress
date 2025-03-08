@@ -1,6 +1,7 @@
 import {
   C8yDefaultPactRunner,
   C8yDefaultPactRecord,
+  C8yPactPreprocessorDefaultOptions,
 } from "cumulocity-cypress/c8ypact";
 
 const { _ } = Cypress;
@@ -62,7 +63,7 @@ describe("c8ypactrunner", () => {
       const pact = new C8yDefaultPactRecord(
         {
           headers: {
-            "X-XSRF-TOKEN": "********",
+            "X-XSRF-TOKEN": C8yPactPreprocessorDefaultOptions.obfuscationPattern,
             Authorization: "Bearer ******",
             "content-type": "application/json",
             accept: "application/json",

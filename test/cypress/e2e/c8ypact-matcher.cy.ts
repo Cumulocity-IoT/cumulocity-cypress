@@ -63,7 +63,6 @@ describe("c8ypactmatcher", () => {
 
       const pactSourceObj = _.cloneDeep(obj);
       const preprocessor = new C8yCypressEnvPreprocessor({
-        obfuscationPattern: "********",
         obfuscate: ["requestHeaders.Test", "body.Test"],
       });
 

@@ -55,16 +55,39 @@ export interface C8yPactPreprocessorOptions {
   ignoreCase?: boolean;
 }
 
+export const C8yPactPreprocessorDefaultOptions = {
+  ignore: [
+    "request.headers.accept-encoding",
+    "response.headers.cache-control",
+    "response.headers.content-length",
+    "response.headers.content-encoding",
+    "response.headers.transfer-encoding",
+    "response.headers.keep-alive",
+  ],
+  obfuscate: [
+    "request.headers.cookie.authorization",
+    "request.headers.cookie.XSRF-TOKEN",
+    "request.headers.authorization",
+    "request.headers.X-XSRF-TOKEN",
+    "response.headers.set-cookie.authorization",
+    "response.headers.set-cookie.XSRF-TOKEN",
+    "response.body.password",
+  ],
+  obfuscationPattern: "****",
+  ignoreCase: true,
+};
+
 /**
  * Default implementation of C8yPactPreprocessor. Preprocessor for C8yPact objects
  * that can be used to obfuscate or remove sensitive data from the pact objects.
- * Use C8ypactPreprocessorOptions to configure the preprocessor. 
+ * Use C8ypactPreprocessorOptions to configure the preprocessor.
  *
  * Removes cookies and set-cookie headers by appending the key to the `cookie` or `set-cookie`
  * key as for example `headers.cookie.authorization` or `headers.set-cookie.authorization`.
  */
 export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
-  static defaultObfuscationPattern = "********";
+  static defaultObfuscationPattern =
+    C8yPactPreprocessorDefaultOptions.obfuscationPattern;
 
   options?: C8yPactPreprocessorOptions;
 
@@ -84,17 +107,16 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
 
     const o = this.resolveOptions(options);
     const ignoreCase = o.ignoreCase;
-    const obfuscationPattern =
-      o.obfuscationPattern ??
-      C8yDefaultPactPreprocessor.defaultObfuscationPattern;
+    const obfuscationPattern = o.obfuscationPattern;
 
-    const mapSensitiveKeys = (keys: string[]) =>
-      keys.map((k) => (ignoreCase === true ? toSensitiveObjectKeyPath(obj, k) ?? k : k));
-
-    const keysToObfuscate = mapSensitiveKeys(o.obfuscate ?? []);
-    const keysToRemove = mapSensitiveKeys(o.ignore ?? []);
+    const mapSensitiveKeys = (mapObject: any, keys: string[]) =>
+      keys.map((k) =>
+        ignoreCase === true ? toSensitiveObjectKeyPath(mapObject, k) ?? k : k
+      );
 
     objs.forEach((obj) => {
+      const keysToObfuscate = mapSensitiveKeys(obj, o.obfuscate ?? []);
+      const keysToRemove = mapSensitiveKeys(obj, o.ignore ?? []);
       this.handleObfuscation(obj, keysToObfuscate, obfuscationPattern);
       this.handleRemoval(obj, keysToRemove);
     });
@@ -103,7 +125,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
   private handleObfuscation(
     obj: any,
     keysToObfuscate: string[],
-    obfuscationPattern: string
+    obfuscationPattern?: string
   ): void {
     const validKeys = this.filterValidKeys(obj, keysToObfuscate);
     validKeys.forEach((key) => {
@@ -187,12 +209,13 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     return _.without(keys, ...this.reservedKeys);
   }
 
-  private obfuscateKey(obj: any, key: string, pattern: string): void {
+  private obfuscateKey(obj: any, key: string, pattern?: string): void {
     const keyParts = key.split(".");
+    const p = pattern ?? C8yDefaultPactPreprocessor.defaultObfuscationPattern;
     if (this.hasKey(keyParts, "set-cookie")) {
-      this.obfuscateSetCookie(obj, keyParts, pattern);
+      this.obfuscateSetCookie(obj, keyParts, p);
     } else if (this.hasKey(keyParts, "cookie")) {
-      this.obfuscateCookie(obj, keyParts, pattern);
+      this.obfuscateCookie(obj, keyParts, p);
     } else {
       if (_.get(obj, key) == null) return;
       _.set(obj, key, pattern);
@@ -257,12 +280,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
   protected resolveOptions(
     options?: Partial<C8yPactPreprocessorOptions>
   ): C8yPactPreprocessorOptions {
-    return _.defaults(options, this.options, {
-      ignore: [],
-      obfuscate: [],
-      obfuscationPattern: C8yDefaultPactPreprocessor.defaultObfuscationPattern,
-      ignoreCase: true,
-    });
+    return _.defaults(options, this.options, C8yPactPreprocessorDefaultOptions);
   }
 
   private hasKey(keyPath: string | string[], key: string): boolean {
@@ -293,4 +311,3 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     return { name, keyPath, cookieHeader };
   }
 }
-

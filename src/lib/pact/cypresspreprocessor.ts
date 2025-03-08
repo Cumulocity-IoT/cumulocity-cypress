@@ -2,6 +2,7 @@ import { toBoolean } from "../../shared/util";
 import {
   C8yDefaultPactPreprocessor,
   C8yPact,
+  C8yPactPreprocessorDefaultOptions,
   C8yPactPreprocessorOptions,
   C8yPactRecord,
 } from "../../shared/c8ypact";
@@ -17,6 +18,7 @@ const { _ } = Cypress;
  * - C8yPactPreprocessorOptions passed to the apply method
  * - C8yPactPreprocessorOptions passed to the constructor
  * - Cypress.c8ypact.config value for preprocessor
+ * - C8yPactPreprocessorDefaultOptions
  */
 export class C8yCypressEnvPreprocessor extends C8yDefaultPactPreprocessor {
   apply(
@@ -40,7 +42,7 @@ export class C8yCypressEnvPreprocessor extends C8yDefaultPactPreprocessor {
         ) ?? {};
     }
 
-    return _.defaultsDeep(
+    return _.defaults(
       {
         ignore: Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE"),
         obfuscate: Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
@@ -53,13 +55,7 @@ export class C8yCypressEnvPreprocessor extends C8yDefaultPactPreprocessor {
       options,
       this.options,
       preprocessorConfigValue,
-      {
-        ignore: [],
-        obfuscate: [],
-        obfuscationPattern:
-          C8yDefaultPactPreprocessor.defaultObfuscationPattern,
-        ignoreCase: true,
-      }
+      C8yPactPreprocessorDefaultOptions
     );
   }
 }

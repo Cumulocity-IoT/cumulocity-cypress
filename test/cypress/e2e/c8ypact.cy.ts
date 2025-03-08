@@ -18,6 +18,7 @@ import {
   isPact,
   isPactRecord,
   getEnvVar,
+  C8yPactPreprocessorDefaultOptions,
 } from "cumulocity-cypress/c8ypact";
 
 const { _ } = Cypress;
@@ -38,6 +39,7 @@ describe("c8ypact", () => {
     Cypress.c8ypact.config.strictMatching = true;
     Cypress.c8ypact.config.ignore = false;
     Cypress.c8ypact.schemaMatcher = new C8yAjvJson6SchemaMatcher();
+    Cypress.c8ypact.preprocessor = new C8yCypressEnvPreprocessor();
     C8yDefaultPactMatcher.schemaMatcher = Cypress.c8ypact.schemaMatcher;
 
     Cypress.env("C8Y_USERNAME", undefined);
@@ -1384,7 +1386,7 @@ describe("c8ypact", () => {
         obfuscate: ["requestHeaders.MyAuthorization", "body.password2"],
         ignoreCase: true,
       });
-      expect(preprocessor.resolveOptions().ignore).to.deep.eq([]);
+      expect(preprocessor.resolveOptions().ignore).to.deep.eq(C8yPactPreprocessorDefaultOptions.ignore);
 
       preprocessor.apply(obj);
       expect(obj?.requestHeaders?.Authorization).to.eq("asdasdasdasd");
@@ -1416,8 +1418,9 @@ describe("c8ypact", () => {
       });
       preprocessor.apply(obj);
 
-      expect(obj.requestHeaders?.Authorization).to.eq("********");
-      expect(obj.body.password).to.eq("********");
+      const p = C8yPactPreprocessorDefaultOptions.obfuscationPattern;
+      expect(obj.requestHeaders?.Authorization).to.eq(p);
+      expect(obj.body.password).to.eq(p);
       expect(obj.requestHeaders?.date).to.be.undefined;
       expect(obj.body.creationTime).to.be.undefined;
     });
@@ -1543,7 +1546,7 @@ describe("c8ypact", () => {
     it("should preprocess response when saving pact", function () {
       const obfuscationPattern =
         C8yDefaultPactPreprocessor.defaultObfuscationPattern;
-
+      Cypress.c8ypact.preprocessor = new C8yCypressEnvPreprocessor();
       stubResponses([
         new window.Response(JSON.stringify({ password: "sdqadasdadasd" }), {
           status: 200,
@@ -1567,6 +1570,7 @@ describe("c8ypact", () => {
         });
 
       Cypress.c8ypact.loadCurrent().then((pact) => {
+        debugger
         expect(pact?.records).to.have.length(1);
         const record = pact?.records[0];
         expect(record).to.not.be.null;
