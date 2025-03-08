@@ -3,7 +3,6 @@
 import {
   C8yDefaultPactPreprocessor,
   C8yPactPreprocessorOptions,
-  toSensitivePath,
 } from "./preprocessor";
 
 import _ from "lodash";
@@ -35,7 +34,26 @@ describe("C8yDefaultPactPreprocessor", () => {
     };
   });
 
-  describe("obfuscation", () => {
+  describe("general", () => {
+    it("should not fail if no options are provided", () => {
+      const preprocessor = new C8yDefaultPactPreprocessor();
+      const r = { ...response };
+      preprocessor.apply(response!, undefined);
+      expect(response).toStrictEqual(r);
+    });
+  });
+
+  describe("obfuscate", () => {
+    it("should not fail if obfuscate option is undefined", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: undefined,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor();
+      const r = { ...response };
+      preprocessor.apply(response!, options);
+      expect(response).toStrictEqual(r);
+    });
+
     it("should obfuscate specified keys", () => {
       const options: C8yPactPreprocessorOptions = {
         obfuscate: ["body.name", "requestBody.id"],
@@ -97,7 +115,7 @@ describe("C8yDefaultPactPreprocessor", () => {
 
       expect(response!.body.nonexistent).toBeUndefined();
       expect(response!.body).not.toHaveProperty("nonexistent");
-    })
+    });
 
     it("should not add key with case insensitive keys", () => {
       const options: C8yPactPreprocessorOptions = {
@@ -113,7 +131,17 @@ describe("C8yDefaultPactPreprocessor", () => {
     });
   });
 
-  describe("removal", () => {
+  describe("ignore", () => {
+    it("should not fail if ignore option is undefined", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: undefined,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor();
+      const r = { ...response };
+      preprocessor.apply(response!, options);
+      expect(response).toStrictEqual(r);
+    });
+
     it("should remove specified keys", () => {
       const options: C8yPactPreprocessorOptions = {
         ignore: ["body.name", "requestBody.id"],
@@ -294,7 +322,7 @@ describe("C8yDefaultPactPreprocessor", () => {
       );
     });
 
-    it ("should match case sensitive if ignoreCase is false", () => {
+    it("should match case sensitive if ignoreCase is false", () => {
       const options: C8yPactPreprocessorOptions = {
         obfuscate: [
           "headers.Set-Cookie.AUTHORIZATION",
@@ -315,18 +343,6 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.requestHeaders["cookie"]).toStrictEqual(
         "authorization=secret; XSRF-TOKEN=******"
       );
-    });
-
-  });
-
-  describe("toSensitivePath", () => {
-    it("should get case sensitive path", () => {
-      const path1 = toSensitivePath(response!, "HEADERS.Set-Cookie");
-      expect(path1).toBe("headers.set-cookie");
-      const path2 = toSensitivePath(response!, "REQUESTHEADERS.Cookie");
-      expect(path2).toBe("requestHeaders.cookie");
-      const path3 = toSensitivePath(response!, "HEaders.Set-Cookie.AUTHORIZATION");
-      expect(path3).toBe("headers.set-cookie.AUTHORIZATION");
     });
   });
 });

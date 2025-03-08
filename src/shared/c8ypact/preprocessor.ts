@@ -2,6 +2,7 @@ import _ from "lodash";
 import { C8yPact, C8yPactRecord } from "./c8ypact";
 import * as setCookieParser from "set-cookie-parser";
 import * as libCookie from "cookie";
+import { toSensitiveObjectKeyPath } from "../util";
 
 /**
  * Preprocessor for C8yPact objects. Use C8yPactPreprocessor to preprocess any
@@ -88,7 +89,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
       C8yDefaultPactPreprocessor.defaultObfuscationPattern;
 
     const mapSensitiveKeys = (keys: string[]) =>
-      keys.map((k) => (ignoreCase === true ? toSensitivePath(obj, k) ?? k : k));
+      keys.map((k) => (ignoreCase === true ? toSensitiveObjectKeyPath(obj, k) ?? k : k));
 
     const keysToObfuscate = mapSensitiveKeys(o.obfuscate ?? []);
     const keysToRemove = mapSensitiveKeys(o.ignore ?? []);
@@ -293,60 +294,3 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
   }
 }
 
-/**
- * Gets the case-sensitive path for a given case-insensitive path.
- *
- * @param obj The object to query
- * @param path The case-insensitive path to find
- * @returns The actual case-sensitive path if found, undefined otherwise
- */
-export function toSensitivePath(
-  obj: any,
-  path: string | string[]
-): string | undefined {
-  if (!obj) return undefined;
-
-  const keys = _.isArray(path) ? path : path.split(".");
-  let current = obj;
-  const actualPath: string[] = [];
-
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    if (current === null || current === undefined) {
-      return undefined;
-    }
-
-    if (_.isArray(current)) {
-      const index = parseInt(key);
-      if (!isNaN(index)) {
-        if (index >= 0 && index < current.length) {
-          current = current[index];
-          actualPath.push(key);
-          continue;
-        }
-      }
-      actualPath.push(...keys.slice(i));
-      return actualPath.join(".");
-    }
-
-    // Handle object case with case-insensitive matching
-    if (_.isObjectLike(current)) {
-      const matchingKey = Object.keys(current).find(
-        (k) => k.toLowerCase() === key.toLowerCase()
-      );
-
-      if (matchingKey !== undefined) {
-        current = current[matchingKey];
-        actualPath.push(matchingKey);
-      } else {
-        actualPath.push(...keys.slice(i));
-        break;
-      }
-    } else {
-      actualPath.push(...keys.slice(i));
-      break;
-    }
-  }
-
-  return actualPath.join(".");
-}
