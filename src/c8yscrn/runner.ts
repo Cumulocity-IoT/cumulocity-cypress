@@ -557,8 +557,8 @@ function takeScreenshot(
         padding[1] = unionRect.top;
       }
       o.clip = {
-        x: Math.max(0, unionRect.left - padding[0]),
-        y: Math.max(0, unionRect.top - padding[1]),
+        x: unionRect.left - padding[0],
+        y: unionRect.top - padding[1],
         width: unionRect.width + padding[2] + padding[0],
         height: unionRect.height + padding[3] + padding[1],
       };
