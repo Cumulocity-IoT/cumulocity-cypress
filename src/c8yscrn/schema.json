@@ -470,6 +470,72 @@
                                     "$ref": "#/definitions/ScreenshotClipArea",
                                     "description": "The clip area within the screenshot image. The clip area is defined by the top-left corner (x, y) and the width and height of the clip area."
                                 },
+                                "padding": {
+                                    "anyOf": [
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 1,
+                                            "minItems": 1,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 2,
+                                            "minItems": 2,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 3,
+                                            "minItems": 3,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 4,
+                                            "minItems": 4,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ],
+                                    "description": "The padding applied to the screenshots of elements in px. If an array of numbers is provided, the padding is applied as defined by CSS shorthand property."
+                                },
                                 "path": {
                                     "description": "The path to store the screenshot. This is the relative path used within the screenshot folder.",
                                     "type": "string"
@@ -505,6 +571,72 @@
                                 },
                                 "data-cy": {
                                     "type": "string"
+                                },
+                                "padding": {
+                                    "anyOf": [
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 1,
+                                            "minItems": 1,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 2,
+                                            "minItems": 2,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 3,
+                                            "minItems": 3,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 4,
+                                            "minItems": 4,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ],
+                                    "description": "The padding applied to the screenshots of elements in px. If an array of numbers is provided, the padding is applied as defined by CSS shorthand property."
                                 },
                                 "path": {
                                     "description": "The path to store the screenshot. This is the relative path used within the screenshot folder.",

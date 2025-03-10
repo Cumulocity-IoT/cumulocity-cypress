@@ -359,6 +359,15 @@ export interface ScreenshotAction {
    * The clip area within the screenshot image. The clip area is defined by the top-left corner (x, y) and the width and height of the clip area.
    */
   clip?: ScreenshotClipArea;
+  /**
+   * The padding applied to the screenshots of elements in px. If an array of numbers is provided, the padding is applied as defined by CSS shorthand property.
+   */
+  padding?:
+    | number
+    | [number]
+    | [number, number]
+    | [number, number, number]
+    | [number, number, number, number];
 }
 
 export interface Action {
