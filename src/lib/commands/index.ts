@@ -7,3 +7,5 @@ import "./login";
 import "./c8yclient";
 import "./administration";
 import "./highlight";
+
+export * from "./highlight";

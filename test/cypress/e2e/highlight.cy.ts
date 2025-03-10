@@ -1,4 +1,7 @@
-import { findCommonParent, getUnionDOMRect } from "cumulocity-cypress/lib/commands/highlight";
+import {
+  findCommonParent,
+  getUnionDOMRect,
+} from "cumulocity-cypress/lib/commands/highlight";
 
 describe("highlight", () => {
   beforeEach(() => {
@@ -149,7 +152,37 @@ describe("highlight", () => {
       cy.get("#border").should("have.css", "border", "1px solid rgb(0, 0, 0)");
     });
   });
-  
+
+  describe("disabled elements", () => {
+    const ids = [
+      "disabled-button",
+      "disabled-input",
+      "disabled-select",
+      "disabled-textarea",
+      "pointer-events-div",
+      "pointer-events-button",
+      "aria-disabled-div",
+      "aria-disabled-span",
+      "visual-disabled-div",
+    ];
+    ids.forEach((id) => {
+      it(`should highlight ${id}`, () => {
+        cy.get(`#disabled #${id}`).highlight({
+          border: "5px solid red",
+        });
+        cy.get("div[_c8yscrn-highlight-container]").then(($container) => {
+          expect($container).to.have.length(1);
+          expect($container).to.have.css("border", "5px solid rgb(255, 0, 0)");
+        });
+        cy.get(`#disabled #${id}`).should(
+          "not.have.css",
+          "border",
+          "5px solid rgb(255, 0, 0)"
+        );
+      });
+    });
+  });
+
   describe("getUnionDOMRect", () => {
     it("should return the union of the bounding rects of the elements relative to the viewport", () => {
       cy.get("#div, #foo").then(($elements) => {

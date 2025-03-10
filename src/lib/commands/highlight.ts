@@ -167,7 +167,10 @@ Cypress.Commands.add(
 
       e.forEach(($el) => {
         const $element = !isJQueryElement($el) ? Cypress.$($el) : $el;
-        if ($element.length > 1 || needsSizeConstraints) {
+        // check only single elements for disabled state
+        // multiple elements are the same as disabled anyway
+        const isDisabled = $element.length === 1 ? isElementDisabled($element) : false;
+        if ($element.length > 1 || needsSizeConstraints || isDisabled) {
           applyMultiStyle($element, options?.width, options?.height);
         } else {
           applyElementStyle($element);
@@ -319,5 +322,14 @@ function getElementPositionWithinParent($e: HTMLElement, $p: HTMLElement) {
     childRect.top - parentRect.top,
     childRect.width,
     childRect.height
+  );
+}
+
+function isElementDisabled($element: JQuery<HTMLElement>): boolean {
+  return (
+    $element.is(':disabled') || 
+    $element.attr('aria-disabled') === 'true' || 
+    $element.hasClass('disabled') || 
+    $element.css('pointer-events') === 'none'
   );
 }
