@@ -1,6 +1,6 @@
 const { _ } = Cypress;
 
-import { C8yHighlightOptions, HighlightStyleDefaults } from "../../shared/types";
+import { C8yHighlightOptions } from "../../shared/types";
 
 declare global {
   namespace Cypress {
@@ -53,6 +53,13 @@ declare global {
   interface HighlightOptions
     extends Omit<C8yHighlightOptions, "styles" | "border"> {}
 }
+
+const HighlightStyleDefaults = {
+  outline: "2px",
+  "outline-style": "solid",
+  "outline-offset": "-2px",
+  "outline-color": "#FF9300",
+} ;
 
 Cypress.Commands.add(
   "highlight",

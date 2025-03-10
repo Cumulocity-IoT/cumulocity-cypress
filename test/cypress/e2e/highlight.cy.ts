@@ -149,6 +149,7 @@ describe("highlight", () => {
       cy.get("#border").should("have.css", "border", "1px solid rgb(0, 0, 0)");
     });
   });
+  
   describe("getUnionDOMRect", () => {
     it("should return the union of the bounding rects of the elements relative to the viewport", () => {
       cy.get("#div, #foo").then(($elements) => {
