@@ -1,6 +1,6 @@
 const { _ } = Cypress;
 
-import { C8yHighlightOptions } from "../../shared/types";
+import { C8yHighlightOptions, HighlightStyleDefaults } from "../../shared/types";
 
 declare global {
   namespace Cypress {
@@ -53,13 +53,6 @@ declare global {
   interface HighlightOptions
     extends Omit<C8yHighlightOptions, "styles" | "border"> {}
 }
-
-const HighlightStyleDefaults: any = {
-  outline: "2px",
-  "outline-style": "solid",
-  "outline-offset": "-2px",
-  "outline-color": "#FF9300",
-};
 
 Cypress.Commands.add(
   "highlight",
@@ -261,7 +254,12 @@ function isJQueryElement(obj: any): obj is JQuery<HTMLElement> {
   );
 }
 
-function findCommonParent(
+/**
+ * Finds the common parent element of multiple elements
+ * @param {JQuery<HTMLElement>} elements - The elements to find the common parent for
+ * @returns {HTMLElement} - The common parent element
+ */
+export function findCommonParent(
   $elements: JQuery<HTMLElement>
 ): HTMLElement | undefined {
   if (!$elements || $elements.length === 0) return undefined;
