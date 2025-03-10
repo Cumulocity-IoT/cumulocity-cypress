@@ -29,6 +29,24 @@
       padding: 8px;
       text-align: left;
     }
+    .pointer-events-none {
+      pointer-events: none;
+      background-color: #f0f0f0;
+      color: #888;
+    }
+    .visually-disabled {
+      opacity: 0.5;
+      pointer-events: none;
+      cursor: not-allowed;
+      background-color: #eee;
+      color: #666;
+    }
+    [aria-disabled="true"] {
+      color: #888;
+      cursor: not-allowed;
+      border: 1px solid #ccc;
+      background-color: #f5f5f5;
+    }
   </style>
 </head>
 <body>
@@ -57,5 +75,51 @@
       <tr><td>Row 11, Cell 1</td><td>Row 11, Cell 2</td><td>Row 11, Cell 3</td></tr>
     </tbody>
   </table>
+  
+  <!-- Added disabled elements -->
+  <h3>Disabled Elements</h3>
+  
+  <div id="disabled">
+    <!-- HTML disabled attribute -->
+    <div class="disabled-section">
+      <h4>HTML disabled attribute</h4>
+      <button id="disabled-button" disabled>Disabled Button</button>
+      <input id="disabled-input" type="text" disabled value="Disabled Input">
+      <select id="disabled-select" disabled>
+        <option>Disabled Select</option>
+      </select>
+      <textarea id="disabled-textarea" disabled>Disabled Textarea</textarea>
+    </div>
+    
+    <!-- CSS pointer-events -->
+    <div class="disabled-section">
+      <h4>CSS pointer-events</h4>
+      <div id="pointer-events-div" class="pointer-events-none">
+        This div has pointer-events: none
+      </div>
+      <button id="pointer-events-button" class="pointer-events-none">
+        Button with pointer-events: none
+      </button>
+    </div>
+    
+    <!-- ARIA disabled -->
+    <div class="disabled-section">
+      <h4>ARIA disabled</h4>
+      <div id="aria-disabled-div" aria-disabled="true" role="button">
+        This div has aria-disabled="true"
+      </div>
+      <span id="aria-disabled-span" aria-disabled="true" role="button">
+        This span has aria-disabled="true"
+      </span>
+    </div>
+    
+    <!-- Visual styling -->
+    <div class="disabled-section">
+      <h4>Visual styling</h4>
+      <div id="visual-disabled-div" class="visually-disabled">
+        This div is visually styled as disabled
+      </div>
+    </div>
+  </div>
 </body>
 </html>

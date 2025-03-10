@@ -1,6 +1,6 @@
 const { _ } = Cypress;
 
-import { C8yHighlightOptions } from "../../shared/types";
+import { C8yHighlightOptions, C8yHighlightStyleDefaults } from "../../shared/types";
 
 declare global {
   namespace Cypress {
@@ -20,7 +20,17 @@ declare global {
        * width and height options applied. If the clear option is true, existing
        * highlights will be cleared before highlighting.
        *
+       * Default highlight style:
+       * ```json
+       * {
+       *   "outline": "2px",
+       *   "outline-style": "solid",
+       *   "outline-offset": "-2px",
+       *   "outline-color": "#FF9300",
+       * }
+       *
        * @example
+       * cy.get('button').highlight();
        * cy.get('button').highlight({ border: '1px solid red' });
        *
        * @param {Object} style - The CSS styles to apply to the DOM element
@@ -36,7 +46,7 @@ declare global {
        * original state. This command is useful to clean up the DOM after
        * highlighting elements and before possibly highlighting new elements.
        */
-      clearHighlights(): Chainable<JQuery<HTMLElement>>;
+      clearHighlights(): Chainable<void>;
     }
   }
 
@@ -60,7 +70,7 @@ Cypress.Commands.add(
       highlightElements = [];
     }
 
-    const style = { ...highlightStyle };
+    const style = { ...(highlightStyle ?? C8yHighlightStyleDefaults) };
     const consoleProps: any = {
       style: style || null,
       options: options || null,
@@ -100,37 +110,23 @@ Cypress.Commands.add(
         Cypress.$($parent).css("position", "relative");
       }
 
-      const unionRect = $elements.toArray().reduce(
-        (acc, el) => {
-          const rect = getElementPositionWithinParent(el, $parent);
-          acc.top = Math.min(acc.top, rect.top);
-          acc.left = Math.min(acc.left, rect.left);
-          acc.bottom = Math.max(acc.bottom, rect.bottom);
-          acc.right = Math.max(acc.right, rect.right);
-          return acc;
-        },
-        {
-          top: Infinity,
-          left: Infinity,
-          bottom: -Infinity,
-          right: -Infinity,
-        }
-      );
+      let rect = getUnionDOMRect($elements, $parent);
 
-      let _w = unionRect.right - unionRect.left;
+      let _w = rect.width;
       if (width != null) {
         _w = width <= 1 ? _w * width : width;
       }
-
-      let _h = unionRect.bottom - unionRect.top;
+      let _h = rect.height;
       if (height != null) {
         _h = height <= 1 ? _h * height : height;
       }
 
+      rect = new DOMRectReadOnly(rect.x, rect.y, _w, _h);
+
       const css = {
         position: "absolute",
-        top: `${unionRect.top}px`,
-        left: `${unionRect.left}px`,
+        top: `${rect.top}px`,
+        left: `${rect.left}px`,
         width: `${_w}px`,
         height: `${_h}px`,
         pointerEvents: "none",
@@ -144,7 +140,7 @@ Cypress.Commands.add(
       highlightElements.push($container);
 
       const container = {
-        unionRect: unionRect || null,
+        rect: rect || null,
         style: css || null,
         element: $container || null,
         parent: $parent || null,
@@ -171,7 +167,10 @@ Cypress.Commands.add(
 
       e.forEach(($el) => {
         const $element = !isJQueryElement($el) ? Cypress.$($el) : $el;
-        if ($element.length > 1 || needsSizeConstraints) {
+        // check only single elements for disabled state
+        // multiple elements are the same as disabled anyway
+        const isDisabled = $element.length === 1 ? isElementDisabled($element) : false;
+        if ($element.length > 1 || needsSizeConstraints || isDisabled) {
           applyMultiStyle($element, options?.width, options?.height);
         } else {
           applyElementStyle($element);
@@ -211,13 +210,59 @@ Cypress.Commands.add("clearHighlights", () => {
   highlightElements = [];
 });
 
+/**
+ * Calculates the union DOM rect of multiple elements within a common parent. If no
+ * parent is provided, the viewport is used for the calculation.
+ *
+ * The union rect is the smallest rectangle that contains all elements.
+ *
+ * @param {JQuery<HTMLElement>} elements - The elements to calculate the union rect for
+ * @param {HTMLElement} parent - The parent element to calculate the union rect within
+ */
+export function getUnionDOMRect(
+  elements: JQuery<HTMLElement>,
+  parent?: HTMLElement
+): DOMRectReadOnly {
+  const unionRect = elements.toArray().reduce(
+    (acc, el) => {
+      const rect =
+        parent != null
+          ? getElementPositionWithinParent(el, parent)
+          : el.getBoundingClientRect();
+      acc.top = Math.min(acc.top, rect.top);
+      acc.left = Math.min(acc.left, rect.left);
+      acc.bottom = Math.max(acc.bottom, rect.bottom);
+      acc.right = Math.max(acc.right, rect.right);
+      return acc;
+    },
+    {
+      top: Infinity,
+      left: Infinity,
+      bottom: -Infinity,
+      right: -Infinity,
+    }
+  );
+
+  return new DOMRectReadOnly(
+    unionRect.left,
+    unionRect.top,
+    unionRect.right - unionRect.left,
+    unionRect.bottom - unionRect.top
+  );
+}
+
 function isJQueryElement(obj: any): obj is JQuery<HTMLElement> {
   return (
     obj instanceof Cypress.$ && _.isArray(obj) && obj[0] instanceof HTMLElement
   );
 }
 
-function findCommonParent(
+/**
+ * Finds the common parent element of multiple elements
+ * @param {JQuery<HTMLElement>} elements - The elements to find the common parent for
+ * @returns {HTMLElement} - The common parent element
+ */
+export function findCommonParent(
   $elements: JQuery<HTMLElement>
 ): HTMLElement | undefined {
   if (!$elements || $elements.length === 0) return undefined;
@@ -277,5 +322,14 @@ function getElementPositionWithinParent($e: HTMLElement, $p: HTMLElement) {
     childRect.top - parentRect.top,
     childRect.width,
     childRect.height
+  );
+}
+
+function isElementDisabled($element: JQuery<HTMLElement>): boolean {
+  return (
+    $element.is(':disabled') || 
+    $element.attr('aria-disabled') === 'true' || 
+    $element.hasClass('disabled') || 
+    $element.css('pointer-events') === 'none'
   );
 }
