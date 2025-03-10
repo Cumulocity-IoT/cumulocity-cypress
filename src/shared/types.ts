@@ -40,3 +40,16 @@ export interface C8yHighlightOptions {
      */
     multiple?: boolean;
   }
+
+  /**
+   * Default highlight options used by the cy.highlight() command. Use this object to override the default highlight style.
+   * 
+   * Highligh style can be any css style or an object with css properties.
+   */
+  export const C8yHighlightStyleDefaults = {
+    outline: "2px",
+    "outline-style": "solid",
+    "outline-offset": "-2px",
+    "outline-color": "#FF9300",
+  } ;
+  

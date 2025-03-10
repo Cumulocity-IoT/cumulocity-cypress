@@ -1,6 +1,6 @@
 const { _ } = Cypress;
 
-import { C8yHighlightOptions } from "../../shared/types";
+import { C8yHighlightOptions, C8yHighlightStyleDefaults } from "../../shared/types";
 
 declare global {
   namespace Cypress {
@@ -54,13 +54,6 @@ declare global {
     extends Omit<C8yHighlightOptions, "styles" | "border"> {}
 }
 
-const HighlightStyleDefaults = {
-  outline: "2px",
-  "outline-style": "solid",
-  "outline-offset": "-2px",
-  "outline-color": "#FF9300",
-} ;
-
 Cypress.Commands.add(
   "highlight",
   { prevSubject: "element" },
@@ -77,7 +70,7 @@ Cypress.Commands.add(
       highlightElements = [];
     }
 
-    const style = { ...(highlightStyle ?? HighlightStyleDefaults) };
+    const style = { ...(highlightStyle ?? C8yHighlightStyleDefaults) };
     const consoleProps: any = {
       style: style || null,
       options: options || null,
