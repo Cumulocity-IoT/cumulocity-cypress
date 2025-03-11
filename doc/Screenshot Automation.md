@@ -58,6 +58,7 @@ Contents of this document:
     - [Installation](#installation-1)
     - [Configuration](#configuration)
     - [Add a Test File for Screenshot workflow](#add-a-test-file-for-screenshot-workflow)
+    - [Custom Commands](#custom-commands)
 - [Environment Variables](#environment-variables)
 - [Authentication](#authentication)
 - [Selectors](#selectors)
@@ -179,6 +180,10 @@ The following logger are currently available:
 
 ### Integrate in to existing Cypress Projects
 
+You can also integrate the screenshot automation into an existing Cypress project. This allows you to run the screenshot workflows alongside your existing Cypress tests or your custom Cypress based automation for taking screenshots. Use for example if you have more complex workflows that are easier to maintain in Cypress tests, but still have screenshots that can be easily automated with `c8yscrn` based workflows.
+
+`cumulocity-cypress` also provides some capabilities to help you integrate the screenshot automation into your existing Cypress project. This includes custom commands, such as `cy.highlight`. See the [Custom Commands](#custom-commands) section for more details.
+
 #### Installation
 
 Install `cumulocity-cypress` in your Cypress project:
@@ -248,6 +253,32 @@ describe('My Custom Screenshot Automation', () => {
 ```
 
 When integrating into an existing Cypress project, you'll use the `C8yScreenshotRunner` in your test files. See the "Using C8yScreenshotRunner in Your Project" section for details.
+
+#### Custom Commands
+
+The following custom commands can be helpful when writing your own Cypress tests for automating screenshots:
+
+**cy.highlight**
+
+With `cy.highlight`, you can highlight elements on the page. This can be useful for drawing attention to specific parts of the UI in documentation screenshots. It allows highlighting single or multiple elements and takes CSS styles as options. 
+
+```typescript
+cy.get(".bottom-drawer .card-footer .btn-primary").highlight();
+```
+
+This example highlights the primary button in the footer of a card in the bottom drawer by applying the default highlight style. The default style is a solid orange border with a width of 2px defined as `C8yHighlightStyleDefaults`.
+
+You can also customize the highlight style by passing an object with CSS properties to the `highlight` command:
+
+```typescript
+cy.get(".bottom-drawer .card-footer .btn-primary").highlight(
+  { "background-color: yellow", "outline: dashed", "outline-offset: +3px" },
+);
+```
+
+Using `cy.clearHighlights`, you can remove all previously applied highlights from the page. This is useful for workflows that take more than one screenshot.
+
+For more information see the js doc for `cy.highlight`, `cy.clearHighlights` and `C8yHighlightStyleDefaults`.
 
 ## Environment Variables
 
@@ -462,7 +493,7 @@ screenshots: array
 
 **baseUrl**
 - **Type**: string
-- **Description**: The base URL used for all relative requests in your screenshot workflows. This value can be also passed and overwritten using the `--baseUrl` command-line option or the `C8Y_BASEURL` env variable.
+- **Description**: The base URL used for all relative requests in your screenshot workflows. This value can be also passed and overwritten using the `--baseUrl` command-line option or the `C8Y_BASE_URL` env variable.
 - **Example**: `https://your-cumulocity-tenant.com`
 
 **title**
