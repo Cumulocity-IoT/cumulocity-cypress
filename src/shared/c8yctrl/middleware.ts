@@ -10,7 +10,7 @@ import {
   createProxyMiddleware,
   responseInterceptor,
 } from "http-proxy-middleware";
-import { C8yAuthOptions } from "../auth";
+import { C8yAuthOptions, normalizeAuthHeaders } from "../auth";
 
 import { C8yPactHttpController } from "./httpcontroller";
 import { C8yDefaultPact } from "../c8ypact";
@@ -129,10 +129,9 @@ export function createResponseInterceptor(
     // Rewrite the Location header if present
     const locationHeader = res.getHeader("location");
     if (locationHeader) {
-      const newLocation = locationHeader.toString().replace(
-        /^https?:\/\/[^/]+/,
-        `${req.protocol}://${req.get("host")}`
-      );
+      const newLocation = locationHeader
+        .toString()
+        .replace(/^https?:\/\/[^/]+/, `${req.protocol}://${req.get("host")}`);
       res.setHeader("location", newLocation);
     }
 
@@ -303,17 +302,7 @@ export function toCypressResponse(
     isOkStatusCode: statusCode >= 200 && statusCode < 300,
     allRequestResponses: [],
   };
-  // required to fix inconsistencies between c8yclient and interceptions
-  // using lowercase and uppercase. fix here.
-  if (result.requestHeaders?.["x-xsrf-token"]) {
-    result.requestHeaders["X-XSRF-TOKEN"] =
-      result.requestHeaders["x-xsrf-token"];
-    delete result.requestHeaders["x-xsrf-token"];
-  }
-  if (result.requestHeaders?.["authentication"]) {
-    result.requestHeaders["Authorization"] =
-      result.requestHeaders["authentication"];
-    delete result.requestHeaders["authentication"];
-  }
+  result.headers = normalizeAuthHeaders(result.headers);
+  
   return result;
 }
