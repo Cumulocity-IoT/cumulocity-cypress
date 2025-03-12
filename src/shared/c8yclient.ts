@@ -1,6 +1,6 @@
 import _ from "lodash";
 
-import { C8yAuthentication } from "./auth";
+import { C8yAuthentication, getAuthOptionsFromBasicAuthHeader } from "./auth";
 
 import {
   BasicAuth,
@@ -422,54 +422,6 @@ export function isIResult(obj: any): obj is IResult<any> {
   );
 }
 
-export function getAuthOptionsFromBasicAuthHeader(
-  authHeader: string
-): { user: string; password: string } | undefined {
-  if (
-    !authHeader ||
-    !_.isString(authHeader) ||
-    !authHeader.startsWith("Basic ")
-  ) {
-    return undefined;
-  }
-
-  const base64Credentials = authHeader.slice("Basic ".length);
-  const credentials = decodeBase64(base64Credentials);
-
-  const components = credentials.split(":");
-  if (!components || components.length < 2) {
-    return undefined;
-  }
-
-  return { user: components[0], password: components.slice(1).join(":") };
-}
-
-export function encodeBase64(str: string): string {
-  if (!str) return "";
-
-  let encoded: string;
-  if (typeof Buffer !== "undefined") {
-    encoded = Buffer.from(str).toString("base64");
-  } else {
-    encoded = btoa(str);
-  }
-
-  return encoded;
-}
-
-export function decodeBase64(base64: string): string {
-  if (!base64) return "";
-
-  let decoded: string;
-  if (typeof Buffer !== "undefined") {
-    decoded = Buffer.from(base64, "base64").toString("utf-8");
-  } else {
-    decoded = atob(base64);
-  }
-
-  return decoded;
-}
-
 /**
  * Checks if the given object is a CypressError.
  * @param error The object to check.
@@ -622,3 +574,4 @@ export function getCookieValue(name: string) {
   const value = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
   return value ? value.pop() : "";
 }
+
