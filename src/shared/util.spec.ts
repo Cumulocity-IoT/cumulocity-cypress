@@ -1,4 +1,5 @@
 import {
+  get_i,
   sanitizeStringifiedObject,
   toBoolean,
   toSensitiveObjectKeyPath,
@@ -140,6 +141,68 @@ describe("util", () => {
     it("should return undefined if object is null", () => {
       const path = toSensitiveObjectKeyPath(null, "HEADERS.Set-Cookie");
       expect(path).toBeUndefined();
+    });
+  });
+
+  describe("get_i", () => {
+    it("should return value for case insensitive key", () => {
+      const obj = { test: "test", ComPlex: { keY: { TokEN: "value" } } };
+      const result = get_i(obj, "TEST");
+      expect(result).toBe("test");
+      const result2 = get_i(obj, "complex.key.token");
+      expect(result2).toBe("value");
+    });
+
+    it("should return value for array index", () => {
+      const obj = {
+        array: [1, 2, 3],
+        ComPlex: { kEY: { ArraY: ["a", "b", "c"] } },
+      };
+      const result = get_i(obj, "ARRAY[1]");
+      expect(result).toBe(2);
+      const result2 = get_i(obj, "ARRAY.2");
+      expect(result2).toBe(3);
+      const result3 = get_i(obj, "complex.key.array[0]");
+      expect(result3).toBe("a");
+      const result4 = get_i(obj, "complex.key.array.1");
+      expect(result4).toBe("b");
+    });
+
+    it("shoud return undefined if key is not found", () => {
+      const obj = { test: "test", Complex: { key: { token: "value" } } };
+      const result = get_i(obj, "TEST1");
+      expect(result).toBeUndefined();
+      const result2 = get_i(obj, "complex.key.token1");
+      expect(result2).toBeUndefined();
+    });
+
+    it("should return value for nested arrays and objects", () => {
+      const obj = { array: [{ test: "test" }, { test: ["a", "b", "c"] }] };
+      const result = get_i(obj, "ARRAY[0].test");
+      expect(result).toBe("test");
+      const result2 = get_i(obj, "ARRAY.1.test.0");
+      expect(result2).toBe("a");
+      const result3 = get_i(obj, "ARRAY.1.test[1]");
+      expect(result3).toBe("b");
+      const result4 = get_i(obj, "ARRAY[1].test[2]");
+      expect(result4).toBe("c");
+    });
+
+    it("should return undefined if object is null", () => {
+      const result = get_i(null, "TEST");
+      expect(result).toBeUndefined();
+    });
+
+    it("should return undefined if key is null", () => {
+      const obj = { test: "test", Complex: { key: { token: "value" } } };
+      const result = get_i(obj, null as any);
+      expect(result).toBeUndefined();
+    });
+
+    it("should return undefined if key is empty", () => {
+      const obj = { test: "test", Complex: { key: { token: "value" } } };
+      const result = get_i(obj, "");
+      expect(result).toBeUndefined();
     });
   });
 });

@@ -22,6 +22,7 @@ import {
 import * as setCookieParser from "set-cookie-parser";
 import { C8ySchemaMatcher } from "./c8ypact/schema";
 import { C8yBaseUrl } from "./types";
+import { get_i } from "./util";
 
 declare global {
   interface Response {
@@ -498,7 +499,7 @@ export function getAuthCookies(response: Response | Cypress.Response<any>):
       }
     } else {
       if (_.isPlainObject(response.headers)) {
-        cookieHeader = _.get(response.headers, "set-cookie");
+        cookieHeader = get_i(response.headers, "set-cookie");
       }
     }
   }
