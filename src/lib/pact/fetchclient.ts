@@ -16,6 +16,7 @@ import {
   getC8yClientAuthentication,
 } from "../utils";
 import { C8yBaseUrl } from "../../shared/types";
+import { get_i } from "../../shared/util";
 
 const { _ } = Cypress;
 
@@ -171,7 +172,7 @@ export class C8yPactFetchClient extends FetchClient {
 
     // for full authentication xsrf token and bearer token are required
     // always add Bearer token if no authorization header is set
-    if (!_.get(result, "headers.Authorization")) {
+    if (!get_i(result, "headers.Authorization")) {
       const bearer =
         this.authOptions?.bearer || getCookieValue("Authorization");
       if (bearer) {
