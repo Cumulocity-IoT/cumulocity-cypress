@@ -4,7 +4,7 @@ import {
   C8yPactFetchClient,
 } from "cumulocity-cypress/c8ypact";
 import { BasicAuth, IFetchResponse } from "@c8y/client";
-import { encodeBase64 } from "../../../src/shared/c8yclient";
+import { encodeBase64 } from "../../../src/shared/auth";
 import {
   url as _url,
   initLoginRequestStub,
