@@ -266,12 +266,12 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
   }
 
   protected createHeader(pact: C8yPactRecord): any {
-    const headers = _.omit(pact.request.headers || {}, [
-      "X-XSRF-TOKEN",
-      "x-xsrf-token",
-      "Authorization",
-      "authorization",
-    ]);
+    const headers = _.omitBy(
+      pact.request.headers || {},
+      (v: any, k: string) =>
+        k.toLowerCase() === "x-xsrf-token" ||
+        k.toLowerCase() === "authorization"
+    );
     return headers;
   }
 

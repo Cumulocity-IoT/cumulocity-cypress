@@ -5,6 +5,7 @@ import { C8yAuthOptions, isAuthOptions } from "../shared/auth";
 import { C8yClient } from "../shared/c8yclient";
 import { getEnvVar } from "../shared/c8ypact/c8ypact";
 import { toSemverVersion } from "../shared/versioning";
+import { get_i } from "../shared/util";
 
 const { _ } = Cypress;
 
@@ -75,7 +76,7 @@ export function normalizedC8yclientArguments(args: any[]) {
 
 export function getCookieAuthFromEnv() {
   const cookieAuth = new CookieAuth();
-  const token = _.get(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
+  const token = get_i(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
   if (!token || _.isEmpty(token)) {
     return undefined;
   }
@@ -84,7 +85,7 @@ export function getCookieAuthFromEnv() {
 
 export function getXsrfToken() {
   const cookieAuth = new CookieAuth();
-  const token = _.get(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
+  const token = get_i(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
   if (token != null && !_.isEmpty(token)) {
     return token;
   }
@@ -230,10 +231,7 @@ export function getC8yClientAuthentication(
 
   if (!result) {
     const cookieAuth = new CookieAuth();
-    const token: string = _.get(
-      cookieAuth.getFetchOptions({}),
-      "headers.X-XSRF-TOKEN"
-    );
+    const token = get_i(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
     if (token?.trim() && !_.isEmpty(token.trim())) {
       result = cookieAuth;
     } else if (authOptions) {

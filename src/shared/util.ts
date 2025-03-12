@@ -22,7 +22,7 @@ export function sanitizeStringifiedObject(value: string) {
   }
   return value.replace(
     /("?)(password)("?):\s+("?).*?(")?(\s*,?[\s\n}]+)/gi,
-    '$1$2$3: $4***$5$6'
+    "$1$2$3: $4***$5$6"
   );
 }
 
@@ -38,9 +38,9 @@ export function toBoolean(input: string, defaultValue: boolean): boolean {
  * Gets the case-sensitive path for a given case-insensitive path. The path is
  * assumed to be a dot-separated string. If the path is an array, it is assumed
  * to be a list of keys.
- * 
+ *
  * The function will go over all keys and return the actual case-sensitive path
- * up to the first mismatch. 
+ * up to the first mismatch.
  *
  * @param obj The object to query
  * @param path The case-insensitive path to find
@@ -52,12 +52,14 @@ export function toSensitiveObjectKeyPath(
 ): string | undefined {
   if (!obj) return undefined;
 
-  const keys = _.isArray(path) ? path : path.split(".");
+  const keys = _.isArray(path) ? path : path.split(/[.[\]]/g);
   let current = obj;
   const actualPath: string[] = [];
 
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
+    if (_.isEmpty(key)) continue;
+
     if (current === null || current === undefined) {
       return undefined;
     }
@@ -95,4 +97,29 @@ export function toSensitiveObjectKeyPath(
   }
 
   return actualPath.join(".");
+}
+
+/**
+ * Gets the value of a case-insensitive key path from an object. The path is
+ * assumed to be a dot-separated string. If the path is an array, it is assumed
+ * to be a list of keys.
+ * 
+ * @example
+ * geti(obj, "obj.key.token") 
+ * geti(obj, ["obj", "key", "token"])
+ * geti(obj, "obj.key[0].token")
+ * geti(obj, "obj.key.0.token")
+ * 
+ * @param obj The object to query
+ * @param keyPath The case-insensitive key path to find
+ * @returns The value of the key path if found, undefined otherwise
+ */
+export function get_i(
+  obj: any,
+  keyPath: string | string[]
+): string | undefined {
+  if (obj == null || keyPath == null) return undefined;
+  const sensitivePath = toSensitiveObjectKeyPath(obj, keyPath);
+  if (sensitivePath == null) return undefined;
+  return _.get(obj, sensitivePath);
 }
