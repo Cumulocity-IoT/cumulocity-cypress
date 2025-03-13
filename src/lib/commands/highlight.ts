@@ -1,6 +1,9 @@
 const { _ } = Cypress;
 
-import { C8yHighlightOptions, C8yHighlightStyleDefaults } from "../../shared/types";
+import {
+  C8yHighlightOptions,
+  C8yHighlightStyleDefaults,
+} from "../../shared/types";
 
 declare global {
   namespace Cypress {
@@ -169,7 +172,8 @@ Cypress.Commands.add(
         const $element = !isJQueryElement($el) ? Cypress.$($el) : $el;
         // check only single elements for disabled state
         // multiple elements are the same as disabled anyway
-        const isDisabled = $element.length === 1 ? isElementDisabled($element) : false;
+        const isDisabled =
+          $element.length === 1 ? isElementDisabled($element) : false;
         if ($element.length > 1 || needsSizeConstraints || isDisabled) {
           applyMultiStyle($element, options?.width, options?.height);
         } else {
@@ -210,24 +214,44 @@ Cypress.Commands.add("clearHighlights", () => {
   highlightElements = [];
 });
 
+interface UnionDOMRectOptions {
+  padding?: Cypress.ScreenshotOptions["padding"];
+}
+
 /**
  * Calculates the union DOM rect of multiple elements within a common parent. If no
- * parent is provided, the viewport is used for the calculation.
+ * parent is provided, the viewport is used for the calculation. The options object 
+ * can be used to provide padding around the union rect.
  *
  * The union rect is the smallest rectangle that contains all elements.
  *
  * @param {JQuery<HTMLElement>} elements - The elements to calculate the union rect for
  * @param {HTMLElement} parent - The parent element to calculate the union rect within
+ * @param {Object} options - The options to customize the union rect calculation
  */
 export function getUnionDOMRect(
   elements: JQuery<HTMLElement>,
-  parent?: HTMLElement
+  parent?: HTMLElement | UnionDOMRectOptions,
+  options?: UnionDOMRectOptions
 ): DOMRectReadOnly {
+  let $parent: HTMLElement | undefined;
+  let opts: UnionDOMRectOptions | undefined;
+
+  if (isHTMLElement(parent)) {
+    $parent = parent;
+    opts = options;
+  } else if (options != null) {
+    opts = options;
+  } else if (_.isPlainObject(parent)) {
+    opts = parent;
+  }
+
+  const p = opts?.padding;
   const unionRect = elements.toArray().reduce(
     (acc, el) => {
       const rect =
-        parent != null
-          ? getElementPositionWithinParent(el, parent)
+        $parent != null
+          ? getElementPositionWithinParent(el, $parent)
           : el.getBoundingClientRect();
       acc.top = Math.min(acc.top, rect.top);
       acc.left = Math.min(acc.left, rect.left);
@@ -243,17 +267,54 @@ export function getUnionDOMRect(
     }
   );
 
+  let padding = _.isNumber(p) ? [p, p, p, p] : p;
+  if (!_.isArray(padding) || !_.every(padding, _.isNumber)) {
+    padding = [0, 0, 0, 0];
+  } else {
+    // map clockwise use in Cypress.Padding to our padding [left, top, right, bottom]
+    // see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_cascade/Shorthand_properties
+    // this ensures compatibility with global Cypress SchreenShotOptions used with Cypress.Padding
+
+    // [left, top, right, bottom]
+    if (padding.length === 1) {
+      padding = [padding[0], padding[0], padding[0], padding[0]];
+    } else if (padding.length === 2) {
+      padding = [padding[1], padding[0], padding[1], padding[0]];
+    } else if (padding.length === 3) {
+      padding = [padding[1], padding[0], padding[1], padding[2]];
+    } else if (padding.length >= 4) {
+      padding = [padding[3], padding[0], padding[1], padding[2]];
+    }
+  }
+  const x = unionRect.left - padding[0];
+  if (x < 0) {
+    padding[0] = unionRect.left;
+  }
+  const y = unionRect.top - padding[1];
+  if (y < 0) {
+    padding[1] = unionRect.top;
+  }
+
   return new DOMRectReadOnly(
-    unionRect.left,
-    unionRect.top,
-    unionRect.right - unionRect.left,
-    unionRect.bottom - unionRect.top
+    unionRect.left - padding[0],
+    unionRect.top - padding[1],
+    unionRect.right - unionRect.left + padding[2] + padding[0],
+    unionRect.bottom - unionRect.top + padding[3] + padding[1]
   );
 }
 
 function isJQueryElement(obj: any): obj is JQuery<HTMLElement> {
   return (
     obj instanceof Cypress.$ && _.isArray(obj) && obj[0] instanceof HTMLElement
+  );
+}
+
+function isHTMLElement(obj: any): obj is HTMLElement {
+  return (
+    obj &&
+    typeof obj === "object" &&
+    obj.nodeType === 1 &&
+    typeof obj.nodeName === "string"
   );
 }
 
@@ -327,9 +388,9 @@ function getElementPositionWithinParent($e: HTMLElement, $p: HTMLElement) {
 
 function isElementDisabled($element: JQuery<HTMLElement>): boolean {
   return (
-    $element.is(':disabled') || 
-    $element.attr('aria-disabled') === 'true' || 
-    $element.hasClass('disabled') || 
-    $element.css('pointer-events') === 'none'
+    $element.is(":disabled") ||
+    $element.attr("aria-disabled") === "true" ||
+    $element.hasClass("disabled") ||
+    $element.css("pointer-events") === "none"
   );
 }
