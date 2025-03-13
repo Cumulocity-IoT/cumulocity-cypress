@@ -45,7 +45,7 @@ General commands
 - `setLanguage`
 - `acceptCookieBanner`, `showCookieBanner`, `disableCookieBanner`
 - `disableGainsight`
-- `highlight`, `clearHighlights`
+- `highlight`, `clearHighlights`, `screenshot`
 
 Authentication related commands
 - `login`
