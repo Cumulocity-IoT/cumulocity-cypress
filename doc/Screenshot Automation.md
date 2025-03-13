@@ -280,6 +280,18 @@ Using `cy.clearHighlights`, you can remove all previously applied highlights fro
 
 For more information see the js doc for `cy.highlight`, `cy.clearHighlights` and `C8yHighlightStyleDefaults`.
 
+**cy.screenshot**
+
+By importing `cumulocity-cypress/commands/screenshot`, a custom implementation of the `cy.screenshot` command is provided. This allows you to take screenshots of multiple DOM elements. For screenshots of single DOM elements or the viewport, the default Cypress implementation is be used.
+
+When taking screenshots of multiple DOM elements, the union rect of all elements is calculated and a screenshot is taken of the bounding box. This can be useful for capturing complex UI components that span multiple elements. By applying padding to the elements, you can expand the captured area around the specified elements.
+
+```typescript
+import "cumulocity-cypress/commands/screenshot";
+
+cy.get(".bottom-drawer .card-footer .btn, ").screenshot({ padding: [10, 20]});
+```
+
 ## Environment Variables
 
 Environment variables can be used to overwrite configuration settings in the `c8yscrn.config.yaml` file. This can be useful for setting sensitive information like usernames and passwords, or for providing values for CI/CD environments.

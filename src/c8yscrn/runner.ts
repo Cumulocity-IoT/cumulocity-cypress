@@ -1,5 +1,7 @@
 import "../lib/commands";
 import "../lib/commands/c8ypact";
+import "../lib/commands/screenshot";
+
 import "cypress-file-upload";
 
 import { pactId } from "../shared/c8ypact";
@@ -16,7 +18,6 @@ import {
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
 import { getSelector, imageName } from "./runner-helper";
-import { getUnionDOMRect } from "../lib/commands";
 
 const { _ } = Cypress;
 
@@ -285,7 +286,7 @@ export class C8yScreenshotRunner {
               const name = imageName(item.image);
               debug(`Taking screenshot ${name}`);
               debug(`Options: ${JSON.stringify(options)}`);
-              takeScreenshot(name, options);
+              cy.screenshot(name, options);
             }
           },
         ]);
@@ -501,70 +502,15 @@ export class C8yScreenshotRunner {
 
     if (selector != null) {
       cy.get(selector).then(($elements) => {
-        takeScreenshot(imageName(name), options, $elements);
+        cy.wrap($elements).screenshot(imageName(name), options);
       });
     } else {
-      takeScreenshot(imageName(name), options);
+      cy.screenshot(imageName(name), options);
     }
   }
 
   protected getVisitObject(visit: string | Visit): Visit | undefined {
     return _.isString(visit) ? undefined : visit;
-  }
-}
-
-function takeScreenshot(
-  name: string,
-  options: Partial<
-    Cypress.Loggable & Cypress.Timeoutable & Cypress.ScreenshotOptions
-  >,
-  $elements?: JQuery<HTMLElement>
-) {
-  if ($elements == null || $elements.length === 0) {
-    cy.screenshot(name, options);
-  } else if ($elements.length === 1) {
-    cy.wrap($elements[0]).screenshot(name, options);
-  } else {
-    const unionRect = getUnionDOMRect($elements);
-    const o = _.cloneDeep(options);
-    if (options?.clip == null) {
-      const p = options?.padding;
-      let padding = _.isNumber(p) ? [p, p, p, p] : p;
-      if (!_.isArray(padding) || !_.every(padding, _.isNumber)) {
-        padding = [0, 0, 0, 0];
-      } else {
-        // map clockwise use in Cypress.Padding to our padding [left, top, right, bottom]
-        // see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_cascade/Shorthand_properties
-        // this ensures compatibility with global Cypress SchreenShotOptions used with Cypress.Padding
-        
-        // [left, top, right, bottom]
-        if (padding.length === 1) {
-          padding = [padding[0], padding[0], padding[0], padding[0]];
-        } else if (padding.length === 2) {
-          padding = [padding[1], padding[0], padding[1], padding[0]];
-        } else if (padding.length === 3) {
-          padding = [padding[1], padding[0], padding[1], padding[2]];
-        } else if (padding.length >= 4) {
-          padding = [padding[3], padding[0], padding[1], padding[2]];
-        }
-      }
-      const x = unionRect.left - padding[0];
-      if (x < 0) {
-        padding[0] = unionRect.left;
-      }
-      const y = unionRect.top - padding[1];
-      if (y < 0) {
-        padding[1] = unionRect.top;
-      }
-      o.clip = {
-        x: unionRect.left - padding[0],
-        y: unionRect.top - padding[1],
-        width: unionRect.width + padding[2] + padding[0],
-        height: unionRect.height + padding[3] + padding[1],
-      };
-      delete o.padding;
-    }
-    cy.screenshot(name, o);
   }
 }
 
