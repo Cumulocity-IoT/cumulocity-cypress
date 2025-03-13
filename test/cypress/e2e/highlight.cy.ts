@@ -267,6 +267,107 @@ describe("highlight", () => {
         });
       });
     });
+
+    it("should apply 0 padding to union rect", () => {
+      cy.get("#padding").then(($element) => {
+        const box = $element.get(0).getBoundingClientRect();
+        const rect = getUnionDOMRect($element, undefined, { padding: 0 });
+        expect(rect.toJSON()).to.deep.equal(box.toJSON());
+      });
+    });
+
+    it("should apply single number padding to union rect", () => {
+      cy.get("#padding").then(($element) => {
+        const rect = getUnionDOMRect($element, undefined, { padding: 10 });
+        expect(rect.toJSON()).to.deep.equal({
+          x: 200 - 10,
+          y: 100 - 10,
+          width: 100 + 10 + 10,
+          height: 100 + 10 + 10,
+          top: 100 - 10,
+          right: 200 + 100 + 10,
+          bottom: 100 + 100 + 10,
+          left: 200 - 10,
+        });
+      });
+    });
+
+    it("should apply padding to union rect", () => {
+      cy.get("#padding").then(($element) => {
+        const rect = getUnionDOMRect($element, undefined, {
+          padding: [10, 20, 30, 40],
+        });
+        expect(rect.toJSON()).to.deep.equal({
+          x: 200 - 40,
+          y: 100 - 10,
+          width: 100 + 20 + 40,
+          height: 100 + 10 + 30,
+          top: 100 - 10,
+          right: 200 + 100 + 20,
+          bottom: 100 + 100 + 30,
+          left: 200 - 40,
+        });
+      });
+    });
+
+    it("should apply padding with 2 values to union rect", () => {
+      cy.get("#padding").then(($element) => {
+        const rect = getUnionDOMRect($element, undefined, {
+          padding: [10, 20],
+        });
+        expect(rect.toJSON()).to.deep.equal({
+          x: 200 - 20,
+          y: 100 - 10,
+          width: 100 + 20 + 20,
+          height: 100 + 10 + 10,
+          top: 100 - 10,
+          right: 200 + 100 + 20,
+          bottom: 100 + 100 + 10,
+          left: 200 - 20,
+        });
+      });
+    });
+
+    it("should apply padding with 3 values to union rect", () => {
+      cy.get("#padding").then(($element) => {
+        const rect = getUnionDOMRect($element, undefined, {
+          padding: [10, 20, 30],
+        });
+        expect(rect.toJSON()).to.deep.equal({
+          x: 200 - 20,
+          y: 100 - 10,
+          width: 100 + 20 + 20,
+          height: 100 + 10 + 30,
+          top: 100 - 10,
+          right: 200 + 100 + 20,
+          bottom: 100 + 100 + 30,
+          left: 200 - 20,
+        });
+      });
+    });
+
+    it("should apply padding with negative values to union rect", () => {
+      cy.get("#padding").then(($element) => {
+        const rect = getUnionDOMRect($element, undefined, {
+          padding: [-10],
+        });
+        expect(rect.toJSON()).to.deep.equal({
+          x: 200 + 10,
+          y: 100 + 10,
+          width: 100 - 10 - 10,
+          height: 100 - 10 - 10,
+          top: 100 + 10,
+          right: 200 + 100 - 10,
+          bottom: 100 + 100 - 10,
+          left: 200 + 10,
+        });
+      });
+    });
+    it("should apply padding without parent to union rect", () => {
+      cy.get("#padding").then(($element) => {
+        const rect = getUnionDOMRect($element, { padding: 10 });
+      });
+    });
   });
 
   describe("findCommonParent", () => {
