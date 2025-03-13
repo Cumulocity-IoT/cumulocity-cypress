@@ -58,6 +58,7 @@ Contents of this document:
     - [Installation](#installation-1)
     - [Configuration](#configuration)
     - [Add a Test File for Screenshot workflow](#add-a-test-file-for-screenshot-workflow)
+    - [Custom Commands](#custom-commands)
 - [Environment Variables](#environment-variables)
 - [Authentication](#authentication)
 - [Selectors](#selectors)
@@ -248,6 +249,44 @@ describe('My Custom Screenshot Automation', () => {
 ```
 
 When integrating into an existing Cypress project, you'll use the `C8yScreenshotRunner` in your test files. See the "Using C8yScreenshotRunner in Your Project" section for details.
+
+#### Custom Commands
+
+The following custom commands can be helpful when writing your own Cypress tests for automating screenshots:
+
+**cy.highlight**
+
+With `cy.highlight`, you can highlight elements on the page. This can be useful for drawing attention to specific parts of the UI in documentation screenshots. It allows highlighting single or multiple elements and takes CSS styles as options. 
+
+```typescript
+cy.get(".bottom-drawer .card-footer .btn-primary").highlight();
+```
+
+This example highlights the primary button in the footer of a card in the bottom drawer by applying the default highlight style. The default style is a solid orange border with a width of 2px defined as `C8yHighlightStyleDefaults`.
+
+You can also customize the highlight style by passing an object with CSS properties to the `highlight` command:
+
+```typescript
+cy.get(".bottom-drawer .card-footer .btn-primary").highlight(
+  { "background-color: yellow", "outline: dashed", "outline-offset: +3px" },
+);
+```
+
+Using `cy.clearHighlights`, you can remove all previously applied highlights from the page. This is useful for workflows that take more than one screenshot.
+
+For more information see the js doc for `cy.highlight`, `cy.clearHighlights` and `C8yHighlightStyleDefaults`.
+
+**cy.screenshot**
+
+By importing `cumulocity-cypress/commands/screenshot`, a custom implementation of the `cy.screenshot` command is provided. This allows you to take screenshots of multiple DOM elements. For screenshots of single DOM elements or the viewport, the default Cypress implementation is be used.
+
+When taking screenshots of multiple DOM elements, the union rect of all elements is calculated and a screenshot is taken of the bounding box. This can be useful for capturing complex UI components that span multiple elements. By applying padding to the elements, you can expand the captured area around the specified elements.
+
+```typescript
+import "cumulocity-cypress/commands/screenshot";
+
+cy.get(".bottom-drawer .card-footer .btn, ").screenshot({ padding: [10, 20]});
+```
 
 ## Environment Variables
 
