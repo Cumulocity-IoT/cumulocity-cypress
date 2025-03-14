@@ -105,14 +105,7 @@ Cypress.Commands.add(
       width?: number,
       height?: number
     ) => {
-      let $parent = findCommonParent($elements);
-      if (!$parent) {
-        $parent = Cypress.$("body").get(0);
-      } else {
-        // make sure the new container is positioned correctly
-        Cypress.$($parent).css("position", "relative");
-      }
-
+      const $parent = Cypress.$("body").get(0);
       let rect = getUnionDOMRect($elements, $parent);
 
       let _w = rect.width;
