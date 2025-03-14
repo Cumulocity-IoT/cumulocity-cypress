@@ -127,6 +127,21 @@ cy.c8yclientf((c) => c.user.delete("usertodelete"))
   .then((response) => {
     expect(response.status).to.be.oneOf([204, 404]);
   });
+
+// use cy.request and cy.c8yclient interchangeably
+(useCyRequest === true
+  ? cy.request({
+      url: `/apps/${myShell}/cumulocity.json`,
+      method: "GET",
+    })
+  : cy.c8yclient(
+      (c) => c.core.fetch(`/apps/${myShell}/cumulocity.json`),
+      clientOptions
+    )
+).then((response: Cypress.Response<any>) => {
+  expect(response.status).to.eq(200);
+  expect(response.body).to.have.property("name");
+});
 ```
 
 Configuration supports most of the options accepted by `cy.request`, as for example defined by `Cypress.Loggable` and `Cypress.Failable` interfaces. With `cy.c8yclientf` a convenience command allows expecting failing requests without explicetely configuring `failOnStatusCode: false` as an additional configuration option.
