@@ -176,6 +176,43 @@ describe("request", () => {
     );
   });
 
+  context("preferBasicAuth", () => {
+    const auth = { user: "myadmin", password: "mypassword" };
+    it("should prefer basic auth", () => {
+      cy.setCookie("XSRF-TOKEN", "1234");
+      cy.setCookie("authorization", "abc");
+
+      cy.request({
+        method: "POST",
+        url: "/my/test/request",
+        auth,
+        preferBasicAuth: true,
+      }).then((response) => {
+        expect(response.status).to.eq(200);
+        const request = response.body.request;
+        expect(request.url).to.eq("/my/test/request");
+        expect(request.method).to.eq("POST");
+        expect(request.auth).to.eq(basicAuthorization("myadmin", "mypassword"));
+        // expect(request.cookies).to.deep.eq({});
+        expect(request.headers).to.not.have.property("x-xsrf-token");
+      });
+    });
+
+    it("should prefer basic auth with useAuth", () => {
+      cy.useAuth(auth);
+
+      cy.request("/my/test/request").then((response) => {
+        expect(response.status).to.eq(200);
+        const request = response.body.request;
+        expect(request.url).to.eq("/my/test/request");
+        expect(request.auth).to.eq(basicAuthorization("myadmin", "mypassword"));
+        expect(request.cookies).to.deep.eq({});
+        expect(request.body).to.deep.eq({});
+        expect(request.headers).to.not.have.property("x-xsrf-token");
+      });
+    });
+  });
+
   context("request command overwrite", () => {
     // @ts-expect-error
     const orgRequestFn = Cypress.cy["request"];
