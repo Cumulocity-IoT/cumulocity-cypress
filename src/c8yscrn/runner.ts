@@ -350,7 +350,18 @@ export class C8yScreenshotRunner {
   protected highlight(action: Action["highlight"], that: C8yScreenshotRunner) {
     const highlights = _.isArray(action) ? action : [action];
     cy.wrap(highlights).each(
-      (highlight: string | SelectableHighlightAction | undefined) => {
+      (
+        highlight:
+          | string
+          | SelectableHighlightAction
+          | { clear: true }
+          | undefined
+      ) => {
+        if (highlight && _.isObject(highlight) && highlight.clear === true) {
+          cy.clearHighlights();
+          return;
+        }
+
         const selector = getSelector(highlight, this.config.selectors);
         if (selector == null) return;
 

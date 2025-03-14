@@ -822,6 +822,13 @@ Uploads a file to the specified input field. The `file` property should be the p
 
 If no selector is provided, the file will be uploaded to the first file input field found on the page.
 
+To clear highlights without creating new ones, use 
+
+```yaml
+- highlight:
+    clear: true
+```
+
 **screenshot**
 ```yaml
 - screenshot: string or object

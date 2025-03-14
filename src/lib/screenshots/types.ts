@@ -381,12 +381,14 @@ export interface Action {
   fileUpload?: string | (UploadFileAction & Selectable);
   /**
    * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
+   * To clear existing highlights, set the clear property to true.
    */
   highlight?:
     | string
     | string[]
     | SelectableHighlightAction
-    | (string | SelectableHighlightAction)[];
+    | (string | SelectableHighlightAction)[]
+    | { clear: true };
   /**
    * The screenshot action triggers a screenshot of the current state of the application.
    */
