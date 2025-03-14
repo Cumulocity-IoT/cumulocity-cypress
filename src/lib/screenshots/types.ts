@@ -362,12 +362,7 @@ export interface ScreenshotAction {
   /**
    * The padding applied to the screenshots of elements in px. If an array of numbers is provided, the padding is applied as defined by CSS shorthand property.
    */
-  padding?:
-    | number
-    | [number]
-    | [number, number]
-    | [number, number, number]
-    | [number, number, number, number];
+  padding?: Cypress.ScreenshotOptions["padding"];
 }
 
 export interface Action {
@@ -381,12 +376,14 @@ export interface Action {
   fileUpload?: string | (UploadFileAction & Selectable);
   /**
    * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
+   * To clear existing highlights, set the clear property to true.
    */
   highlight?:
     | string
     | string[]
     | SelectableHighlightAction
-    | (string | SelectableHighlightAction)[];
+    | (string | SelectableHighlightAction)[]
+    | { clear: true };
   /**
    * The screenshot action triggers a screenshot of the current state of the application.
    */

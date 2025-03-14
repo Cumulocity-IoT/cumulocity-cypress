@@ -338,6 +338,21 @@
                             "type": "object"
                         },
                         {
+                            "additionalProperties": false,
+                            "properties": {
+                                "clear": {
+                                    "enum": [
+                                        true
+                                    ],
+                                    "type": "boolean"
+                                }
+                            },
+                            "required": [
+                                "clear"
+                            ],
+                            "type": "object"
+                        },
+                        {
                             "items": {
                                 "anyOf": [
                                     {
