@@ -735,6 +735,32 @@ Actions allow you to interact with the page before taking a screenshot. Availabl
 ```
 Clicks on the specified element. Use the `multiple` option to click on all matching elements, and the `force` option to bypass the element's visibility check. `force` is enabled by default.
 
+**blur**
+```yaml
+- blur: string or object
+```
+Triggers a blur event on the selected DOM element to remove focus. If no selector or `true` is provided, the blur event is triggered on the currently focused element.
+
+```yaml
+- blur: "#inputField"
+```
+
+or to blur the currently focused element:
+
+```yaml
+- blur: true
+```
+
+**focus**
+```yaml
+- focus: string or object
+```
+Triggers a focus event on the selected DOM element.
+
+```yaml
+- focus: "#inputField"
+```
+
 **type**
 ```yaml
 - type:

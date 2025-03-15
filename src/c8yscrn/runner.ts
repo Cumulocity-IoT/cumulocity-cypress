@@ -62,6 +62,8 @@ export class C8yScreenshotRunner {
     this.registerActionHandler("text", this.text);
     this.registerActionHandler("wait", this.wait);
     this.registerActionHandler("fileUpload", this.fileUpload);
+    this.registerActionHandler("blur", this.blur);
+    this.registerActionHandler("focus", this.focus);
 
     if ((Cypress.env("_c8yscrnHighlight") ?? false) != false) {
       this.registerActionHandler("highlight", this.highlight);
@@ -346,6 +348,11 @@ export class C8yScreenshotRunner {
         });
       });
     }
+    if (action.blur === true) {
+      cy.then(() => {
+        cy.focused().blur();
+      });
+    }
   }
 
   protected highlight(action: Action["highlight"], that: C8yScreenshotRunner) {
@@ -493,6 +500,21 @@ export class C8yScreenshotRunner {
 
       cy.get(selector).attachFile(fixtureData, fileProcessingOptions);
     });
+  }
+
+  protected blur(action: Action["blur"]) {
+    const selector = getSelector(action, this.config.selectors);
+    if (selector == null) {
+      cy.focused().blur();
+    } else {
+      cy.get(selector).blur();
+    }
+  }
+
+  protected focus(action: Action["focus"]) {
+    const selector = getSelector(action, this.config.selectors);
+    if (selector == null) return;
+    cy.get(selector).focus();
   }
 
   protected screenshot(
