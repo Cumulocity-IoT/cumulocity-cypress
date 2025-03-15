@@ -354,6 +354,10 @@
                                     "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
                                     "type": "boolean"
                                 },
+                                "offset": {
+                                    "description": "The outline offset. The default is -2px.",
+                                    "type": "string"
+                                },
                                 "selector": {
                                     "anyOf": [
                                         {
@@ -419,6 +423,10 @@
                                     "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
                                     "type": "boolean"
                                 },
+                                "offset": {
+                                    "description": "The outline offset. The default is -2px.",
+                                    "type": "string"
+                                },
                                 "styles": {
                                     "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                                     "examples": [
@@ -479,6 +487,10 @@
                                                 "default": false,
                                                 "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
                                                 "type": "boolean"
+                                            },
+                                            "offset": {
+                                                "description": "The outline offset. The default is -2px.",
+                                                "type": "string"
                                             },
                                             "selector": {
                                                 "anyOf": [
@@ -544,6 +556,10 @@
                                                 "default": false,
                                                 "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
                                                 "type": "boolean"
+                                            },
+                                            "offset": {
+                                                "description": "The outline offset. The default is -2px.",
+                                                "type": "string"
                                             },
                                             "styles": {
                                                 "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",

@@ -376,7 +376,12 @@ export interface UploadFileAction {
   mimeType?: string;
 }
 
-export interface HighlightAction extends C8yHighlightOptions {}
+export interface HighlightAction extends C8yHighlightOptions {
+  /**
+   * The outline offset. The default is -2px.
+   */
+  offset?: string;
+}
 
 export type SelectableHighlightAction = HighlightAction & Selectable;
 
