@@ -238,6 +238,26 @@ export interface ClickAction {
   force?: boolean;
 }
 
+type CyPositionType = 'topLeft' | 'top' | 'topRight' | 'left' | 'center' | 'right' | 'bottomLeft' | 'bottom' | 'bottomRight'
+
+export interface ScrollToAction {
+  /**
+   * The element to scroll to. Requires a selector or a DOM element. If the element is not visible, the page is scrolled to make the element visible.
+   * The offset is applied when the element has been scrolled into view. The offset represents left and right pixel to scroll.
+   */
+  element?: string | ({ offset?: [number, number] } & Selectable);
+  /**
+   * The position to scroll to. The default is 'top'. Provide a string, an array of strings, or a number to scroll to a specific position.
+   * @examples ["top", "bottom", "100px", ["top", "100px"], [0, 100], ["0%", "25%"]]
+   */
+  position?:
+    CyPositionType
+    | string
+    | [string, string]
+    | number
+    | [number, number];
+}
+
 export interface TypeAction {
   /**
    * The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.
@@ -406,6 +426,10 @@ export interface Action {
    * The screenshot action triggers a screenshot of the current state of the application.
    */
   screenshot?: string | (ScreenshotAction & Partial<Selectable>);
+  /**
+   * A scroll action scrolls the page to a specific position or element. Use the position property to scroll to a specific position or the element property to scroll to a selected DOM element.
+   */
+  scrollTo?: string | ScrollToAction | Selectable;
   /**
    * A text action modifies the text value of selected DOM element.
    */
