@@ -5,6 +5,60 @@
         "Action": {
             "additionalProperties": false,
             "properties": {
+                "blur": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "selector": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "data-cy"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "selector"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "data-cy": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "data-cy"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "enum": [
+                                true
+                            ],
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "A blur action triggers a blur event on the selected DOM element to remove focus."
+                },
                 "click": {
                     "anyOf": [
                         {
@@ -220,6 +274,54 @@
                         }
                     ],
                     "description": "Use the file upload action to upload a file using the file input element. Currently supported file types are .json, .txt, .csv, .png, .jpg, .jpeg, .gif."
+                },
+                "focus": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "selector": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "data-cy"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "selector"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "data-cy": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "data-cy"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "A focus action triggers a focus event on the selected DOM element."
                 },
                 "highlight": {
                     "anyOf": [
@@ -474,7 +576,7 @@
                             "type": "string"
                         }
                     ],
-                    "description": "Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element."
+                    "description": "Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.\nTo clear existing highlights, set the clear property to true."
                 },
                 "screenshot": {
                     "anyOf": [
@@ -726,6 +828,11 @@
                         {
                             "additionalProperties": false,
                             "properties": {
+                                "blur": {
+                                    "default": false,
+                                    "description": "If true, the element is blurred after typing to remove the focus. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "clear": {
                                     "default": false,
                                     "description": "If true, the text input is cleared before typing. The default is false.",
@@ -837,6 +944,11 @@
                         {
                             "additionalProperties": false,
                             "properties": {
+                                "blur": {
+                                    "default": false,
+                                    "description": "If true, the element is blurred after typing to remove the focus. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "clear": {
                                     "default": false,
                                     "description": "If true, the text input is cleared before typing. The default is false.",
