@@ -251,6 +251,11 @@ export interface TypeAction {
    */
   clear?: boolean;
   /**
+   * If true, the element is blurred after typing to remove the focus. The default is false.
+   * @default false
+   */
+  blur?: boolean;
+  /**
    * The submit selector is triggered for every entry value. Use to go over multistep forms. If the submit selector is not found, the form is not automatically continued and multistep finishes.
    */
   submit?: string | Selectable;
@@ -372,6 +377,10 @@ export interface ScreenshotAction {
 
 export interface Action {
   /**
+   * A blur action triggers a blur event on the selected DOM element to remove focus.
+   */
+  blur?: string | Selectable | true;
+  /**
    * A click action triggers a click event on the selected DOM element.
    */
   click?: string | (ClickAction & Selectable);
@@ -379,6 +388,10 @@ export interface Action {
    * Use the file upload action to upload a file using the file input element. Currently supported file types are .json, .txt, .csv, .png, .jpg, .jpeg, .gif.
    */
   fileUpload?: string | (UploadFileAction & Selectable);
+  /**
+   * A focus action triggers a focus event on the selected DOM element.
+   */
+  focus?: string | Selectable;
   /**
    * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
    * To clear existing highlights, set the clear property to true.
