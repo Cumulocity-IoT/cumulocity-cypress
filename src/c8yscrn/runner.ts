@@ -10,6 +10,7 @@ import { C8yHighlightStyleDefaults } from "../shared/types";
 import {
   Action,
   C8yScreenshotFileUploadOptions,
+  LoginUserType,
   Screenshot,
   ScreenshotSetup,
   SelectableHighlightAction,
@@ -96,10 +97,18 @@ export class C8yScreenshotRunner {
       }
     );
 
+    const login = global?.login ?? global?.user;
+    let user: LoginUserType | undefined;
+    if (_.isString(login)) {
+      user = { authAlias: login };
+    } else if (_.isObject(login) && "authAlias" in login) {
+      user = login;
+    }
+
     describe(this.config.title ?? `screenshot workflow`, () => {
       before(() => {
-        const login = global?.login ?? global?.user;
-        cy.getAuth(login as any).then((auth) => {
+        cy.wrap(user);
+        cy.getAuth(user?.authAlias as any).then((auth) => {
           if (auth != null && login !== false) {
             cy.wrap(auth, { log: false })
               .getShellVersion(global?.shell)
@@ -138,6 +147,20 @@ export class C8yScreenshotRunner {
         Cypress.session.clearAllSavedSessions();
         if (Cypress.env("C8Y_CTRL_MODE") != null) {
           cy.wrap(c8yctrl(), { log: false });
+        }
+
+        if (_.isObject(user)) {
+          cy.intercept(
+            { method: "GET", pathname: `/user/currentUser*` },
+            (req) => {
+              req.continue((res) => {
+                res.body = {
+                  ...res.body,
+                  ..._.omit(user, "authAlias"),
+                };
+              });
+            }
+          ).as("currentUser");
         }
       });
 
