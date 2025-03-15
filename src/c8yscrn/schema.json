@@ -593,16 +593,6 @@
                                             "items": [
                                                 {
                                                     "type": "number"
-                                                }
-                                            ],
-                                            "maxItems": 1,
-                                            "minItems": 1,
-                                            "type": "array"
-                                        },
-                                        {
-                                            "items": [
-                                                {
-                                                    "type": "number"
                                                 },
                                                 {
                                                     "type": "number"
@@ -610,6 +600,16 @@
                                             ],
                                             "maxItems": 2,
                                             "minItems": 2,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 1,
+                                            "minItems": 1,
                                             "type": "array"
                                         },
                                         {
@@ -695,16 +695,6 @@
                                             "items": [
                                                 {
                                                     "type": "number"
-                                                }
-                                            ],
-                                            "maxItems": 1,
-                                            "minItems": 1,
-                                            "type": "array"
-                                        },
-                                        {
-                                            "items": [
-                                                {
-                                                    "type": "number"
                                                 },
                                                 {
                                                     "type": "number"
@@ -712,6 +702,16 @@
                                             ],
                                             "maxItems": 2,
                                             "minItems": 2,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 1,
+                                            "minItems": 1,
                                             "type": "array"
                                         },
                                         {
@@ -767,6 +767,57 @@
                         }
                     ],
                     "description": "The screenshot action triggers a screenshot of the current state of the application."
+                },
+                "scrollTo": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/ScrollToAction"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "selector": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "data-cy"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "selector"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "data-cy": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "data-cy"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "A scroll action scrolls the page to a specific position or element. Use the position property to scroll to a specific position or the element property to scroll to a selected DOM element."
                 },
                 "text": {
                     "anyOf": [
@@ -1223,6 +1274,140 @@
                     "description": "The width in px to use for the browser window",
                     "minimum": 0,
                     "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "ScrollToAction": {
+            "additionalProperties": false,
+            "properties": {
+                "element": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "offset": {
+                                    "items": [
+                                        {
+                                            "type": "number"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ],
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": "array"
+                                },
+                                "selector": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "data-cy"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "selector"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "data-cy": {
+                                    "type": "string"
+                                },
+                                "offset": {
+                                    "items": [
+                                        {
+                                            "type": "number"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ],
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": "array"
+                                }
+                            },
+                            "required": [
+                                "data-cy"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "The element to scroll to. Requires a selector or a DOM element. If the element is not visible, the page is scrolled to make the element visible.\nThe offset is applied when the element has been scrolled into view. The offset represents left and right pixel to scroll."
+                },
+                "position": {
+                    "anyOf": [
+                        {
+                            "items": [
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "number"
+                                }
+                            ],
+                            "maxItems": 2,
+                            "minItems": 2,
+                            "type": "array"
+                        },
+                        {
+                            "items": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "string"
+                                }
+                            ],
+                            "maxItems": 2,
+                            "minItems": 2,
+                            "type": "array"
+                        },
+                        {
+                            "type": [
+                                "string",
+                                "number"
+                            ]
+                        }
+                    ],
+                    "description": "The position to scroll to. The default is 'top'. Provide a string, an array of strings, or a number to scroll to a specific position.",
+                    "examples": [
+                        "top",
+                        "bottom",
+                        "100px",
+                        [
+                            "top",
+                            "100px"
+                        ],
+                        [
+                            0,
+                            100
+                        ],
+                        [
+                            "0%",
+                            "25%"
+                        ]
+                    ]
                 }
             },
             "type": "object"

@@ -765,6 +765,41 @@ Triggers a focus event on the selected DOM element.
 - focus: "#inputField"
 ```
 
+**scrollTo**
+```yaml
+- scrollTo:
+    selector: string or object
+    position: string or [string, string] or number or [number, number]
+    element: string or object or { offset: [number, number] }
+```
+
+Scrolls the page to a specific position or element. If a selector is provided, it scrolls that element into view. If `position` is provided, it scrolls to that position on the page. If `element` is provided with an offset, it scrolls the element into view with the specified offset.
+
+The `position` parameter can be one of the following:
+- A position string: 'topLeft', 'top', 'topRight', 'left', 'center', 'right', 'bottomLeft', 'bottom', 'bottomRight'
+- A CSS position value like '100px' or '50%'
+- An array with two values for x and y coordinates
+- A number representing the y-coordinate to scroll to
+
+The offset of the element can be specified as an array of two values. It represents the top and left pixel to scroll after the element is in the view.
+
+Examples:
+```yaml
+- scrollTo:
+    position: "bottom"
+- scrollTo:
+    position: [0, 500]
+- scrollTo:
+    position: [0, "50%"]
+- scrollTo:
+    element: "#elementId"
+- scrollTo:
+    element:
+      selector: "#elementId"
+      offset: [10, 20]
+- scrollTo: "#elementId"
+```
+
 **type**
 ```yaml
 - type:
