@@ -64,6 +64,7 @@ export class C8yScreenshotRunner {
     this.registerActionHandler("fileUpload", this.fileUpload);
     this.registerActionHandler("blur", this.blur);
     this.registerActionHandler("focus", this.focus);
+    this.registerActionHandler("scrollTo", this.scrollTo);
 
     if ((Cypress.env("_c8yscrnHighlight") ?? false) != false) {
       this.registerActionHandler("highlight", this.highlight);
@@ -401,6 +402,39 @@ export class C8yScreenshotRunner {
         );
       }
     );
+  }
+
+  protected scrollTo(action: Action["scrollTo"]) {
+    if (action == null) return;
+    let selector = getSelector(action, this.config.selectors);
+    if (selector != null) {
+      cy.get(selector).scrollIntoView();
+    } else if (_.isString(action)) {
+      return;
+    } else if ("position" in action && action.position != null) {
+      if (_.isArray(action.position)) {
+        cy.scrollTo(action.position[0], action.position[1]);
+      } else {
+        cy.scrollTo(action.position);
+      }
+    } else if ("element" in action) {
+      selector = getSelector(action.element, this.config.selectors);
+      if (selector == null) return;
+      if (_.isObject(action.element)) {
+        if ("offset" in action.element && _.isArray(action.element.offset)) {
+          cy.get(selector).scrollIntoView({
+            offset: {
+              top: action.element.offset[0],
+              left: action.element.offset[1],
+            },
+          });
+        } else {
+          cy.get(selector).scrollIntoView();
+        }
+      } else {
+        cy.get(selector).scrollIntoView();
+      }
+    }
   }
 
   protected text(action: Action["text"]) {
