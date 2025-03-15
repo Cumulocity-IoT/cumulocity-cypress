@@ -39,6 +39,8 @@ export class C8yScreenshotRunner {
     [key: string]: C8yScreenshotActionHandler;
   };
 
+  private language: string | undefined;
+
   constructor(config?: ScreenshotSetup) {
     this.config =
       config ??
@@ -77,6 +79,11 @@ export class C8yScreenshotRunner {
   }
 
   run() {
+    // reset language
+    this.language = undefined;
+    // init global settings
+    const global = this.config.global;
+
     const CyScreenshotSettingsKeys = [
       "capture",
       "scale",
@@ -84,9 +91,6 @@ export class C8yScreenshotRunner {
       "overwrite",
       "disableTimersAndAnimations",
     ];
-
-    const global = this.config.global;
-
     const defaultOptions: Partial<Cypress.ScreenshotOptions> = _.defaults(
       _.omitBy(_.pick(global ?? {}, CyScreenshotSettingsKeys), _.isNil),
       {
@@ -187,136 +191,141 @@ export class C8yScreenshotRunner {
         let fn = item.only === true ? it.only : it;
         fn = item.skip === true ? it.skip : fn;
 
-        fn.apply(null, [
-          `${item.image}`,
-          annotations,
-          // @ts-expect-error
-          () => {
-            const login =
-              item.login ?? global?.login ?? item.user ?? global?.user;
+        const l = item.language ?? global?.language ?? "en";
+        const languages = _.isArray(l) ? l : [l];
+        languages.forEach((language) => {
+          this.language = language === languages[0] ? undefined : language;
 
-            debug(`Running screenshot: ${item.image}`);
-            debug(`Using annotations: ${JSON.stringify(annotations)}`);
+          fn.apply(null, [
+            `${item.image} (${language})`,
+            annotations,
+            // @ts-expect-error
+            () => {
+              const login =
+                item.login ?? global?.login ?? item.user ?? global?.user;
 
-            const user = login === false ? undefined : login;
-            const width =
-              item.settings?.viewportWidth ?? global?.viewportWidth ?? 1440;
-            const height =
-              item.settings?.viewportWidth ?? global?.viewportHeight ?? 900;
-            cy.viewport(width, height);
+              debug(`Running screenshot: ${item.image}`);
+              debug(`Using annotations: ${JSON.stringify(annotations)}`);
 
-            const options = _.defaults(
-              _.omitBy(
-                _.pick(item.settings ?? {}, CyScreenshotSettingsKeys),
-                _.isNil
-              ),
-              defaultOptions
-            );
+              const user = login === false ? undefined : login;
+              const width =
+                item.settings?.viewportWidth ?? global?.viewportWidth ?? 1440;
+              const height =
+                item.settings?.viewportWidth ?? global?.viewportHeight ?? 900;
+              cy.viewport(width, height);
 
-            const visitDate = item.date ?? global?.date;
-            if (visitDate) {
-              debug(`Setting visit date to ${visitDate}`);
-              cy.clock(new Date(visitDate));
-            }
+              const options = _.defaults(
+                _.omitBy(
+                  _.pick(item.settings ?? {}, CyScreenshotSettingsKeys),
+                  _.isNil
+                ),
+                defaultOptions
+              );
 
-            cy.getAuth(user as any).then((auth) => {
-              if (auth != null && login !== false) {
-                const username = auth.user ?? auth.username ?? auth.userAlias;
-                debug(`Logging in as ${username}`);
-                cy.wrap(auth, { log: false }).login();
-              } else {
-                if (login !== false) {
-                  debug(
-                    `Skipped login. ${
-                      user ? user + "not" : "No login or auth"
-                    } configured.`
-                  );
-                } else {
-                  debug(`Skipped login. Login is disabled.`);
-                }
+              const visitDate = item.date ?? global?.date;
+              if (visitDate) {
+                debug(`Setting visit date to ${visitDate}`);
+                cy.clock(new Date(visitDate));
               }
-            });
 
-            const visitObject = this.getVisitObject(item.visit);
-            const url = visitObject?.url ?? (item.visit as string);
-            const visitSelector =
-              visitObject?.selector ??
-              global?.visitWaitSelector ??
-              "c8y-drawer-outlet c8y-app-icon .c8y-icon";
-            debug(`Visiting ${url} Selector: ${visitSelector}`);
-            const visitTimeout = visitObject?.timeout;
+              cy.getAuth(user as any).then((auth) => {
+                if (auth != null && login !== false) {
+                  const username = auth.user ?? auth.username ?? auth.userAlias;
+                  debug(`Logging in as ${username}`);
+                  cy.wrap(auth, { log: false }).login();
+                } else {
+                  if (login !== false) {
+                    debug(
+                      `Skipped login. ${
+                        user ? user + "not" : "No login or auth"
+                      } configured.`
+                    );
+                  } else {
+                    debug(`Skipped login. Login is disabled.`);
+                  }
+                }
+              });
 
-            const language = item.language ?? global?.language ?? "en";
-            cy.visitAndWaitForSelector(
-              url,
-              language as any,
-              visitSelector,
-              visitTimeout
-            );
+              const visitObject = this.getVisitObject(item.visit);
+              const url = visitObject?.url ?? (item.visit as string);
+              const visitSelector =
+                visitObject?.selector ??
+                global?.visitWaitSelector ??
+                "c8y-drawer-outlet c8y-app-icon .c8y-icon";
+              debug(`Visiting ${url} Selector: ${visitSelector}`);
+              const visitTimeout = visitObject?.timeout;
 
-            if (global?.disableTimersAndAnimations === true) {
-              cy.document().then((doc) => {
-                const style = doc.createElement("style");
-                style.innerHTML = `
+              cy.visitAndWaitForSelector(
+                url,
+                language as any,
+                visitSelector,
+                visitTimeout
+              );
+
+              if (global?.disableTimersAndAnimations === true) {
+                cy.document().then((doc) => {
+                  const style = doc.createElement("style");
+                  style.innerHTML = `
                 * {
                  animation: none !important;
                  transition: none !important;
                 }
                 `;
-                doc.head.appendChild(style);
-              });
-            }
-
-            let actions = item.actions == null ? [] : item.actions;
-            actions = _.isArray(actions) ? actions : [actions];
-            actions.forEach((action) => {
-              const handlerKey = Object.keys(action)[0];
-              const handler = this.actionHandlers[handlerKey];
-              if (handler) {
-                if (
-                  isScreenshotAction(action) &&
-                  !(
-                    _.isString(action.screenshot) ||
-                    _.isArray(action.screenshot)
-                  )
-                ) {
-                  const clipArea = action.screenshot?.clip;
-                  if (clipArea) {
-                    options["clip"] = {
-                      x: Math.max(clipArea.x, 0),
-                      y: Math.max(clipArea.y, 0),
-                      width:
-                        clipArea.width < 0
-                          ? width + clipArea.width
-                          : clipArea.width,
-                      height:
-                        clipArea.height < 0
-                          ? height + clipArea.height
-                          : clipArea.height,
-                    };
-                  }
-                  const padding = action.screenshot?.padding;
-                  if (padding != null) {
-                    options.padding = padding;
-                  }
-                }
-                handler(_.get(action, handlerKey), this, item, options);
+                  doc.head.appendChild(style);
+                });
               }
-            });
 
-            const lastAction = _.last(actions);
-            if (
-              _.isEmpty(actions) ||
-              !lastAction ||
-              !isScreenshotAction(lastAction)
-            ) {
-              const name = imageName(item.image);
-              debug(`Taking screenshot ${name}`);
-              debug(`Options: ${JSON.stringify(options)}`);
-              cy.screenshot(name, options);
-            }
-          },
-        ]);
+              let actions = item.actions == null ? [] : item.actions;
+              actions = _.isArray(actions) ? actions : [actions];
+              actions.forEach((action) => {
+                const handlerKey = Object.keys(action)[0];
+                const handler = this.actionHandlers[handlerKey];
+                if (handler) {
+                  if (
+                    isScreenshotAction(action) &&
+                    !(
+                      _.isString(action.screenshot) ||
+                      _.isArray(action.screenshot)
+                    )
+                  ) {
+                    const clipArea = action.screenshot?.clip;
+                    if (clipArea) {
+                      options["clip"] = {
+                        x: Math.max(clipArea.x, 0),
+                        y: Math.max(clipArea.y, 0),
+                        width:
+                          clipArea.width < 0
+                            ? width + clipArea.width
+                            : clipArea.width,
+                        height:
+                          clipArea.height < 0
+                            ? height + clipArea.height
+                            : clipArea.height,
+                      };
+                    }
+                    const padding = action.screenshot?.padding;
+                    if (padding != null) {
+                      options.padding = padding;
+                    }
+                  }
+                  handler(_.get(action, handlerKey), this, item, options);
+                }
+              });
+
+              const lastAction = _.last(actions);
+              if (
+                _.isEmpty(actions) ||
+                !lastAction ||
+                !isScreenshotAction(lastAction)
+              ) {
+                const name = imageName(item.image, this.language);
+                debug(`Taking screenshot ${name}`);
+                debug(`Options: ${JSON.stringify(options)}`);
+                cy.screenshot(name, options);
+              }
+            },
+          ]);
+        });
       });
     });
   }
@@ -583,7 +592,7 @@ export class C8yScreenshotRunner {
     action: Action["screenshot"],
     _that: C8yScreenshotRunner,
     item: Screenshot,
-    options: any
+    options: Cypress.ScreenshotOptions
   ) {
     const name = _.isString(action) ? action : action?.path ?? item.image;
     const selector = !_.isString(action)
@@ -595,10 +604,10 @@ export class C8yScreenshotRunner {
 
     if (selector != null) {
       cy.get(selector).then(($elements) => {
-        cy.wrap($elements).screenshot(imageName(name), options);
+        cy.wrap($elements).screenshot(imageName(name, this.language), options);
       });
     } else {
-      cy.screenshot(imageName(name), options);
+      cy.screenshot(imageName(name, this.language), options);
     }
   }
 
@@ -640,18 +649,6 @@ export function isRecording(): boolean {
     Cypress.env("C8YCTRL_MODE") === "recording" ||
     Cypress.env("C8YCTRL_MODE") === "record"
   );
-}
-
-export function isClickAction(action: Action): boolean {
-  return "click" in action;
-}
-
-export function isTypeAction(action: Action): boolean {
-  return "type" in action;
-}
-
-export function isHighlightAction(action: Action): boolean {
-  return "highlight" in action;
 }
 
 export function isScreenshotAction(action: Action): boolean {

@@ -85,7 +85,7 @@ export interface ScreenshotOptions {
    * Load Cumulocity with the given language
    * @example "en"
    */
-  language?: "en" | "de" | string;
+  language?: "en" | "de" | string | string[];
   /**
    * Use login instead of user
    * @deprecated Use login instead
