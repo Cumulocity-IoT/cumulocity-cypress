@@ -397,7 +397,7 @@ export class C8yScreenshotRunner {
         const selector = getSelector(highlight, this.config.selectors);
         if (selector == null) return;
 
-        const highlightStyle = {
+        const highlightStyle: any = {
           ...C8yHighlightStyleDefaults,
           ...(that?.config.global?.highlightStyle ?? {}),
         };
@@ -412,6 +412,11 @@ export class C8yScreenshotRunner {
             } else {
               _.extend(highlightStyle, { ...highlight.border });
             }
+          }
+          if (highlight?.offset != null) {
+            _.extend(highlightStyle, {
+              "outline-offset": highlight.offset,
+            });
           }
           if (highlight?.clear === true) {
             cy.clearHighlights();
