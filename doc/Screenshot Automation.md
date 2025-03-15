@@ -330,6 +330,22 @@ global:
   login: admin
 ```
 
+You can also provide additional user properties to overwrite user information in the UI. This can be useful for setting the user's name, email, phone number, etc., for the screenshots. When providing an object, `authAlias` is required to look up the user credentials.
+
+```yaml
+global:
+  login:
+    authAlias: admin
+    # additional user properties to overwrite user information in the UI
+    id: max
+    userName: Max
+    firstName: Max
+    lastName: Mustermann
+    phone: "+49123456789"
+    email: "max.mustermann@email.test"
+    displayName: "Max Mustermann"
+```
+
 Define `admin` alias in `.c8yscrn` file:
 ```properties
 admin_username: myusername
@@ -568,7 +584,7 @@ global:
 - **Example**: `"en"` or `"de"`
 
 **login**
-- **Type**: string | false
+- **Type**: string | object | false
 - **Description**: The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated. See the [Authentication](#authentication) section for more details.
 - **Example**: `"admin"` or `false`
 

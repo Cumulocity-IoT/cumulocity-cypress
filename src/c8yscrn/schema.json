@@ -1163,6 +1163,47 @@
             },
             "type": "object"
         },
+        "LoginUserType": {
+            "additionalProperties": false,
+            "properties": {
+                "authAlias": {
+                    "description": "The alias of the user to login. The alias is used to reference the username and password to login from env variables.",
+                    "type": "string"
+                },
+                "displayName": {
+                    "description": "The display name",
+                    "type": "string"
+                },
+                "email": {
+                    "description": "User email address.",
+                    "type": "string"
+                },
+                "firstName": {
+                    "description": "User first name.",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "Uniquely identifies a user",
+                    "type": "string"
+                },
+                "lastName": {
+                    "description": "User last name.",
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "User phone number.",
+                    "type": "string"
+                },
+                "userName": {
+                    "description": "User name, unique for a given domain.\nMax: 1000 characters. Whitespaces, slashes, +$: characters not allowed",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "authAlias"
+            ],
+            "type": "object"
+        },
         "ScreenshotClipArea": {
             "additionalProperties": false,
             "properties": {
@@ -1554,6 +1595,9 @@
                 "login": {
                     "anyOf": [
                         {
+                            "$ref": "#/definitions/LoginUserType"
+                        },
+                        {
                             "enum": [
                                 false
                             ],
@@ -1563,7 +1607,7 @@
                             "type": "string"
                         }
                     ],
-                    "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.",
+                    "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.\nIf a user object is provided, the user to login is taken from userAlias property. All other properties are used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.",
                     "examples": [
                         [
                             "admin",
@@ -1716,6 +1760,9 @@
                     "login": {
                         "anyOf": [
                             {
+                                "$ref": "#/definitions/LoginUserType"
+                            },
+                            {
                                 "enum": [
                                     false
                                 ],
@@ -1725,7 +1772,7 @@
                                 "type": "string"
                             }
                         ],
-                        "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.",
+                        "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.\nIf a user object is provided, the user to login is taken from userAlias property. All other properties are used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.",
                         "examples": [
                             [
                                 "admin",

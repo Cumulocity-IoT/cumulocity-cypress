@@ -3,6 +3,7 @@
 // using & to combine types is not supported by JSON schema and will
 // result in copying the properties of the intersection into the resulting
 // subschemas.
+import { IUser } from "@c8y/client";
 import { C8yBaseUrl, C8yHighlightOptions } from "../../shared/types";
 import { ODiffOptions } from "odiff-bin";
 
@@ -46,6 +47,24 @@ export interface GlobalOptions {
 
 export type SemverRange = string;
 
+export type LoginUserType = {
+  /**
+   * The alias of the user to login. The alias is used to reference the username and password to login from env variables.
+   */
+  authAlias: string;
+} & Partial<
+  Pick<
+    IUser,
+    | "userName"
+    | "firstName"
+    | "lastName"
+    | "email"
+    | "phone"
+    | "id"
+    | "displayName"
+  >
+>;
+
 export interface ScreenshotOptions {
   /**
    * Tags allow grouping and filtering of screenshots (optional)
@@ -74,9 +93,10 @@ export interface ScreenshotOptions {
   user?: string;
   /**
    * The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.
+   * If a user object is provided, the user to login is taken from userAlias property. All other properties are used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.
    * @examples [["admin", false]]
    */
-  login?: string | false;
+  login?: string | LoginUserType | false;
   /**
    * The date to simulate when running the screenshot workflows
    * @format date-time
@@ -238,7 +258,17 @@ export interface ClickAction {
   force?: boolean;
 }
 
-type CyPositionType = 'topLeft' | 'top' | 'topRight' | 'left' | 'center' | 'right' | 'bottomLeft' | 'bottom' | 'bottomRight'
+// Cypress.PositionType
+type CyPositionType =
+  | "topLeft"
+  | "top"
+  | "topRight"
+  | "left"
+  | "center"
+  | "right"
+  | "bottomLeft"
+  | "bottom"
+  | "bottomRight";
 
 export interface ScrollToAction {
   /**
@@ -251,7 +281,7 @@ export interface ScrollToAction {
    * @examples ["top", "bottom", "100px", ["top", "100px"], [0, 100], ["0%", "25%"]]
    */
   position?:
-    CyPositionType
+    | CyPositionType
     | string
     | [string, string]
     | number
