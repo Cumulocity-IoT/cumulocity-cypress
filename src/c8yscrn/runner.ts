@@ -5,6 +5,7 @@ import "../lib/commands/screenshot";
 import "cypress-file-upload";
 
 import { pactId } from "../shared/c8ypact";
+import { C8yHighlightStyleDefaults } from "../shared/types";
 
 import {
   Action,
@@ -366,10 +367,7 @@ export class C8yScreenshotRunner {
         if (selector == null) return;
 
         const highlightStyle = {
-          outline: "2px",
-          "outline-style": "solid",
-          "outline-offset": "-2px",
-          "outline-color": "#FF9300",
+          ...C8yHighlightStyleDefaults,
           ...(that?.config.global?.highlightStyle ?? {}),
         };
 
