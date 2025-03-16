@@ -1179,13 +1179,9 @@
             },
             "type": "object"
         },
-        "LoginUserType": {
+        "Partial<Pick<IUser,\"userName\"|\"firstName\"|\"lastName\"|\"email\"|\"phone\"|\"id\"|\"displayName\">>": {
             "additionalProperties": false,
             "properties": {
-                "authAlias": {
-                    "description": "The alias of the user to login. The alias is used to reference the username and password to login from env variables.",
-                    "type": "string"
-                },
                 "displayName": {
                     "description": "The display name",
                     "type": "string"
@@ -1215,9 +1211,6 @@
                     "type": "string"
                 }
             },
-            "required": [
-                "authAlias"
-            ],
             "type": "object"
         },
         "ScreenshotClipArea": {
@@ -1621,9 +1614,6 @@
                 "login": {
                     "anyOf": [
                         {
-                            "$ref": "#/definitions/LoginUserType"
-                        },
-                        {
                             "enum": [
                                 false
                             ],
@@ -1633,7 +1623,7 @@
                             "type": "string"
                         }
                     ],
-                    "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.\nIf a user object is provided, the user to login is taken from userAlias property. All other properties are used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.",
+                    "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.",
                     "examples": [
                         [
                             "admin",
@@ -1719,8 +1709,15 @@
                     "type": "object"
                 },
                 "user": {
-                    "description": "Use login instead of user",
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/Partial<Pick<IUser,\"userName\"|\"firstName\"|\"lastName\"|\"email\"|\"phone\"|\"id\"|\"displayName\">>"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "A user object with properties used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots."
                 },
                 "viewportHeight": {
                     "default": 900,
@@ -1796,9 +1793,6 @@
                     "login": {
                         "anyOf": [
                             {
-                                "$ref": "#/definitions/LoginUserType"
-                            },
-                            {
                                 "enum": [
                                     false
                                 ],
@@ -1808,7 +1802,7 @@
                                 "type": "string"
                             }
                         ],
-                        "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.\nIf a user object is provided, the user to login is taken from userAlias property. All other properties are used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.",
+                        "description": "The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.",
                         "examples": [
                             [
                                 "admin",
@@ -1862,8 +1856,15 @@
                         "type": "array"
                     },
                     "user": {
-                        "description": "Use login instead of user",
-                        "type": "string"
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/Partial<Pick<IUser,\"userName\"|\"firstName\"|\"lastName\"|\"email\"|\"phone\"|\"id\"|\"displayName\">>"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ],
+                        "description": "A user object with properties used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots."
                     },
                     "visit": {
                         "anyOf": [

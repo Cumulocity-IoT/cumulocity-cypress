@@ -101,50 +101,52 @@ export class C8yScreenshotRunner {
       }
     );
 
-    const login = global?.login ?? global?.user;
-    let user: LoginUserType | undefined;
-    if (_.isString(login)) {
-      user = { authAlias: login };
-    } else if (_.isObject(login) && "authAlias" in login) {
-      user = login;
+    let login = global?.login;
+    let user: LoginUserType | undefined = undefined;
+    if (_.isObject(global?.user)) {
+      user = global.user;
+    } else if (_.isString(global?.user) && login == null) {
+      // backwards compatibility
+      login = global.user;
     }
 
     describe(this.config.title ?? `screenshot workflow`, () => {
       before(() => {
-        cy.wrap(user);
-        cy.getAuth(user?.authAlias as any).then((auth) => {
-          if (auth != null && login !== false) {
-            cy.wrap(auth, { log: false })
-              .getShellVersion(global?.shell)
-              .then((version) => {
-                debug(
-                  `Set shell version ${version} for ${
-                    global?.shell ?? Cypress.env("C8Y_SHELL_NAME")
-                  } `
-                );
-              });
-            cy.wrap(auth, { log: false })
-              .getTenantId()
-              .then((tenantId) => {
-                debug(`Set tenantId ${tenantId} `);
-              });
-          } else {
-            const hint =
-              login === false
-                ? "Login disabled."
-                : "No login or auth configured.";
-            debug(
-              `Skipped setting shellVersion. ${hint} Falling back to C8Y_SHELL_VERSION: ${Cypress.env(
-                "C8Y_SHELL_VERSION"
-              )}`
-            );
-            debug(
-              `Skipped setting tenantId. ${hint} Falling back to C8Y_TENANT: ${Cypress.env(
-                "C8Y_TENANT"
-              )}`
-            );
+        (_.isString(login) ? cy.getAuth(login) : cy.wrap(undefined)).then(
+          (auth) => {
+            if (auth != null && login !== false) {
+              cy.wrap(auth, { log: false })
+                .getShellVersion(global?.shell)
+                .then((version) => {
+                  debug(
+                    `Set shell version ${version} for ${
+                      global?.shell ?? Cypress.env("C8Y_SHELL_NAME")
+                    } `
+                  );
+                });
+              cy.wrap(auth, { log: false })
+                .getTenantId()
+                .then((tenantId) => {
+                  debug(`Set tenantId ${tenantId} `);
+                });
+            } else {
+              const hint =
+                login === false
+                  ? "Login disabled."
+                  : "No login or auth configured.";
+              debug(
+                `Skipped setting shellVersion. ${hint} Falling back to C8Y_SHELL_VERSION: ${Cypress.env(
+                  "C8Y_SHELL_VERSION"
+                )}`
+              );
+              debug(
+                `Skipped setting tenantId. ${hint} Falling back to C8Y_TENANT: ${Cypress.env(
+                  "C8Y_TENANT"
+                )}`
+              );
+            }
           }
-        });
+        );
       });
 
       beforeEach(() => {
@@ -160,7 +162,7 @@ export class C8yScreenshotRunner {
               req.continue((res) => {
                 res.body = {
                   ...res.body,
-                  ..._.omit(user, "authAlias"),
+                  ...user,
                 };
               });
             }

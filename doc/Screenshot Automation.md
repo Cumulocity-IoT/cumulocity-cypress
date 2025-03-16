@@ -330,13 +330,13 @@ global:
   login: admin
 ```
 
-You can also provide additional user properties to overwrite user information in the UI. This can be useful for setting the user's name, email, phone number, etc., for the screenshots. When providing an object, `authAlias` is required to look up the user credentials.
+You can also provide additional `user` property to overwrite user information in the UI. This can be useful for setting the user's name, email, phone number, etc., for the screenshots. 
 
 ```yaml
 global:
-  login:
-    authAlias: admin
-    # additional user properties to overwrite user information in the UI
+  login: admin
+  # additional user properties to overwrite user information in the UI
+  user:
     id: max
     userName: Max
     firstName: Max
@@ -584,9 +584,14 @@ global:
 - **Example**: `"en"` or `"de"`
 
 **login**
-- **Type**: string | object | false
+- **Type**: string | false
 - **Description**: The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated. See the [Authentication](#authentication) section for more details.
 - **Example**: `"admin"` or `false`
+
+**user**
+- **Type**: object
+- **Description**: Additional user properties to overwrite user information in the UI. This can be useful for setting the user's name, email, phone number, etc., for the screenshots.
+- **Example**: `{ id: "max", userName: "Max", firstName: "Max", lastName: "Mustermann", phone: "+49123456789", email: "mm@test.de", displayName: "Max Mustermann" }`
 
 **shell**
 - **Type**: string
