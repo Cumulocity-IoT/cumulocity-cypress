@@ -20,7 +20,7 @@ export class C8yAjvSchemaMatcher implements C8ySchemaMatcher {
 
   constructor(metas?: AnySchemaObject[]) {
     //https://ajv.js.org/options.html
-    this.ajv = new Ajv({ strict: "log" });
+    this.ajv = new Ajv({ strict: "log", allowUnionTypes: true });
     addFormats(this.ajv, [
       "uri",
       "uri-reference",
