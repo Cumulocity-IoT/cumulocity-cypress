@@ -1605,8 +1605,18 @@
                     ]
                 },
                 "language": {
-                    "description": "Load Cumulocity with the given language",
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "Load Cumulocity with the given language"
                 },
                 "login": {
                     "anyOf": [
@@ -1770,8 +1780,18 @@
                         "type": "string"
                     },
                     "language": {
-                        "description": "Load Cumulocity with the given language",
-                        "type": "string"
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ],
+                        "description": "Load Cumulocity with the given language"
                     },
                     "login": {
                         "anyOf": [

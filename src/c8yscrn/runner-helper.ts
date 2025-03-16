@@ -100,6 +100,7 @@ export function parseSelector(selector: string): string[] {
   return result;
 }
 
-export function imageName(name: string): string {
-  return name.replace(/.png$/i, "");
+export function imageName(name: string, language?: string): string {
+  const n = name.replace(/.png$/i, "");
+  return language ? `${n}_${language}` : n;
 }
