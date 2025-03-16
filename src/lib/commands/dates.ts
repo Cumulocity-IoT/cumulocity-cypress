@@ -14,6 +14,8 @@ import * as dateFns from "date-fns";
 export { Locale } from "date-fns";
 
 import { throwError } from "../utils";
+import { isValidDate, parseDate } from "../../shared/date";
+
 const { _ } = Cypress;
 
 declare global {

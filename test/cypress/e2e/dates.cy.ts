@@ -1,4 +1,5 @@
 import * as localeTest from "./../support/test";
+import { Locale } from "cumulocity-cypress/lib/commands/dates";
 
 describe("dates", () => {
   // en: [
