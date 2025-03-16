@@ -2,11 +2,8 @@
 import localeDe from "@angular/common/locales/de";
 import localeEn from "@angular/common/locales/en-GB";
 
-// @ts-expect-error
-import buildLocalizeFn from "date-fns/locale/_lib/buildLocalizeFn";
-// @ts-expect-error
-import buildMatchFn from "date-fns/locale/_lib/buildMatchFn";
 import { shortestUniquePrefixes } from "./localeutil";
+import { Locale } from "date-fns";
 
 const { _ } = Cypress;
 
@@ -122,10 +119,6 @@ export async function registerDefaultLocales() {
   );
 }
 
-function normalizeLocaleId(localeId: string): string {
-  return localeId.toLowerCase().replace(/_/g, "-");
-}
-
 export function getNgLocale(localeId: string): any {
   const getNgLocaleData = (localeId: string) => {
     const normalizedLocale = normalizeLocaleId(localeId);
@@ -185,31 +178,6 @@ function formatDateTime(str: string, opt_values: any): string {
     });
   }
   return str;
-}
-
-export function parseDate(
-  date: string | number | Date,
-  format: string
-): Date | undefined {
-  let parsedDate: Date | undefined = undefined;
-  // try to parse as number fist, if string is passed it might be converted without format being used
-  if (_.isNumber(date)) {
-    parsedDate = new Date(date);
-  }
-
-  // parse with format
-  if (!isValidDate(parsedDate) && _.isString(date)) {
-    parsedDate = Cypress.datefns.parse(<string>date, format, new Date());
-
-    // if (!isValidDate(parsedDate) && _.isString(date)) {
-    //   parsedDate = new Date(date);
-    // }
-  }
-  return parsedDate;
-}
-
-export function isValidDate(date?: Date): boolean {
-  return date != null && !isNaN(<any>date) && _.isDate(date);
 }
 
 function isModule(module: any): boolean {
@@ -394,3 +362,88 @@ function dayValuesForLocale(locale: string): {
   };
   return result;
 }
+
+// Copied from date-fns as data-fns does not allow importing from locale files
+// See https://github.com/date-fns/date-fns/issues/3686
+
+function buildLocalizeFn(args: any) {
+  return (value: any, options: any) => {
+    const context = options?.context ? String(options.context) : "standalone";
+
+    let valuesArray;
+    if (context === "formatting" && args.formattingValues) {
+      const defaultWidth = args.defaultFormattingWidth || args.defaultWidth;
+      const width = options?.width ? String(options.width) : defaultWidth;
+
+      valuesArray =
+        args.formattingValues[width] || args.formattingValues[defaultWidth];
+    } else {
+      const defaultWidth = args.defaultWidth;
+      const width = options?.width ? String(options.width) : args.defaultWidth;
+
+      valuesArray = args.values[width] || args.values[defaultWidth];
+    }
+    const index = args.argumentCallback ? args.argumentCallback(value) : value;
+
+    return valuesArray[index];
+  };
+}
+
+export function buildMatchFn(args: any) {
+  return (string: string, options: any = {}) => {
+    const width = options.width;
+
+    const matchPattern =
+      (width && args.matchPatterns[width]) ||
+      args.matchPatterns[args.defaultMatchWidth];
+    const matchResult = string.match(matchPattern);
+
+    if (!matchResult) {
+      return null;
+    }
+    const matchedString = matchResult[0];
+
+    const parsePatterns =
+      (width && args.parsePatterns[width]) ||
+      args.parsePatterns[args.defaultParseWidth];
+
+    const key = Array.isArray(parsePatterns)
+      ? findIndex(parsePatterns, (pattern: RegExp) => pattern.test(matchedString))
+      : // [TODO] -- I challenge you to fix the type
+        findKey(parsePatterns, (pattern: RegExp) => pattern.test(matchedString));
+
+    let value;
+
+    value = args.valueCallback ? args.valueCallback(key) : key;
+    value = options.valueCallback
+      ? // [TODO] -- I challenge you to fix the type
+        options.valueCallback(value)
+      : value;
+
+    const rest = string.slice(matchedString.length);
+
+    return { value, rest };
+  };
+}
+
+function findKey(object: any, predicate: any) {
+  for (const key in object) {
+    if (
+      Object.prototype.hasOwnProperty.call(object, key) &&
+      predicate(object[key])
+    ) {
+      return key;
+    }
+  }
+  return undefined;
+}
+
+function findIndex(array: any, predicate: any) {
+  for (let key = 0; key < array.length; key++) {
+    if (predicate(array[key])) {
+      return key;
+    }
+  }
+  return undefined;
+}
+
