@@ -148,5 +148,10 @@ describe("startup", () => {
       const result = imageName("my-test-image.png.png");
       expect(result).toBe("my-test-image.png");
     });
+
+    it("should append the language if it is provided", () => {
+      const result = imageName("my-test-image.png", "de");
+      expect(result).toBe("my-test-image_de");
+    });
   });
 });
