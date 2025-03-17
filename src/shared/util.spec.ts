@@ -1,6 +1,7 @@
 import {
   get_i,
   sanitizeStringifiedObject,
+  shortestUniquePrefixes,
   toBoolean,
   toSensitiveObjectKeyPath,
 } from "./util";
@@ -205,4 +206,61 @@ describe("util", () => {
       expect(result).toBeUndefined();
     });
   });
+
+    describe("shortestUniquePrefixes", () => {
+      it("should return an empty array for empty input", () => {
+        const result = shortestUniquePrefixes([]);
+        expect(result).toEqual([]);
+      });
+  
+      it("should return an empty string for an empty word", () => {
+        const result = shortestUniquePrefixes([""]);
+        expect(result).toEqual([""]);
+      });
+  
+      it("should return empty strings for multiple empty words", () => {
+        const result = shortestUniquePrefixes(["", "", ""]);
+        expect(result).toEqual(["", "", ""]);
+      });
+  
+      it("should return the first character for a single word input", () => {
+        const result = shortestUniquePrefixes(["test"]);
+        expect(result).toEqual(["t"]);
+      });
+  
+      it("should return first characters for completely different words", () => {
+        const result = shortestUniquePrefixes(["apple", "banana", "cherry"]);
+        expect(result).toEqual(["a", "b", "c"]);
+      });
+  
+      it("should find the shortest unique prefixes for words with common prefixes", () => {
+        const result = shortestUniquePrefixes([
+          "apple",
+          "application",
+          "apartment",
+        ]);
+        expect(result).toEqual(["apple", "appli", "apa"]);
+      });
+  
+      it("should handle words where one is a prefix of another", () => {
+        const result = shortestUniquePrefixes(["test", "test", "testing"]);
+        expect(result).toEqual(["test", "test", "testi"]);
+      });
+  
+      it("should not add prefixes for duplicate words", () => {
+        const result = shortestUniquePrefixes(["same", "same", "different"]);
+        expect(result).toEqual(["same", "same", "d"]);
+      });
+  
+      it("should handle complex combinations", () => {
+        const result = shortestUniquePrefixes(["dog", "doll", "donut", "cat"]);
+        expect(result).toEqual(["dog", "dol", "don", "c"]);
+      });
+  
+      it("should handle case sensitivity", () => {
+        const result = shortestUniquePrefixes(["Test", "test"]);
+        expect(result).toEqual(["T", "t"]);
+      });
+    });
+  
 });

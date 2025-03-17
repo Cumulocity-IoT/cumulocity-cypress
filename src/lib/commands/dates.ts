@@ -3,17 +3,19 @@ import {
   NgLocaleDataIndex,
   getNgLocale,
   getNgLocaleId,
-  isValidDate,
   localizedDateFormat,
   localizedDateTimeFormat,
   localizedTimeFormat,
-  parseDate,
   registerDefaultLocales,
   registerLocale,
 } from "../locale/locale";
 
-import * as datefns from "date-fns";
+import * as dateFns from "date-fns";
+export { Locale } from "date-fns";
+
 import { throwError } from "../utils";
+import { isValidDate, parseDate } from "../../shared/date";
+
 const { _ } = Cypress;
 
 declare global {
@@ -118,8 +120,7 @@ declare global {
     }
 
     interface Cypress {
-      /** Date functions provided by date-fns.org. */
-      datefns: dateFns;
+      datefns: typeof dateFns;
     }
   }
 
@@ -166,7 +167,7 @@ declare global {
   function setLocale(localeId: string): void;
 }
 
-Cypress.datefns = datefns;
+Cypress.datefns = dateFns;
 
 const defaultOptions: ISODateOptions = {
   log: true,
