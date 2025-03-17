@@ -271,13 +271,11 @@ export interface ScrollToAction {
   element?: string | ({ offset?: [number, number] } & Selectable);
   /**
    * The position to scroll to. The default is 'top'. Provide a string, an array of strings, or a number to scroll to a specific position.
-   * @examples ["top", "bottom", "100px", ["top", "100px"], [0, 100], ["0%", "25%"]]
+   * @examples ["top", "bottom", ["top", "100px"], [0, 100], ["0%", "25%"]]
    */
   position?:
     | CyPositionType
-    | string
     | [string, string]
-    | number
     | [number, number];
 }
 
