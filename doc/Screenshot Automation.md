@@ -62,6 +62,9 @@ Contents of this document:
 - [Environment Variables](#environment-variables)
 - [Authentication](#authentication)
 - [Selectors](#selectors)
+  - [Localization of Selectors](#localization-of-selectors)
+  - [Using the `localized` Property](#using-the-localized-property)
+  - [Using the `language` Property](#using-the-language-property)
 - [Diffing](#diffing)
 - [Tags](#tags)
 - [Version Requirements](#version-requirements)
@@ -416,6 +419,41 @@ The names can be used for any `selector` property in the screenshot configuratio
   selector: rightDrawerHeader
 ```
 
+### Localization of Selectors
+
+When creating screenshots for applications that support multiple languages, you may encounter selectors that need to be different based on the current language of the application. The screenshot automation tool provides two ways to handle localized selectors:
+
+### Using the `localized` Property
+
+The `localized` property allows you to specify different selectors for different languages. The system will automatically use the selector that matches the current language of the application.
+
+**Example:**
+```yaml
+- click:
+    selector:
+      localized:
+        en: .btn:contains("Enum"):first
+        de: .btn:contains("Aufzählung"):first
+```
+
+In this example, the `click` action will use the `.btn:contains("Enum"):first` selector when the language is set to English (`en`) and the `.btn:contains("Aufzählung"):first` selector when the language is set to German (`de`). If the current language is neither English nor German, the action will be skipped.
+
+### Using the `language` Property
+
+The `language` property allows you to specify a language or list of languages the selector works with. If the current language does not match any of the specified languages, the action will be skipped.
+
+**Example:**
+```yaml
+- click:
+    selector: .btn:contains("Aufzählung"):first
+      language: de
+- click:
+    selector: .btn:contains("Enum"):first
+      language: en
+```
+
+In this example, the first `click` action will only be executed when the language is set to German (`de`), and the second action will only be executed when the language is set to English (`en`).
+
 ## Diffing
 
 When diffing is enabled, `c8yscrn` compares the new screenshots with the existing ones in the target folder and generates diff images that highlight the differences. Please note, diffing might only work as expected when overwriting existing screenshots. If there is no screenshot at the target location, diffing obviously won't work.
@@ -542,7 +580,7 @@ The `global` object can contain the following properties:
 global:
   viewportWidth: number
   viewportHeight: number
-  language: string
+  language: string | string[]
   user: string
   shell: string
   requires: string

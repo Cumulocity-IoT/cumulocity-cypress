@@ -473,15 +473,42 @@ export interface Action {
   wait?: number | WaitAction;
 }
 
-export type DataCySelector = {
-  "data-cy": string;
+type SelectorDataCyProperties = {
+  "data-cy"?: string;
 };
+
+type SelectorLanguageProperties = {
+  /**
+   * The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.
+   * If language is not supported by the selector, the selector is ignored.
+   * @examples ["en", "de", ["en", "de"]]   
+   */
+  language?: string | string[];
+};
+
+type SelectorLocalizedProperties = {
+  /**
+   * Language key and localized selector mapping. Use for example to select elements based on the language of the application.
+   * @examples [{ "de": "span.label-info:not(:contains('Objekt'))", "en": "span.label-info:not(:contains('Object'))" }]
+   */
+  localized?: {
+    [key: string]: string;
+  };
+};
+
+type SelectorProperties =
+  | SelectorDataCyProperties
+  | SelectorLanguageProperties
+  | SelectorLocalizedProperties;
 
 export type Selector = {
-  selector: string | DataCySelector;
+  /**
+   * The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element.
+   */
+  selector: string | SelectorProperties;
 };
 
-export type Selectable = Selector | DataCySelector;
+export type Selectable = Selector | SelectorProperties;
 
 export type SharedSelector = {
   [key: string]: string;
