@@ -459,8 +459,8 @@ export class C8yScreenshotRunner {
     } else if ("position" in action && action.position != null) {
       if (_.isArray(action.position)) {
         cy.scrollTo(action.position[0], action.position[1]);
-      } else {
-        cy.scrollTo(action.position);
+      } else if (_.isString(action.position)) {
+        cy.scrollTo(action.position as Cypress.PositionType);
       }
     } else if ("element" in action) {
       selector = getSelector(action.element, this.config.selectors);

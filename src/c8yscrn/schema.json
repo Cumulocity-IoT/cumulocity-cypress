@@ -3422,17 +3422,24 @@
                             "type": "array"
                         },
                         {
-                            "type": [
-                                "string",
-                                "number"
-                            ]
+                            "enum": [
+                                "bottom",
+                                "bottomLeft",
+                                "bottomRight",
+                                "center",
+                                "left",
+                                "right",
+                                "top",
+                                "topLeft",
+                                "topRight"
+                            ],
+                            "type": "string"
                         }
                     ],
                     "description": "The position to scroll to. The default is 'top'. Provide a string, an array of strings, or a number to scroll to a specific position.",
                     "examples": [
                         "top",
                         "bottom",
-                        "100px",
                         [
                             "top",
                             "100px"
