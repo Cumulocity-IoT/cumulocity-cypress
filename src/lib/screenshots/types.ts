@@ -47,7 +47,7 @@ export interface GlobalOptions {
 
 export type SemverRange = string;
 
-export type LoginUserType = Partial<
+type UserType = Partial<
   Pick<
     IUser,
     | "userName"
@@ -84,7 +84,7 @@ export interface ScreenshotOptions {
   /**
    * A user object with properties used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.
    */
-  user?: string | LoginUserType;
+  user?: string | UserType;
   /**
    * The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.
    * @examples [["admin", false]]

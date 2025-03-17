@@ -10,7 +10,6 @@ import { C8yHighlightStyleDefaults } from "../shared/types";
 import {
   Action,
   C8yScreenshotFileUploadOptions,
-  LoginUserType,
   Screenshot,
   ScreenshotSetup,
   SelectableHighlightAction,
