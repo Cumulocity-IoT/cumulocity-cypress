@@ -47,12 +47,7 @@ export interface GlobalOptions {
 
 export type SemverRange = string;
 
-export type LoginUserType = {
-  /**
-   * The alias of the user to login. The alias is used to reference the username and password to login from env variables.
-   */
-  authAlias: string;
-} & Partial<
+type UserType = Partial<
   Pick<
     IUser,
     | "userName"
@@ -87,16 +82,14 @@ export interface ScreenshotOptions {
    */
   language?: "en" | "de" | string | string[];
   /**
-   * Use login instead of user
-   * @deprecated Use login instead
+   * A user object with properties used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.
    */
-  user?: string;
+  user?: string | UserType;
   /**
    * The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.
-   * If a user object is provided, the user to login is taken from userAlias property. All other properties are used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.
    * @examples [["admin", false]]
    */
-  login?: string | LoginUserType | false;
+  login?: string | false;
   /**
    * The date to simulate when running the screenshot workflows
    * @format date-time

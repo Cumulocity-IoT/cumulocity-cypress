@@ -10,7 +10,6 @@ import { C8yHighlightStyleDefaults } from "../shared/types";
 import {
   Action,
   C8yScreenshotFileUploadOptions,
-  LoginUserType,
   Screenshot,
   ScreenshotSetup,
   SelectableHighlightAction,
@@ -101,19 +100,19 @@ export class C8yScreenshotRunner {
       }
     );
 
-    const login = global?.login ?? global?.user;
-    let user: LoginUserType | undefined;
-    if (_.isString(login)) {
-      user = { authAlias: login };
-    } else if (_.isObject(login) && "authAlias" in login) {
-      user = login;
+    let globalLogin = global?.login;
+    if (_.isString(global?.user) && globalLogin == null) {
+      // backwards compatibility
+      globalLogin = global.user;
     }
 
     describe(this.config.title ?? `screenshot workflow`, () => {
       before(() => {
-        cy.wrap(user);
-        cy.getAuth(user?.authAlias as any).then((auth) => {
-          if (auth != null && login !== false) {
+        (_.isString(globalLogin)
+          ? cy.getAuth(globalLogin)
+          : cy.wrap(undefined)
+        ).then((auth) => {
+          if (auth != null && globalLogin !== false) {
             cy.wrap(auth, { log: false })
               .getShellVersion(global?.shell)
               .then((version) => {
@@ -130,7 +129,7 @@ export class C8yScreenshotRunner {
               });
           } else {
             const hint =
-              login === false
+              globalLogin === false
                 ? "Login disabled."
                 : "No login or auth configured.";
             debug(
@@ -151,20 +150,6 @@ export class C8yScreenshotRunner {
         Cypress.session.clearAllSavedSessions();
         if (Cypress.env("C8YCTRL_MODE") != null) {
           cy.wrap(c8yctrl(), { log: false });
-        }
-
-        if (_.isObject(user)) {
-          cy.intercept(
-            { method: "GET", pathname: `/user/currentUser*` },
-            (req) => {
-              req.continue((res) => {
-                res.body = {
-                  ...res.body,
-                  ..._.omit(user, "authAlias"),
-                };
-              });
-            }
-          ).as("currentUser");
         }
       });
 
@@ -201,13 +186,16 @@ export class C8yScreenshotRunner {
             annotations,
             // @ts-expect-error
             () => {
-              const login =
+              let login =
                 item.login ?? global?.login ?? item.user ?? global?.user;
+              const skipLogin = login === false;
+              if (!_.isString(login)) {
+                login = undefined;
+              }
 
               debug(`Running screenshot: ${item.image}`);
               debug(`Using annotations: ${JSON.stringify(annotations)}`);
 
-              const user = login === false ? undefined : login;
               const width =
                 item.settings?.viewportWidth ?? global?.viewportWidth ?? 1440;
               const height =
@@ -228,23 +216,43 @@ export class C8yScreenshotRunner {
                 cy.clock(new Date(visitDate));
               }
 
-              cy.getAuth(user as any).then((auth) => {
-                if (auth != null && login !== false) {
-                  const username = auth.user ?? auth.username ?? auth.userAlias;
-                  debug(`Logging in as ${username}`);
-                  cy.wrap(auth, { log: false }).login();
-                } else {
-                  if (login !== false) {
-                    debug(
-                      `Skipped login. ${
-                        user ? user + "not" : "No login or auth"
-                      } configured.`
-                    );
+              const user = item.user ?? global?.user;
+              if (user != null && _.isObject(user)) {
+                if (_.isObject(user)) {
+                  cy.intercept(
+                    { method: "GET", pathname: `/user/currentUser*` },
+                    (req) => {
+                      req.continue((res) => {
+                        res.body = {
+                          ...res.body,
+                          ...user,
+                        };
+                      });
+                    }
+                  ).as("currentUser");
+                }
+              }
+
+              (_.isString(login) ? cy.getAuth(login) : cy.wrap(undefined)).then(
+                (auth) => {
+                  if (auth != null && !skipLogin) {
+                    const username =
+                      auth.user ?? auth.username ?? auth.userAlias;
+                    debug(`Logging in as ${username}`);
+                    cy.wrap(auth, { log: false }).login();
                   } else {
-                    debug(`Skipped login. Login is disabled.`);
+                    if (!skipLogin) {
+                      debug(
+                        `Skipped login. ${
+                          user ? user + "not" : "No login or auth"
+                        } configured.`
+                      );
+                    } else {
+                      debug(`Skipped login. Login is disabled.`);
+                    }
                   }
                 }
-              });
+              );
 
               const visitObject = this.getVisitObject(item.visit);
               const url = visitObject?.url ?? (item.visit as string);
