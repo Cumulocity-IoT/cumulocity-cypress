@@ -101,72 +101,56 @@ export class C8yScreenshotRunner {
       }
     );
 
-    let login = global?.login;
-    let user: LoginUserType | undefined = undefined;
-    if (_.isObject(global?.user)) {
-      user = global.user;
-    } else if (_.isString(global?.user) && login == null) {
+    let globalLogin = global?.login;
+    if (_.isString(global?.user) && globalLogin == null) {
       // backwards compatibility
-      login = global.user;
+      globalLogin = global.user;
     }
 
     describe(this.config.title ?? `screenshot workflow`, () => {
       before(() => {
-        (_.isString(login) ? cy.getAuth(login) : cy.wrap(undefined)).then(
-          (auth) => {
-            if (auth != null && login !== false) {
-              cy.wrap(auth, { log: false })
-                .getShellVersion(global?.shell)
-                .then((version) => {
-                  debug(
-                    `Set shell version ${version} for ${
-                      global?.shell ?? Cypress.env("C8Y_SHELL_NAME")
-                    } `
-                  );
-                });
-              cy.wrap(auth, { log: false })
-                .getTenantId()
-                .then((tenantId) => {
-                  debug(`Set tenantId ${tenantId} `);
-                });
-            } else {
-              const hint =
-                login === false
-                  ? "Login disabled."
-                  : "No login or auth configured.";
-              debug(
-                `Skipped setting shellVersion. ${hint} Falling back to C8Y_SHELL_VERSION: ${Cypress.env(
-                  "C8Y_SHELL_VERSION"
-                )}`
-              );
-              debug(
-                `Skipped setting tenantId. ${hint} Falling back to C8Y_TENANT: ${Cypress.env(
-                  "C8Y_TENANT"
-                )}`
-              );
-            }
+        (_.isString(globalLogin)
+          ? cy.getAuth(globalLogin)
+          : cy.wrap(undefined)
+        ).then((auth) => {
+          if (auth != null && globalLogin !== false) {
+            cy.wrap(auth, { log: false })
+              .getShellVersion(global?.shell)
+              .then((version) => {
+                debug(
+                  `Set shell version ${version} for ${
+                    global?.shell ?? Cypress.env("C8Y_SHELL_NAME")
+                  } `
+                );
+              });
+            cy.wrap(auth, { log: false })
+              .getTenantId()
+              .then((tenantId) => {
+                debug(`Set tenantId ${tenantId} `);
+              });
+          } else {
+            const hint =
+              globalLogin === false
+                ? "Login disabled."
+                : "No login or auth configured.";
+            debug(
+              `Skipped setting shellVersion. ${hint} Falling back to C8Y_SHELL_VERSION: ${Cypress.env(
+                "C8Y_SHELL_VERSION"
+              )}`
+            );
+            debug(
+              `Skipped setting tenantId. ${hint} Falling back to C8Y_TENANT: ${Cypress.env(
+                "C8Y_TENANT"
+              )}`
+            );
           }
-        );
+        });
       });
 
       beforeEach(() => {
         Cypress.session.clearAllSavedSessions();
         if (Cypress.env("C8YCTRL_MODE") != null) {
           cy.wrap(c8yctrl(), { log: false });
-        }
-
-        if (_.isObject(user)) {
-          cy.intercept(
-            { method: "GET", pathname: `/user/currentUser*` },
-            (req) => {
-              req.continue((res) => {
-                res.body = {
-                  ...res.body,
-                  ...user,
-                };
-              });
-            }
-          ).as("currentUser");
         }
       });
 
@@ -203,13 +187,16 @@ export class C8yScreenshotRunner {
             annotations,
             // @ts-expect-error
             () => {
-              const login =
+              let login =
                 item.login ?? global?.login ?? item.user ?? global?.user;
+              const skipLogin = login === false;
+              if (!_.isString(login)) {
+                login = undefined;
+              }
 
               debug(`Running screenshot: ${item.image}`);
               debug(`Using annotations: ${JSON.stringify(annotations)}`);
 
-              const user = login === false ? undefined : login;
               const width =
                 item.settings?.viewportWidth ?? global?.viewportWidth ?? 1440;
               const height =
@@ -230,23 +217,43 @@ export class C8yScreenshotRunner {
                 cy.clock(new Date(visitDate));
               }
 
-              cy.getAuth(user as any).then((auth) => {
-                if (auth != null && login !== false) {
-                  const username = auth.user ?? auth.username ?? auth.userAlias;
-                  debug(`Logging in as ${username}`);
-                  cy.wrap(auth, { log: false }).login();
-                } else {
-                  if (login !== false) {
-                    debug(
-                      `Skipped login. ${
-                        user ? user + "not" : "No login or auth"
-                      } configured.`
-                    );
+              const user = item.user ?? global?.user;
+              if (user != null && _.isObject(user)) {
+                if (_.isObject(user)) {
+                  cy.intercept(
+                    { method: "GET", pathname: `/user/currentUser*` },
+                    (req) => {
+                      req.continue((res) => {
+                        res.body = {
+                          ...res.body,
+                          ...user,
+                        };
+                      });
+                    }
+                  ).as("currentUser");
+                }
+              }
+
+              (_.isString(login) ? cy.getAuth(login) : cy.wrap(undefined)).then(
+                (auth) => {
+                  if (auth != null && !skipLogin) {
+                    const username =
+                      auth.user ?? auth.username ?? auth.userAlias;
+                    debug(`Logging in as ${username}`);
+                    cy.wrap(auth, { log: false }).login();
                   } else {
-                    debug(`Skipped login. Login is disabled.`);
+                    if (!skipLogin) {
+                      debug(
+                        `Skipped login. ${
+                          user ? user + "not" : "No login or auth"
+                        } configured.`
+                      );
+                    } else {
+                      debug(`Skipped login. Login is disabled.`);
+                    }
                   }
                 }
-              });
+              );
 
               const visitObject = this.getVisitObject(item.visit);
               const url = visitObject?.url ?? (item.visit as string);
