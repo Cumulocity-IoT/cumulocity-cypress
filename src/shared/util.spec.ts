@@ -1,4 +1,5 @@
 import {
+  buildTestHierarchy,
   get_i,
   sanitizeStringifiedObject,
   toBoolean,
@@ -203,6 +204,113 @@ describe("util", () => {
       const obj = { test: "test", Complex: { key: { token: "value" } } };
       const result = get_i(obj, "");
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe("buildTestHierarchy", () => {
+    it("should build a test hierarchy tree", () => {
+      const objects = [
+        { name: "test1", type: "type1" },
+        { name: "test2", type: "type2" },
+        { name: "test3", type: "type3" },
+        { name: "test4", type: "type4" },
+      ];
+      const tree = buildTestHierarchy(objects, (obj) => [obj.type, obj.name]);
+      expect(tree).toEqual({
+        type1: { test1: { name: "test1", type: "type1" } },
+        type2: { test2: { name: "test2", type: "type2" } },
+        type3: { test3: { name: "test3", type: "type3" } },
+        type4: { test4: { name: "test4", type: "type4" } },
+      });
+    });
+
+    it("should build a test hierarchy tree with multiple levels", () => {
+      const objects = [
+        { name: "test1", type: "type1", group: "group1" },
+        { name: "test2", type: "type2", group: "group2" },
+        { name: "test3", type: "type3", group: "group3" },
+        { name: "test4", type: "type4", group: "group4" },
+      ];
+      const tree = buildTestHierarchy(objects, (obj) => [
+        obj.type,
+        obj.group,
+        obj.name,
+      ]);
+      expect(tree).toEqual({
+        type1: {
+          group1: { test1: { name: "test1", type: "type1", group: "group1" } },
+        },
+        type2: {
+          group2: { test2: { name: "test2", type: "type2", group: "group2" } },
+        },
+        type3: {
+          group3: { test3: { name: "test3", type: "type3", group: "group3" } },
+        },
+        type4: {
+          group4: { test4: { name: "test4", type: "type4", group: "group4" } },
+        },
+      });
+    });
+
+    it("should build a test hierarchy tree with multiple levels and multiple objects", () => {
+      const objects = [
+        { name: "test1", type: "type1", group: "group1" },
+        { name: "test2", type: "type2", group: "group2" },
+        { name: "test3", type: "type3", group: "group3" },
+        { name: "test4", type: "type4", group: "group4" },
+        { name: "test5", type: "type1", group: "group1" },
+        { name: "test6", type: "type2", group: "group2" },
+        { name: "test7", type: "type3", group: "group3" },
+        { name: "test8", type: "type4", group: "group4" },
+      ];
+      const tree = buildTestHierarchy(objects, (obj) => [
+        obj.type,
+        obj.group,
+        obj.name,
+      ]);
+      expect(tree).toEqual({
+        type1: {
+          group1: {
+            test1: { name: "test1", type: "type1", group: "group1" },
+            test5: { name: "test5", type: "type1", group: "group1" },
+          },
+        },
+        type2: {
+          group2: {
+            test2: { name: "test2", type: "type2", group: "group2" },
+            test6: { name: "test6", type: "type2", group: "group2" },
+          },
+        },
+        type3: {
+          group3: {
+            test3: { name: "test3", type: "type3", group: "group3" },
+            test7: { name: "test7", type: "type3", group: "group3" },
+          },
+        },
+        type4: {
+          group4: {
+            test4: { name: "test4", type: "type4", group: "group4" },
+            test8: { name: "test8", type: "type4", group: "group4" },
+          },
+        },
+      });
+    });
+
+    it("should handle empty objects", () => {
+      const objects: any[] = [];
+      const tree = buildTestHierarchy(objects, (obj) => []);
+      expect(tree).toEqual({});
+    });
+
+    it("should handle empty title function", () => {
+      const objects = [
+        { name: "test1", type: "type1" },
+        { name: "test2", type: "type2" },
+        { name: "test3", type: "type3" },
+        { name: "test4", type: "type4" },
+      ];
+      const tree = buildTestHierarchy(objects, (obj) => []);
+      expect(tree).toEqual({});
     });
   });
 });
