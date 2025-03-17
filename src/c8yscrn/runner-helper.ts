@@ -4,7 +4,8 @@ import { ScreenshotSetup, Selector } from "../lib/screenshots/types";
 
 export function getSelector(
   selector: any | string | undefined,
-  predefined?: ScreenshotSetup["selectors"]
+  predefined?: ScreenshotSetup["selectors"],
+  language?: string
 ): string | undefined {
   if (!selector) return undefined;
 
@@ -13,7 +14,7 @@ export function getSelector(
     const sharedSelector = _.isArray(predefined)
       ? _.get(_.first(predefined.filter((s) => name in s)), name)
       : _.get(predefined, name);
-      
+
     return sharedSelector ?? name;
   };
 
@@ -22,13 +23,17 @@ export function getSelector(
     let result = name;
     if (_.isArray(predefined)) {
       for (const item of predefined) {
-        const sortedKeys = Object.keys(item).sort((a, b) => b.length - a.length);
+        const sortedKeys = Object.keys(item).sort(
+          (a, b) => b.length - a.length
+        );
         for (const key of sortedKeys) {
-            result = result.split(key).join(item[key]);
+          result = result.split(key).join(item[key]);
         }
       }
     } else {
-      const sortedKeys = Object.keys(predefined).sort((a, b) => b.length - a.length);
+      const sortedKeys = Object.keys(predefined).sort(
+        (a, b) => b.length - a.length
+      );
       for (const key of sortedKeys) {
         result = result.split(key).join(predefined[key]);
       }
@@ -43,8 +48,21 @@ export function getSelector(
   if (_.isString(selector)) {
     return getResolvedSelector(selector);
   }
-  
+
   if (_.isPlainObject(selector)) {
+    if (language != null) {
+      if ("localized" in selector ) {
+        return selector.localized[language];
+      }
+      if ("language" in selector) {
+        const l = selector.language;
+        if (_.isArray(l) && !l.includes(language)) {
+          return undefined;
+        } else if (_.isString(l) && l !== language) {
+          return undefined;
+        }
+      }
+    }
     if ("data-cy" in selector) {
       return `[data-cy=${_.get(selector, "data-cy")}]`;
     }
@@ -52,7 +70,7 @@ export function getSelector(
       return getSelector(selector.selector as Selector, predefined);
     }
   }
-  
+
   return undefined;
 }
 
