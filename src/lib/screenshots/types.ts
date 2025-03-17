@@ -3,6 +3,7 @@
 // using & to combine types is not supported by JSON schema and will
 // result in copying the properties of the intersection into the resulting
 // subschemas.
+import { IUser } from "@c8y/client";
 import { C8yBaseUrl, C8yHighlightOptions } from "../../shared/types";
 import { ODiffOptions } from "odiff-bin";
 
@@ -46,6 +47,19 @@ export interface GlobalOptions {
 
 export type SemverRange = string;
 
+type UserType = Partial<
+  Pick<
+    IUser,
+    | "userName"
+    | "firstName"
+    | "lastName"
+    | "email"
+    | "phone"
+    | "id"
+    | "displayName"
+  >
+>;
+
 export interface ScreenshotOptions {
   /**
    * Tags allow grouping and filtering of screenshots (optional)
@@ -66,12 +80,11 @@ export interface ScreenshotOptions {
    * Load Cumulocity with the given language
    * @example "en"
    */
-  language?: "en" | "de" | string;
+  language?: "en" | "de" | string | string[];
   /**
-   * Use login instead of user
-   * @deprecated Use login instead
+   * A user object with properties used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.
    */
-  user?: string;
+  user?: string | UserType;
   /**
    * The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.
    * @examples [["admin", false]]
@@ -238,6 +251,34 @@ export interface ClickAction {
   force?: boolean;
 }
 
+// Cypress.PositionType
+type CyPositionType =
+  | "topLeft"
+  | "top"
+  | "topRight"
+  | "left"
+  | "center"
+  | "right"
+  | "bottomLeft"
+  | "bottom"
+  | "bottomRight";
+
+export interface ScrollToAction {
+  /**
+   * The element to scroll to. Requires a selector or a DOM element. If the element is not visible, the page is scrolled to make the element visible.
+   * The offset is applied when the element has been scrolled into view. The offset represents left and right pixel to scroll.
+   */
+  element?: string | ({ offset?: [number, number] } & Selectable);
+  /**
+   * The position to scroll to. The default is 'top'. Provide a string, an array of strings, or a number to scroll to a specific position.
+   * @examples ["top", "bottom", ["top", "100px"], [0, 100], ["0%", "25%"]]
+   */
+  position?:
+    | CyPositionType
+    | [string, string]
+    | [number, number];
+}
+
 export interface TypeAction {
   /**
    * The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.
@@ -250,6 +291,11 @@ export interface TypeAction {
    * @default false
    */
   clear?: boolean;
+  /**
+   * If true, the element is blurred after typing to remove the focus. The default is false.
+   * @default false
+   */
+  blur?: boolean;
   /**
    * The submit selector is triggered for every entry value. Use to go over multistep forms. If the submit selector is not found, the form is not automatically continued and multistep finishes.
    */
@@ -321,7 +367,12 @@ export interface UploadFileAction {
   mimeType?: string;
 }
 
-export interface HighlightAction extends C8yHighlightOptions {}
+export interface HighlightAction extends C8yHighlightOptions {
+  /**
+   * The outline offset. The default is -2px.
+   */
+  offset?: string;
+}
 
 export type SelectableHighlightAction = HighlightAction & Selectable;
 
@@ -372,6 +423,10 @@ export interface ScreenshotAction {
 
 export interface Action {
   /**
+   * A blur action triggers a blur event on the selected DOM element to remove focus.
+   */
+  blur?: string | Selectable | true;
+  /**
    * A click action triggers a click event on the selected DOM element.
    */
   click?: string | (ClickAction & Selectable);
@@ -380,17 +435,27 @@ export interface Action {
    */
   fileUpload?: string | (UploadFileAction & Selectable);
   /**
+   * A focus action triggers a focus event on the selected DOM element.
+   */
+  focus?: string | Selectable;
+  /**
    * Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.
+   * To clear existing highlights, set the clear property to true.
    */
   highlight?:
     | string
     | string[]
     | SelectableHighlightAction
-    | (string | SelectableHighlightAction)[];
+    | (string | SelectableHighlightAction)[]
+    | { clear: true };
   /**
    * The screenshot action triggers a screenshot of the current state of the application.
    */
   screenshot?: string | (ScreenshotAction & Partial<Selectable>);
+  /**
+   * A scroll action scrolls the page to a specific position or element. Use the position property to scroll to a specific position or the element property to scroll to a selected DOM element.
+   */
+  scrollTo?: string | ScrollToAction | Selectable;
   /**
    * A text action modifies the text value of selected DOM element.
    */
@@ -406,15 +471,42 @@ export interface Action {
   wait?: number | WaitAction;
 }
 
-export type DataCySelector = {
-  "data-cy": string;
+type SelectorDataCyProperties = {
+  "data-cy"?: string;
 };
+
+type SelectorLanguageProperties = {
+  /**
+   * The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.
+   * If language is not supported by the selector, the selector is ignored.
+   * @examples ["en", "de", ["en", "de"]]   
+   */
+  language?: string | string[];
+};
+
+type SelectorLocalizedProperties = {
+  /**
+   * Language key and localized selector mapping. Use for example to select elements based on the language of the application.
+   * @examples [{ "de": "span.label-info:not(:contains('Objekt'))", "en": "span.label-info:not(:contains('Object'))" }]
+   */
+  localized?: {
+    [key: string]: string;
+  };
+};
+
+type SelectorProperties =
+  | SelectorDataCyProperties
+  | SelectorLanguageProperties
+  | SelectorLocalizedProperties;
 
 export type Selector = {
-  selector: string | DataCySelector;
+  /**
+   * The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element.
+   */
+  selector: string | SelectorProperties;
 };
 
-export type Selectable = Selector | DataCySelector;
+export type Selectable = Selector | SelectorProperties;
 
 export type SharedSelector = {
   [key: string]: string;

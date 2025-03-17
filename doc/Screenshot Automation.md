@@ -58,9 +58,13 @@ Contents of this document:
     - [Installation](#installation-1)
     - [Configuration](#configuration)
     - [Add a Test File for Screenshot workflow](#add-a-test-file-for-screenshot-workflow)
+    - [Custom Commands](#custom-commands)
 - [Environment Variables](#environment-variables)
 - [Authentication](#authentication)
 - [Selectors](#selectors)
+  - [Localization of Selectors](#localization-of-selectors)
+  - [Using the `localized` Property](#using-the-localized-property)
+  - [Using the `language` Property](#using-the-language-property)
 - [Diffing](#diffing)
 - [Tags](#tags)
 - [Version Requirements](#version-requirements)
@@ -249,6 +253,44 @@ describe('My Custom Screenshot Automation', () => {
 
 When integrating into an existing Cypress project, you'll use the `C8yScreenshotRunner` in your test files. See the "Using C8yScreenshotRunner in Your Project" section for details.
 
+#### Custom Commands
+
+The following custom commands can be helpful when writing your own Cypress tests for automating screenshots:
+
+**cy.highlight**
+
+With `cy.highlight`, you can highlight elements on the page. This can be useful for drawing attention to specific parts of the UI in documentation screenshots. It allows highlighting single or multiple elements and takes CSS styles as options. 
+
+```typescript
+cy.get(".bottom-drawer .card-footer .btn-primary").highlight();
+```
+
+This example highlights the primary button in the footer of a card in the bottom drawer by applying the default highlight style. The default style is a solid orange border with a width of 2px defined as `C8yHighlightStyleDefaults`.
+
+You can also customize the highlight style by passing an object with CSS properties to the `highlight` command:
+
+```typescript
+cy.get(".bottom-drawer .card-footer .btn-primary").highlight(
+  { "background-color: yellow", "outline: dashed", "outline-offset: +3px" },
+);
+```
+
+Using `cy.clearHighlights`, you can remove all previously applied highlights from the page. This is useful for workflows that take more than one screenshot.
+
+For more information see the js doc for `cy.highlight`, `cy.clearHighlights` and `C8yHighlightStyleDefaults`.
+
+**cy.screenshot**
+
+By importing `cumulocity-cypress/commands/screenshot`, a custom implementation of the `cy.screenshot` command is provided. This allows you to take screenshots of multiple DOM elements. For screenshots of single DOM elements or the viewport, the default Cypress implementation is be used.
+
+When taking screenshots of multiple DOM elements, the union rect of all elements is calculated and a screenshot is taken of the bounding box. This can be useful for capturing complex UI components that span multiple elements. By applying padding to the elements, you can expand the captured area around the specified elements.
+
+```typescript
+import "cumulocity-cypress/commands/screenshot";
+
+cy.get(".bottom-drawer .card-footer .btn, ").screenshot({ padding: [10, 20]});
+```
+
 ## Environment Variables
 
 Environment variables can be used to overwrite configuration settings in the `c8yscrn.config.yaml` file. This can be useful for setting sensitive information like usernames and passwords, or for providing values for CI/CD environments.
@@ -285,6 +327,22 @@ The `login` property refers to an alias that is used to look up the actual user 
 ```yaml
 global:
   login: admin
+```
+
+You can also provide additional `user` property to overwrite user information in the UI. This can be useful for setting the user's name, email, phone number, etc., for the screenshots. 
+
+```yaml
+global:
+  login: admin
+  # additional user properties to overwrite user information in the UI
+  user:
+    id: max
+    userName: Max
+    firstName: Max
+    lastName: Mustermann
+    phone: "+49123456789"
+    email: "max.mustermann@email.test"
+    displayName: "Max Mustermann"
 ```
 
 Define `admin` alias in `.c8yscrn` file:
@@ -360,6 +418,41 @@ The names can be used for any `selector` property in the screenshot configuratio
 - click:
   selector: rightDrawerHeader
 ```
+
+### Localization of Selectors
+
+When creating screenshots for applications that support multiple languages, you may encounter selectors that need to be different based on the current language of the application. The screenshot automation tool provides two ways to handle localized selectors:
+
+### Using the `localized` Property
+
+The `localized` property allows you to specify different selectors for different languages. The system will automatically use the selector that matches the current language of the application.
+
+**Example:**
+```yaml
+- click:
+    selector:
+      localized:
+        en: .btn:contains("Enum"):first
+        de: .btn:contains("Aufzählung"):first
+```
+
+In this example, the `click` action will use the `.btn:contains("Enum"):first` selector when the language is set to English (`en`) and the `.btn:contains("Aufzählung"):first` selector when the language is set to German (`de`). If the current language is neither English nor German, the action will be skipped.
+
+### Using the `language` Property
+
+The `language` property allows you to specify a language or list of languages the selector works with. If the current language does not match any of the specified languages, the action will be skipped.
+
+**Example:**
+```yaml
+- click:
+    selector: .btn:contains("Aufzählung"):first
+      language: de
+- click:
+    selector: .btn:contains("Enum"):first
+      language: en
+```
+
+In this example, the first `click` action will only be executed when the language is set to German (`de`), and the second action will only be executed when the language is set to English (`en`).
 
 ## Diffing
 
@@ -487,7 +580,7 @@ The `global` object can contain the following properties:
 global:
   viewportWidth: number
   viewportHeight: number
-  language: string
+  language: string | string[]
   user: string
   shell: string
   requires: string
@@ -528,6 +621,11 @@ global:
 - **Type**: string | false
 - **Description**: The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated. See the [Authentication](#authentication) section for more details.
 - **Example**: `"admin"` or `false`
+
+**user**
+- **Type**: object
+- **Description**: Additional user properties to overwrite user information in the UI. This can be useful for setting the user's name, email, phone number, etc., for the screenshots.
+- **Example**: `{ id: "max", userName: "Max", firstName: "Max", lastName: "Mustermann", phone: "+49123456789", email: "mm@test.de", displayName: "Max Mustermann" }`
 
 **shell**
 - **Type**: string
@@ -696,6 +794,67 @@ Actions allow you to interact with the page before taking a screenshot. Availabl
 ```
 Clicks on the specified element. Use the `multiple` option to click on all matching elements, and the `force` option to bypass the element's visibility check. `force` is enabled by default.
 
+**blur**
+```yaml
+- blur: string or object
+```
+Triggers a blur event on the selected DOM element to remove focus. If no selector or `true` is provided, the blur event is triggered on the currently focused element.
+
+```yaml
+- blur: "#inputField"
+```
+
+or to blur the currently focused element:
+
+```yaml
+- blur: true
+```
+
+**focus**
+```yaml
+- focus: string or object
+```
+Triggers a focus event on the selected DOM element.
+
+```yaml
+- focus: "#inputField"
+```
+
+**scrollTo**
+```yaml
+- scrollTo:
+    selector: string or object
+    position: string or [string, string] or number or [number, number]
+    element: string or object or { offset: [number, number] }
+```
+
+Scrolls the page to a specific position or element. If a selector is provided, it scrolls that element into view. If `position` is provided, it scrolls to that position on the page. If `element` is provided with an offset, it scrolls the element into view with the specified offset.
+
+The `position` parameter can be one of the following:
+- A position string: 'topLeft', 'top', 'topRight', 'left', 'center', 'right', 'bottomLeft', 'bottom', 'bottomRight'
+- A CSS position value like '100px' or '50%'
+- An array with two values for x and y coordinates
+- A number representing the y-coordinate to scroll to
+
+The offset of the element can be specified as an array of two values. It represents the top and left pixel to scroll after the element is in the view.
+
+Examples:
+```yaml
+- scrollTo:
+    position: "bottom"
+- scrollTo:
+    position: [0, 500]
+- scrollTo:
+    position: [0, "50%"]
+- scrollTo:
+    element: "#elementId"
+- scrollTo:
+    element:
+      selector: "#elementId"
+      offset: [10, 20]
+- scrollTo: "#elementId"
+```
+
 **type**
 ```yaml
 - type:
@@ -750,6 +909,7 @@ In the example, the `c8y-form-group` is a multistep form with 3 steps. Each step
     width: number
     height: number
     clear: boolean
+    offset: string
 ```
 
 Highlights the specified element. Useful for drawing attention to specific parts of the UI in documentation screenshots. `border` is a shorthand for setting the border style, and `styles` allows for more advanced styling. Values can be any valid CSS border or style property.
@@ -757,13 +917,18 @@ Highlights the specified element. Useful for drawing attention to specific parts
 Highlighting works differently depending if the selector returns one or multiple elements. If the selector returns a single DOM element, the style or border is applied directly to the element. In case selector returns multiple elements, the surrounding bounding box for all elements is calculated and the style is applied to a new element that is created to represent the bounding box. Make sure animations are finished before highlighting multiple elements as positions are calculated based on the current state of the elements.
 
 ```yaml
-- selector: .c8y-right-drawer__header > .d-flex
-  styles:
-    outline: dashed
-    "outline-offset": "+3px"
-    "outline-color": "red"
-- selector: "#main-content"
-  border: 2px solid green
+- highlight: 
+    selector: .c8y-right-drawer__header > .d-flex
+    styles:
+      outline: dashed
+      "outline-offset": "+3px"
+      "outline-color": "red"
+- highlight:
+    selector: "#main-content"
+    border: 2px solid green
+- highlight:
+    selector: "#main-content"
+    offset: "10px"
 ```
 
 By using `clear`, all previously highlighted changes will be reverted before adding the new highlight. This is useful for workflows taking more than just one screenshot.
@@ -782,6 +947,13 @@ By using `clear`, all previously highlighted changes will be reverted before add
 Uploads a file to the specified input field. The `file` property should be the path to the file to upload. Use `encoding` to specify the file encoding, and `subjectType` to choose between input or drag-and-drop file upload. The `force` option can be used to bypass the element's visibility check.
 
 If no selector is provided, the file will be uploaded to the first file input field found on the page.
+
+To clear highlights without creating new ones, use 
+
+```yaml
+- highlight:
+    clear: true
+```
 
 **screenshot**
 ```yaml

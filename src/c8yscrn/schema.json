@@ -5,6 +5,149 @@
         "Action": {
             "additionalProperties": false,
             "properties": {
+                "blur": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "selector": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
+                                }
+                            },
+                            "required": [
+                                "selector"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "data-cy": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "language": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                    "examples": [
+                                        "en",
+                                        "de",
+                                        [
+                                            "en",
+                                            "de"
+                                        ]
+                                    ]
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "localized": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                    "examples": [
+                                        {
+                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                            "en": "span.label-info:not(:contains('Object'))"
+                                        }
+                                    ],
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "enum": [
+                                true
+                            ],
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "A blur action triggers a blur event on the selected DOM element to remove focus."
+                },
                 "click": {
                     "anyOf": [
                         {
@@ -29,15 +172,60 @@
                                                     "type": "string"
                                                 }
                                             },
-                                            "required": [
-                                                "data-cy"
-                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
                                             "type": "object"
                                         },
                                         {
                                             "type": "string"
                                         }
-                                    ]
+                                    ],
+                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
                                 }
                             },
                             "required": [
@@ -62,9 +250,73 @@
                                     "type": "boolean"
                                 }
                             },
-                            "required": [
-                                "data-cy"
-                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "force": {
+                                    "default": false,
+                                    "description": "If true, the click event is triggered even if the element is not visible. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "language": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                    "examples": [
+                                        "en",
+                                        "de",
+                                        [
+                                            "en",
+                                            "de"
+                                        ]
+                                    ]
+                                },
+                                "multiple": {
+                                    "default": false,
+                                    "description": "If true, the click event is triggered on all matching elements. The default is false.",
+                                    "type": "boolean"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "force": {
+                                    "default": false,
+                                    "description": "If true, the click event is triggered even if the element is not visible. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "localized": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                    "examples": [
+                                        {
+                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                            "en": "span.label-info:not(:contains('Object'))"
+                                        }
+                                    ],
+                                    "type": "object"
+                                },
+                                "multiple": {
+                                    "default": false,
+                                    "description": "If true, the click event is triggered on all matching elements. The default is false.",
+                                    "type": "boolean"
+                                }
+                            },
                             "type": "object"
                         },
                         {
@@ -127,15 +379,60 @@
                                                     "type": "string"
                                                 }
                                             },
-                                            "required": [
-                                                "data-cy"
-                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
                                             "type": "object"
                                         },
                                         {
                                             "type": "string"
                                         }
-                                    ]
+                                    ],
+                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
                                 },
                                 "subjectType": {
                                     "default": "input",
@@ -210,7 +507,157 @@
                                 }
                             },
                             "required": [
-                                "data-cy",
+                                "file"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "encoding": {
+                                    "description": "The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.",
+                                    "enum": [
+                                        "binary",
+                                        "utf-8",
+                                        "utf8"
+                                    ],
+                                    "examples": [
+                                        [
+                                            "binary",
+                                            "utf8"
+                                        ]
+                                    ],
+                                    "type": "string"
+                                },
+                                "file": {
+                                    "description": "The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.",
+                                    "type": "string"
+                                },
+                                "fileName": {
+                                    "description": "The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.",
+                                    "examples": [
+                                        "file.txt"
+                                    ],
+                                    "type": "string"
+                                },
+                                "force": {
+                                    "default": false,
+                                    "description": "If true, the file is uploaded even if the element is not visible. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "language": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                    "examples": [
+                                        "en",
+                                        "de",
+                                        [
+                                            "en",
+                                            "de"
+                                        ]
+                                    ]
+                                },
+                                "mimeType": {
+                                    "description": "The MIME type of the file. If not provided, the MIME type is determined automatically.",
+                                    "examples": [
+                                        "application/json",
+                                        "text/csv",
+                                        "image/png"
+                                    ],
+                                    "type": "string"
+                                },
+                                "subjectType": {
+                                    "default": "input",
+                                    "description": "The type of the file input element. The default is 'input'.",
+                                    "enum": [
+                                        "drag-n-drop",
+                                        "input"
+                                    ],
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "file"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "encoding": {
+                                    "description": "The encoding of the file. If not provided, the encoding is determined automatically. Default is 'utf8' or 'binary' depending of file extension.",
+                                    "enum": [
+                                        "binary",
+                                        "utf-8",
+                                        "utf8"
+                                    ],
+                                    "examples": [
+                                        [
+                                            "binary",
+                                            "utf8"
+                                        ]
+                                    ],
+                                    "type": "string"
+                                },
+                                "file": {
+                                    "description": "The path to the file to upload. Resolve the file path relative to the current working directory. Currently, only a single file of types .json, .txt, .csv, .png, .jpg, .jpeg, .gif can be uploaded. If file does not have required extension, overwrite extension in the fileName property.",
+                                    "type": "string"
+                                },
+                                "fileName": {
+                                    "description": "The name of the file to use when uploading including file extension. If not provided, the file name is determined from the file path.",
+                                    "examples": [
+                                        "file.txt"
+                                    ],
+                                    "type": "string"
+                                },
+                                "force": {
+                                    "default": false,
+                                    "description": "If true, the file is uploaded even if the element is not visible. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "localized": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                    "examples": [
+                                        {
+                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                            "en": "span.label-info:not(:contains('Object'))"
+                                        }
+                                    ],
+                                    "type": "object"
+                                },
+                                "mimeType": {
+                                    "description": "The MIME type of the file. If not provided, the MIME type is determined automatically.",
+                                    "examples": [
+                                        "application/json",
+                                        "text/csv",
+                                        "image/png"
+                                    ],
+                                    "type": "string"
+                                },
+                                "subjectType": {
+                                    "default": "input",
+                                    "description": "The type of the file input element. The default is 'input'.",
+                                    "enum": [
+                                        "drag-n-drop",
+                                        "input"
+                                    ],
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
                                 "file"
                             ],
                             "type": "object"
@@ -220,6 +667,143 @@
                         }
                     ],
                     "description": "Use the file upload action to upload a file using the file input element. Currently supported file types are .json, .txt, .csv, .png, .jpg, .jpeg, .gif."
+                },
+                "focus": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "selector": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
+                                }
+                            },
+                            "required": [
+                                "selector"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "data-cy": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "language": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                    "examples": [
+                                        "en",
+                                        "de",
+                                        [
+                                            "en",
+                                            "de"
+                                        ]
+                                    ]
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "localized": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                    "examples": [
+                                        {
+                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                            "en": "span.label-info:not(:contains('Object'))"
+                                        }
+                                    ],
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "A focus action triggers a focus event on the selected DOM element."
                 },
                 "highlight": {
                     "anyOf": [
@@ -252,6 +836,10 @@
                                     "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
                                     "type": "boolean"
                                 },
+                                "offset": {
+                                    "description": "The outline offset. The default is -2px.",
+                                    "type": "string"
+                                },
                                 "selector": {
                                     "anyOf": [
                                         {
@@ -261,15 +849,60 @@
                                                     "type": "string"
                                                 }
                                             },
-                                            "required": [
-                                                "data-cy"
-                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
                                             "type": "object"
                                         },
                                         {
                                             "type": "string"
                                         }
-                                    ]
+                                    ],
+                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
                                 },
                                 "styles": {
                                     "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
@@ -317,6 +950,10 @@
                                     "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
                                     "type": "boolean"
                                 },
+                                "offset": {
+                                    "description": "The outline offset. The default is -2px.",
+                                    "type": "string"
+                                },
                                 "styles": {
                                     "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                                     "examples": [
@@ -332,8 +969,143 @@
                                     "type": "number"
                                 }
                             },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "border": {
+                                    "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
+                                    "examples": [
+                                        "1px solid red"
+                                    ]
+                                },
+                                "clear": {
+                                    "default": false,
+                                    "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "height": {
+                                    "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
+                                    "type": "number"
+                                },
+                                "language": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                    "examples": [
+                                        "en",
+                                        "de",
+                                        [
+                                            "en",
+                                            "de"
+                                        ]
+                                    ]
+                                },
+                                "multiple": {
+                                    "default": false,
+                                    "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "offset": {
+                                    "description": "The outline offset. The default is -2px.",
+                                    "type": "string"
+                                },
+                                "styles": {
+                                    "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
+                                    "examples": [
+                                        [
+                                            "background-color: yellow",
+                                            "outline: dashed",
+                                            "outline-offset: +3px"
+                                        ]
+                                    ]
+                                },
+                                "width": {
+                                    "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
+                                    "type": "number"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "border": {
+                                    "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
+                                    "examples": [
+                                        "1px solid red"
+                                    ]
+                                },
+                                "clear": {
+                                    "default": false,
+                                    "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "height": {
+                                    "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
+                                    "type": "number"
+                                },
+                                "localized": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                    "examples": [
+                                        {
+                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                            "en": "span.label-info:not(:contains('Object'))"
+                                        }
+                                    ],
+                                    "type": "object"
+                                },
+                                "multiple": {
+                                    "default": false,
+                                    "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "offset": {
+                                    "description": "The outline offset. The default is -2px.",
+                                    "type": "string"
+                                },
+                                "styles": {
+                                    "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
+                                    "examples": [
+                                        [
+                                            "background-color: yellow",
+                                            "outline: dashed",
+                                            "outline-offset: +3px"
+                                        ]
+                                    ]
+                                },
+                                "width": {
+                                    "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
+                                    "type": "number"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "clear": {
+                                    "enum": [
+                                        true
+                                    ],
+                                    "type": "boolean"
+                                }
+                            },
                             "required": [
-                                "data-cy"
+                                "clear"
                             ],
                             "type": "object"
                         },
@@ -363,6 +1135,10 @@
                                                 "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
                                                 "type": "boolean"
                                             },
+                                            "offset": {
+                                                "description": "The outline offset. The default is -2px.",
+                                                "type": "string"
+                                            },
                                             "selector": {
                                                 "anyOf": [
                                                     {
@@ -372,15 +1148,60 @@
                                                                 "type": "string"
                                                             }
                                                         },
-                                                        "required": [
-                                                            "data-cy"
-                                                        ],
+                                                        "type": "object"
+                                                    },
+                                                    {
+                                                        "additionalProperties": false,
+                                                        "properties": {
+                                                            "language": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "type": "array"
+                                                                    },
+                                                                    {
+                                                                        "type": "string"
+                                                                    }
+                                                                ],
+                                                                "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                                "examples": [
+                                                                    "en",
+                                                                    "de",
+                                                                    [
+                                                                        "en",
+                                                                        "de"
+                                                                    ]
+                                                                ]
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    {
+                                                        "additionalProperties": false,
+                                                        "properties": {
+                                                            "localized": {
+                                                                "additionalProperties": {
+                                                                    "type": "string"
+                                                                },
+                                                                "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                                "examples": [
+                                                                    {
+                                                                        "de": "span.label-info:not(:contains('Objekt'))",
+                                                                        "en": "span.label-info:not(:contains('Object'))"
+                                                                    }
+                                                                ],
+                                                                "type": "object"
+                                                            }
+                                                        },
                                                         "type": "object"
                                                     },
                                                     {
                                                         "type": "string"
                                                     }
-                                                ]
+                                                ],
+                                                "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
                                             },
                                             "styles": {
                                                 "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
@@ -428,6 +1249,10 @@
                                                 "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
                                                 "type": "boolean"
                                             },
+                                            "offset": {
+                                                "description": "The outline offset. The default is -2px.",
+                                                "type": "string"
+                                            },
                                             "styles": {
                                                 "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
                                                 "examples": [
@@ -443,9 +1268,129 @@
                                                 "type": "number"
                                             }
                                         },
-                                        "required": [
-                                            "data-cy"
-                                        ],
+                                        "type": "object"
+                                    },
+                                    {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "border": {
+                                                "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
+                                                "examples": [
+                                                    "1px solid red"
+                                                ]
+                                            },
+                                            "clear": {
+                                                "default": false,
+                                                "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                                "type": "boolean"
+                                            },
+                                            "height": {
+                                                "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
+                                                "type": "number"
+                                            },
+                                            "language": {
+                                                "anyOf": [
+                                                    {
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "type": "array"
+                                                    },
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                ],
+                                                "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                "examples": [
+                                                    "en",
+                                                    "de",
+                                                    [
+                                                        "en",
+                                                        "de"
+                                                    ]
+                                                ]
+                                            },
+                                            "multiple": {
+                                                "default": false,
+                                                "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
+                                                "type": "boolean"
+                                            },
+                                            "offset": {
+                                                "description": "The outline offset. The default is -2px.",
+                                                "type": "string"
+                                            },
+                                            "styles": {
+                                                "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
+                                                "examples": [
+                                                    [
+                                                        "background-color: yellow",
+                                                        "outline: dashed",
+                                                        "outline-offset: +3px"
+                                                    ]
+                                                ]
+                                            },
+                                            "width": {
+                                                "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
+                                                "type": "number"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "border": {
+                                                "description": "The border style. Use any valid CSS border style. If provided an object, keys override the default border style.",
+                                                "examples": [
+                                                    "1px solid red"
+                                                ]
+                                            },
+                                            "clear": {
+                                                "default": false,
+                                                "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                                "type": "boolean"
+                                            },
+                                            "height": {
+                                                "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
+                                                "type": "number"
+                                            },
+                                            "localized": {
+                                                "additionalProperties": {
+                                                    "type": "string"
+                                                },
+                                                "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                "examples": [
+                                                    {
+                                                        "de": "span.label-info:not(:contains('Objekt'))",
+                                                        "en": "span.label-info:not(:contains('Object'))"
+                                                    }
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "multiple": {
+                                                "default": false,
+                                                "description": "If true, the highlight is applied to all elements in the selection. The default is false.",
+                                                "type": "boolean"
+                                            },
+                                            "offset": {
+                                                "description": "The outline offset. The default is -2px.",
+                                                "type": "string"
+                                            },
+                                            "styles": {
+                                                "description": "The CSS styles to apply to the DOM element. Use any valid CSS styles.",
+                                                "examples": [
+                                                    [
+                                                        "background-color: yellow",
+                                                        "outline: dashed",
+                                                        "outline-offset: +3px"
+                                                    ]
+                                                ]
+                                            },
+                                            "width": {
+                                                "description": "Overwrite the width of the highlighted element. If smaller than 1, the value is used as percentage of the element width.",
+                                                "type": "number"
+                                            }
+                                        },
                                         "type": "object"
                                     },
                                     {
@@ -459,7 +1404,7 @@
                             "type": "string"
                         }
                     ],
-                    "description": "Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element."
+                    "description": "Use highlight action to visually highlight a selected DOM element in the screenshot. By default, the element is highlighted with an orange border. Use any valid CSS styles to highlight the element.\nTo clear existing highlights, set the clear property to true."
                 },
                 "screenshot": {
                     "anyOf": [
@@ -476,16 +1421,6 @@
                                             "items": [
                                                 {
                                                     "type": "number"
-                                                }
-                                            ],
-                                            "maxItems": 1,
-                                            "minItems": 1,
-                                            "type": "array"
-                                        },
-                                        {
-                                            "items": [
-                                                {
-                                                    "type": "number"
                                                 },
                                                 {
                                                     "type": "number"
@@ -493,6 +1428,16 @@
                                             ],
                                             "maxItems": 2,
                                             "minItems": 2,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 1,
+                                            "minItems": 1,
                                             "type": "array"
                                         },
                                         {
@@ -549,15 +1494,60 @@
                                                     "type": "string"
                                                 }
                                             },
-                                            "required": [
-                                                "data-cy"
-                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
                                             "type": "object"
                                         },
                                         {
                                             "type": "string"
                                         }
-                                    ]
+                                    ],
+                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
                                 }
                             },
                             "type": "object"
@@ -578,6 +1568,19 @@
                                             "items": [
                                                 {
                                                     "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 2,
+                                            "minItems": 2,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
                                                 }
                                             ],
                                             "maxItems": 1,
@@ -591,10 +1594,192 @@
                                                 },
                                                 {
                                                     "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 3,
+                                            "minItems": 3,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 4,
+                                            "minItems": 4,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ],
+                                    "description": "The padding applied to the screenshots of elements in px. If an array of numbers is provided, the padding is applied as defined by CSS shorthand property."
+                                },
+                                "path": {
+                                    "description": "The path to store the screenshot. This is the relative path used within the screenshot folder.",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "clip": {
+                                    "$ref": "#/definitions/ScreenshotClipArea",
+                                    "description": "The clip area within the screenshot image. The clip area is defined by the top-left corner (x, y) and the width and height of the clip area."
+                                },
+                                "language": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                    "examples": [
+                                        "en",
+                                        "de",
+                                        [
+                                            "en",
+                                            "de"
+                                        ]
+                                    ]
+                                },
+                                "padding": {
+                                    "anyOf": [
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
                                                 }
                                             ],
                                             "maxItems": 2,
                                             "minItems": 2,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 1,
+                                            "minItems": 1,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 3,
+                                            "minItems": 3,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 4,
+                                            "minItems": 4,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ],
+                                    "description": "The padding applied to the screenshots of elements in px. If an array of numbers is provided, the padding is applied as defined by CSS shorthand property."
+                                },
+                                "path": {
+                                    "description": "The path to store the screenshot. This is the relative path used within the screenshot folder.",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "clip": {
+                                    "$ref": "#/definitions/ScreenshotClipArea",
+                                    "description": "The clip area within the screenshot image. The clip area is defined by the top-left corner (x, y) and the width and height of the clip area."
+                                },
+                                "localized": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                    "examples": [
+                                        {
+                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                            "en": "span.label-info:not(:contains('Object'))"
+                                        }
+                                    ],
+                                    "type": "object"
+                                },
+                                "padding": {
+                                    "anyOf": [
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 2,
+                                            "minItems": 2,
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": [
+                                                {
+                                                    "type": "number"
+                                                }
+                                            ],
+                                            "maxItems": 1,
+                                            "minItems": 1,
                                             "type": "array"
                                         },
                                         {
@@ -651,6 +1836,146 @@
                     ],
                     "description": "The screenshot action triggers a screenshot of the current state of the application."
                 },
+                "scrollTo": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/ScrollToAction"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "selector": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
+                                }
+                            },
+                            "required": [
+                                "selector"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "data-cy": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "language": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                    "examples": [
+                                        "en",
+                                        "de",
+                                        [
+                                            "en",
+                                            "de"
+                                        ]
+                                    ]
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "localized": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                    "examples": [
+                                        {
+                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                            "en": "span.label-info:not(:contains('Object'))"
+                                        }
+                                    ],
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "A scroll action scrolls the page to a specific position or element. Use the position property to scroll to a specific position or the element property to scroll to a selected DOM element."
+                },
                 "text": {
                     "anyOf": [
                         {
@@ -665,15 +1990,60 @@
                                                     "type": "string"
                                                 }
                                             },
-                                            "required": [
-                                                "data-cy"
-                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
                                             "type": "object"
                                         },
                                         {
                                             "type": "string"
                                         }
-                                    ]
+                                    ],
+                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
                                 },
                                 "value": {
                                     "description": "The value to set",
@@ -698,7 +2068,67 @@
                                 }
                             },
                             "required": [
-                                "data-cy",
+                                "value"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "language": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                    "examples": [
+                                        "en",
+                                        "de",
+                                        [
+                                            "en",
+                                            "de"
+                                        ]
+                                    ]
+                                },
+                                "value": {
+                                    "description": "The value to set",
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "value"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "localized": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                    "examples": [
+                                        {
+                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                            "en": "span.label-info:not(:contains('Object'))"
+                                        }
+                                    ],
+                                    "type": "object"
+                                },
+                                "value": {
+                                    "description": "The value to set",
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
                                 "value"
                             ],
                             "type": "object"
@@ -711,6 +2141,11 @@
                         {
                             "additionalProperties": false,
                             "properties": {
+                                "blur": {
+                                    "default": false,
+                                    "description": "If true, the element is blurred after typing to remove the focus. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "clear": {
                                     "default": false,
                                     "description": "If true, the text input is cleared before typing. The default is false.",
@@ -725,15 +2160,60 @@
                                                     "type": "string"
                                                 }
                                             },
-                                            "required": [
-                                                "data-cy"
-                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
                                             "type": "object"
                                         },
                                         {
                                             "type": "string"
                                         }
-                                    ]
+                                    ],
+                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
                                 },
                                 "submit": {
                                     "anyOf": [
@@ -749,15 +2229,60 @@
                                                                     "type": "string"
                                                                 }
                                                             },
-                                                            "required": [
-                                                                "data-cy"
-                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "language": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "items": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "type": "array"
+                                                                        },
+                                                                        {
+                                                                            "type": "string"
+                                                                        }
+                                                                    ],
+                                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                                    "examples": [
+                                                                        "en",
+                                                                        "de",
+                                                                        [
+                                                                            "en",
+                                                                            "de"
+                                                                        ]
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "localized": {
+                                                                    "additionalProperties": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                                    "examples": [
+                                                                        {
+                                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                                        }
+                                                                    ],
+                                                                    "type": "object"
+                                                                }
+                                                            },
                                                             "type": "object"
                                                         },
                                                         {
                                                             "type": "string"
                                                         }
-                                                    ]
+                                                    ],
+                                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
                                                 }
                                             },
                                             "required": [
@@ -772,9 +2297,53 @@
                                                     "type": "string"
                                                 }
                                             },
-                                            "required": [
-                                                "data-cy"
-                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
                                             "type": "object"
                                         },
                                         {
@@ -822,6 +2391,11 @@
                         {
                             "additionalProperties": false,
                             "properties": {
+                                "blur": {
+                                    "default": false,
+                                    "description": "If true, the element is blurred after typing to remove the focus. The default is false.",
+                                    "type": "boolean"
+                                },
                                 "clear": {
                                     "default": false,
                                     "description": "If true, the text input is cleared before typing. The default is false.",
@@ -844,15 +2418,60 @@
                                                                     "type": "string"
                                                                 }
                                                             },
-                                                            "required": [
-                                                                "data-cy"
-                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "language": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "items": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "type": "array"
+                                                                        },
+                                                                        {
+                                                                            "type": "string"
+                                                                        }
+                                                                    ],
+                                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                                    "examples": [
+                                                                        "en",
+                                                                        "de",
+                                                                        [
+                                                                            "en",
+                                                                            "de"
+                                                                        ]
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "localized": {
+                                                                    "additionalProperties": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                                    "examples": [
+                                                                        {
+                                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                                        }
+                                                                    ],
+                                                                    "type": "object"
+                                                                }
+                                                            },
                                                             "type": "object"
                                                         },
                                                         {
                                                             "type": "string"
                                                         }
-                                                    ]
+                                                    ],
+                                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
                                                 }
                                             },
                                             "required": [
@@ -867,9 +2486,53 @@
                                                     "type": "string"
                                                 }
                                             },
-                                            "required": [
-                                                "data-cy"
-                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
                                             "type": "object"
                                         },
                                         {
@@ -909,7 +2572,411 @@
                                 }
                             },
                             "required": [
-                                "data-cy",
+                                "value"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "blur": {
+                                    "default": false,
+                                    "description": "If true, the element is blurred after typing to remove the focus. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "clear": {
+                                    "default": false,
+                                    "description": "If true, the text input is cleared before typing. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "language": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                    "examples": [
+                                        "en",
+                                        "de",
+                                        [
+                                            "en",
+                                            "de"
+                                        ]
+                                    ]
+                                },
+                                "submit": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "selector": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "data-cy": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "language": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "items": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "type": "array"
+                                                                        },
+                                                                        {
+                                                                            "type": "string"
+                                                                        }
+                                                                    ],
+                                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                                    "examples": [
+                                                                        "en",
+                                                                        "de",
+                                                                        [
+                                                                            "en",
+                                                                            "de"
+                                                                        ]
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "localized": {
+                                                                    "additionalProperties": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                                    "examples": [
+                                                                        {
+                                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                                        }
+                                                                    ],
+                                                                    "type": "object"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
+                                                }
+                                            },
+                                            "required": [
+                                                "selector"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The submit selector is triggered for every entry value. Use to go over multistep forms. If the submit selector is not found, the form is not automatically continued and multistep finishes."
+                                },
+                                "value": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": [
+                                                    "null",
+                                                    "string"
+                                                ]
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": {
+                                                "items": {
+                                                    "type": [
+                                                        "null",
+                                                        "string"
+                                                    ]
+                                                },
+                                                "type": "array"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form."
+                                }
+                            },
+                            "required": [
+                                "value"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "blur": {
+                                    "default": false,
+                                    "description": "If true, the element is blurred after typing to remove the focus. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "clear": {
+                                    "default": false,
+                                    "description": "If true, the text input is cleared before typing. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "localized": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                    "examples": [
+                                        {
+                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                            "en": "span.label-info:not(:contains('Object'))"
+                                        }
+                                    ],
+                                    "type": "object"
+                                },
+                                "submit": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "selector": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "data-cy": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "language": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "items": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "type": "array"
+                                                                        },
+                                                                        {
+                                                                            "type": "string"
+                                                                        }
+                                                                    ],
+                                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                                    "examples": [
+                                                                        "en",
+                                                                        "de",
+                                                                        [
+                                                                            "en",
+                                                                            "de"
+                                                                        ]
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "localized": {
+                                                                    "additionalProperties": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                                    "examples": [
+                                                                        {
+                                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                                        }
+                                                                    ],
+                                                                    "type": "object"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
+                                                }
+                                            },
+                                            "required": [
+                                                "selector"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The submit selector is triggered for every entry value. Use to go over multistep forms. If the submit selector is not found, the form is not automatically continued and multistep finishes."
+                                },
+                                "value": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": [
+                                                    "null",
+                                                    "string"
+                                                ]
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "items": {
+                                                "items": {
+                                                    "type": [
+                                                        "null",
+                                                        "string"
+                                                    ]
+                                                },
+                                                "type": "array"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form."
+                                }
+                            },
+                            "required": [
                                 "value"
                             ],
                             "type": "object"
@@ -981,6 +3048,40 @@
                 "threshold": {
                     "description": "Color difference threshold (from 0 to 1). Less more precise.",
                     "type": "number"
+                }
+            },
+            "type": "object"
+        },
+        "Partial<Pick<IUser,\"userName\"|\"firstName\"|\"lastName\"|\"email\"|\"phone\"|\"id\"|\"displayName\">>": {
+            "additionalProperties": false,
+            "properties": {
+                "displayName": {
+                    "description": "The display name",
+                    "type": "string"
+                },
+                "email": {
+                    "description": "User email address.",
+                    "type": "string"
+                },
+                "firstName": {
+                    "description": "User first name.",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "Uniquely identifies a user",
+                    "type": "string"
+                },
+                "lastName": {
+                    "description": "User last name.",
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "User phone number.",
+                    "type": "string"
+                },
+                "userName": {
+                    "description": "User name, unique for a given domain.\nMax: 1000 characters. Whitespaces, slashes, +$: characters not allowed",
+                    "type": "string"
                 }
             },
             "type": "object"
@@ -1096,6 +3197,262 @@
                     "description": "The width in px to use for the browser window",
                     "minimum": 0,
                     "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "ScrollToAction": {
+            "additionalProperties": false,
+            "properties": {
+                "element": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "offset": {
+                                    "items": [
+                                        {
+                                            "type": "number"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ],
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": "array"
+                                },
+                                "selector": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "data-cy": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "language": {
+                                                    "anyOf": [
+                                                        {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                                    "examples": [
+                                                        "en",
+                                                        "de",
+                                                        [
+                                                            "en",
+                                                            "de"
+                                                        ]
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "localized": {
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                                    "examples": [
+                                                        {
+                                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                                            "en": "span.label-info:not(:contains('Object'))"
+                                                        }
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element."
+                                }
+                            },
+                            "required": [
+                                "selector"
+                            ],
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "data-cy": {
+                                    "type": "string"
+                                },
+                                "offset": {
+                                    "items": [
+                                        {
+                                            "type": "number"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ],
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": "array"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "language": {
+                                    "anyOf": [
+                                        {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "description": "The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.\nIf language is not supported by the selector, the selector is ignored.",
+                                    "examples": [
+                                        "en",
+                                        "de",
+                                        [
+                                            "en",
+                                            "de"
+                                        ]
+                                    ]
+                                },
+                                "offset": {
+                                    "items": [
+                                        {
+                                            "type": "number"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ],
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": "array"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "localized": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "description": "Language key and localized selector mapping. Use for example to select elements based on the language of the application.",
+                                    "examples": [
+                                        {
+                                            "de": "span.label-info:not(:contains('Objekt'))",
+                                            "en": "span.label-info:not(:contains('Object'))"
+                                        }
+                                    ],
+                                    "type": "object"
+                                },
+                                "offset": {
+                                    "items": [
+                                        {
+                                            "type": "number"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ],
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "type": "array"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "The element to scroll to. Requires a selector or a DOM element. If the element is not visible, the page is scrolled to make the element visible.\nThe offset is applied when the element has been scrolled into view. The offset represents left and right pixel to scroll."
+                },
+                "position": {
+                    "anyOf": [
+                        {
+                            "items": [
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "number"
+                                }
+                            ],
+                            "maxItems": 2,
+                            "minItems": 2,
+                            "type": "array"
+                        },
+                        {
+                            "items": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "string"
+                                }
+                            ],
+                            "maxItems": 2,
+                            "minItems": 2,
+                            "type": "array"
+                        },
+                        {
+                            "enum": [
+                                "bottom",
+                                "bottomLeft",
+                                "bottomRight",
+                                "center",
+                                "left",
+                                "right",
+                                "top",
+                                "topLeft",
+                                "topRight"
+                            ],
+                            "type": "string"
+                        }
+                    ],
+                    "description": "The position to scroll to. The default is 'top'. Provide a string, an array of strings, or a number to scroll to a specific position.",
+                    "examples": [
+                        "top",
+                        "bottom",
+                        [
+                            "top",
+                            "100px"
+                        ],
+                        [
+                            0,
+                            100
+                        ],
+                        [
+                            "0%",
+                            "25%"
+                        ]
+                    ]
                 }
             },
             "type": "object"
@@ -1236,8 +3593,18 @@
                     ]
                 },
                 "language": {
-                    "description": "Load Cumulocity with the given language",
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "Load Cumulocity with the given language"
                 },
                 "login": {
                     "anyOf": [
@@ -1337,8 +3704,15 @@
                     "type": "object"
                 },
                 "user": {
-                    "description": "Use login instead of user",
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/Partial<Pick<IUser,\"userName\"|\"firstName\"|\"lastName\"|\"email\"|\"phone\"|\"id\"|\"displayName\">>"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "A user object with properties used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots."
                 },
                 "viewportHeight": {
                     "default": 900,
@@ -1398,8 +3772,18 @@
                         "type": "string"
                     },
                     "language": {
-                        "description": "Load Cumulocity with the given language",
-                        "type": "string"
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ],
+                        "description": "Load Cumulocity with the given language"
                     },
                     "login": {
                         "anyOf": [
@@ -1467,8 +3851,15 @@
                         "type": "array"
                     },
                     "user": {
-                        "description": "Use login instead of user",
-                        "type": "string"
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/Partial<Pick<IUser,\"userName\"|\"firstName\"|\"lastName\"|\"email\"|\"phone\"|\"id\"|\"displayName\">>"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ],
+                        "description": "A user object with properties used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots."
                     },
                     "visit": {
                         "anyOf": [
