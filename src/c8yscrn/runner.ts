@@ -5,7 +5,7 @@ import "../lib/commands/screenshot";
 import "cypress-file-upload";
 
 import { pactId } from "../shared/c8ypact";
-import { buildTestHierarchy } from "../shared/util";
+import { buildTestHierarchy, to_array } from "../shared/util";
 import {
   C8yHighlightStyleDefaults,
   C8yTestHierarchyTree,
@@ -104,7 +104,7 @@ export class C8yScreenshotRunner {
     this.language = undefined;
     const testHierarchy = buildTestHierarchy<Workflow>(
       this.config.screenshots,
-      (item) => item.image.split(/[/\\]/)
+      (item) => to_array(item.title) ?? item.image.split(/[/\\]/)
     );
     this.createTestsFromHierarchy(testHierarchy);
   }

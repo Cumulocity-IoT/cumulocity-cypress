@@ -110,6 +110,10 @@ export interface Screenshot {
    */
   image: string;
   /**
+   * The title of the screenshot workflow. The title is used to group the screenshots. To provide a hierarchy of titles, use an array of strings.
+   */
+  title?: string | string[];
+  /**
    * The URI to visit. This typically a relative path to the baseUrl.
    * @examples ["/apps/cockpit/index.html#/"]
    */

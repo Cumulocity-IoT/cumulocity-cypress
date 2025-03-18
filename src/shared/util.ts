@@ -125,6 +125,17 @@ export function get_i(
   return _.get(obj, sensitivePath);
 }
 
+/**
+ * Converts a value to an array. If the value is an array, it is returned as is.
+ * @param value The value to convert to an array
+ * @returns The value as an array if it is not already an array
+ */
+export function to_array<T>(value: T | T[] | undefined): T[] | undefined {
+  if (value === undefined) return undefined;
+  if (_.isArray(value)) return value;
+  return [value];
+}
+
 export function buildTestHierarchy<T>(
   objects: T[],
   hierarchyfn: (obj: T) => string[],

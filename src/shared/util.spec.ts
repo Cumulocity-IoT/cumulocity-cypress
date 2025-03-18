@@ -2,6 +2,7 @@ import {
   buildTestHierarchy,
   get_i,
   sanitizeStringifiedObject,
+  to_array,
   toBoolean,
   toSensitiveObjectKeyPath,
 } from "./util";
@@ -204,6 +205,25 @@ describe("util", () => {
       const obj = { test: "test", Complex: { key: { token: "value" } } };
       const result = get_i(obj, "");
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe("to_array", () => {
+    it("should return undefined if value is undefined", () => {
+      const result = to_array(undefined);
+      expect(result).toBeUndefined();
+    });
+
+    it("should return value if it is already an array", () => {
+      const value = [1, 2, 3];
+      const result = to_array(value);
+      expect(result).toBe(value);
+    });
+
+    it("should return value as an array", () => {
+      const value = 1;
+      const result = to_array(value);
+      expect(result).toEqual([1]);
     });
   });
 
