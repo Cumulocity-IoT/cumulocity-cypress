@@ -3,7 +3,7 @@ import {
   get_i,
   sanitizeStringifiedObject,
   to_array,
-  toBoolean,
+  to_boolean,
   toSensitiveObjectKeyPath,
 } from "./util";
 
@@ -48,46 +48,46 @@ describe("util", () => {
     ).toEqual("{ password: ***, username: myuser }");
   });
 
-  describe("toBoolean", () => {
+  describe("to_boolean", () => {
     it("should return the default value if input is null", () => {
       const defaultValue = true;
-      const result = toBoolean(null as any, defaultValue);
+      const result = to_boolean(null as any, defaultValue);
       expect(result).toBe(defaultValue);
     });
 
     it("should return the default value if input is not a string", () => {
       const defaultValue = false;
-      const result = toBoolean({} as any, defaultValue);
+      const result = to_boolean({} as any, defaultValue);
       expect(result).toBe(defaultValue);
     });
 
     it("should return true if input is 'true'", () => {
       const defaultValue = false;
-      const result = toBoolean("true", defaultValue);
+      const result = to_boolean("true", defaultValue);
       expect(result).toBe(true);
     });
 
     it("should return true if input is not lowercase", () => {
       const defaultValue = false;
-      const result = toBoolean("TrUe", defaultValue);
+      const result = to_boolean("TrUe", defaultValue);
       expect(result).toBe(true);
     });
 
     it("should return true if input is '1'", () => {
       const defaultValue = false;
-      const result = toBoolean("1", defaultValue);
+      const result = to_boolean("1", defaultValue);
       expect(result).toBe(true);
     });
 
     it("should return false if input is 'false'", () => {
       const defaultValue = true;
-      const result = toBoolean("false", defaultValue);
+      const result = to_boolean("false", defaultValue);
       expect(result).toBe(false);
     });
 
     it("should return false if input is '0'", () => {
       const defaultValue = true;
-      const result = toBoolean("0", defaultValue);
+      const result = to_boolean("0", defaultValue);
       expect(result).toBe(false);
     });
   });

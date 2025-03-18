@@ -27,14 +27,6 @@ export function sanitizeStringifiedObject(value: string) {
   );
 }
 
-export function toBoolean(input: string, defaultValue: boolean): boolean {
-  if (input == null || !_.isString(input)) return defaultValue;
-  const booleanString = input.toString().toLowerCase();
-  if (booleanString == "true" || booleanString === "1") return true;
-  if (booleanString == "false" || booleanString === "0") return false;
-  return defaultValue;
-}
-
 /**
  * Gets the case-sensitive path for a given case-insensitive path. The path is
  * assumed to be a dot-separated string. If the path is an array, it is assumed
@@ -134,6 +126,20 @@ export function to_array<T>(value: T | T[] | undefined): T[] | undefined {
   if (value === undefined) return undefined;
   if (_.isArray(value)) return value;
   return [value];
+}
+
+/**
+ * Converts a string value to a boolean. Supported values are "true", "false", "1", and "0".
+ * @param input The input string to convert to a boolean
+ * @param defaultValue The default value to return if the input is not a valid boolean string
+ * @returns The boolean value of the input string or the default value if the input is not a valid boolean string
+ */
+export function to_boolean(input: string, defaultValue: boolean): boolean {
+  if (input == null || !_.isString(input)) return defaultValue;
+  const booleanString = input.toString().toLowerCase();
+  if (booleanString == "true" || booleanString === "1") return true;
+  if (booleanString == "false" || booleanString === "0") return false;
+  return defaultValue;
 }
 
 export function buildTestHierarchy<T>(
