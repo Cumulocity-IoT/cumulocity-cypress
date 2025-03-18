@@ -102,7 +102,18 @@ export class C8yScreenshotRunner {
   run() {
     // reset language
     this.language = undefined;
+    const testHierarchy = buildTestHierarchy<Workflow>(
+      this.config.screenshots,
+      (item) => item.image.split(/[/\\]/)
+    );
+    this.createTestsFromHierarchy(testHierarchy);
+  }
 
+  /**
+   * Runs all image workflows as a Cypress suite. Wraps the tests in a `describe` block
+   * and sets up the environment for each test, including shell version and tenant ID.
+   */
+  runSuite() {
     let globalLogin = this.g("login");
     if (_.isString(this.g("user")) && globalLogin == null) {
       // backwards compatibility
@@ -149,11 +160,7 @@ export class C8yScreenshotRunner {
         });
       });
 
-      const testHierarchy = buildTestHierarchy<Workflow>(
-        this.config.screenshots,
-        (item) => item.image.split(/[/\\]/)
-      );
-      this.createTestsFromHierarchy(testHierarchy);
+      this.run();
     });
   }
 
@@ -172,7 +179,7 @@ export class C8yScreenshotRunner {
       if (isWorkflow(subTree)) {
         const annotations: any = {};
         const item = subTree;
-        const required = item.requires ?? this.g()?.requires;
+        const required = item.requires ?? this.g("requires");
         if (required != null) {
           annotations.requires = {
             shell: _.isArray(required) ? required : [required],
@@ -200,22 +207,16 @@ export class C8yScreenshotRunner {
           let fn = item.only === true ? it.only : it;
           fn = item.skip === true ? it.skip : fn;
 
-          const l = item.language ?? this.g("language") ?? "en";
-          const languages = _.isArray(l) ? l : [l];
-          languages.forEach((language) => {
-            this.language = language === defaultLanguage ? undefined : language;
-
-            fn.apply(null, [
-              `${key} (${language})`,
-              annotations,
-              // @ts-expect-error
-              () => {
-                debug(`Running screenshot: ${item.image}`);
-                debug(`Using annotations: ${JSON.stringify(annotations)}`);
-                this.runTest(subTree, language);
-              },
-            ]);
-          });
+          fn.apply(null, [
+            `${key}${language ? " (" + language + ")" : ""}`,
+            annotations,
+            // @ts-expect-error
+            () => {
+              debug(`Running screenshot: ${item.image}`);
+              debug(`Using annotations: ${JSON.stringify(annotations)}`);
+              this.runTest(subTree, language);
+            },
+          ]);
         });
       } else {
         const that = this;

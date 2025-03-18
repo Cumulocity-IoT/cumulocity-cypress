@@ -127,11 +127,11 @@ export function get_i(
 
 export function buildTestHierarchy<T>(
   objects: T[],
-  titlefn: (obj: T) => string[]
+  hierarchyfn: (obj: T) => string[],
 ): C8yTestHierarchyTree<T> {
   const tree: C8yTestHierarchyTree<T> = {};
   objects.forEach((item) => {
-    const titles = titlefn(item);
+    const titles = hierarchyfn(item);
 
     let currentNode = tree;
     const protectedKeys = ["__proto__", "constructor", "prototype"];
