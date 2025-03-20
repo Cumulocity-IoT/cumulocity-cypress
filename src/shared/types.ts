@@ -52,3 +52,5 @@ export const C8yHighlightStyleDefaults = {
   "outline-offset": "-2px",
   "outline-color": "#FF9300",
 } as const;
+
+export type C8yTestHierarchyTree<T> = { [key: string]: T | C8yTestHierarchyTree<T> };

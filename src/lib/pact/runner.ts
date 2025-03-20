@@ -1,4 +1,8 @@
-import { C8yBaseUrl, C8yTenant } from "../../shared/types";
+import {
+  C8yBaseUrl,
+  C8yTenant,
+  C8yTestHierarchyTree,
+} from "../../shared/types";
 import { C8yAuthOptions, C8yClientOptions } from "../../shared/c8yclient";
 import {
   C8yPact,
@@ -8,6 +12,7 @@ import {
 } from "../../shared/c8ypact";
 import { getBaseUrlFromEnv } from "../utils";
 import { Client } from "@c8y/client";
+import { buildTestHierarchy } from "cumulocity-cypress/shared/util";
 
 const { _ } = Cypress;
 
@@ -58,8 +63,6 @@ export interface C8yPactRunner {
   runTest: (pact: C8yPact, options?: C8yPactRunnerOptions) => void;
 }
 
-type TestHierarchyTree<T> = { [key: string]: T | TestHierarchyTree<T> };
-
 /**
  * Default implementation of C8yPactRunner. Runtime for C8yPact objects that will
  * create the tests dynamically and rerun recorded requests. Supports Basic and Cookie based
@@ -105,33 +108,15 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
       tests.push(pact);
     }
 
-    const testHierarchy = this.buildTestHierarchy(tests);
+    const testHierarchy = buildTestHierarchy<C8yPact>(
+      tests,
+      (item) => item.info.title ?? [item.id]
+    );
     this.createTestsFromHierarchy(testHierarchy, options);
   }
 
-  protected buildTestHierarchy(
-    pactObjects: C8yPact[]
-  ): TestHierarchyTree<C8yPact> {
-    const tree: TestHierarchyTree<C8yPact> = {};
-    pactObjects.forEach((pact) => {
-      const titles = pact.info.title ?? [pact.id];
-
-      let currentNode = tree;
-      const protectedKeys = ["__proto__", "constructor", "prototype"];
-      titles?.forEach((title, index) => {
-        if (!protectedKeys.includes(title)) {
-          if (!currentNode[title]) {
-            currentNode[title] = index === titles.length - 1 ? pact : {};
-          }
-          currentNode = currentNode[title] as TestHierarchyTree<C8yPact>;
-        }
-      });
-    });
-    return tree;
-  }
-
   protected createTestsFromHierarchy(
-    hierarchy: TestHierarchyTree<C8yPact>,
+    hierarchy: C8yTestHierarchyTree<C8yPact>,
     options: C8yPactRunnerOptions
   ): void {
     const keys = Object.keys(hierarchy);

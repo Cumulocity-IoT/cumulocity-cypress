@@ -1,6 +1,11 @@
 /// <reference types="jest" />
 
-import { getSelector, imageName, parseSelector } from "./runner-helper";
+import {
+  buildTestHierarchyWithOptions,
+  getSelector,
+  imageName,
+  parseSelector,
+} from "./runner-helper";
 import { ScreenshotSetup } from "../lib/screenshots/types";
 
 describe("startup", () => {
@@ -136,7 +141,9 @@ describe("startup", () => {
     });
 
     it("should return the localized selector if language is provided and it is an array", () => {
-      const selector = { localized: { de: ".test-class", en: ".test-class-en" } };
+      const selector = {
+        localized: { de: ".test-class", en: ".test-class-en" },
+      };
       const result = getSelector(selector, predefinedSelectors, "en");
       expect(result).toBe(".test-class-en");
     });
@@ -206,6 +213,87 @@ describe("startup", () => {
     it("should append the language if it is provided", () => {
       const result = imageName("my-test-image.png", "de");
       expect(result).toBe("my-test-image_de");
+    });
+  });
+
+  describe("buildTestHierarchiesWithOptions", () => {
+    it("should return the hierarchy with the provided tags", () => {
+      const objects = [
+        { title: "test1", tags: ["tag1"] },
+        { title: "test2", tags: ["tag2"] },
+        { title: "test3", tags: ["tag3"] },
+      ];
+      const options = { tags: ["tag1", "tag3"] };
+      const result = buildTestHierarchyWithOptions(objects as any, options);
+      expect(result).toEqual({
+        test1: { tags: ["tag1"], title: "test1" },
+        test3: { tags: ["tag3"], title: "test3" },
+      });
+    });
+
+    it("should return the hierarchy with the provided titles", () => {
+      const objects = [
+        { title: ["dtm", "screenshots", "test1"], tags: ["tag1"] },
+        { title: ["dtm", "screenshots", "test2"], tags: ["tag2"] },
+        { title: ["dtm", "test", "test3"], tags: ["tag3"] },
+      ];
+
+      const options = { titles: ["dtm", "screenshots"] };
+      const result = buildTestHierarchyWithOptions(objects as any, options);
+      expect(result).toEqual({
+        dtm: {
+          screenshots: {
+            test1: { tags: ["tag1"], title: ["dtm", "screenshots", "test1"] },
+            test2: { tags: ["tag2"], title: ["dtm", "screenshots", "test2"] },
+          },
+        },
+      });
+    });
+
+    it("should return the hierarchy with the provided images", () => {
+      const objects = [
+        { image: "test1", tags: ["tag1"] },
+        { image: "test2", tags: ["tag2"] },
+        { image: "test3", tags: ["tag3"] },
+      ];
+      const options = { images: ["test1", "test3"] };
+      const result = buildTestHierarchyWithOptions(objects as any, options);
+      expect(result).toEqual({
+        test1: { tags: ["tag1"], image: "test1" },
+        test3: { tags: ["tag3"], image: "test3" },
+      });
+    });
+
+    it("should return the hierarchy with the provided tags and titles", () => {
+      const objects = [
+        { title: ["dtm", "screenshots", "test1"], tags: ["tag1"] },
+        { title: ["dtm", "screenshots", "test2"], tags: ["tag2"] },
+        { title: ["dtm", "test", "test3"], tags: ["tag3"] },
+      ];
+
+      const options = { tags: ["tag1"], titles: ["dtm", "screenshots"] };
+      const result = buildTestHierarchyWithOptions(objects as any, options);
+      expect(result).toEqual({
+        dtm: {
+          screenshots: {
+            test1: { tags: ["tag1"], title: ["dtm", "screenshots", "test1"] },
+          },
+        },
+      });
+    });
+
+    it("should return the hierarchy with the provided tags and images", () => {
+      const objects = [
+        { image: "test1", tags: ["tag1"] },
+        { image: "test2", tags: ["tag2"] },
+        { image: "test3", tags: ["tag3"] },
+      ];
+
+      const options = { tags: ["tag1"], images: ["test1"] };
+      const result = buildTestHierarchyWithOptions(objects as any, options);
+      expect(result).toEqual({
+        test1: { tags: ["tag1"], image: "test1" },
+      });
     });
   });
 });

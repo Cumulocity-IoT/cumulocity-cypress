@@ -43,7 +43,7 @@ import { C8yPactFetchClient } from "./fetchclient";
 import { validateBaseUrl } from "../../shared/c8ypact/url";
 import { C8yCypressEnvPreprocessor } from "./cypresspreprocessor";
 import { C8yBaseUrl } from "../../shared/types";
-import { toBoolean } from "../../shared/util";
+import { to_boolean } from "../../shared/util";
 
 declare global {
   namespace Cypress {
@@ -331,7 +331,7 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
           ignore: Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE"),
           obfuscate: Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
           obfuscationPattern: Cypress.env("C8Y_PACT_PREPROCESSOR_PATTERN"),
-          ignoreCase: toBoolean(Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE_CASE"), true),
+          ignoreCase: to_boolean(Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE_CASE"), true),
         },
       };
     },

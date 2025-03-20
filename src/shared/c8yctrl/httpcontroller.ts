@@ -44,7 +44,7 @@ import fs from "fs";
 import path from "path";
 
 import { isVersionSatisfyingRequirements } from "../versioning";
-import { safeStringify, toBoolean } from "../util";
+import { safeStringify, to_boolean } from "../util";
 import { getPackageVersion } from "../util-node";
 
 import swaggerUi from "swagger-ui-express";
@@ -383,7 +383,7 @@ export class C8yPactHttpController {
 
       this.mode = mode as C8yPactMode;
       this.recordingMode = recordingMode as C8yPactRecordingMode;
-      this._isStrictMocking = toBoolean(strictMocking, this._isStrictMocking);
+      this._isStrictMocking = to_boolean(strictMocking, this._isStrictMocking);
 
       if (!id || !_.isString(id)) {
         res.status(404).send("Missing or invalid pact id");
@@ -396,7 +396,7 @@ export class C8yPactHttpController {
         this.currentPact != null;
       const clearPact =
         _.isString(clear) &&
-        (_.isEmpty(clear) || toBoolean(clear, false) === true);
+        (_.isEmpty(clear) || to_boolean(clear, false) === true);
 
       this.logger.debug(
         `mode: ${this.mode}, recordingMode: ${this.recordingMode}, strictMocking: ${this._isStrictMocking}, refresh: ${refreshPact}, clear: ${clearPact}`
