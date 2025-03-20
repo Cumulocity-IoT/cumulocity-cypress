@@ -17,6 +17,13 @@ module.exports = defineConfig({
         }
       });
 
+      on("task", {
+        debug: (message: string) => {
+          console.log(message);
+          return null;
+        },
+      });
+
       return config;
     },
   },

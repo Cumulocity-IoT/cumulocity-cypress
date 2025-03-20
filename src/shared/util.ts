@@ -144,22 +144,23 @@ export function to_boolean(input: string, defaultValue: boolean): boolean {
 
 export function buildTestHierarchy<T>(
   objects: T[],
-  hierarchyfn: (obj: T) => string[],
+  hierarchyfn: (obj: T) => string[] | undefined
 ): C8yTestHierarchyTree<T> {
   const tree: C8yTestHierarchyTree<T> = {};
   objects.forEach((item) => {
     const titles = hierarchyfn(item);
-
-    let currentNode = tree;
-    const protectedKeys = ["__proto__", "constructor", "prototype"];
-    titles?.forEach((title, index) => {
-      if (!protectedKeys.includes(title)) {
-        if (!currentNode[title]) {
-          currentNode[title] = index === titles.length - 1 ? item : {};
+    if (titles) {
+      let currentNode = tree;
+      const protectedKeys = ["__proto__", "constructor", "prototype"];
+      titles?.forEach((title, index) => {
+        if (!protectedKeys.includes(title)) {
+          if (!currentNode[title]) {
+            currentNode[title] = index === titles.length - 1 ? item : {};
+          }
+          currentNode = currentNode[title] as C8yTestHierarchyTree<T>;
         }
-        currentNode = currentNode[title] as C8yTestHierarchyTree<T>;
-      }
-    });
+      });
+    }
   });
   return tree;
 }

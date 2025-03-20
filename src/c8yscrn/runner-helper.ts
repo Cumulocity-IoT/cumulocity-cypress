@@ -1,6 +1,13 @@
 import _ from "lodash";
 
-import { ScreenshotSetup, Selector } from "../lib/screenshots/types";
+import {
+  Screenshot,
+  ScreenshotOptions,
+  ScreenshotSetup,
+  Selector,
+} from "../lib/screenshots/types";
+import { buildTestHierarchy, to_array } from "../shared/util";
+import { C8yTestHierarchyTree } from "../shared/types";
 
 export function getSelector(
   selector: any | string | undefined,
@@ -51,7 +58,7 @@ export function getSelector(
 
   if (_.isPlainObject(selector)) {
     if (language != null) {
-      if ("localized" in selector ) {
+      if ("localized" in selector) {
         return selector.localized[language];
       }
       if ("language" in selector) {
@@ -121,4 +128,36 @@ export function parseSelector(selector: string): string[] {
 export function imageName(name: string, language?: string): string {
   const n = name.replace(/.png$/i, "");
   return language ? `${n}_${language}` : n;
+}
+
+export function buildTestHierarchyWithOptions(
+  objects: (Screenshot & ScreenshotOptions)[],
+  options: {
+    tags?: string[];
+    titles?: string[];
+    images?: string[];
+  }
+): C8yTestHierarchyTree<Screenshot & ScreenshotOptions> {
+  return buildTestHierarchy(objects, (item) => {
+    if (options.tags != null && item.tags != null) {
+      if (_.intersection(options.tags, to_array(item.tags)).length === 0) {
+        return undefined;
+      }
+    }
+
+    const titles = to_array(item.title) ?? item.image?.split(/[/\\]/);
+    if (options.titles != null && titles != null) {
+      if (!options.titles.every((title, index) => titles[index] === title)) {
+        return undefined;
+      }
+    }
+
+    if (options.images != null && item.image != null) {
+      if (!options.images.includes(item.image)) {
+        return undefined;
+      }
+    }
+
+    return titles;
+  });
 }

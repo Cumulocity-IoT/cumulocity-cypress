@@ -5,11 +5,17 @@ import "../lib/commands/screenshot";
 import "cypress-file-upload";
 
 import { pactId } from "../shared/c8ypact";
-import { buildTestHierarchy, to_array } from "../shared/util";
+import { to_array } from "../shared/util";
 import {
   C8yHighlightStyleDefaults,
   C8yTestHierarchyTree,
 } from "../shared/types";
+
+import {
+  buildTestHierarchyWithOptions,
+  getSelector,
+  imageName,
+} from "./runner-helper";
 
 import { CyHttpMessages } from "cypress/types/net-stubbing";
 
@@ -25,7 +31,6 @@ import {
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
-import { getSelector, imageName } from "./runner-helper";
 
 const { _ } = Cypress;
 
@@ -39,6 +44,11 @@ export type C8yScreenshotActionHandler = (
 const taskLog = { log: true };
 
 type Workflow = Screenshot & ScreenshotOptions;
+type RunOptions = {
+  tags?: string[];
+  titles?: string[];
+  images?: string[];
+};
 
 const CyScreenshotSettingsKeys = [
   "capture",
@@ -85,7 +95,7 @@ export class C8yScreenshotRunner {
     this.registerActionHandler("focus", this.focus);
     this.registerActionHandler("scrollTo", this.scrollTo);
 
-    if ((Cypress.env("_c8yscrnHighlight") ?? false) != false) {
+    if ((Cypress.env("_c8yscrnHighlight") ?? true) === true) {
       this.registerActionHandler("highlight", this.highlight);
     }
   }
@@ -99,14 +109,30 @@ export class C8yScreenshotRunner {
     return key != null ? _.get(this.config?.global, key) : this.config?.global;
   };
 
-  run() {
-    // reset language
+  run(
+    screenshot?: Workflow | Workflow[] | RunOptions,
+    options: RunOptions = {}
+  ) {
     this.language = undefined;
-    const testHierarchy = buildTestHierarchy<Workflow>(
-      this.config.screenshots,
-      (item) => to_array(item.title) ?? item.image.split(/[/\\]/)
-    );
-    this.createTestsFromHierarchy(testHierarchy);
+    if (
+      (screenshot != null && _.isArray(screenshot)) ||
+      isWorkflow(screenshot)
+    ) {
+      to_array(screenshot)?.forEach((item) => {
+        const languages = to_array(item.language ?? this.g("language")) ?? [
+          "en",
+        ];
+        languages.forEach((language) => {
+          this.language = language === languages[0] ? undefined : language;
+          this.runTest(item, { language });
+        });
+      });
+      return;
+    }
+
+    const o = isRunOptions(screenshot) ? screenshot : options;
+    const hierarchy = buildTestHierarchyWithOptions(this.config.screenshots, o);
+    this.createTestsFromHierarchy(hierarchy);
   }
 
   /**
@@ -170,7 +196,7 @@ export class C8yScreenshotRunner {
     beforeEach(() => {
       Cypress.session.clearAllSavedSessions();
       if (Cypress.env("C8YCTRL_MODE") != null) {
-        cy.wrap(c8yctrl(), { log: false });
+        // cy.wrap(c8yctrl(), { log: false });
       }
     });
 
@@ -196,14 +222,10 @@ export class C8yScreenshotRunner {
           annotations.scrollBehavior = item.scrollBehavior;
         }
 
-        const l: string | string[] =
-          item.language ?? this.g("language") ?? "en";
-        const languages = _.isArray(l) ? l : [l];
-        const defaultLanguage = languages[0];
-
+        const languages = to_array(item.language ?? this.g("language")) ?? [
+          "en",
+        ];
         languages.forEach((language) => {
-          this.language = language === defaultLanguage ? undefined : language;
-
           let fn = item.only === true ? it.only : it;
           fn = item.skip === true ? it.skip : fn;
 
@@ -214,7 +236,8 @@ export class C8yScreenshotRunner {
             () => {
               debug(`Running screenshot: ${item.image}`);
               debug(`Using annotations: ${JSON.stringify(annotations)}`);
-              this.runTest(subTree, language);
+              this.language = language === languages[0] ? undefined : language;
+              this.runTest(subTree, { language });
             },
           ]);
         });
@@ -227,7 +250,10 @@ export class C8yScreenshotRunner {
     });
   }
 
-  protected runTest(item: Workflow, language?: string) {
+  protected runTest(
+    item: Workflow,
+    testOptions: { language?: string } = { language: "en" }
+  ) {
     let login = item.login ?? this.g("login") ?? item.user ?? this.g("user");
     const skipLogin = login === false;
     if (!_.isString(login)) {
@@ -295,7 +321,7 @@ export class C8yScreenshotRunner {
 
     cy.visitAndWaitForSelector(
       url,
-      language as C8yLanguage,
+      testOptions.language as C8yLanguage,
       visitSelector,
       visitTimeout
     );
@@ -724,5 +750,9 @@ function loadDataFromLocalStorage(key: string) {
 }
 
 function isWorkflow(obj: any): obj is Workflow {
-  return "image" in obj;
+  return obj != null && "image" in obj;
+}
+
+function isRunOptions(obj: any): obj is RunOptions {
+  return obj != null && ("tags" in obj || "titles" in obj || "images" in obj);
 }
