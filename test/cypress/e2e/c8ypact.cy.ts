@@ -1570,7 +1570,6 @@ describe("c8ypact", () => {
         });
 
       Cypress.c8ypact.loadCurrent().then((pact) => {
-        debugger
         expect(pact?.records).to.have.length(1);
         const record = pact?.records[0];
         expect(record).to.not.be.null;
