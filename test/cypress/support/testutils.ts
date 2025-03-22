@@ -143,17 +143,14 @@ export function stubResponse<T>(
     });
   };
 
+  const s = response.status;
+  const replyFn = s != null && s >= 200 && s < 400 ? success : failure;
   (Cypress.backend as sinon.SinonStub)
     .withArgs("http:request", Cypress.sinon.match.any)
     .onCall(callIndex)
-    .callsFake(success);
-
-  if (!response.status || response.status < 400) {
-    window.fetchStub.onCall(callIndex).callsFake(success);
-  } else {
-    window.fetchStub.onCall(callIndex).callsFake(failure);
-  }
-
+    .callsFake(replyFn);
+  window.fetchStub.onCall(callIndex).callsFake(replyFn);
+  
   stubCookies(response);
 }
 
