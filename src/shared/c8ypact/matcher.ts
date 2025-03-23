@@ -14,7 +14,7 @@ export interface C8yPactMatcher {
    *
    * @param obj1 Object to match.
    * @param obj2 Pact to match obj1 against.
-   * @param loggerProps Properties to log in Cypress debug log.
+   * @param {C8yPactMatcherOptions} options The C8yPactMatcherOptions to use for matching.
    */
   match: (
     objectToMatch: any,
@@ -65,7 +65,7 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     if (obj1 === obj2) return true;
 
     const parents = options?.parents ?? [];
-    const strictMatching = options?.strictMatching ?? true;
+    const strictMatching = options?.strictMatching ?? false;
     const schemaMatcher =
       options?.schemaMatcher || C8yDefaultPactMatcher.schemaMatcher;
 
@@ -127,15 +127,19 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
       return true;
     }
 
+    const removeSchemaPrefix = (key: string) =>
+      key.startsWith("$") ? key.slice(1) : key;
+
     // if strictMatching is disabled, only check properties of the pact for object matching
     // strictMatching for schema matching is considered within the matcher -> schema.additionalProperties
     const keys = !strictMatching ? pactKeys : objectKeys;
     for (const key of keys) {
       // schema is always defined on the pact object - needs special consideration
       const isSchema = key.startsWith("$") || schemaKeys.includes(`$${key}`);
+
       const value = _.get(
         strictMatching || isSchema ? obj1 : obj2,
-        key.startsWith("$") ? key.slice(1) : key
+        removeSchemaPrefix(key)
       );
       const pact = _.get(
         strictMatching || isSchema ? obj2 : obj1,
@@ -153,20 +157,24 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
         );
       }
       if (isSchema) {
+        const errorKey = removeSchemaPrefix(key);
         if (!schemaMatcher) {
           throwPactError(
-            `No schema matcher registered to validate "${keyPath(key)}".`,
-            key
+            `No schema matcher registered to validate "${keyPath(errorKey)}".`,
+            errorKey
           );
         }
         try {
           if (!schemaMatcher.match(value, pact, strictMatching)) {
-            throwPactError(`Schema for "${keyPath(key)}" does not match.`, key);
+            throwPactError(
+              `Schema for "${keyPath(errorKey)}" does not match.`,
+              errorKey
+            );
           }
         } catch (error) {
           throwPactError(
-            `Schema for "${keyPath(key)}" does not match. (${error})`,
-            key
+            `Schema for "${keyPath(errorKey)}" does not match. (${error})`,
+            errorKey
           );
         }
       } else if (this.propertyMatchers[key] != null) {

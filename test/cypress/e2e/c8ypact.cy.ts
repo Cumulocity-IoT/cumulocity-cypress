@@ -1134,10 +1134,20 @@ describe("c8ypact", () => {
         expect(err.message).to.contain("Pact validation failed!");
         done();
       });
-      Cypress.c8ypact.matcher = new C8yDefaultPactMatcher();
-      cy.c8yclient<IManagedObject>((c) =>
-        c.inventory.detail(1, { withChildren: false })
-      );
+
+      cy.then(() => {
+        Cypress.c8ypact.current = new C8yDefaultPact(
+          [{ request: { url: "test" } } as any],
+          {} as any,
+          "test"
+        );
+
+        Cypress.c8ypact.matcher = new C8yDefaultPactMatcher();
+        cy.c8yclient<IManagedObject>(
+          (c) => c.inventory.detail(1, { withChildren: false }),
+          { strictMatching: true }
+        );
+      });
     });
 
     it(
@@ -1306,7 +1316,9 @@ describe("c8ypact", () => {
       const matchSpy = cy.spy(Cypress.c8ypact.schemaMatcher!, "match");
 
       cy.getAuth({ user: "admin", password: "mypassword", tenant: "test" })
-        .c8yclient((c) => c.inventory.detail(1, { withChildren: false }))
+        .c8yclient((c) => c.inventory.detail(1, { withChildren: false }), {
+          strictMatching: true,
+        })
         .then((response) => {
           expect(matchSpy).to.have.been.calledOnce;
           // called with obj, schema and strictMatching
@@ -1386,7 +1398,9 @@ describe("c8ypact", () => {
         obfuscate: ["requestHeaders.MyAuthorization", "body.password2"],
         ignoreCase: true,
       });
-      expect(preprocessor.resolveOptions().ignore).to.deep.eq(C8yPactPreprocessorDefaultOptions.ignore);
+      expect(preprocessor.resolveOptions().ignore).to.deep.eq(
+        C8yPactPreprocessorDefaultOptions.ignore
+      );
 
       preprocessor.apply(obj);
       expect(obj?.requestHeaders?.Authorization).to.eq("asdasdasdasd");
