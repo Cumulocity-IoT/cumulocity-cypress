@@ -11,6 +11,13 @@ import { Client } from "@c8y/client";
 
 const { _ } = Cypress;
 
+// Infos:
+// https://github.com/cypress-io/cypress-example-recipes/tree/master/examples/fundamentals__dynamic-tests
+// Cannot dynamically create tests with cy.task
+// https://github.com/cypress-io/cypress/issues/5418
+// Ability to dynamically create tests while inside of a test
+// https://github.com/cypress-io/cypress/issues/7757
+
 /**
  * Configuration options for C8yPactRunner.
  */
@@ -183,9 +190,6 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
       }
 
       cy.then(() => {
-        Cypress.c8ypact.config.strictMatching =
-          pact.info?.strictMatching != null ? pact.info.strictMatching : true;
-
         const url = this.createURL(record, pact.info);
         if (!url) {
           cy.log("Skipping request without URL.");
@@ -208,14 +212,24 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           user = "devicebootstrap";
         }
 
+        const configKeys = [
+          "skipClientAuthentication",
+          "preferBasicAuth",
+          "failOnStatusCode",
+          "timeout",
+        ];
+        const strictMatching =
+          Cypress.config().c8ypact?.strictMatching ??
+          record.options?.strictMatching ??
+          pact.info?.strictMatching ??
+          Cypress.c8ypact.getConfigValue("strictMatching") ??
+          true;
+
         const cOpts: C8yClientOptions = {
-          // pact: { record: record, info: pact.info },
-          ..._.pick(record.options, [
-            "skipClientAuthentication",
-            "preferBasicAuth",
-            "failOnStatusCode",
-            "timeout",
-          ]),
+          strictMatching,
+          // config keys from record override pact info values
+          ..._.pick(pact.info, configKeys),
+          ..._.pick(record.options, configKeys),
         };
 
         const responseFn = (response: Cypress.Response<any>) => {

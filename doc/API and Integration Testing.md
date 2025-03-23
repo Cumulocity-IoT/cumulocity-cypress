@@ -420,7 +420,7 @@ Configuration of recording and matching is available via `Cypress.c8ypact`. It a
 ```typescript
 Cypress.c8ypact.config = {
   // allow additional properties in the response body
-  strictMatching: true,
+  strictMatching: false,
   // fail the test if there is no pact or the pact does not have a record for a request
   failOnMissingPacts: true,
   // log requests and responses to the Cypress console log
