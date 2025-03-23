@@ -97,6 +97,17 @@ describe("c8yclient", () => {
           expect(client.core.tenant).to.equal("t123456");
         });
     });
+
+    it("should forward error from current tenant request", function (done) {
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.contain("Failed to fetch");
+        done();
+      });
+
+      stubResponse(window.Response.error());
+
+      cy.getAuth({ user: "admin", password: "mypassword" }).c8yclient();
+    });
   });
 
   context("response object", () => {

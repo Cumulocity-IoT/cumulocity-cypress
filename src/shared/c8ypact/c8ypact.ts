@@ -92,7 +92,7 @@ export interface C8yPactConfigOptions {
   /**
    * Use strictMatching to enable strict matching of the pact records. If strict matching
    * is enabled, all properties of the pact records must match and tests fail if a property
-   * is missing.
+   * is missing. Default is false.
    */
   strictMatching?: boolean;
   /**

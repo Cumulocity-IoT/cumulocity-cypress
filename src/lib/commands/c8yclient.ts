@@ -166,7 +166,7 @@ export const defaultClientOptions = () => {
     ignorePact: false,
     failOnPactValidation: true,
     schema: undefined,
-    strictMatching: true,
+    strictMatching: false,
   } as C8yClientOptions;
 };
 
@@ -358,8 +358,21 @@ function authenticateClient(
   baseUrl: C8yBaseUrl
 ): Cypress.Chainable<C8yClient> {
   return cy.then({ timeout: options.timeout }, async () => {
-    const clientCore = new FetchClient(auth, baseUrl);
-    const res = await clientCore.fetch("/tenant/currentTenant");
+    let res: Response | undefined;
+    try {
+      const clientCore = new FetchClient(auth, baseUrl);
+      res = await clientCore.fetch("/tenant/currentTenant");
+    } catch (error: any) {
+      if (_.isError(error)) {
+        error.name = "CypressError";
+        throw error;
+      } else {
+        const ee = new Error(`Failed to fetch /tenant/currentTenant`);
+        ee.name = "CypressError";
+        throw ee;
+      }
+    }
+    
     if (res.status !== 200) {
       throwError(makeErrorMessage(res.responseObj));
     }
