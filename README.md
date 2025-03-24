@@ -63,6 +63,7 @@ Administration related commands
 - `getCurrentTenant` and `getTenantId`
 - `createUser` and `deleteUser`
 - `assignUserRoles` and `clearUserRoles`
+- `createGlobalRole` and `deleteGlobalRoles`
 - `getSystemVersion` and `getShellVersion`
 
 Component testing
