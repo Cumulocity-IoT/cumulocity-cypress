@@ -10,6 +10,7 @@ import {
   ICurrentTenant,
   IDeviceCredentials,
   IUserGroup,
+  IRole,
 } from "@c8y/client";
 import { C8yAuthOptions } from "../../shared/auth";
 import { C8yClientOptions } from "../../shared/c8yclient";
@@ -116,13 +117,13 @@ declare global {
       createGlobalRole(
         ...args:
           | [
-              roleOptions: { name: string; description?: string },
+              roleOptions: string | { name: string; description?: string },
               roles: string[],
               c8yoptions?: C8yClientOptions
             ]
           | [
               authOptions: C8yAuthOptions,
-              roleOptions: { name: string; description?: string },
+              roleOptions: string | { name: string; description?: string },
               roles: string[],
               c8yoptions?: C8yClientOptions
             ]
@@ -536,12 +537,15 @@ Cypress.Commands.add(
   },
   (...args) => {
     const $args = normalizedC8yclientArguments(args);
-    const [auth, { roleOptions }, roles, clientOptions] = $args;
+    const [auth, globalRole, rolesToAssign, clientOptions] = $args;
 
+    const roleOptions = _.isObjectLike(globalRole)
+      ? globalRole
+      : { name: globalRole };
     const consoleProps: any = {
       args: args || null,
       auth: auth || null,
-      roles: roles || null,
+      rolesToAssign: rolesToAssign || null,
       roleOptions: roleOptions || null,
       clientOptions: clientOptions || null,
     };
@@ -553,7 +557,7 @@ Cypress.Commands.add(
       consoleProps: () => consoleProps,
     });
 
-    if (!_.isString(roleOptions.name) || !_.isEmpty(roleOptions.name)) {
+    if (!_.isString(roleOptions.name) || _.isEmpty(roleOptions.name)) {
       logger.end();
       throwError("Missing argument. Requiring a name for the global role.");
     }
@@ -567,11 +571,13 @@ Cypress.Commands.add(
       .then((createResponse) => {
         const userGroup = createResponse.body;
         consoleProps.role = userGroup;
+
         const userGroupId = userGroup.id;
         if (!userGroupId) {
           logger.end();
           throwError("Failed to create global role. UserGroup id is missing.");
         }
+
         return cy
           .wrap(auth, { log: false })
           .c8yclient(
@@ -579,19 +585,41 @@ Cypress.Commands.add(
               client.userRole.list({ pageSize: 2000, withTotalPages: false }),
             clientOptions
           )
-          .then((listResponse) => {
-            const matches = listResponse.body.filter(
-              (r) => r.id && roles.includes(r.id.toString())
-            );
-            return cy
-              .wrap(auth, { log: false })
-              .c8yclient(
-                (c) =>
-                  matches.map((match) =>
-                    c.userGroup.addRoleToGroup(userGroupId, match)
-                  ),
-                clientOptions
+          .then((listResponse: Cypress.Response<any>) => {
+            const listRoles: IRole[] | undefined = listResponse.body.roles;
+            consoleProps.existingRoles = listRoles || null;
+            const matches: IRole[] = [];
+            if (!listRoles || listRoles.length === 0) {
+              logger.end();
+              throwError("Failed to load roles. No roles found.");
+            }
+
+            for (const r of listRoles) {
+              if (
+                rolesToAssign?.find(
+                  (item: string) => item === r.id || item === r.name
+                ) != null
+              ) {
+                matches.push(r);
+              }
+            }
+
+            if (matches.length < rolesToAssign.length) {
+              logger.end();
+              throwError(
+                `Failed to assign one of provided userRoles to ${roleOptions.name}. User role not found.`
               );
+            }
+
+            cy.wrap(auth, { log: false }).c8yclient(
+              (c) =>
+                matches
+                  ?.filter((item) => item.self != null)
+                  .map((match) =>
+                    c.userGroup.addRoleToGroup(userGroupId, match.self!)
+                  ),
+              clientOptions
+            );
           })
           .then(() => {
             logger.end();
@@ -629,8 +657,12 @@ Cypress.Commands.add(
     return cy
       .wrap(auth, { log: false })
       .c8yclient((c) => c.userGroup.list({ pageSize: 2000 }), clientOptions)
-      .then((listResponse) => {
-        const groups = listResponse.body;
+      .then((listResponse: Cypress.Response<any>) => {
+        const groups: IUserGroup[] = listResponse.body.groups;
+        if (!groups || groups.length === 0) {
+          logger.end();
+          throwError("Failed to load userGroups. No groups found.");
+        }
         return cy
           .wrap(auth, { log: false })
           .c8yclient(
