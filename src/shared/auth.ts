@@ -53,3 +53,73 @@ export function isPactAuthObject(obj: any): obj is C8yPactAuthObject {
     )
   );
 }
+
+export function normalizeAuthHeaders(headers: { [key: string]: any }) {
+  // required to fix inconsistencies between c8yclient and interceptions
+  // using lowercase and uppercase. fix here.
+  const xsrfTokenHeader = Object.keys(headers || {}).find(
+    (key) => key.toLowerCase() === "x-xsrf-token"
+  );
+  const authorizationHeader = Object.keys(headers || {}).find(
+    (key) => key.toLowerCase() === "authorization"
+  );
+
+  if (xsrfTokenHeader && xsrfTokenHeader !== "X-XSRF-TOKEN") {
+    headers["X-XSRF-TOKEN"] = headers[xsrfTokenHeader];
+    delete headers[xsrfTokenHeader];
+  }
+
+  if (authorizationHeader && authorizationHeader !== "Authorization") {
+    headers["Authorization"] = headers[authorizationHeader];
+    delete headers[authorizationHeader];
+  }
+  return headers;
+}
+
+export function getAuthOptionsFromBasicAuthHeader(
+  authHeader: string
+): { user: string; password: string } | undefined {
+  if (
+    !authHeader ||
+    !_.isString(authHeader) ||
+    !authHeader.startsWith("Basic ")
+  ) {
+    return undefined;
+  }
+
+  const base64Credentials = authHeader.slice("Basic ".length);
+  const credentials = decodeBase64(base64Credentials);
+
+  const components = credentials.split(":");
+  if (!components || components.length < 2) {
+    return undefined;
+  }
+
+  return { user: components[0], password: components.slice(1).join(":") };
+}
+
+export function encodeBase64(str: string): string {
+  if (!str) return "";
+
+  let encoded: string;
+  if (typeof Buffer !== "undefined") {
+    encoded = Buffer.from(str).toString("base64");
+  } else {
+    encoded = btoa(str);
+  }
+
+  return encoded;
+}
+
+export function decodeBase64(base64: string): string {
+  if (!base64) return "";
+
+  let decoded: string;
+  if (typeof Buffer !== "undefined") {
+    decoded = Buffer.from(base64, "base64").toString("utf-8");
+  } else {
+    decoded = atob(base64);
+  }
+
+  return decoded;
+}

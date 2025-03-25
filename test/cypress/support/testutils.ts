@@ -1,6 +1,6 @@
 import { IncomingMessage } from "http";
 import { getBaseUrlFromEnv } from "../../../src/lib/utils";
-import { encodeBase64 } from "../../../src/shared/c8yclient";
+import { encodeBase64 } from "../../../src/shared/auth";
 import * as setCookieParser from "set-cookie-parser";
 import { C8yTenant } from "../../../src/shared/types";
 
@@ -148,7 +148,8 @@ export function stubResponse<T>(
     .onCall(callIndex)
     .callsFake(success);
 
-  if (!response.status || response.status < 400) {
+  const s = response.status;
+  if (s != null && s >= 200 && s < 400 ) {
     window.fetchStub.onCall(callIndex).callsFake(success);
   } else {
     window.fetchStub.onCall(callIndex).callsFake(failure);

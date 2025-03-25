@@ -92,7 +92,7 @@ export interface C8yPactConfigOptions {
   /**
    * Use strictMatching to enable strict matching of the pact records. If strict matching
    * is enabled, all properties of the pact records must match and tests fail if a property
-   * is missing.
+   * is missing. Default is false.
    */
   strictMatching?: boolean;
   /**
@@ -278,6 +278,14 @@ export interface C8yPactRecord {
    * Returns the date of the response.
    */
   date(): Date | null;
+  /**
+   * Returns if the record has a request header with the given key. Comparison is case-insensitive.
+   */
+  hasRequestHeader(key: string): boolean;
+  /**
+   * Returns the auth type of the record. Currently supports `BasicAuth`, `CookieAuth` or undefined.
+   */
+  authType(): "BasicAuth" | "CookieAuth" | "BearerAuth" | undefined;
 }
 
 export function isValidPactId(value: string): boolean {

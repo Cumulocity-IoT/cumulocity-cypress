@@ -7,10 +7,13 @@ import "cypress-file-upload";
 import { pactId } from "../shared/c8ypact";
 import { C8yHighlightStyleDefaults } from "../shared/types";
 
+import { CyHttpMessages } from "cypress/types/net-stubbing";
+
 import {
   Action,
   C8yScreenshotFileUploadOptions,
   Screenshot,
+  ScreenshotOptions,
   ScreenshotSetup,
   SelectableHighlightAction,
   Visit,
@@ -148,7 +151,7 @@ export class C8yScreenshotRunner {
 
       beforeEach(() => {
         Cypress.session.clearAllSavedSessions();
-        if (Cypress.env("C8Y_CTRL_MODE") != null) {
+        if (Cypress.env("C8YCTRL_MODE") != null) {
           cy.wrap(c8yctrl(), { log: false });
         }
       });
@@ -217,21 +220,7 @@ export class C8yScreenshotRunner {
               }
 
               const user = item.user ?? global?.user;
-              if (user != null && _.isObject(user)) {
-                if (_.isObject(user)) {
-                  cy.intercept(
-                    { method: "GET", pathname: `/user/currentUser*` },
-                    (req) => {
-                      req.continue((res) => {
-                        res.body = {
-                          ...res.body,
-                          ...user,
-                        };
-                      });
-                    }
-                  ).as("currentUser");
-                }
-              }
+              this.interceptCurrentUser(user);
 
               (_.isString(login) ? cy.getAuth(login) : cy.wrap(undefined)).then(
                 (auth) => {
@@ -622,6 +611,45 @@ export class C8yScreenshotRunner {
   protected getVisitObject(visit: string | Visit): Visit | undefined {
     return _.isString(visit) ? undefined : visit;
   }
+
+  protected userId: string | undefined = undefined;
+  protected interceptCurrentUser(user: ScreenshotOptions["user"]) {
+    this.userId = undefined;
+    if (user != null && _.isObject(user)) {
+      cy.intercept(
+        { method: "GET", pathname: `/user/currentUser*` },
+        (req: CyHttpMessages.IncomingHttpRequest) => {
+          req.continue((res) => {
+            this.userId = res.body.id;
+            res.body = {
+              ...res.body,
+              ...user,
+            };
+          });
+        }
+      ).as("currentUser");
+
+      cy.intercept(
+        {
+          method: "GET",
+          path: /\/application\/applicationsByUser\/.*(\?.*)?/,
+        },
+        (req: CyHttpMessages.IncomingHttpRequest) => {
+          if (this.userId != null && user.id != null) {
+            const encodedCurrentUserID = encodeURIComponent(user.id);
+            const encodedActualUserID = encodeURIComponent(this.userId);
+            if (req.url.includes(encodedCurrentUserID)) {
+              req.url = req.url.replace(
+                encodedCurrentUserID,
+                encodedActualUserID
+              );
+            }
+          }
+          req.continue();
+        }
+      ).as("applicationsByUser");
+    }
+  }
 }
 
 /**
@@ -653,7 +681,7 @@ function debug(message: string, options?: any) {
 }
 
 export function isRecording(): boolean {
-  return Cypress.env("C8Y_CTRL_MODE") === "recording";
+  return Cypress.env("C8YCTRL_MODE") === "recording" || Cypress.env("C8YCTRL_MODE") === "record";
 }
 
 export function isScreenshotAction(action: Action): boolean {

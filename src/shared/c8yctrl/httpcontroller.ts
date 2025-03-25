@@ -36,7 +36,6 @@ import {
   wrapPathIgnoreHandler,
 } from "./middleware";
 
-import { toBoolean } from "./httpcontroller-utils";
 import { C8yPactFileAdapter } from "../c8ypact/adapter/fileadapter";
 import { C8yAuthOptions } from "../auth";
 import { oauthLogin } from "../c8yclient";
@@ -45,10 +44,11 @@ import fs from "fs";
 import path from "path";
 
 import { isVersionSatisfyingRequirements } from "../versioning";
-import { getPackageVersion, safeStringify } from "../util";
+import { safeStringify, toBoolean } from "../util";
+import { getPackageVersion } from "../util-node";
 
-import swaggerUi from 'swagger-ui-express';
-import yaml from 'yaml';
+import swaggerUi from "swagger-ui-express";
+import yaml from "yaml";
 
 import { C8yBaseUrl, C8yTenant } from "../types";
 
@@ -282,12 +282,16 @@ export class C8yPactHttpController {
 
   protected registerOpenAPIRequestHandler() {
     try {
-      const openapiPath = path.join(path.dirname(__filename), 'openapi.yaml');
+      const openapiPath = path.join(path.dirname(__filename), "openapi.yaml");
       log(`loading openapi from ${openapiPath}`);
       const fileContent = fs.readFileSync(openapiPath, "utf-8");
       const document = yaml.parse(fileContent);
 
-      this.app.use(`${this.resourcePath}/openapi/`, swaggerUi.serve, swaggerUi.setup(document));
+      this.app.use(
+        `${this.resourcePath}/openapi/`,
+        swaggerUi.serve,
+        swaggerUi.setup(document)
+      );
       this.logger.info(`OpenAPI: ${this.resourcePath}/openapi/`);
     } catch (error: any) {
       log(`loading openapi failed: ${error.message}`);
@@ -356,7 +360,7 @@ export class C8yPactHttpController {
   protected registerC8yctrlInterface() {
     // head endpoint can be used to check if the server is running, e.g. by start-server-and-test package
     this.app.head(this.resourcePath, (req, res) => {
-      res.status(200).send();
+      res.sendStatus(200);
     });
     this.app.get(`${this.resourcePath}/status`, (req, res) => {
       res.setHeader("content-type", "application/json");
@@ -365,7 +369,7 @@ export class C8yPactHttpController {
     this.app.get(`${this.resourcePath}/current`, (req, res) => {
       if (!this.currentPact) {
         // return 204 instead of 404 to indicate that no pact is set
-        res.status(204).send();
+        res.status(404).send("No current pact set");
         return;
       }
       res.setHeader("content-type", "application/json");
@@ -374,14 +378,15 @@ export class C8yPactHttpController {
     this.app.post(`${this.resourcePath}/current`, async (req, res) => {
       const parameters = { ...req.body, ...req.query };
       const { mode, clear, recordingMode, strictMocking } = parameters;
-      const id: C8yPactID | undefined = pactId(parameters.id) || pactId(parameters.title);
+      const id: C8yPactID | undefined =
+        pactId(parameters.id) || pactId(parameters.title);
 
       this.mode = mode as C8yPactMode;
       this.recordingMode = recordingMode as C8yPactRecordingMode;
       this._isStrictMocking = toBoolean(strictMocking, this._isStrictMocking);
 
       if (!id || !_.isString(id)) {
-        res.status(204).send("Missing or invalid pact id");
+        res.status(404).send("Missing or invalid pact id");
         return;
       }
 
@@ -398,7 +403,7 @@ export class C8yPactHttpController {
       );
 
       if (this.currentPact?.id === id) {
-        res.status(204);
+        res.status(404);
       } else {
         let current = this.adapter?.loadPact(id);
         if (!current && this.isRecordingEnabled()) {
@@ -470,12 +475,12 @@ export class C8yPactHttpController {
     });
     this.app.delete(`${this.resourcePath}/current`, (req, res) => {
       this.currentPact = undefined;
-      res.status(204).send();
+      res.sendStatus(204);
     });
     this.app.post(`${this.resourcePath}/current/clear`, async (req, res) => {
       if (!this.currentPact) {
         // return 204 instead of 404 to indicate that no pact is set
-        res.status(204).send();
+        res.status(404).send("No current pact set");
         return;
       }
       this.currentPact!.clearRecords();
@@ -484,26 +489,29 @@ export class C8yPactHttpController {
     });
     this.app.get(`${this.resourcePath}/current/request`, (req, res) => {
       if (!this.currentPact) {
-        res.send(204);
+        res.status(404).send("No current pact set");
         return;
       }
+
+      const { keys } = { ...req.query };
       const result = this.getObjectWithKeys(
         this.currentPact!.records.map((r) => r.request),
-        Object.keys(req.query)
+        keys ?? (Object.keys(req.query) as any)
       );
       res.setHeader("content-type", "application/json");
       res.status(200).send(JSON.stringify(result, null, 2));
     });
     this.app.get(`${this.resourcePath}/current/response`, (req, res) => {
       if (!this.currentPact) {
-        res.send(204);
+        res.status(404).send("No current pact set");
         return;
       }
+      const { keys } = { ...req.query };
       const result = this.getObjectWithKeys(
         this.currentPact!.records.map((r) => {
           return { ...r.response, url: r.request.url };
         }),
-        Object.keys(req.query)
+        keys ?? (Object.keys(req.query) as any)
       );
       res.setHeader("content-type", "application/json");
       res.status(200).send(JSON.stringify(result, null, 2));
@@ -530,7 +538,7 @@ export class C8yPactHttpController {
       if (_.isString(message)) {
         this.logger.log(level || "info", message);
       }
-      res.status(204).send();
+      res.sendStatus(204);
     });
     this.app.put(`${this.resourcePath}/log`, (req, res) => {
       const parameters = { ...req.body, ...req.query };
@@ -543,7 +551,7 @@ export class C8yPactHttpController {
           .send(`Invalid log level. Use one of: ${logLevels.join(", ")}`);
         return;
       }
-      res.status(204).send();
+      res.sendStatus(204);
     });
   }
 

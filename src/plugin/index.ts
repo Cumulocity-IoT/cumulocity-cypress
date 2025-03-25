@@ -21,7 +21,7 @@ import {
 } from "../shared/c8ypact/c8ypact";
 import { C8yAuthOptions, oauthLogin } from "../shared/c8yclient";
 import { validateBaseUrl } from "../shared/c8ypact/url";
-import { getPackageVersion } from "../shared/util";
+import { getPackageVersion } from "../shared/util-node";
 
 import {
   C8yScreenshotFileUploadOptions,
@@ -124,7 +124,12 @@ export function configureC8yPlugin(
   function getPact(pact: string): C8yPact | null {
     log(`getPact() - ${pact}`);
     validateId(pact);
-    return adapter?.loadPact(pact) || null;
+    try {
+      return adapter?.loadPact(pact) || null;
+    } catch (e) {
+      log(`getPact() - ${e}`);
+      return null;
+    }
   }
 
   function removePact(pact: string): boolean {

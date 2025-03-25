@@ -100,7 +100,9 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
     if (fs.existsSync(file)) {
       const pact = fs.readFileSync(file, "utf-8");
       log(`loadPact() - ${file} loaded`);
-      return JSON.parse(pact);
+      const json = JSON.parse(pact);
+      log(`loadPact() - parsed as json`);
+      return json || null;
     } else {
       log(`loadPact() - ${file} does not exist`);
     }

@@ -63,7 +63,6 @@ describe("c8ypactmatcher", () => {
 
       const pactSourceObj = _.cloneDeep(obj);
       const preprocessor = new C8yCypressEnvPreprocessor({
-        obfuscationPattern: "********",
         obfuscate: ["requestHeaders.Test", "body.Test"],
       });
 
@@ -387,9 +386,12 @@ describe("c8ypactmatcher", () => {
       const matcher = new C8yDefaultPactMatcher();
       const pact = _.cloneDeep(obj1);
       delete pact.request.url;
-      expect(() => matcher.match(obj1, pact)).to.throw(
+      expect(() =>
+        matcher.match(obj1, pact, { strictMatching: true })
+      ).to.throw(
         `Pact validation failed! "request > url" not found in pact object.`
       );
+      expect(matcher.match(obj1, pact)).to.be.true;
     });
 
     it("should fail if ignored porperty is missing with strictMatching disabled", function () {
@@ -667,7 +669,7 @@ describe("c8ypactmatcher", () => {
       };
       const obj = _.cloneDeep(obj1);
       obj.response.body = "{ id: 123 }";
-      expect(() => matcher.match(obj, pact)).to.throw(
+      expect(() => matcher.match(obj, pact, { strictMatching: true })).to.throw(
         `Pact validation failed! Schema for "response > body" does not match.`
       );
       expect(spy).to.have.been.calledOnce;
@@ -687,7 +689,7 @@ describe("c8ypactmatcher", () => {
       };
       const obj = _.cloneDeep(obj1);
       obj.response.body = { id: "123", other: 101 };
-      expect(() => matcher.match(obj, pact)).to.throw(
+      expect(() => matcher.match(obj, pact, { strictMatching: true })).to.throw(
         `Pact validation failed! Schema for "response > body" does not match.`
       );
       expect(spy).to.have.been.calledOnce;
@@ -752,7 +754,7 @@ describe("c8ypactmatcher", () => {
 
       const obj = _.cloneDeep(obj2);
       obj.response.body = { id: "123", nested: { name: "abcd" } };
-      expect(matcher.match(obj, pact)).to.be.true;
+      expect(matcher.match(obj, pact, {strictMatching: true})).to.be.true;
       expect(spy).to.have.been.calledOnce;
     });
   });

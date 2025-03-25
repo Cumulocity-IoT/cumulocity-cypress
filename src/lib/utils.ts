@@ -5,6 +5,7 @@ import { C8yAuthOptions, isAuthOptions } from "../shared/auth";
 import { C8yClient } from "../shared/c8yclient";
 import { getEnvVar } from "../shared/c8ypact/c8ypact";
 import { toSemverVersion } from "../shared/versioning";
+import { get_i } from "../shared/util";
 
 const { _ } = Cypress;
 
@@ -75,7 +76,7 @@ export function normalizedC8yclientArguments(args: any[]) {
 
 export function getCookieAuthFromEnv() {
   const cookieAuth = new CookieAuth();
-  const token = _.get(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
+  const token = get_i(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
   if (!token || _.isEmpty(token)) {
     return undefined;
   }
@@ -84,7 +85,7 @@ export function getCookieAuthFromEnv() {
 
 export function getXsrfToken() {
   const cookieAuth = new CookieAuth();
-  const token = _.get(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
+  const token = get_i(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
   if (token != null && !_.isEmpty(token)) {
     return token;
   }
@@ -92,16 +93,6 @@ export function getXsrfToken() {
 }
 
 export function getAuthOptionsFromEnv() {
-  // check first environment variables
-  const user = Cypress.env(`C8Y_USERNAME`);
-  const password = Cypress.env(`C8Y_PASSWORD`);
-  if (!_.isEmpty(user) && !_.isEmpty(password)) {
-    return authWithTenant({
-      user,
-      password,
-    });
-  }
-
   // check window.localStorage for __auth item
   const win = cy.state("window");
   const authString = win.localStorage.getItem("__auth");
@@ -112,11 +103,23 @@ export function getAuthOptionsFromEnv() {
     }
   }
 
-  // check auth options configured via it("...", {auth: {...}}, ...)
+  // check auth options from test case annotation
+  // configured via it("...", {auth: {...}}, ...)
   const auth = getAuthOptionsFromArgs(Cypress.config().auth);
   if (isAuthOptions(auth)) {
     return auth;
   }
+
+  // check first environment variables
+  const user = Cypress.env(`C8Y_USERNAME`);
+  const password = Cypress.env(`C8Y_PASSWORD`);
+  if (!_.isEmpty(user) && !_.isEmpty(password)) {
+    return authWithTenant({
+      user,
+      password,
+    });
+  }
+
   return undefined;
 }
 
@@ -136,9 +139,22 @@ export function getAuthOptions(...args: any[]): C8yAuthOptions | undefined {
   const auth = getAuthOptionsFromArgs(...args);
   if (isAuthOptions(auth)) {
     return authWithTenant(auth);
+  } else if (args.length === 1 && _.isString(args[0])) {
+    return undefined;
   }
 
   return getAuthOptionsFromEnv();
+}
+
+export function userAliasFromArgs(...args: any[]): string | undefined {
+  if (!args || !args.length) return undefined;
+
+  if (args[0] == null) {
+    args = _.dropWhile(args, (a) => !a);
+  } else if (_.isArray(args[0])) {
+    args = _.flatten(args[0]);
+  }
+  return args.length === 1 && _.isString(args[0]) ? args[0] : undefined;
 }
 
 function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
@@ -194,6 +210,18 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
       }
       return authWithTenant(auth);
     }
+
+    // from IUser: getAuthOptions({userName: "abc", password: "abc"}, ...)
+    if (args[0].userName && args[0].password) {
+      const auth = _.pick(args[0], [
+        "userName",
+        "password",
+        "tenantId",
+        "userAlias",
+      ]);
+      delete Object.assign(auth, { user: auth.userName })["userName"];
+      return authWithTenant(auth);
+    }
   }
 
   // getAuthOptions("abc", "abc")
@@ -230,10 +258,7 @@ export function getC8yClientAuthentication(
 
   if (!result) {
     const cookieAuth = new CookieAuth();
-    const token: string = _.get(
-      cookieAuth.getFetchOptions({}),
-      "headers.X-XSRF-TOKEN"
-    );
+    const token = get_i(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
     if (token?.trim() && !_.isEmpty(token.trim())) {
       result = cookieAuth;
     } else if (authOptions) {

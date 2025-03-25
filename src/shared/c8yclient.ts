@@ -1,8 +1,9 @@
 import _ from "lodash";
 
-import { C8yAuthentication } from "./auth";
+import { C8yAuthentication, getAuthOptionsFromBasicAuthHeader } from "./auth";
 
 import {
+  BasicAuth,
   Client,
   FetchClient,
   IAuthentication,
@@ -21,6 +22,7 @@ import {
 import * as setCookieParser from "set-cookie-parser";
 import { C8ySchemaMatcher } from "./c8ypact/schema";
 import { C8yBaseUrl } from "./types";
+import { get_i } from "./util";
 
 declare global {
   interface Response {
@@ -55,6 +57,7 @@ export type C8yClientOptions = Partial<Cypress.Loggable> &
     failOnPactValidation: boolean;
     ignorePact: boolean;
     schema: any;
+    record: C8yPactRecord;
     schemaMatcher: C8ySchemaMatcher;
     strictMatching: boolean;
   }>;
@@ -146,6 +149,11 @@ export async function wrapFetchResponse(
     logOptions?: LogOptions;
   } = {}
 ) {
+  // only wrap valid responses or new Response() will fail later
+  if (response.status == null || response.status < 200 || response.status > 599) {
+    return response;
+  }
+
   const responseObj = await (async () => {
     return toCypressResponse(
       response,
@@ -420,54 +428,6 @@ export function isIResult(obj: any): obj is IResult<any> {
   );
 }
 
-export function getAuthOptionsFromBasicAuthHeader(
-  authHeader: string
-): { user: string; password: string } | undefined {
-  if (
-    !authHeader ||
-    !_.isString(authHeader) ||
-    !authHeader.startsWith("Basic ")
-  ) {
-    return undefined;
-  }
-
-  const base64Credentials = authHeader.slice("Basic ".length);
-  const credentials = decodeBase64(base64Credentials);
-
-  const components = credentials.split(":");
-  if (!components || components.length < 2) {
-    return undefined;
-  }
-
-  return { user: components[0], password: components.slice(1).join(":") };
-}
-
-export function encodeBase64(str: string): string {
-  if (!str) return "";
-
-  let encoded: string;
-  if (typeof Buffer !== "undefined") {
-    encoded = Buffer.from(str).toString("base64");
-  } else {
-    encoded = btoa(str);
-  }
-
-  return encoded;
-}
-
-export function decodeBase64(base64: string): string {
-  if (!base64) return "";
-
-  let decoded: string;
-  if (typeof Buffer !== "undefined") {
-    decoded = Buffer.from(base64, "base64").toString("utf-8");
-  } else {
-    decoded = atob(base64);
-  }
-
-  return decoded;
-}
-
 /**
  * Checks if the given object is a CypressError.
  * @param error The object to check.
@@ -497,7 +457,7 @@ export function getAuthCookies(response: Response | Cypress.Response<any>):
       }
     } else {
       if (_.isPlainObject(response.headers)) {
-        cookieHeader = _.get(response.headers, "set-cookie");
+        cookieHeader = get_i(response.headers, "set-cookie");
       }
     }
   }
@@ -542,7 +502,7 @@ export async function oauthLogin(
 ): Promise<C8yAuthOptions> {
   if (!auth || !auth.user || !auth.password) {
     const error = new Error(
-      "Authentication required. oauthLogin requires full authentication including user and password."
+      "Authentication required. oauthLogin requires user and password for authentication."
     );
     error.name = "C8yPactError";
     throw error;
@@ -550,22 +510,31 @@ export async function oauthLogin(
 
   if (!baseUrl) {
     const error = new Error(
-      "Base URL required. Use C8Y_BASEURL env variable for component testing."
+      "Base URL required. oauthLogin requires absolute url for login."
     );
     error.name = "C8yPactError";
     throw error;
   }
 
-  const tenant = auth.tenant;
+  let tenant = auth.tenant;
   if (!tenant) {
-    const error = new Error(
-      "Tenant required. Use C8Y_TENANT env variable or pass it as part of auth object."
-    );
-    error.name = "C8yPactError";
-    throw error;
+    const fetchClient = new FetchClient(baseUrl);
+    const credentials = new BasicAuth(auth);
+    fetchClient.setAuth(credentials);
+    const res = await fetchClient.fetch("/tenant/currentTenant");
+    credentials.logout();
+
+    if (res.status !== 200) {
+      const error = new Error(
+        `Getting tenant id failed for ${baseUrl} with status code ${res.status}. Use env variable or pass it as part of auth object.`
+      );
+      error.name = "C8yPactError";
+      throw error;
+    }
+    const { name } = await res.json();
+    tenant = name;
   }
 
-  const fetchClient = new FetchClient(baseUrl);
   const url = `/tenant/oauth?tenant_id=${tenant}`;
   const params = new URLSearchParams({
     grant_type: "PASSWORD",
@@ -574,6 +543,7 @@ export async function oauthLogin(
     ...(auth.tfa && { tfa_code: auth.tfa }),
   });
 
+  const fetchClient = new FetchClient(baseUrl);
   const res = await fetchClient.fetch(url, {
     method: "POST",
     body: params.toString(),

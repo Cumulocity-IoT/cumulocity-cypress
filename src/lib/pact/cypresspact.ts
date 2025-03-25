@@ -43,6 +43,7 @@ import { C8yPactFetchClient } from "./fetchclient";
 import { validateBaseUrl } from "../../shared/c8ypact/url";
 import { C8yCypressEnvPreprocessor } from "./cypresspreprocessor";
 import { C8yBaseUrl } from "../../shared/types";
+import { toBoolean } from "../../shared/util";
 
 declare global {
   namespace Cypress {
@@ -51,14 +52,17 @@ declare global {
     }
 
     interface SuiteConfigOverrides {
+      tags?: string[];
       c8ypact?: C8yPactConfigOptions;
     }
 
     interface TestConfigOverrides {
+      tags?: string[];
       c8ypact?: C8yPactConfigOptions;
     }
 
     interface RuntimeConfigOptions {
+      tags?: string[];
       c8ypact?: C8yPactConfigOptions;
     }
   }
@@ -257,15 +261,13 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
     schemaGenerator: undefined,
     schemaMatcher: undefined,
     debugLog: false,
-    preprocessor: new C8yCypressEnvPreprocessor({
-      obfuscate: ["request.headers.Authorization", "response.body.password"],
-    }),
+    preprocessor: new C8yCypressEnvPreprocessor(),
     on: {},
     config: {
       log: false,
       ignore: globalIgnore === "true" || globalIgnore === true,
       failOnMissingPacts: true,
-      strictMatching: true,
+      strictMatching: false,
       strictMocking: true,
       requestMatching: {
         ignoreUrlParameters: ["dateFrom", "dateTo", "_"],
@@ -329,6 +331,7 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
           ignore: Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE"),
           obfuscate: Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
           obfuscationPattern: Cypress.env("C8Y_PACT_PREPROCESSOR_PATTERN"),
+          ignoreCase: toBoolean(Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE_CASE"), true),
         },
       };
     },
@@ -448,7 +451,7 @@ function isEnabled(): boolean {
     return false;
   } else {
     if (
-      Cypress.c8ypact.config.ignore === true ||
+      Cypress.c8ypact.getConfigValue("ignore") === true ||
       Cypress.env("C8Y_PACT_IGNORE") === "true"
     ) {
       return false;
