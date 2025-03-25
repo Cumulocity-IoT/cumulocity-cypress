@@ -139,9 +139,22 @@ export function getAuthOptions(...args: any[]): C8yAuthOptions | undefined {
   const auth = getAuthOptionsFromArgs(...args);
   if (isAuthOptions(auth)) {
     return authWithTenant(auth);
+  } else if (args.length === 1 && _.isString(args[0])) {
+    return undefined;
   }
 
   return getAuthOptionsFromEnv();
+}
+
+export function userAliasFromArgs(...args: any[]): string | undefined {
+  if (!args || !args.length) return undefined;
+
+  if (args[0] == null) {
+    args = _.dropWhile(args, (a) => !a);
+  } else if (_.isArray(args[0])) {
+    args = _.flatten(args[0]);
+  }
+  return args.length === 1 && _.isString(args[0]) ? args[0] : undefined;
 }
 
 function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
