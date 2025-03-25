@@ -38,7 +38,7 @@ export default {
       "@semantic-release/exec",
       {
         prepareCmd:
-          "npm pkg set version=${nextRelease.version} && npm pkg set version=${nextRelease.version} --ws && npx copyfiles CHANGELOG.md ./dist",
+          "npm pkg set version=${nextRelease.version} && npm pkg set version=${nextRelease.version} && npx copyfiles CHANGELOG.md ./dist",
       },
     ],
     [
