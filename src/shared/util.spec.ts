@@ -1,6 +1,7 @@
 import {
   get_i,
   sanitizeStringifiedObject,
+  to_array,
   toBoolean,
   toSensitiveObjectKeyPath,
 } from "./util";
@@ -203,6 +204,28 @@ describe("util", () => {
       const obj = { test: "test", Complex: { key: { token: "value" } } };
       const result = get_i(obj, "");
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe("to_array", () => {
+    it("should return empty array if input is null", () => {
+      expect(to_array(null as any)).toEqual([]);
+      expect(to_array(undefined as any)).toEqual([]);
+    });
+
+    it("should return array if input is not an array", () => {
+      const result = to_array("test" as any);
+      expect(result).toEqual(["test"]);
+    });
+
+    it("should return array if input is an array", () => {
+      const result = to_array(["test"]);
+      expect(result).toEqual(["test"]);
+    });
+
+    it("should return array if input is an object", () => {
+      const result = to_array({ test: "test" });
+      expect(result).toEqual([{ test: "test" }]);
     });
   });
 });
