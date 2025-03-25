@@ -8,6 +8,7 @@ import {
 } from "../../shared/c8ypact";
 import { getBaseUrlFromEnv } from "../utils";
 import { Client } from "@c8y/client";
+import { to_array } from "../../shared/util";
 
 const { _ } = Cypress;
 
@@ -204,12 +205,22 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           }
         }
 
-        let user = record.auth?.userAlias || record.auth?.user;
-        if ((user || "").split("/").length > 1) {
-          user = user?.split("/")?.slice(1)?.join("/");
-        }
+        let users = to_array(record.auth?.userAlias || record.auth?.user).map(
+          (item) => {
+            if ((item || "").split("/").length > 1) {
+              return item?.split("/")?.slice(1)?.join("/");
+            } else {
+              return item;
+            }
+          }
+        );
+
         if (url === "/devicecontrol/deviceCredentials") {
-          user = "devicebootstrap";
+          users = to_array("devicebootstrap");
+        }
+
+        if (users.length === 0) {
+          users = [undefined];
         }
 
         const configKeys = [
@@ -225,8 +236,11 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           Cypress.c8ypact.getConfigValue("strictMatching") ??
           true;
 
+        const failOnStatusCode = (record.response?.status ?? 200) < 400;
         const cOpts: C8yClientOptions = {
           strictMatching,
+          record,
+          failOnStatusCode,
           // config keys from record override pact info values
           ..._.pick(pact.info, configKeys),
           ..._.pick(record.options, configKeys),
@@ -260,20 +274,24 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
         const isBasicAuth = (envAuth ?? record.authType()) === "BasicAuth";
         const f = (c: Client) => c.core.fetch(url, clientFetchOptions);
 
-        (user ? cy.getAuth(user) : cy.getAuth()).then((auth) => {
-          if (user !== "devicebootstrap" && isCookieAuth) {
-            if (currentAuth == null || auth?.user !== currentAuth?.user) {
-              cy.wrap(auth).login();
-              currentAuth = auth;
-            }
-            cy.c8yclient(f, cOpts).then(responseFn);
-          } else {
-            if (isBasicAuth) {
-              cy.wrap(auth).c8yclient(f, cOpts).then(responseFn);
-            } else {
+        users.forEach((user) => {
+          (user ? cy.getAuth(user) : cy.getAuth()).then((auth) => {
+            if (user !== "devicebootstrap" && isCookieAuth) {
+              if (currentAuth == null || auth?.user !== currentAuth?.user) {
+                cy.wrap(auth, { log: false }).login();
+                currentAuth = auth;
+              }
               cy.c8yclient(f, cOpts).then(responseFn);
+            } else {
+              if (isBasicAuth) {
+                cy.wrap(auth, { log: false })
+                  .c8yclient(f, cOpts)
+                  .then(responseFn);
+              } else {
+                cy.c8yclient(f, cOpts).then(responseFn);
+              }
             }
-          }
+          });
         });
       });
     }
