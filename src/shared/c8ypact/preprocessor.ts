@@ -170,7 +170,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
           libCookie.serialize(
             cookie.name,
             cookie.value,
-            cookie as libCookie.SerializeOptions
+            cookie as libCookie.CookieSerializeOptions
           )
         );
 
@@ -245,7 +245,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
           libCookie.serialize(
             cookie.name,
             cookieValue,
-            cookie as libCookie.SerializeOptions
+            cookie as libCookie.CookieSerializeOptions
           )
         );
         return acc;
