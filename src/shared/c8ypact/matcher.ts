@@ -267,7 +267,7 @@ export class C8yPactBodyMatcher extends C8yDefaultPactMatcher {
     this.addPropertyMatcher("next", new C8yIgnoreMatcher());
     this.addPropertyMatcher("self", new C8yIgnoreMatcher());
     this.addPropertyMatcher("password", new C8yIgnoreMatcher());
-    this.addPropertyMatcher("owner", new C8yIgnoreMatcher());
+    this.addPropertyMatcher("owner", new C8ySameTypeMatcher());
     this.addPropertyMatcher("tenantId", new C8yIgnoreMatcher());
     this.addPropertyMatcher(
       "lastPasswordChange",

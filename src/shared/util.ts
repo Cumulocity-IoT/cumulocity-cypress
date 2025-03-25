@@ -123,3 +123,13 @@ export function get_i(
   if (sensitivePath == null) return undefined;
   return _.get(obj, sensitivePath);
 }
+
+/**
+ * Maps a value to an array if it is not already an array.
+ * @param value The value to map to an array
+ * @returns The value as an array
+ */
+export function to_array<T>(value: T | T[]): T[] {
+  if (value == null) return [];
+  return _.isArray(value) ? value : [value];
+}
