@@ -57,6 +57,7 @@ export type C8yClientOptions = Partial<Cypress.Loggable> &
     failOnPactValidation: boolean;
     ignorePact: boolean;
     schema: any;
+    record: C8yPactRecord;
     schemaMatcher: C8ySchemaMatcher;
     strictMatching: boolean;
   }>;

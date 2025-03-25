@@ -412,7 +412,7 @@ function run(
         if (Cypress.c8ypact.mode() !== "apply") return;
 
         for (const r of _.isArray(response) ? response : [response]) {
-          const record = Cypress.c8ypact.current?.nextRecord();
+          const record = options.record ?? Cypress.c8ypact.current?.nextRecord();
           const info = Cypress.c8ypact.current?.info;
           if (record != null && info != null && !ignore) {
             cy.c8ymatch(r, record, info, options);
