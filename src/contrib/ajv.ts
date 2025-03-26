@@ -18,9 +18,9 @@ import draft06Schema from "ajv/lib/refs/json-schema-draft-06.json";
 export class C8yAjvSchemaMatcher implements C8ySchemaMatcher {
   ajv: Ajv;
 
-  constructor(metas?: AnySchemaObject[]) {
+  constructor(metas?: AnySchemaObject[], strict: boolean = true) {
     //https://ajv.js.org/options.html
-    this.ajv = new Ajv({ strict: "log", allowUnionTypes: true });
+    this.ajv = new Ajv({ strict, allowUnionTypes: true });
     addFormats(this.ajv, [
       "uri",
       "uri-reference",
@@ -71,11 +71,14 @@ export class C8yAjvSchemaMatcher implements C8ySchemaMatcher {
   match(
     obj: any,
     schema: SchemaObject,
-    strictMatching: boolean = true
+    strictMatching?: boolean
   ): boolean {
     if (!schema) return false;
     const schemaClone = _.cloneDeep(schema);
-    this.updateAdditionalProperties(schemaClone, !strictMatching);
+
+    if (strictMatching != null) {
+      this.updateAdditionalProperties(schemaClone, !strictMatching);
+    }
 
     const valid = this.ajv.validate(schemaClone, obj);
     if (!valid) {

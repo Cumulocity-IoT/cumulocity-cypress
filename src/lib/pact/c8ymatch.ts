@@ -119,7 +119,7 @@ Cypress.Commands.add("c8ymatch", (response, pact, info = {}, options = {}) => {
       if (isCypressError(error) || isPactError(error)) {
         throw error;
       } else {
-        throwError(`Matching schema failed. Error: ${error}`);
+        throwError(`Matching schema failed. ${error}`);
       }
     }
   } finally {
