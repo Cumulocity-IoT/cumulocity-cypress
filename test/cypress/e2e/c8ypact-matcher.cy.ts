@@ -774,10 +774,10 @@ describe("c8ypactmatcher", () => {
       const matcher = new C8yISODateStringMatcher();
       const date1 = "2023-06-14T13:20:18.929Z";
       const date2 = "1699996703";
-      expect(matcher.match(date1, date2)).to.be.false;
+      expect(() => matcher.match(date1, date2)).to.throw();
 
       const date3 = 1699996703;
-      expect(matcher.match(date1, date3)).to.be.false;
+      expect(() => matcher.match(date1, date3)).to.throw();
     });
   });
 });
