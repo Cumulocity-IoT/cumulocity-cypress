@@ -65,7 +65,7 @@ describe("C8yDefaultPactPreprocessor", () => {
 
     it("should resolve options with default values", () => {
       const preprocessor = new TestC8yDefaultPactPreprocessor();
-      const resolvedOptions = preprocessor.test_resolveOptions()
+      const resolvedOptions = preprocessor.test_resolveOptions();
       expect(resolvedOptions).toStrictEqual(C8yPactPreprocessorDefaultOptions);
     });
 
@@ -108,7 +108,7 @@ describe("C8yDefaultPactPreprocessor", () => {
       const resolvedOptions = preprocessor.test_resolveOptions(options);
       expect(resolvedOptions).toStrictEqual({
         ...C8yPactPreprocessorDefaultOptions,
-        ...options
+        ...options,
       });
     });
   });
@@ -413,6 +413,190 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.requestHeaders["cookie"]).toStrictEqual(
         "authorization=secret; XSRF-TOKEN=******"
       );
+    });
+  });
+
+  describe("keep", () => {
+    it("should keep only specified keys in an object", () => {
+      const options: C8yPactPreprocessorOptions = {
+        keep: {
+          headers: ["content-type"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        body: { name: "test" },
+        headers: {
+          "content-type": "application/json",
+        },
+      });
+      expect(response.body).toStrictEqual({ name: "test" });
+    });
+
+    it("should keep only specified keys in an object with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        keep: {
+          HEADERS: ["Content-Type"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        body: { name: "test" },
+        headers: {
+          "content-type": "application/json",
+        },
+      });
+      expect(response.body).toStrictEqual({ name: "test" });
+    });
+
+    it("should keep only specified keys in an object with case insensitive keys in entire path", () => {
+      const options: C8yPactPreprocessorOptions = {
+        keep: {
+          HEADERS: ["Content-Type"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        HEADERS: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        body: { name: "test" },
+        HEADERS: {
+          "content-type": "application/json",
+        },
+      });
+      expect(response.body).toStrictEqual({ name: "test" });
+    });
+
+    it("should keep only specified keys for root object", () => {
+      const options: C8yPactPreprocessorOptions = {
+        keep: ["content-type"],
+      };
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+        "content-type": "application/text",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        "content-type": "application/text",
+      });
+    });
+
+    it("should keep only specified keys for root object with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        keep: ["content-type"],
+      };
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+        "cOnteNT-Type": "application/text",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response);
+      expect(response).toStrictEqual({
+        "cOnteNT-Type": "application/text",
+      });
+    });
+
+    it("should not fail if keep option is undefined", () => {
+      const options: C8yPactPreprocessorOptions = {
+        keep: undefined,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      const originalResponse = { ...response };
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual(originalResponse);
+    });
+
+    it("should apply keep and ignore options", () => {
+      const options: C8yPactPreprocessorOptions = {
+        keep: {"headers": ["content-type"]},
+        ignore: ["headers.content-type"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        headers: {},
+        body: { name: "test" },
+      });
+    });
+
+    it("should apply keep and obfuscate options", () => {
+      const options: C8yPactPreprocessorOptions = {
+        keep: {"headers": ["content-type"]},
+        obfuscate: ["headers.content-type"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        headers: { "content-type": C8yDefaultPactPreprocessor.defaultObfuscationPattern },
+        body: { name: "test" },
+      });
     });
   });
 });

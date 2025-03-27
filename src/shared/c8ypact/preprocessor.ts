@@ -2,7 +2,7 @@ import _ from "lodash";
 import { C8yPact, C8yPactRecord } from "./c8ypact";
 import * as setCookieParser from "set-cookie-parser";
 import * as libCookie from "cookie";
-import { toSensitiveObjectKeyPath } from "../util";
+import { get_i, toSensitiveObjectKeyPath } from "../util";
 
 /**
  * Preprocessor for C8yPact objects. Use C8yPactPreprocessor to preprocess any
@@ -45,6 +45,15 @@ export interface C8yPactPreprocessorOptions {
    * request.headers.Authorization
    */
   ignore?: string[];
+  /**
+   * Key paths to keep. All other keys (children) of the object will
+   * be removed.
+   *
+   * @example
+   * response.headers: ["content-type"]
+   * ["request.headers", "response.headers"]
+   */
+  keep?: { [key: string]: string[] } | string[];
   /**
    * Obfuscation pattern to use. Default is ********.
    */
@@ -115,10 +124,44 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
       );
 
     objs.forEach((obj) => {
+      if (_.isPlainObject(o.keep)) {
+        this.applyKeepObject(obj, o.keep as any);
+      } else if (_.isArrayLike(o.keep)) {
+        this.applyKeepArray(obj, o.keep as any);
+      }
       const keysToObfuscate = mapSensitiveKeys(obj, o.obfuscate ?? []);
       const keysToRemove = mapSensitiveKeys(obj, o.ignore ?? []);
       this.handleObfuscation(obj, keysToObfuscate, obfuscationPattern);
       this.handleRemoval(obj, keysToRemove);
+    });
+  }
+
+  private applyKeepArray(obj: any, keep: string[]): void {
+    if (keep == null || _.isEmpty(keep)) return;
+    if (_.isObjectLike(obj)) {
+      const keysToRemove = Object.keys(obj).filter(
+        (childKey) => !keep.includes(childKey.toLowerCase())
+      );
+      keysToRemove.forEach((childKey) => {
+        _.unset(obj, childKey);
+      });
+    }
+  }
+
+  private applyKeepObject(obj: any, keep?: { [key: string]: string[] }): void {
+    if (keep == null || _.isEmpty(keep)) return;
+    Object.keys(keep).forEach((key) => {
+      const childrenToKeep = keep[key].map((k) => k.toLowerCase());
+      const target = get_i(obj, key);
+
+      if (_.isObjectLike(target)) {
+        const keysToRemove = Object.keys(target).filter(
+          (childKey) => !childrenToKeep.includes(childKey.toLowerCase())
+        );
+        keysToRemove.forEach((childKey) => {
+          _.unset(target, childKey);
+        });
+      }
     });
   }
 
