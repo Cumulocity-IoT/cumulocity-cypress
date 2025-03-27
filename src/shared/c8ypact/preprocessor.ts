@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _, { map } from "lodash";
 import { C8yPact, C8yPactRecord } from "./c8ypact";
 import * as setCookieParser from "set-cookie-parser";
 import * as libCookie from "cookie";
@@ -124,16 +124,53 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
       );
 
     objs.forEach((obj) => {
-      if (_.isPlainObject(o.keep)) {
-        this.applyKeepObject(obj, o.keep as any);
-      } else if (_.isArrayLike(o.keep)) {
-        this.applyKeepArray(obj, o.keep as any);
+      if (o?.keep != null) {
+        const keepPaths: string[] = [];
+        if (_.isPlainObject(o.keep)) {
+          Object.entries(o.keep ?? {}).forEach(([parentKey, childKeys]) => {
+            if (_.isEmpty(childKeys)) keepPaths.push(parentKey);
+            childKeys.forEach((childKey: string) => {
+              keepPaths.push(`${parentKey}.${childKey}`);
+            });
+          });
+          this.filterObjectByKeepPaths(obj, keepPaths);
+        } else if (_.isArray(o.keep)) {
+          this.applyKeepArray(obj, o.keep);
+        }
       }
+
       const keysToObfuscate = mapSensitiveKeys(obj, o.obfuscate ?? []);
       const keysToRemove = mapSensitiveKeys(obj, o.ignore ?? []);
       this.handleObfuscation(obj, keysToObfuscate, obfuscationPattern);
       this.handleRemoval(obj, keysToRemove);
     });
+  }
+
+  private filterObjectByKeepPaths(obj: any, keepPaths: string[]): void {
+    const shouldKeep = (keyPath: string): boolean => {
+      return keepPaths
+        .map((k) => k?.toLowerCase())
+        .some(
+          (keepPath) =>
+            keyPath?.toLowerCase() === keepPath ||
+            keepPath?.startsWith(`${keyPath?.toLowerCase()}.`)
+        );
+    };
+
+    const recursiveFilter = (currentObj: any, currentPath: string): void => {
+      if (!_.isObject(currentObj)) return;
+
+      Object.keys(currentObj).forEach((key) => {
+        const fullPath = currentPath ? `${currentPath}.${key}` : key;
+        if (!shouldKeep(fullPath)) {
+          _.unset(obj, fullPath);
+        } else if (!keepPaths.includes(fullPath)) {
+          recursiveFilter(_.get(currentObj, key), fullPath);
+        }
+      });
+    };
+
+    recursiveFilter(obj, "");
   }
 
   private applyKeepArray(obj: any, keep: string[]): void {
@@ -146,23 +183,6 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
         _.unset(obj, childKey);
       });
     }
-  }
-
-  private applyKeepObject(obj: any, keep?: { [key: string]: string[] }): void {
-    if (keep == null || _.isEmpty(keep)) return;
-    Object.keys(keep).forEach((key) => {
-      const childrenToKeep = keep[key].map((k) => k.toLowerCase());
-      const target = get_i(obj, key);
-
-      if (_.isObjectLike(target)) {
-        const keysToRemove = Object.keys(target).filter(
-          (childKey) => !childrenToKeep.includes(childKey.toLowerCase())
-        );
-        keysToRemove.forEach((childKey) => {
-          _.unset(target, childKey);
-        });
-      }
-    });
   }
 
   private handleObfuscation(

@@ -421,6 +421,7 @@ describe("C8yDefaultPactPreprocessor", () => {
       const options: C8yPactPreprocessorOptions = {
         keep: {
           headers: ["content-type"],
+          body: [],
         },
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
@@ -435,12 +436,11 @@ describe("C8yDefaultPactPreprocessor", () => {
       preprocessor.apply(response);
 
       expect(response).toStrictEqual({
-        body: { name: "test" },
         headers: {
           "content-type": "application/json",
         },
+        body: { name: "test" },
       });
-      expect(response.body).toStrictEqual({ name: "test" });
     });
 
     it("should keep only specified keys in an object with case insensitive keys", () => {
@@ -461,12 +461,10 @@ describe("C8yDefaultPactPreprocessor", () => {
       preprocessor.apply(response);
 
       expect(response).toStrictEqual({
-        body: { name: "test" },
         headers: {
           "content-type": "application/json",
         },
       });
-      expect(response.body).toStrictEqual({ name: "test" });
     });
 
     it("should keep only specified keys in an object with case insensitive keys in entire path", () => {
@@ -481,18 +479,15 @@ describe("C8yDefaultPactPreprocessor", () => {
           "content-type": "application/json",
           "cache-control": "no-cache",
         },
-        body: { name: "test" },
       };
 
-      preprocessor.apply(response);
+      preprocessor.apply(response as any);
 
       expect(response).toStrictEqual({
-        body: { name: "test" },
         HEADERS: {
           "content-type": "application/json",
         },
       });
-      expect(response.body).toStrictEqual({ name: "test" });
     });
 
     it("should keep only specified keys for root object", () => {
@@ -555,7 +550,7 @@ describe("C8yDefaultPactPreprocessor", () => {
 
     it("should apply keep and ignore options", () => {
       const options: C8yPactPreprocessorOptions = {
-        keep: {"headers": ["content-type"]},
+        keep: { headers: ["content-type"] },
         ignore: ["headers.content-type"],
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
@@ -563,7 +558,6 @@ describe("C8yDefaultPactPreprocessor", () => {
         headers: {
           "content-type": "application/json",
           "cache-control": "no-cache",
-
         },
         body: { name: "test" },
       };
@@ -572,13 +566,12 @@ describe("C8yDefaultPactPreprocessor", () => {
 
       expect(response).toStrictEqual({
         headers: {},
-        body: { name: "test" },
       });
     });
 
     it("should apply keep and obfuscate options", () => {
       const options: C8yPactPreprocessorOptions = {
-        keep: {"headers": ["content-type"]},
+        keep: { headers: ["content-type"] },
         obfuscate: ["headers.content-type"],
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
@@ -586,7 +579,6 @@ describe("C8yDefaultPactPreprocessor", () => {
         headers: {
           "content-type": "application/json",
           "cache-control": "no-cache",
-
         },
         body: { name: "test" },
       };
@@ -594,8 +586,117 @@ describe("C8yDefaultPactPreprocessor", () => {
       preprocessor.apply(response);
 
       expect(response).toStrictEqual({
-        headers: { "content-type": C8yDefaultPactPreprocessor.defaultObfuscationPattern },
-        body: { name: "test" },
+        headers: {
+          "content-type": C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+        },
+      });
+    });
+
+    it("should work with case insensitive keys", () => {
+      const obj: any = {
+        request: {
+          url: "https://integration-tests-01.dtm.stage.c8y.io/service/dtm/assets",
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            Authorization:
+              "Basic dDYxNzY1My9kdG0tdGVzdC11c2VyLWxpbmtpbmctY3JlYXRlLTFjYTRlODFhLTA3MTUtNGNkZi04ODRiLTFjZjU1MzE4YjUyZDpNOFJGMDJ1VyliMTY2ZTkyNSEzRDlkfjQzMDhgODZEOQ==",
+            UseXBasic: true,
+          },
+          body: {
+            name: "CypressTestAsset",
+            linkedSeries: [
+              { fragment: "Test_Fragment0", series: "Total" },
+              {
+                fragment: "Test_Fragment1",
+                series: "Total",
+                source: {
+                  fragment: "Source_Fragment",
+                  series: "Source_Series",
+                  id: "0",
+                },
+              },
+            ],
+          },
+        },
+        response: {
+          status: 403,
+          statusText: "Forbidden",
+          body: {
+            messages: [
+              "Access Denied. User does not have permission ROLE_DIGITAL_TWIN_ASSETS_CREATE or ROLE_DIGITAL_TWIN_ASSETS_ADMIN.",
+            ],
+          },
+          headers: {
+            "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+            connection: "keep-alive",
+            "content-encoding": "gzip",
+            "content-type": "application/json",
+            date: "Thu, 27 Mar 2025 13:57:01 GMT",
+            expires: "0",
+            "keep-alive": "timeout=5",
+            pragma: "no-cache",
+            "strict-transport-security":
+              "max-age=31536000 ; includeSubDomains, max-age=31536000; includeSubDomains",
+            "transfer-encoding": "chunked",
+            vary: "Accept-Encoding",
+            "www-authenticate": 'XBasic realm="Cumulocity"',
+            "x-content-type-options": "nosniff",
+            "x-xss-protection": "1; mode=block",
+          },
+          duration: 0,
+          isOkStatusCode: false,
+          allRequestResponses: [],
+        },
+      };
+      const options: any = {
+        ignore: [
+          "request.headers.accept-encoding",
+          "response.headers.cache-control",
+          "response.headers.content-length",
+          "response.headers.content-encoding",
+          "response.headers.transfer-encoding",
+          "response.headers.keep-alive",
+        ],
+        obfuscate: [
+          "request.headers.cookie.authorization",
+          "request.headers.cookie.XSRF-TOKEN",
+          "request.headers.authorization",
+          "request.headers.X-XSRF-TOKEN",
+          "response.headers.set-cookie.authorization",
+          "response.headers.set-cookie.XSRF-TOKEN",
+          "response.body.password",
+        ],
+        obfuscationPattern: "****",
+        ignoreCase: true,
+        keep: {
+          request: ["url", "method", "headers.content-type"],
+          response: ["body", "status", "headers.content-type", "status", "statusText"],
+        },
+      };
+
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(obj);
+      expect(obj).toStrictEqual({
+        request: {
+          url: "https://integration-tests-01.dtm.stage.c8y.io/service/dtm/assets",
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+        },
+        response: {
+          status: 403,
+          statusText: "Forbidden",
+          body: {
+            messages: [
+              "Access Denied. User does not have permission ROLE_DIGITAL_TWIN_ASSETS_CREATE or ROLE_DIGITAL_TWIN_ASSETS_ADMIN.",
+            ],
+          },
+          headers: {
+            "content-type": "application/json",
+          },
+        },
       });
     });
   });
