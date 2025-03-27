@@ -65,7 +65,7 @@ describe("C8yDefaultPactPreprocessor", () => {
 
     it("should resolve options with default values", () => {
       const preprocessor = new TestC8yDefaultPactPreprocessor();
-      const resolvedOptions = preprocessor.test_resolveOptions()
+      const resolvedOptions = preprocessor.test_resolveOptions();
       expect(resolvedOptions).toStrictEqual(C8yPactPreprocessorDefaultOptions);
     });
 
@@ -108,7 +108,7 @@ describe("C8yDefaultPactPreprocessor", () => {
       const resolvedOptions = preprocessor.test_resolveOptions(options);
       expect(resolvedOptions).toStrictEqual({
         ...C8yPactPreprocessorDefaultOptions,
-        ...options
+        ...options,
       });
     });
   });
@@ -413,6 +413,306 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.requestHeaders["cookie"]).toStrictEqual(
         "authorization=secret; XSRF-TOKEN=******"
       );
+    });
+  });
+
+  describe("pick", () => {
+    it("should pick only specified keys in an object", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: {
+          headers: ["content-type"],
+          body: [],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        headers: {
+          "content-type": "application/json",
+        },
+        body: { name: "test" },
+      });
+    });
+
+    it("should pick only specified keys in an object with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: {
+          HEADERS: ["Content-Type"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        headers: {
+          "content-type": "application/json",
+        },
+      });
+    });
+
+    it("should pick only specified keys in an object with case insensitive keys in entire path", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: {
+          HEADERS: ["Content-Type"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        HEADERS: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+      };
+
+      preprocessor.apply(response as any);
+
+      expect(response).toStrictEqual({
+        HEADERS: {
+          "content-type": "application/json",
+        },
+      });
+    });
+
+    it("should pick only specified keys for root object", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: ["content-type"],
+      };
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+        "content-type": "application/text",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        "content-type": "application/text",
+      });
+    });
+
+    it("should pick only specified keys for root object with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: ["content-type"],
+      };
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+        "cOnteNT-Type": "application/text",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response);
+      expect(response).toStrictEqual({
+        "cOnteNT-Type": "application/text",
+      });
+    });
+
+    it("should not fail if pick option is undefined", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: undefined,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      const originalResponse = { ...response };
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual(originalResponse);
+    });
+
+    it("should apply pick and ignore options", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: { headers: ["content-type"] },
+        ignore: ["headers.content-type"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        headers: {},
+      });
+    });
+
+    it("should apply pick and obfuscate options", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: { headers: ["content-type"] },
+        obfuscate: ["headers.content-type"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        headers: {
+          "content-type": C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+        },
+      });
+    });
+
+    it("should apply pick and obfuscate options with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: { headers: ["content-type"] },
+        obfuscate: ["headers.content-type"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        HEADERS: {
+          "Content-Type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response, { ignoreCase: true });
+
+      expect(response).toStrictEqual({
+        HEADERS: {
+          "Content-Type": C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+        },
+      });
+    });
+
+    it("should not use pick option as prefix", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: { head: [] },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+      expect(response).toStrictEqual({});
+    });
+
+    it("should work with real example", () => {
+      const obj: any = {
+        request: {
+          url: "/service/dtm/assets",
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: {
+            name: "CypressTestAsset",
+            linkedSeries: [
+              { fragment: "Test_Fragment0", series: "Total" },
+              {
+                fragment: "Test_Fragment1",
+                series: "Total",
+                source: {
+                  fragment: "Source_Fragment",
+                  series: "Source_Series",
+                  id: "0",
+                },
+              },
+            ],
+          },
+        },
+        response: {
+          status: 403,
+          statusText: "Forbidden",
+          body: {
+            messages: [
+              "Access Denied. User does not have permission ROLE_DIGITAL_TWIN_ASSETS_CREATE or ROLE_DIGITAL_TWIN_ASSETS_ADMIN.",
+            ],
+          },
+          headers: {
+            "content-type": "application/json",
+            "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+            "www-authenticate": 'XBasic realm="Cumulocity"',
+            "x-content-type-options": "nosniff",
+            "x-xss-protection": "1; mode=block",
+          },
+          duration: 0,
+          isOkStatusCode: false,
+          allRequestResponses: [],
+        },
+      };
+      const options: any = {
+        ignoreCase: true,
+        pick: {
+          request: ["url", "method", "headers.content-type"],
+          response: [
+            "body",
+            "status",
+            "headers.content-type",
+            "status",
+            "statusText",
+          ],
+        },
+      };
+
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(obj);
+      expect(obj).toStrictEqual({
+        request: {
+          url: "/service/dtm/assets",
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+        },
+        response: {
+          status: 403,
+          statusText: "Forbidden",
+          body: {
+            messages: [
+              "Access Denied. User does not have permission ROLE_DIGITAL_TWIN_ASSETS_CREATE or ROLE_DIGITAL_TWIN_ASSETS_ADMIN.",
+            ],
+          },
+          headers: {
+            "content-type": "application/json",
+          },
+        },
+      });
     });
   });
 });
