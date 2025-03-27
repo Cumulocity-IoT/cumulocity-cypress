@@ -1,8 +1,8 @@
-import _, { map } from "lodash";
+import _ from "lodash";
 import { C8yPact, C8yPactRecord } from "./c8ypact";
 import * as setCookieParser from "set-cookie-parser";
 import * as libCookie from "cookie";
-import { get_i, toSensitiveObjectKeyPath } from "../util";
+import { toSensitiveObjectKeyPath } from "../util";
 
 /**
  * Preprocessor for C8yPact objects. Use C8yPactPreprocessor to preprocess any
@@ -46,14 +46,14 @@ export interface C8yPactPreprocessorOptions {
    */
   ignore?: string[];
   /**
-   * Key paths to keep. All other keys (children) of the object will
+   * Key paths to pick. All other keys (children) of the object will
    * be removed.
    *
    * @example
    * response.headers: ["content-type"]
    * ["request.headers", "response.headers"]
    */
-  keep?: { [key: string]: string[] } | string[];
+  pick?: { [key: string]: string[] } | string[];
   /**
    * Obfuscation pattern to use. Default is ********.
    */
@@ -124,18 +124,18 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
       );
 
     objs.forEach((obj) => {
-      if (o?.keep != null) {
+      if (o?.pick != null) {
         const keepPaths: string[] = [];
-        if (_.isPlainObject(o.keep)) {
-          Object.entries(o.keep ?? {}).forEach(([parentKey, childKeys]) => {
+        if (_.isPlainObject(o.pick)) {
+          Object.entries(o.pick ?? {}).forEach(([parentKey, childKeys]) => {
             if (_.isEmpty(childKeys)) keepPaths.push(parentKey);
             childKeys.forEach((childKey: string) => {
               keepPaths.push(`${parentKey}.${childKey}`);
             });
           });
-          this.filterObjectByKeepPaths(obj, keepPaths);
-        } else if (_.isArray(o.keep)) {
-          this.applyKeepArray(obj, o.keep);
+          this.filterObjectByKeepPaths(obj, keepPaths, ignoreCase);
+        } else if (_.isArray(o.pick)) {
+          this.applyKeepArray(obj, o.pick);
         }
       }
 
@@ -146,14 +146,21 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     });
   }
 
-  private filterObjectByKeepPaths(obj: any, keepPaths: string[]): void {
+  private filterObjectByKeepPaths(
+    obj: any,
+    keepPaths: string[],
+    ignoreCase: boolean = false
+  ): void {
+    const prepKey = (key: string): string =>
+      key != null && ignoreCase === true ? key.toLowerCase() : key;
+
     const shouldKeep = (keyPath: string): boolean => {
       return keepPaths
-        .map((k) => k?.toLowerCase())
+        .map((k) => prepKey(k))
         .some(
           (keepPath) =>
-            keyPath?.toLowerCase() === keepPath ||
-            keepPath?.startsWith(`${keyPath?.toLowerCase()}.`)
+            prepKey(keyPath) === keepPath ||
+            keepPath?.startsWith(`${prepKey(keyPath)}.`)
         );
     };
 

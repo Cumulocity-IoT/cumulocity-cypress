@@ -416,10 +416,10 @@ describe("C8yDefaultPactPreprocessor", () => {
     });
   });
 
-  describe("keep", () => {
-    it("should keep only specified keys in an object", () => {
+  describe("pick", () => {
+    it("should pick only specified keys in an object", () => {
       const options: C8yPactPreprocessorOptions = {
-        keep: {
+        pick: {
           headers: ["content-type"],
           body: [],
         },
@@ -443,9 +443,9 @@ describe("C8yDefaultPactPreprocessor", () => {
       });
     });
 
-    it("should keep only specified keys in an object with case insensitive keys", () => {
+    it("should pick only specified keys in an object with case insensitive keys", () => {
       const options: C8yPactPreprocessorOptions = {
-        keep: {
+        pick: {
           HEADERS: ["Content-Type"],
         },
       };
@@ -467,9 +467,9 @@ describe("C8yDefaultPactPreprocessor", () => {
       });
     });
 
-    it("should keep only specified keys in an object with case insensitive keys in entire path", () => {
+    it("should pick only specified keys in an object with case insensitive keys in entire path", () => {
       const options: C8yPactPreprocessorOptions = {
-        keep: {
+        pick: {
           HEADERS: ["Content-Type"],
         },
       };
@@ -490,9 +490,9 @@ describe("C8yDefaultPactPreprocessor", () => {
       });
     });
 
-    it("should keep only specified keys for root object", () => {
+    it("should pick only specified keys for root object", () => {
       const options: C8yPactPreprocessorOptions = {
-        keep: ["content-type"],
+        pick: ["content-type"],
       };
       const response = {
         headers: {
@@ -510,9 +510,9 @@ describe("C8yDefaultPactPreprocessor", () => {
       });
     });
 
-    it("should keep only specified keys for root object with case insensitive keys", () => {
+    it("should pick only specified keys for root object with case insensitive keys", () => {
       const options: C8yPactPreprocessorOptions = {
-        keep: ["content-type"],
+        pick: ["content-type"],
       };
       const response = {
         headers: {
@@ -529,9 +529,9 @@ describe("C8yDefaultPactPreprocessor", () => {
       });
     });
 
-    it("should not fail if keep option is undefined", () => {
+    it("should not fail if pick option is undefined", () => {
       const options: C8yPactPreprocessorOptions = {
-        keep: undefined,
+        pick: undefined,
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
       const response = {
@@ -548,9 +548,9 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response).toStrictEqual(originalResponse);
     });
 
-    it("should apply keep and ignore options", () => {
+    it("should apply pick and ignore options", () => {
       const options: C8yPactPreprocessorOptions = {
-        keep: { headers: ["content-type"] },
+        pick: { headers: ["content-type"] },
         ignore: ["headers.content-type"],
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
@@ -569,9 +569,9 @@ describe("C8yDefaultPactPreprocessor", () => {
       });
     });
 
-    it("should apply keep and obfuscate options", () => {
+    it("should apply pick and obfuscate options", () => {
       const options: C8yPactPreprocessorOptions = {
-        keep: { headers: ["content-type"] },
+        pick: { headers: ["content-type"] },
         obfuscate: ["headers.content-type"],
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
@@ -592,16 +592,53 @@ describe("C8yDefaultPactPreprocessor", () => {
       });
     });
 
-    it("should work with case insensitive keys", () => {
+    it("should apply pick and obfuscate options with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: { headers: ["content-type"] },
+        obfuscate: ["headers.content-type"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        HEADERS: {
+          "Content-Type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response, { ignoreCase: true });
+
+      expect(response).toStrictEqual({
+        HEADERS: {
+          "Content-Type": C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+        },
+      });
+    });
+
+    it("should not use pick option as prefix", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: { head: [] },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+      expect(response).toStrictEqual({});
+    });
+
+    it("should work with real example", () => {
       const obj: any = {
         request: {
-          url: "https://integration-tests-01.dtm.stage.c8y.io/service/dtm/assets",
+          url: "/service/dtm/assets",
           method: "POST",
           headers: {
             "content-type": "application/json",
-            Authorization:
-              "Basic dDYxNzY1My9kdG0tdGVzdC11c2VyLWxpbmtpbmctY3JlYXRlLTFjYTRlODFhLTA3MTUtNGNkZi04ODRiLTFjZjU1MzE4YjUyZDpNOFJGMDJ1VyliMTY2ZTkyNSEzRDlkfjQzMDhgODZEOQ==",
-            UseXBasic: true,
           },
           body: {
             name: "CypressTestAsset",
@@ -628,18 +665,8 @@ describe("C8yDefaultPactPreprocessor", () => {
             ],
           },
           headers: {
-            "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
-            connection: "keep-alive",
-            "content-encoding": "gzip",
             "content-type": "application/json",
-            date: "Thu, 27 Mar 2025 13:57:01 GMT",
-            expires: "0",
-            "keep-alive": "timeout=5",
-            pragma: "no-cache",
-            "strict-transport-security":
-              "max-age=31536000 ; includeSubDomains, max-age=31536000; includeSubDomains",
-            "transfer-encoding": "chunked",
-            vary: "Accept-Encoding",
+            "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
             "www-authenticate": 'XBasic realm="Cumulocity"',
             "x-content-type-options": "nosniff",
             "x-xss-protection": "1; mode=block",
@@ -650,28 +677,16 @@ describe("C8yDefaultPactPreprocessor", () => {
         },
       };
       const options: any = {
-        ignore: [
-          "request.headers.accept-encoding",
-          "response.headers.cache-control",
-          "response.headers.content-length",
-          "response.headers.content-encoding",
-          "response.headers.transfer-encoding",
-          "response.headers.keep-alive",
-        ],
-        obfuscate: [
-          "request.headers.cookie.authorization",
-          "request.headers.cookie.XSRF-TOKEN",
-          "request.headers.authorization",
-          "request.headers.X-XSRF-TOKEN",
-          "response.headers.set-cookie.authorization",
-          "response.headers.set-cookie.XSRF-TOKEN",
-          "response.body.password",
-        ],
-        obfuscationPattern: "****",
         ignoreCase: true,
-        keep: {
+        pick: {
           request: ["url", "method", "headers.content-type"],
-          response: ["body", "status", "headers.content-type", "status", "statusText"],
+          response: [
+            "body",
+            "status",
+            "headers.content-type",
+            "status",
+            "statusText",
+          ],
         },
       };
 
@@ -679,7 +694,7 @@ describe("C8yDefaultPactPreprocessor", () => {
       preprocessor.apply(obj);
       expect(obj).toStrictEqual({
         request: {
-          url: "https://integration-tests-01.dtm.stage.c8y.io/service/dtm/assets",
+          url: "/service/dtm/assets",
           method: "POST",
           headers: {
             "content-type": "application/json",
