@@ -489,12 +489,10 @@ describe("c8yclient", () => {
 
   context("schema matching", () => {
     const schema = {
-      schema: {
-        type: "object",
-        properties: {
-          name: {
-            type: "string",
-          },
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
         },
       },
     };

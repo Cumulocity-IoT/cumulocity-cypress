@@ -3850,6 +3850,20 @@
                         },
                         "type": "array"
                     },
+                    "title": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ],
+                        "description": "The title of the screenshot workflow. The title is used to group the screenshots. To provide a hierarchy of titles, use an array of strings."
+                    },
                     "user": {
                         "anyOf": [
                             {
