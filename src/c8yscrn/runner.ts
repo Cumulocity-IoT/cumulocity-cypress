@@ -5,7 +5,17 @@ import "../lib/commands/screenshot";
 import "cypress-file-upload";
 
 import { pactId } from "../shared/c8ypact";
-import { C8yHighlightStyleDefaults } from "../shared/types";
+import { to_array } from "../shared/util";
+import {
+  C8yHighlightStyleDefaults,
+  C8yTestHierarchyTree,
+} from "../shared/types";
+
+import {
+  buildTestHierarchyWithOptions,
+  getSelector,
+  imageName,
+} from "./runner-helper";
 
 import { CyHttpMessages } from "cypress/types/net-stubbing";
 
@@ -21,7 +31,6 @@ import {
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
-import { getSelector, imageName } from "./runner-helper";
 
 const { _ } = Cypress;
 
@@ -33,6 +42,21 @@ export type C8yScreenshotActionHandler = (
 ) => void;
 
 const taskLog = { log: true };
+
+type Workflow = Screenshot & ScreenshotOptions;
+type RunOptions = {
+  tags?: string[];
+  titles?: string[];
+  images?: string[];
+};
+
+const CyScreenshotSettingsKeys = [
+  "capture",
+  "scale",
+  "padding",
+  "overwrite",
+  "disableTimersAndAnimations",
+] as const;
 
 export class C8yScreenshotRunner {
   readonly config: ScreenshotSetup;
@@ -71,7 +95,7 @@ export class C8yScreenshotRunner {
     this.registerActionHandler("focus", this.focus);
     this.registerActionHandler("scrollTo", this.scrollTo);
 
-    if ((Cypress.env("_c8yscrnHighlight") ?? false) != false) {
+    if ((Cypress.env("_c8yscrnHighlight") ?? true) === true) {
       this.registerActionHandler("highlight", this.highlight);
     }
   }
@@ -80,36 +104,49 @@ export class C8yScreenshotRunner {
     this.actionHandlers[key] = handler.bind(this);
   }
 
-  run() {
-    // reset language
+  // shorthand for this.config?.global
+  private g = (key?: string) => {
+    return key != null ? _.get(this.config?.global, key) : this.config?.global;
+  };
+
+  run(
+    screenshot?: Workflow | Workflow[] | RunOptions,
+    options: RunOptions = {}
+  ) {
     this.language = undefined;
-    // init global settings
-    const global = this.config.global;
-
-    const CyScreenshotSettingsKeys = [
-      "capture",
-      "scale",
-      "padding",
-      "overwrite",
-      "disableTimersAndAnimations",
-    ];
-    const defaultOptions: Partial<Cypress.ScreenshotOptions> = _.defaults(
-      _.omitBy(_.pick(global ?? {}, CyScreenshotSettingsKeys), _.isNil),
-      {
-        overwrite: false,
-        scale: false,
-        disableTimersAndAnimations: true,
-        capture: "viewport" as const,
-      }
-    );
-
-    let globalLogin = global?.login;
-    if (_.isString(global?.user) && globalLogin == null) {
-      // backwards compatibility
-      globalLogin = global.user;
+    if (
+      (screenshot != null && _.isArray(screenshot)) ||
+      isWorkflow(screenshot)
+    ) {
+      to_array(screenshot)?.forEach((item) => {
+        const languages = to_array(item.language ?? this.g("language")) ?? [
+          "en",
+        ];
+        languages.forEach((language) => {
+          this.language = language === languages[0] ? undefined : language;
+          this.runTest(item, { language });
+        });
+      });
+      return;
     }
 
-    describe(this.config.title ?? `screenshot workflow`, () => {
+    const o = isRunOptions(screenshot) ? screenshot : options;
+    const hierarchy = buildTestHierarchyWithOptions(this.config.screenshots, o);
+    this.createTestsFromHierarchy(hierarchy);
+  }
+
+  /**
+   * Runs all image workflows as a Cypress suite. Wraps the tests in a `describe` block
+   * and sets up the environment for each test, including shell version and tenant ID.
+   */
+  runSuite() {
+    let globalLogin = this.g("login");
+    if (_.isString(this.g("user")) && globalLogin == null) {
+      // backwards compatibility
+      globalLogin = this.g("user") as ScreenshotOptions["login"];
+    }
+
+    describe(this.config.title ?? `c8yscrn`, () => {
       before(() => {
         (_.isString(globalLogin)
           ? cy.getAuth(globalLogin)
@@ -117,11 +154,11 @@ export class C8yScreenshotRunner {
         ).then((auth) => {
           if (auth != null && globalLogin !== false) {
             cy.wrap(auth, { log: false })
-              .getShellVersion(global?.shell)
+              .getShellVersion(this.g()?.shell)
               .then((version) => {
                 debug(
                   `Set shell version ${version} for ${
-                    global?.shell ?? Cypress.env("C8Y_SHELL_NAME")
+                    this.g()?.shell ?? Cypress.env("C8Y_SHELL_NAME")
                   } `
                 );
               });
@@ -149,24 +186,33 @@ export class C8yScreenshotRunner {
         });
       });
 
-      beforeEach(() => {
-        Cypress.session.clearAllSavedSessions();
-        if (Cypress.env("C8YCTRL_MODE") != null) {
-          cy.wrap(c8yctrl(), { log: false });
-        }
-      });
+      this.run();
+    });
+  }
 
-      this.config.screenshots?.forEach((item) => {
+  protected createTestsFromHierarchy(
+    hierarchy: C8yTestHierarchyTree<Workflow>
+  ): void {
+    beforeEach(() => {
+      Cypress.session.clearAllSavedSessions();
+      if (Cypress.env("C8YCTRL_MODE") != null) {
+        // cy.wrap(c8yctrl(), { log: false });
+      }
+    });
+
+    Object.keys(hierarchy).forEach((key: string) => {
+      const subTree = hierarchy[key];
+      if (isWorkflow(subTree)) {
         const annotations: any = {};
-
-        const required = item.requires ?? global?.requires;
+        const item = subTree;
+        const required = item.requires ?? this.g("requires");
         if (required != null) {
           annotations.requires = {
             shell: _.isArray(required) ? required : [required],
           };
         }
 
-        const tags = item.tags ?? this.config.global?.tags;
+        const tags = item.tags ?? this.g("tags");
         if (tags != null) {
           annotations.tags = _.isArray(tags) ? tags : [tags];
         }
@@ -176,155 +222,162 @@ export class C8yScreenshotRunner {
           annotations.scrollBehavior = item.scrollBehavior;
         }
 
-        let fn = item.only === true ? it.only : it;
-        fn = item.skip === true ? it.skip : fn;
-
-        const l = item.language ?? global?.language ?? "en";
-        const languages = _.isArray(l) ? l : [l];
+        const languages = to_array(item.language ?? this.g("language")) ?? [
+          "en",
+        ];
         languages.forEach((language) => {
-          this.language = language === languages[0] ? undefined : language;
+          let fn = item.only === true ? it.only : it;
+          fn = item.skip === true ? it.skip : fn;
 
           fn.apply(null, [
-            `${item.image} (${language})`,
+            `${key}${language ? " (" + language + ")" : ""}`,
             annotations,
             // @ts-expect-error
             () => {
-              let login =
-                item.login ?? global?.login ?? item.user ?? global?.user;
-              const skipLogin = login === false;
-              if (!_.isString(login)) {
-                login = undefined;
-              }
-
               debug(`Running screenshot: ${item.image}`);
               debug(`Using annotations: ${JSON.stringify(annotations)}`);
-
-              const width =
-                item.settings?.viewportWidth ?? global?.viewportWidth ?? 1440;
-              const height =
-                item.settings?.viewportWidth ?? global?.viewportHeight ?? 900;
-              cy.viewport(width, height);
-
-              const options = _.defaults(
-                _.omitBy(
-                  _.pick(item.settings ?? {}, CyScreenshotSettingsKeys),
-                  _.isNil
-                ),
-                defaultOptions
-              );
-
-              const visitDate = item.date ?? global?.date;
-              if (visitDate) {
-                debug(`Setting visit date to ${visitDate}`);
-                cy.clock(new Date(visitDate));
-              }
-
-              const user = item.user ?? global?.user;
-              this.interceptCurrentUser(user);
-
-              (_.isString(login) ? cy.getAuth(login) : cy.wrap(undefined)).then(
-                (auth) => {
-                  if (auth != null && !skipLogin) {
-                    const username =
-                      auth.user ?? auth.username ?? auth.userAlias;
-                    debug(`Logging in as ${username}`);
-                    cy.wrap(auth, { log: false }).login();
-                  } else {
-                    if (!skipLogin) {
-                      debug(
-                        `Skipped login. ${
-                          user ? user + "not" : "No login or auth"
-                        } configured.`
-                      );
-                    } else {
-                      debug(`Skipped login. Login is disabled.`);
-                    }
-                  }
-                }
-              );
-
-              const visitObject = this.getVisitObject(item.visit);
-              const url = visitObject?.url ?? (item.visit as string);
-              const visitSelector =
-                visitObject?.selector ??
-                global?.visitWaitSelector ??
-                "c8y-drawer-outlet c8y-app-icon .c8y-icon";
-              debug(`Visiting ${url} Selector: ${visitSelector}`);
-              const visitTimeout = visitObject?.timeout;
-
-              cy.visitAndWaitForSelector(
-                url,
-                language as any,
-                visitSelector,
-                visitTimeout
-              );
-
-              if (global?.disableTimersAndAnimations === true) {
-                cy.document().then((doc) => {
-                  const style = doc.createElement("style");
-                  style.innerHTML = `
-                * {
-                 animation: none !important;
-                 transition: none !important;
-                }
-                `;
-                  doc.head.appendChild(style);
-                });
-              }
-
-              let actions = item.actions == null ? [] : item.actions;
-              actions = _.isArray(actions) ? actions : [actions];
-              actions.forEach((action) => {
-                const handlerKey = Object.keys(action)[0];
-                const handler = this.actionHandlers[handlerKey];
-                if (handler) {
-                  if (
-                    isScreenshotAction(action) &&
-                    !(
-                      _.isString(action.screenshot) ||
-                      _.isArray(action.screenshot)
-                    )
-                  ) {
-                    const clipArea = action.screenshot?.clip;
-                    if (clipArea) {
-                      options["clip"] = {
-                        x: Math.max(clipArea.x, 0),
-                        y: Math.max(clipArea.y, 0),
-                        width:
-                          clipArea.width < 0
-                            ? width + clipArea.width
-                            : clipArea.width,
-                        height:
-                          clipArea.height < 0
-                            ? height + clipArea.height
-                            : clipArea.height,
-                      };
-                    }
-                    const padding = action.screenshot?.padding;
-                    if (padding != null) {
-                      options.padding = padding;
-                    }
-                  }
-                  handler(_.get(action, handlerKey), this, item, options);
-                }
-              });
-
-              const lastAction = _.last(actions);
-              if (
-                _.isEmpty(actions) ||
-                !lastAction ||
-                !isScreenshotAction(lastAction)
-              ) {
-                const name = imageName(item.image, this.language);
-                debug(`Taking screenshot ${name}`);
-                debug(`Options: ${JSON.stringify(options)}`);
-                cy.screenshot(name, options);
-              }
+              this.language = language === languages[0] ? undefined : language;
+              this.runTest(subTree, { language });
             },
           ]);
         });
-      });
+      } else {
+        const that = this;
+        context(key, function () {
+          that.createTestsFromHierarchy(subTree);
+        });
+      }
     });
+  }
+
+  protected runTest(
+    item: Workflow,
+    testOptions: { language?: string } = { language: "en" }
+  ) {
+    let login = item.login ?? this.g("login") ?? item.user ?? this.g("user");
+    const skipLogin = login === false;
+    if (!_.isString(login)) {
+      login = undefined;
+    }
+
+    const width =
+      item.settings?.viewportWidth ?? this.g("viewportWidth") ?? 1440;
+    const height =
+      item.settings?.viewportWidth ?? this.g("viewportHeight") ?? 900;
+    cy.viewport(width, height);
+
+    const defaultOptions: Partial<Cypress.ScreenshotOptions> = _.defaults(
+      _.omitBy(_.pick(this.g() ?? {}, CyScreenshotSettingsKeys), _.isNil),
+      {
+        overwrite: false,
+        scale: false,
+        disableTimersAndAnimations: true,
+        capture: "viewport" as const,
+      }
+    );
+
+    const options = _.defaults(
+      _.omitBy(_.pick(item.settings ?? {}, CyScreenshotSettingsKeys), _.isNil),
+      defaultOptions
+    );
+
+    const visitDate = item.date ?? this.g("date");
+    if (visitDate) {
+      debug(`Setting visit date to ${visitDate}`);
+      cy.clock(new Date(visitDate));
+    }
+
+    const user = item.user ?? this.g("user");
+    this.interceptCurrentUser(user);
+
+    (_.isString(login) ? cy.getAuth(login) : cy.wrap(undefined)).then(
+      (auth) => {
+        if (auth != null && !skipLogin) {
+          const username = auth.user ?? auth.username ?? auth.userAlias;
+          debug(`Logging in as ${username}`);
+          cy.wrap(auth, { log: false }).login();
+        } else {
+          if (!skipLogin) {
+            debug(
+              `Skipped login. ${
+                user ? user + "not" : "No login or auth"
+              } configured.`
+            );
+          } else {
+            debug(`Skipped login. Login is disabled.`);
+          }
+        }
+      }
+    );
+
+    const visitObject = this.getVisitObject(item.visit);
+    const url = visitObject?.url ?? (item.visit as string);
+    const visitSelector =
+      visitObject?.selector ??
+      this.g("visitWaitSelector") ??
+      "c8y-drawer-outlet c8y-app-icon .c8y-icon";
+    debug(`Visiting ${url} Selector: ${visitSelector}`);
+    const visitTimeout = visitObject?.timeout;
+
+    cy.visitAndWaitForSelector(
+      url,
+      testOptions.language as C8yLanguage,
+      visitSelector,
+      visitTimeout
+    );
+
+    if (this.g("disableTimersAndAnimations") === true) {
+      cy.document().then((doc) => {
+        const style = doc.createElement("style");
+        style.innerHTML = `
+        * {
+         animation: none !important;
+         transition: none !important;
+        }
+        `;
+        doc.head.appendChild(style);
+      });
+    }
+
+    let actions = item.actions == null ? [] : item.actions;
+    actions = _.isArray(actions) ? actions : [actions];
+    actions.forEach((action) => {
+      const handlerKey = Object.keys(action)[0];
+      const handler = this.actionHandlers[handlerKey];
+      if (handler) {
+        if (
+          isScreenshotAction(action) &&
+          !(_.isString(action.screenshot) || _.isArray(action.screenshot))
+        ) {
+          const clipArea = action.screenshot?.clip;
+          if (clipArea) {
+            options["clip"] = {
+              x: Math.max(clipArea.x, 0),
+              y: Math.max(clipArea.y, 0),
+              width:
+                clipArea.width < 0 ? width + clipArea.width : clipArea.width,
+              height:
+                clipArea.height < 0
+                  ? height + clipArea.height
+                  : clipArea.height,
+            };
+          }
+          const padding = action.screenshot?.padding;
+          if (padding != null) {
+            options.padding = padding;
+          }
+        }
+        handler(_.get(action, handlerKey), this, item, options);
+      }
+    });
+
+    const lastAction = _.last(actions);
+    if (_.isEmpty(actions) || !lastAction || !isScreenshotAction(lastAction)) {
+      const name = imageName(item.image, this.language);
+      debug(`Taking screenshot ${name}`);
+      debug(`Options: ${JSON.stringify(options)}`);
+      cy.screenshot(name, options);
+    }
   }
 
   protected click(action: Action["click"]) {
@@ -691,4 +744,12 @@ export function isScreenshotAction(action: Action): boolean {
 function loadDataFromLocalStorage(key: string) {
   const data = localStorage.getItem(key);
   return data ? JSON.parse(data) : null;
+}
+
+function isWorkflow(obj: any): obj is Workflow {
+  return obj != null && "image" in obj;
+}
+
+function isRunOptions(obj: any): obj is RunOptions {
+  return obj != null && ("tags" in obj || "titles" in obj || "images" in obj);
 }
