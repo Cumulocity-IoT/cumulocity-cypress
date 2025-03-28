@@ -1,42 +1,51 @@
-import {
-  C8yScreenshotRunner,
-  ScreenshotSetup,
-} from "cumulocity-cypress/c8yscrn";
+/// <reference types="cypress" />
+
+import { ScreenshotSetup, C8yScreenshotRunner } from "cumulocity-cypress/c8yscrn";
 import { stubEnv } from "cypress/support/testutils";
 
-import _ from "lodash";
+const {_ } = Cypress;
 
-describe("screenshot-runner", () => {
-  const workflow: ScreenshotSetup = {
-    title: "My Screenshots",
-    baseUrl: "https://dtmdoc.latest.stage.c8y.io",
-    global: {
-      tags: ["dtm", "c8yscrn"],
-      login: false,
+const screenshot1: ScreenshotSetup["screenshots"][0] = {
+  image: "cockpit/index.html",
+  visit: "/apps/cockpit/index.html#",
+  tags: ["cockpit"],
+  actions: [
+    {
+      click: "button",
     },
-
-    screenshots: [
-      {
-        image: "dtm/asset-type/dtm-asset-type-export.png",
-        visit: "/apps/digital-twin-manager/index.html#/assetmodels",
-        tags: ["asset-type"],
-        actions: [
-          {
-            click: "$navigator.toggle",
-          },
-          {
-            highlight: {
-              selector: ".bottom-drawer .card-footer .btn-primary",
-              border: {
-                "outline-offset": "2px",
-              },
-            },
-          },
-        ],
+    {
+      highlight: {
+        selector: ".bottom-drawer .card-footer .btn-primary",
+        border: {
+          "outline-offset": "2px",
+        },
       },
-    ],
-  };
+    },
+  ],
+};
 
+const screenshot2: ScreenshotSetup["screenshots"][0] = {
+  image: "mytag/index2.html",
+  visit: "/apps/cockpit/index.html#",
+  tags: ["mytag"],
+  actions: [
+    {
+      click: "button",
+    },
+  ],
+};
+
+const workflow: ScreenshotSetup = {
+  title: "My Screenshots",
+  baseUrl: "https://localhost:8080",
+  global: {
+    tags: ["dtm", "c8yscrn"],
+    login: false,
+  },
+  screenshots: [screenshot1, screenshot2],
+};
+
+describe("C8yScreenshotRunner", () => {
   context("initialization", () => {
     it("throws without config", function (done) {
       Cypress.once("fail", (err) => {
@@ -89,78 +98,7 @@ describe("screenshot-runner", () => {
     });
   });
 
-  context("runSuite", () => {
-    beforeEach(() => {
-      cy.spy(global, "describe").as("describeSpy");
-      cy.spy(global, "context").as("contextSpy");
-      cy.spy(global, "it").as("itSpy");
-    });
-
-    it("should create Cypress test suite structure from workflow", () => {
-      const runner = new C8yScreenshotRunner(workflow);
-      runner.runSuite();
-
-      cy.get<sinon.SinonSpy>("@describeSpy").should(
-        "be.calledWith",
-        "My Screenshots"
-      );
-      cy.get<sinon.SinonSpy>("@contextSpy").should("be.calledTwice");
-      cy.get<sinon.SinonSpy>("@itSpy").should(
-        "be.calledWith",
-        "dtm-asset-type-export.png (en)",
-        { tags: ["asset-type"], scrollBehavior: false }
-      );
-    });
-
-    it("should create Cypress test suite structure from workflow with multiple languages", () => {
-      const w = { ...workflow, ...{ global: { language: ["en", "de"] } } };
-      const runner = new C8yScreenshotRunner(w);
-      runner.runSuite();
-
-      // Verify the test structure was created correctly
-      cy.get<sinon.SinonSpy>("@describeSpy").should(
-        "be.calledWith",
-        "My Screenshots"
-      );
-      cy.get<sinon.SinonSpy>("@contextSpy").should("be.calledTwice");
-      cy.get<sinon.SinonSpy>("@itSpy").should("be.calledTwice");
-
-      cy.get<sinon.SinonSpy>("@itSpy").should(
-        "be.calledWith",
-        "dtm-asset-type-export.png (en)",
-        { tags: ["asset-type"], scrollBehavior: false }
-      );
-      cy.get<sinon.SinonSpy>("@itSpy").should(
-        "be.calledWith",
-        "dtm-asset-type-export.png (de)",
-        { tags: ["asset-type"], scrollBehavior: false }
-      );
-    });
-  });
-
-  context.skip("run", () => {
-    const screenshots = _.concat(workflow.screenshots, {
-      image: "cockpit/index.png",
-      visit: "/apps/cockpit/index.html#",
-      tags: ["cockpit"],
-      actions: [
-        {
-          click: "$navigator.toggle",
-        },
-        {
-          highlight: {
-            selector: ".bottom-drawer .card-footer .btn-primary",
-            border: {
-              "outline-offset": "2px",
-            },
-          },
-        },
-      ],
-    });
-
-    const workflowWith2Objects = _.cloneDeep(workflow);
-    workflowWith2Objects.screenshots = screenshots;
-
+  context("run", () => {
     let describeStub: sinon.SinonStub;
     let contextStub: sinon.SinonStub;
     let itStub: sinon.SinonStub;
@@ -168,36 +106,21 @@ describe("screenshot-runner", () => {
     let beforeStub: sinon.SinonStub;
 
     beforeEach(() => {
-      // Create chainable stubs for all Mocha functions
-      describeStub = cy
-        .stub(global, "describe")
-        .callsFake(function (name, fn) {
-          fn?.();
-          return describeStub; // Return the stub to allow chaining
-        })
-        .as("describeSpy");
-
-      contextStub = cy
-        .stub(global, "context")
-        .callsFake(function (name, fn) {
-          fn?.();
-          return contextStub;
-        })
-        .as("contextSpy");
-
-      itStub = cy
-        .stub(global, "it")
-        .callsFake(function (name, options, fn) {
-          // Handle the case where options is omitted
-          if (typeof options === "function") {
-            fn = options;
-          }
-          return itStub;
-        })
-        .as("itSpy");
-
-      beforeEachStub = cy.stub(global, "beforeEach").as("beforeEachSpy");
-      beforeStub = cy.stub(global, "before").as("beforeSpy");
+      describeStub = cy.stub(window, "describe").callsFake((title, fn) => {
+        fn(); 
+      });
+      contextStub = cy.stub(window, "context").callsFake((title, fn) => {
+        fn(); 
+      });
+      itStub = cy.stub(window, "it").callsFake((title, fn) => {
+        if (typeof fn === "function") fn(); 
+      });
+      beforeEachStub = cy.stub(window, "beforeEach").callsFake((fn) => {
+        if (fn) fn(); 
+      });
+      beforeStub = cy.stub(window, "before").callsFake((fn) => {
+        if (fn) fn(); 
+      });
     });
 
     afterEach(() => {
@@ -208,50 +131,100 @@ describe("screenshot-runner", () => {
       beforeStub.restore();
     });
 
-    it.skip("should filter tests when run() is called with options", () => {
-      const runner = new C8yScreenshotRunner(workflowWith2Objects);
-      runner.run({ tags: ["cockpit"] });
+    it("should create tests for run()", () => {
+      const runner = new C8yScreenshotRunner(workflow);
+      runner.run();
 
-      cy.get("@describeSpy").should("not.be.called");
-      cy.get("@contextSpy").should("be.calledOnceWith", "cockpit");
-      cy.get("@beforeEachSpy").should("be.calledTwice"); // context + it
-      cy.get("@itSpy").should("be.calledOnceWith", "index.png (en)", {
+      // Assert that describe, context, and it were called
+      expect(contextStub).to.have.been.called;
+      expect(itStub).to.have.been.calledWith("index.html (en)", {
         tags: ["cockpit"],
         scrollBehavior: false,
       });
+      expect(itStub.getCall(1).args[0]).to.eq("index2.html (en)");
+      expect(itStub.getCall(1).args[1]).to.deep.eq({
+        tags: ["mytag"],
+        scrollBehavior: false,
+      });
+      expect(beforeEachStub).to.have.been.called;
 
-      cy.get("@itSpy").should(
-        "not.be.calledWith",
-        "dtm-asset-type-export.png (en)"
-      );
+    });
+
+    it("should create tests for run() with tag", () => {
+      const runner = new C8yScreenshotRunner(workflow);
+      runner.run({ tags: ["cockpit"] });
+
+      // Assert that describe, context, and it were called
+      expect(contextStub).to.have.been.calledWith("cockpit");
+      expect(itStub).to.have.been.calledOnceWith("index.html (en)", {
+        tags: ["cockpit"],
+        scrollBehavior: false,
+      });
+      expect(beforeEachStub).to.have.been.called;
+    });
+
+    it("should create tests for run() with title filter", () => {
+      const runner = new C8yScreenshotRunner(workflow);
+      runner.run({ titles: ["cockpit", "index.html"] });
+
+      // Assert that describe, context, and it were called
+      expect(contextStub).to.have.been.called;
+      expect(itStub).to.have.been.calledOnceWith("index.html (en)", {
+        tags: ["cockpit"],
+        scrollBehavior: false,
+      });
+      expect(beforeEachStub).to.have.been.called;
+    });
+
+    it("should create tests for run() with image filter", () => {
+      const runner = new C8yScreenshotRunner(workflow);
+      runner.run({ images: ["cockpit/index.html"] });
+
+      // Assert that describe, context, and it were called
+      expect(contextStub).to.have.been.called;
+      expect(itStub).to.have.been.calledOnceWith("index.html (en)", {
+        tags: ["cockpit"],
+        scrollBehavior: false,
+      });
+      expect(beforeEachStub).to.have.been.called;
+    });
+
+    it("should create tests for runSuite()", () => {
+      const runner = new C8yScreenshotRunner(workflow);
+      runner.runSuite();
+
+      // Assert that describe, context, it, and beforeEach were called
+      expect(describeStub).to.have.been.calledWith(workflow.title);
+      
+      expect(contextStub).to.have.been.calledTwice
+      expect(contextStub.getCall(0).args[0]).to.eq("cockpit");
+      expect(contextStub.getCall(1).args[0]).to.eq("mytag");
+
+      expect(itStub).to.have.been.calledTwice;
+      expect(itStub).to.have.been.calledWith("index.html (en)", {
+        tags: ["cockpit"],
+        scrollBehavior: false,
+      });
+      expect(itStub.getCall(1).args[0]).to.eq("index2.html (en)");
+      expect(itStub.getCall(1).args[1]).to.deep.eq({
+        tags: ["mytag"],
+        scrollBehavior: false,
+      });
+      expect(beforeEachStub).to.have.been.called;
+    });
+
+    it("should create tests with multiple languages", () => {
+      const w = _.cloneDeep(workflow);
+      w.global!.language = ["en", "de"];
+
+      const runner = new C8yScreenshotRunner(w);
+      runner.run({tags: ["cockpit"]});  
+
+      expect(itStub).to.have.been.calledTwice;
+      expect(contextStub).to.have.been.calledOnceWith("cockpit");
+      expect(itStub.getCall(0).args[0]).to.eq("index.html (en)");
+      expect(itStub.getCall(1).args[0]).to.eq("index.html (de)");
+      expect(beforeEachStub).to.have.been.called;
     });
   });
 });
-
-// function getCurrentTestId(): string {
-//   try {
-//     // Get current test (safely)
-//     const cypressAny = Cypress as any;
-
-//     const currentTest =
-//       Cypress.currentTest ||
-//       Cypress.mocha?.getRunner()?.test ||
-//       Cypress.state("test");
-
-//     // Check if titlePath exists and is a function
-//     if (currentTest && typeof currentTest.titlePath === "function") {
-//       return currentTest.titlePath().join(" -- ");
-//     } else if (currentTest && currentTest.fullTitle) {
-//       // Fallback to fullTitle if available
-//       return typeof currentTest.fullTitle === "function"
-//         ? currentTest.fullTitle()
-//         : currentTest.fullTitle;
-//     }
-
-//     // Final fallback
-//     return "unknown-test-id";
-//   } catch (e) {
-//     console.warn("Error getting test ID:", e);
-//     return "error-test-id";
-//   }
-// }
