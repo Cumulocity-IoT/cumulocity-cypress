@@ -189,21 +189,21 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           }
         }
 
-        let users = to_array(record.auth?.userAlias || record.auth?.user).map(
-          (item) => {
-            if ((item || "").split("/").length > 1) {
-              return item?.split("/")?.slice(1)?.join("/");
-            } else {
-              return item;
-            }
+        let users: (string | undefined)[] = (
+          to_array(record.auth?.userAlias ?? record.auth?.user) ?? []
+        ).map((item) => {
+          if ((item || "").split("/").length > 1) {
+            return item?.split("/")?.slice(1)?.join("/");
+          } else {
+            return item;
           }
-        );
+        });
 
         if (url === "/devicecontrol/deviceCredentials") {
-          users = to_array("devicebootstrap");
+          users = to_array("devicebootstrap") ?? [];
         }
 
-        if (users.length === 0) {
+        if (users?.length === 0) {
           users = [undefined];
         }
 
