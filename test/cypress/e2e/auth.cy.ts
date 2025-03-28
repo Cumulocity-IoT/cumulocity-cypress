@@ -116,7 +116,7 @@ describe("auth", () => {
     });
 
     it(
-      "gets auth from test annotation",
+      "should get auth from test annotation",
       { auth: { user: "myadmin", password: "mypassword" } },
       () => {
         cy.getAuth().then((result) => {
@@ -128,7 +128,7 @@ describe("auth", () => {
     );
 
     it(
-      "gets auth from test annotation with password from environment",
+      "should get auth from test annotation with password from environment",
       { auth: "myauthuser" },
       () => {
         cy.getAuth().then((result) => {
@@ -141,7 +141,7 @@ describe("auth", () => {
     );
 
     it(
-      "gets auth from test annotation with userAlias and type",
+      "should get auth from test annotation with userAlias and type",
       { auth: { userAlias: "myauthuser", type: "CookieAuth" } },
       () => {
         cy.getAuth().then((result) => {
@@ -177,13 +177,37 @@ describe("auth", () => {
     });
 
     it("should not throw if no auth options found", () => {
-      Cypress.once("fail", (err) => {
-        throw new Error("getAuth() should not throw for undefined result");
-      });
       cy.getAuth().then((auth) => {
         expect(auth).to.be.undefined;
       });
     });
+
+    it("should throw for userAlias without auth options", (done) => {
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.eq(
+          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+        );
+        done();
+      });
+      cy.getAuth("xyz");
+    });
+
+    it("should throw for userAlias without auth options and with auth in env", (done) => {
+      stubEnv({
+        C8Y_USERNAME: "xyz",
+        C8Y_PASSWORD: "xyz"
+      });
+
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.eq(
+          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+        );
+        done();
+      });
+
+      cy.getAuth("xyz");
+    });
+
 
     it("should log auth and auth env variables", () => {
       stubEnv({
@@ -201,7 +225,7 @@ describe("auth", () => {
         expect(props).to.not.be.undefined;
         expect(props.env).to.not.be.undefined;
         expect(props.arguments).to.deep.eq([undefined, "admin"]);
-        expect(props.auth).to.deep.eq({
+        expect(props.getauthoptions).to.deep.eq({
           password: "password",
           user: "admin",
           userAlias: "admin",
@@ -312,17 +336,34 @@ describe("auth", () => {
       }
     );
 
-    it("should not throw if no auth options found", () => {
+    it("should not throw if no auth options found", (done) => {
       Cypress.once("fail", (err) => {
-        throw new Error("useAuth() should not throw for undefined result");
+        expect(err.message).to.eq(
+          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+        );
+        done();
       });
-      cy.useAuth("userthatdoesnotexist");
+
+      cy.useAuth("xyz");
     });
 
-    it("should not throw for undefined object", () => {
-      Cypress.once("fail", (err) => {
-        throw new Error("useAuth() should not throw for undefined result");
+    it("should throw for userAlias without auth options and with auth in env", (done) => {
+      stubEnv({
+        C8Y_USERNAME: "xyz",
+        C8Y_PASSWORD: "xyz"
       });
+
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.eq(
+          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+        );
+        done();
+      });
+      
+      cy.getAuth("xyz");
+    });
+    
+    it("should not throw for undefined object", () => {
       cy.useAuth(undefined as any);
     });
 
@@ -343,7 +384,7 @@ describe("auth", () => {
         expect(props).to.not.be.undefined;
         expect(props.env).to.not.be.undefined;
         expect(props.arguments).to.deep.eq([undefined, "admin"]);
-        expect(props.auth).to.deep.eq({
+        expect(props.getauthoptions).to.deep.eq({
           password: "password",
           user: "admin",
           userAlias: "admin",

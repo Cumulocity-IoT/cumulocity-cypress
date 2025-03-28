@@ -99,7 +99,7 @@ Cypress.Commands.add("c8ymatch", (response, pact, info = {}, options = {}) => {
         matchingProperties
       );
 
-      Cypress.c8ypact.preprocessor?.apply(responseAsRecord, info.preprocessor);
+      Cypress.c8ypact.preprocessor?.apply(responseAsRecord, info?.preprocessor);
       _.extend(
         consoleProps,
         { responseAsRecord },
@@ -119,7 +119,7 @@ Cypress.Commands.add("c8ymatch", (response, pact, info = {}, options = {}) => {
       if (isCypressError(error) || isPactError(error)) {
         throw error;
       } else {
-        throwError(`Matching schema failed. Error: ${error}`);
+        throwError(`Matching schema failed. ${error}`);
       }
     }
   } finally {

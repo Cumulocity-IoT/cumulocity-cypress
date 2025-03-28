@@ -12,9 +12,16 @@ import {
 } from "../../shared/c8ypact";
 import { getBaseUrlFromEnv } from "../utils";
 import { Client } from "@c8y/client";
-import { buildTestHierarchy } from "cumulocity-cypress/shared/util";
+import { buildTestHierarchy, to_array } from "../../shared/util";
 
 const { _ } = Cypress;
+
+// Infos:
+// https://github.com/cypress-io/cypress-example-recipes/tree/master/examples/fundamentals__dynamic-tests
+// Cannot dynamically create tests with cy.task
+// https://github.com/cypress-io/cypress/issues/5418
+// Ability to dynamically create tests while inside of a test
+// https://github.com/cypress-io/cypress/issues/7757
 
 /**
  * Configuration options for C8yPactRunner.
@@ -168,9 +175,6 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
       }
 
       cy.then(() => {
-        Cypress.c8ypact.config.strictMatching =
-          pact.info?.strictMatching != null ? pact.info.strictMatching : true;
-
         const url = this.createURL(record, pact.info);
         if (!url) {
           cy.log("Skipping request without URL.");
@@ -185,22 +189,45 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           }
         }
 
-        let user = record.auth?.userAlias || record.auth?.user;
-        if ((user || "").split("/").length > 1) {
-          user = user?.split("/")?.slice(1)?.join("/");
-        }
+        let users = to_array(record.auth?.userAlias || record.auth?.user).map(
+          (item) => {
+            if ((item || "").split("/").length > 1) {
+              return item?.split("/")?.slice(1)?.join("/");
+            } else {
+              return item;
+            }
+          }
+        );
+
         if (url === "/devicecontrol/deviceCredentials") {
-          user = "devicebootstrap";
+          users = to_array("devicebootstrap");
         }
 
+        if (users.length === 0) {
+          users = [undefined];
+        }
+
+        const configKeys = [
+          "skipClientAuthentication",
+          "preferBasicAuth",
+          "failOnStatusCode",
+          "timeout",
+        ];
+        const strictMatching =
+          Cypress.config().c8ypact?.strictMatching ??
+          record.options?.strictMatching ??
+          pact.info?.strictMatching ??
+          Cypress.c8ypact.getConfigValue("strictMatching") ??
+          true;
+
+        const failOnStatusCode = (record.response?.status ?? 200) < 400;
         const cOpts: C8yClientOptions = {
-          // pact: { record: record, info: pact.info },
-          ..._.pick(record.options, [
-            "skipClientAuthentication",
-            "preferBasicAuth",
-            "failOnStatusCode",
-            "timeout",
-          ]),
+          strictMatching,
+          record,
+          failOnStatusCode,
+          // config keys from record override pact info values
+          ..._.pick(pact.info, configKeys),
+          ..._.pick(record.options, configKeys),
         };
 
         const responseFn = (response: Cypress.Response<any>) => {
@@ -231,20 +258,24 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
         const isBasicAuth = (envAuth ?? record.authType()) === "BasicAuth";
         const f = (c: Client) => c.core.fetch(url, clientFetchOptions);
 
-        (user ? cy.getAuth(user) : cy.getAuth()).then((auth) => {
-          if (user !== "devicebootstrap" && isCookieAuth) {
-            if (currentAuth == null || auth?.user !== currentAuth?.user) {
-              cy.wrap(auth).login();
-              currentAuth = auth;
-            }
-            cy.c8yclient(f, cOpts).then(responseFn);
-          } else {
-            if (isBasicAuth) {
-              cy.wrap(auth).c8yclient(f, cOpts).then(responseFn);
-            } else {
+        users.forEach((user) => {
+          (user ? cy.getAuth(user) : cy.getAuth()).then((auth) => {
+            if (user !== "devicebootstrap" && isCookieAuth) {
+              if (currentAuth == null || auth?.user !== currentAuth?.user) {
+                cy.wrap(auth, { log: false }).login();
+                currentAuth = auth;
+              }
               cy.c8yclient(f, cOpts).then(responseFn);
+            } else {
+              if (isBasicAuth) {
+                cy.wrap(auth, { log: false })
+                  .c8yclient(f, cOpts)
+                  .then(responseFn);
+              } else {
+                cy.c8yclient(f, cOpts).then(responseFn);
+              }
             }
-          }
+          });
         });
       });
     }

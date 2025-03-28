@@ -110,7 +110,7 @@ export function toSensitiveObjectKeyPath(
 export function get_i(
   obj: any,
   keyPath: string | string[]
-): string | undefined {
+): any | undefined {
   if (obj == null || keyPath == null) return undefined;
   const sensitivePath = toSensitiveObjectKeyPath(obj, keyPath);
   if (sensitivePath == null) return undefined;

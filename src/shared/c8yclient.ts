@@ -57,6 +57,7 @@ export type C8yClientOptions = Partial<Cypress.Loggable> &
     failOnPactValidation: boolean;
     ignorePact: boolean;
     schema: any;
+    record: C8yPactRecord;
     schemaMatcher: C8ySchemaMatcher;
     strictMatching: boolean;
   }>;
@@ -148,6 +149,11 @@ export async function wrapFetchResponse(
     logOptions?: LogOptions;
   } = {}
 ) {
+  // only wrap valid responses or new Response() will fail later
+  if (response.status == null || response.status < 200 || response.status > 599) {
+    return response;
+  }
+
   const responseObj = await (async () => {
     return toCypressResponse(
       response,
@@ -574,4 +580,3 @@ export function getCookieValue(name: string) {
   const value = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
   return value ? value.pop() : "";
 }
-

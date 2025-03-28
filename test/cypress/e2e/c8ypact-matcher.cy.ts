@@ -386,9 +386,12 @@ describe("c8ypactmatcher", () => {
       const matcher = new C8yDefaultPactMatcher();
       const pact = _.cloneDeep(obj1);
       delete pact.request.url;
-      expect(() => matcher.match(obj1, pact)).to.throw(
+      expect(() =>
+        matcher.match(obj1, pact, { strictMatching: true })
+      ).to.throw(
         `Pact validation failed! "request > url" not found in pact object.`
       );
+      expect(matcher.match(obj1, pact)).to.be.true;
     });
 
     it("should fail if ignored porperty is missing with strictMatching disabled", function () {
@@ -666,7 +669,7 @@ describe("c8ypactmatcher", () => {
       };
       const obj = _.cloneDeep(obj1);
       obj.response.body = "{ id: 123 }";
-      expect(() => matcher.match(obj, pact)).to.throw(
+      expect(() => matcher.match(obj, pact, { strictMatching: true })).to.throw(
         `Pact validation failed! Schema for "response > body" does not match.`
       );
       expect(spy).to.have.been.calledOnce;
@@ -686,7 +689,7 @@ describe("c8ypactmatcher", () => {
       };
       const obj = _.cloneDeep(obj1);
       obj.response.body = { id: "123", other: 101 };
-      expect(() => matcher.match(obj, pact)).to.throw(
+      expect(() => matcher.match(obj, pact, { strictMatching: true })).to.throw(
         `Pact validation failed! Schema for "response > body" does not match.`
       );
       expect(spy).to.have.been.calledOnce;
@@ -751,7 +754,7 @@ describe("c8ypactmatcher", () => {
 
       const obj = _.cloneDeep(obj2);
       obj.response.body = { id: "123", nested: { name: "abcd" } };
-      expect(matcher.match(obj, pact)).to.be.true;
+      expect(matcher.match(obj, pact, {strictMatching: true})).to.be.true;
       expect(spy).to.have.been.calledOnce;
     });
   });
@@ -771,10 +774,10 @@ describe("c8ypactmatcher", () => {
       const matcher = new C8yISODateStringMatcher();
       const date1 = "2023-06-14T13:20:18.929Z";
       const date2 = "1699996703";
-      expect(matcher.match(date1, date2)).to.be.false;
+      expect(() => matcher.match(date1, date2)).to.throw();
 
       const date3 = 1699996703;
-      expect(matcher.match(date1, date3)).to.be.false;
+      expect(() => matcher.match(date1, date3)).to.throw();
     });
   });
 });

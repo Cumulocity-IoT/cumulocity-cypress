@@ -209,22 +209,25 @@ describe("util", () => {
   });
 
   describe("to_array", () => {
-    it("should return undefined if value is undefined", () => {
-      const result = to_array(undefined);
-      expect(result).toBeUndefined();
+    it("should return empty array if input is null", () => {
+      expect(to_array(null as any)).toEqual([]);
+      expect(to_array(undefined as any)).toEqual([]);
     });
 
-    it("should return value if it is already an array", () => {
-      const value = [1, 2, 3];
-      const result = to_array(value);
-      expect(result).toBe(value);
+    it("should return array if input is not an array", () => {
+      const result = to_array("test" as any);
+      expect(result).toEqual(["test"]);
     });
 
-    it("should return value as an array", () => {
-      const value = 1;
-      const result = to_array(value);
-      expect(result).toEqual([1]);
+    it("should return array if input is an array", () => {
+      const result = to_array(["test"]);
+      expect(result).toEqual(["test"]);
     });
+
+    it("should return array if input is an object", () => {
+      const result = to_array({ test: "test" });
+      expect(result).toEqual([{ test: "test" }]);
+    });    
   });
 
   describe("buildTestHierarchy", () => {

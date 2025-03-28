@@ -124,7 +124,12 @@ export function configureC8yPlugin(
   function getPact(pact: string): C8yPact | null {
     log(`getPact() - ${pact}`);
     validateId(pact);
-    return adapter?.loadPact(pact) || null;
+    try {
+      return adapter?.loadPact(pact) || null;
+    } catch (e) {
+      log(`getPact() - ${e}`);
+      return null;
+    }
   }
 
   function removePact(pact: string): boolean {

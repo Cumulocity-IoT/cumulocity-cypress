@@ -267,7 +267,7 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
       log: false,
       ignore: globalIgnore === "true" || globalIgnore === true,
       failOnMissingPacts: true,
-      strictMatching: true,
+      strictMatching: false,
       strictMocking: true,
       requestMatching: {
         ignoreUrlParameters: ["dateFrom", "dateTo", "_"],
@@ -451,7 +451,7 @@ function isEnabled(): boolean {
     return false;
   } else {
     if (
-      Cypress.c8ypact.config.ignore === true ||
+      Cypress.c8ypact.getConfigValue("ignore") === true ||
       Cypress.env("C8Y_PACT_IGNORE") === "true"
     ) {
       return false;
