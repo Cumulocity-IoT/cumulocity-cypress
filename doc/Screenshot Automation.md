@@ -247,7 +247,7 @@ configureC8yScreenshotPlugin(on, config, myYamlConfig);
 Create a new file, e.g. `screenshot.cy.ts`, in your Cypress project folder to host `C8yScreenshotRunner`:
 
 ```typescript
-import { C8yScreenshotRunner } from "cumulocity-cypress/screenshot";
+import { C8yScreenshotRunner } from "cumulocity-cypress/c8yscrn";
 
 describe('My Custom Screenshot Automation', () => {
   const runner = new C8yScreenshotRunner();
@@ -255,7 +255,27 @@ describe('My Custom Screenshot Automation', () => {
 });
 ```
 
-When integrating into an existing Cypress project, you'll use the `C8yScreenshotRunner` in your test files. See the "Using C8yScreenshotRunner in Your Project" section for details.
+When integrating into an existing Cypress project, you'll use the `C8yScreenshotRunner` in your test files. 
+
+You can also use the `C8yScreenshotRunner` in your existing Cypress tests for selected workflows. This would allow to run workflows with different setups, as for example different interceptions, before taking the screenshots.
+
+```typescript
+
+import { C8yScreenshotRunner } from "cumulocity-cypress/c8yscrn";
+
+describe('My Custom Screenshot Automation', () => {
+
+  const runner = new C8yScreenshotRunner();
+  
+  context("Requires mocked users", () => {
+    beforeEach(() => {
+      cy.intercept("GET", "/users", { fixture: "user.json" });
+    });
+
+    runner.run({ tags: ["user"] });
+  });
+});
+```
 
 #### Custom Commands
 
