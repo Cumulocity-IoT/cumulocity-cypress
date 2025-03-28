@@ -209,9 +209,9 @@ describe("util", () => {
   });
 
   describe("to_array", () => {
-    it("should return empty array if input is null", () => {
-      expect(to_array(null as any)).toEqual([]);
-      expect(to_array(undefined as any)).toEqual([]);
+    it("should return undefined if input is null", () => {
+      expect(to_array(null as any)).toBeUndefined();
+      expect(to_array(undefined as any)).toBeUndefined();
     });
 
     it("should return array if input is not an array", () => {

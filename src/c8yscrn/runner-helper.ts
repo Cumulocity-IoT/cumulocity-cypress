@@ -140,13 +140,15 @@ export function buildTestHierarchyWithOptions(
 ): C8yTestHierarchyTree<Screenshot & ScreenshotOptions> {
   return buildTestHierarchy(objects, (item) => {
     if (options.tags != null && item.tags != null) {
-      if (_.intersection(options.tags, to_array(item.tags)).length === 0) {
+      if (
+        _.intersection(options.tags, to_array(item.tags) ?? []).length === 0
+      ) {
         return undefined;
       }
     }
 
     const titles = to_array(item.title) ?? item.image?.split(/[/\\]/);
-    if (options.titles != null && titles != null) {
+    if (options.titles != null && titles != null && !_.isEmpty(titles)) {
       if (!options.titles.every((title, index) => titles[index] === title)) {
         return undefined;
       }

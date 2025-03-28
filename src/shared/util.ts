@@ -107,10 +107,7 @@ export function toSensitiveObjectKeyPath(
  * @param keyPath The case-insensitive key path to find
  * @returns The value of the key path if found, undefined otherwise
  */
-export function get_i(
-  obj: any,
-  keyPath: string | string[]
-): any | undefined {
+export function get_i(obj: any, keyPath: string | string[]): any | undefined {
   if (obj == null || keyPath == null) return undefined;
   const sensitivePath = toSensitiveObjectKeyPath(obj, keyPath);
   if (sensitivePath == null) return undefined;
@@ -123,7 +120,7 @@ export function get_i(
  * @returns The value as an array if it is not already an array
  */
 export function to_array<T>(value: T | T[] | undefined): T[] | undefined {
-  if (value === undefined) return undefined;
+  if (value == null) return undefined;
   if (_.isArray(value)) return value;
   return [value];
 }
