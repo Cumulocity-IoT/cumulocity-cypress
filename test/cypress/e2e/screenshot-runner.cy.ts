@@ -1,9 +1,12 @@
 /// <reference types="cypress" />
 
-import { ScreenshotSetup, C8yScreenshotRunner } from "cumulocity-cypress/c8yscrn";
+import {
+  ScreenshotSetup,
+  C8yScreenshotRunner,
+} from "cumulocity-cypress/c8yscrn";
 import { stubEnv } from "cypress/support/testutils";
 
-const {_ } = Cypress;
+const { _ } = Cypress;
 
 const screenshot1: ScreenshotSetup["screenshots"][0] = {
   image: "cockpit/index.html",
@@ -60,6 +63,15 @@ describe("C8yScreenshotRunner", () => {
     it("should initialize with config", () => {
       const runner = new C8yScreenshotRunner(workflow);
       expect(runner).to.be.an.instanceOf(C8yScreenshotRunner);
+      expect(runner.config).to.deep.eq(workflow);
+    });
+
+    it("should initialize with config from env", () => {
+      Cypress.env("_c8yscrnyaml", workflow);
+      const runner = new C8yScreenshotRunner();
+      expect(runner).to.be.an.instanceOf(C8yScreenshotRunner);
+      expect(runner.config).to.deep.eq(workflow);
+      Cypress.env("_c8yscrnyaml", undefined);
     });
 
     it("throws with invalid config", function (done) {
@@ -107,19 +119,19 @@ describe("C8yScreenshotRunner", () => {
 
     beforeEach(() => {
       describeStub = cy.stub(window, "describe").callsFake((title, fn) => {
-        fn(); 
+        fn();
       });
       contextStub = cy.stub(window, "context").callsFake((title, fn) => {
-        fn(); 
+        fn();
       });
       itStub = cy.stub(window, "it").callsFake((title, fn) => {
-        if (typeof fn === "function") fn(); 
+        if (typeof fn === "function") fn();
       });
       beforeEachStub = cy.stub(window, "beforeEach").callsFake((fn) => {
-        if (fn) fn(); 
+        if (fn) fn();
       });
       beforeStub = cy.stub(window, "before").callsFake((fn) => {
-        if (fn) fn(); 
+        if (fn) fn();
       });
     });
 
@@ -147,7 +159,6 @@ describe("C8yScreenshotRunner", () => {
         scrollBehavior: false,
       });
       expect(beforeEachStub).to.have.been.called;
-
     });
 
     it("should create tests for run() with tag", () => {
@@ -195,8 +206,8 @@ describe("C8yScreenshotRunner", () => {
 
       // Assert that describe, context, it, and beforeEach were called
       expect(describeStub).to.have.been.calledWith(workflow.title);
-      
-      expect(contextStub).to.have.been.calledTwice
+
+      expect(contextStub).to.have.been.calledTwice;
       expect(contextStub.getCall(0).args[0]).to.eq("cockpit");
       expect(contextStub.getCall(1).args[0]).to.eq("mytag");
 
@@ -218,7 +229,7 @@ describe("C8yScreenshotRunner", () => {
       w.global!.language = ["en", "de"];
 
       const runner = new C8yScreenshotRunner(w);
-      runner.run({tags: ["cockpit"]});  
+      runner.run({ tags: ["cockpit"] });
 
       expect(itStub).to.have.been.calledTwice;
       expect(contextStub).to.have.been.calledOnceWith("cockpit");
