@@ -99,7 +99,10 @@ Cypress.Commands.add("c8ymatch", (response, pact, info = {}, options = {}) => {
         matchingProperties
       );
 
-      Cypress.c8ypact.preprocessor?.apply(responseAsRecord, info?.preprocessor);
+      Cypress.c8ypact.preprocessor?.apply(
+        responseAsRecord,
+        info?.preprocessor ?? Cypress.c8ypact?.getConfigValue("preprocessor")
+      );
       _.extend(
         consoleProps,
         { responseAsRecord },
