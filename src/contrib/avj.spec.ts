@@ -10,6 +10,19 @@ describe("C8yAjvSchemaMatcher", () => {
     it("should create an instance of Ajv", function () {
       const matcher = new C8yAjvSchemaMatcher();
       expect(matcher.ajv).toBeDefined();
+      expect(matcher.ajv.opts.strict).toBeFalsy();
+    });
+
+    it("should create an instance of Ajv with strict mode", function () {
+      const matcher = new C8yAjvSchemaMatcher(true);
+      expect(matcher.ajv).toBeDefined();
+      expect(matcher.ajv.opts.strict).toBeTruthy();
+    });
+
+    it("should create an instance of Ajv with strict mode and metas", function () {
+      const matcher = new C8yAjvSchemaMatcher([{}], true);
+      expect(matcher.ajv).toBeDefined();
+      expect(matcher.ajv.opts.strict).toBeTruthy();
     });
 
     it("should add formats to Ajv", function () {
