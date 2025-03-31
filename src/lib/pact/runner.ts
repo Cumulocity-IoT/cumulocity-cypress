@@ -250,12 +250,12 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
         };
 
         const envAuth = Cypress.env("C8Y_PACT_RUNNER_AUTH");
+        const pactAuth = options.authType ?? record.authType();
 
         const isCookieAuth =
-          (envAuth ?? record.authType()) === "CookieAuth" &&
-          envAuth !== "BasicAuth";
+          (envAuth ?? pactAuth) === "CookieAuth" && envAuth !== "BasicAuth";
 
-        const isBasicAuth = (envAuth ?? record.authType()) === "BasicAuth";
+        const isBasicAuth = (envAuth ?? pactAuth) === "BasicAuth";
         const f = (c: Client) => c.core.fetch(url, clientFetchOptions);
 
         users.forEach((user) => {
@@ -267,7 +267,13 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
               }
               cy.c8yclient(f, cOpts).then(responseFn);
             } else {
-              if (isBasicAuth) {
+              if (isBasicAuth || user != null) {
+                if (auth == null) {
+                  // should not get here as cy.getAuth(user) should fail if
+                  // no auth is found for the user. just making sure we get the
+                  // correct error message in case we still get here
+                  throw new Error(`Auth missing for user ${user}. This should not happen.`);
+                }
                 cy.wrap(auth, { log: false })
                   .c8yclient(f, cOpts)
                   .then(responseFn);

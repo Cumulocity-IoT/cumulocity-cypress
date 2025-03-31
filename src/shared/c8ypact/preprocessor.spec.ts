@@ -688,6 +688,7 @@ describe("C8yDefaultPactPreprocessor", () => {
             "statusText",
           ],
         },
+        ignore: ["request.headers"],
       };
 
       const preprocessor = new C8yDefaultPactPreprocessor(options);
@@ -696,9 +697,6 @@ describe("C8yDefaultPactPreprocessor", () => {
         request: {
           url: "/service/dtm/assets",
           method: "POST",
-          headers: {
-            "content-type": "application/json",
-          },
         },
         response: {
           status: 403,

@@ -18,7 +18,13 @@ import draft06Schema from "ajv/lib/refs/json-schema-draft-06.json";
 export class C8yAjvSchemaMatcher implements C8ySchemaMatcher {
   ajv: Ajv;
 
-  constructor(metas?: AnySchemaObject[], strict: boolean = true) {
+  constructor(metas?: AnySchemaObject[] | boolean, strict: boolean = false) {
+    if (_.isBoolean(metas)) { {
+        strict = metas;
+        metas = undefined;
+      }
+    }
+
     //https://ajv.js.org/options.html
     this.ajv = new Ajv({ strict, allowUnionTypes: true });
     addFormats(this.ajv, [
