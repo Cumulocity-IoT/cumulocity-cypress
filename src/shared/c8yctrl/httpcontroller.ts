@@ -233,18 +233,18 @@ export class C8yPactHttpController {
 
     this.registerOpenAPIRequestHandler();
 
+    const ignoredPaths = [this.resourcePath];
+    if (!this.mockHandler) {
+      this.mockHandler = this.app.use(
+        wrapPathIgnoreHandler(this.mockRequestHandler, ignoredPaths)
+      );
+    }
+
     if (this.baseUrl) {
       this.logger.info(`BaseURL: ${this.baseUrl}`);
       // register proxy handler first requires to make the proxy ignore certain paths
       // this is needed as bodyParser will break post requests in the proxy handler but
       // is needed before any other handlers dealing with request bodies
-      const ignoredPaths = [this.resourcePath];
-
-      if (!this.mockHandler) {
-        this.mockHandler = this.app.use(
-          wrapPathIgnoreHandler(this.mockRequestHandler, ignoredPaths)
-        );
-      }
 
       const errorHandler = _.isString(this.options.errorLogger)
         ? morgan(this.options.errorLogger, morganErrorOptions(this.logger))
