@@ -17,6 +17,8 @@ import {
   validateConfig,
 } from "./startup-util";
 
+import path from "path";
+
 const log = debug("c8y:ctrl:startup");
 
 (async () => {
@@ -31,8 +33,32 @@ const log = debug("c8y:ctrl:startup");
   // load defaults and merge them with the current config
   applyDefaultConfig(config);
 
-  const searchPlaces = configFile ? [configFile] : ["c8yctrl.config.ts"];
-  // load config file if provided and merge it with the current config
+  let resolvedConfigFile = configFile;
+  if (configFile != null) {
+    log("config file provided:", configFile);
+    if (!path.isAbsolute(configFile)) {
+      resolvedConfigFile = path.resolve(process.cwd(), configFile);
+      log(`resolved config file to: ${resolvedConfigFile}`);
+    }
+  }
+  const configFileDir =
+    resolvedConfigFile != null
+      ? path.dirname(resolvedConfigFile)
+      : process.cwd();
+
+  const configFileName =
+    resolvedConfigFile != null
+      ? path.basename(resolvedConfigFile)
+      : "c8yctrl.config.ts";
+
+  const searchPlaces = [configFileName];
+  if (!searchPlaces.includes("c8yctrl.config.ts")) {
+    searchPlaces.push("c8yctrl.config.ts");
+  }
+  
+  log("searching for config file in:", searchPlaces);
+  log("config file dir:", configFileDir);
+  
   const configLoader = cosmiconfig("cumulocity-cypress", {
     searchPlaces,
     loaders: {
@@ -40,7 +66,7 @@ const log = debug("c8y:ctrl:startup");
     },
   });
 
-  const result = await configLoader.search(process.cwd());
+  const result = await configLoader.search(configFileDir);
   if (result) {
     log("loaded config:", result.filepath);
     if (_.isFunction(result.config)) {
