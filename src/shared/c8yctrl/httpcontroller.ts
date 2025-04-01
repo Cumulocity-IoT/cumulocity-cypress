@@ -402,47 +402,43 @@ export class C8yPactHttpController {
         `mode: ${this.mode}, recordingMode: ${this.recordingMode}, strictMocking: ${this._isStrictMocking}, refresh: ${refreshPact}, clear: ${clearPact}`
       );
 
-      if (this.currentPact?.id === id) {
-        res.status(404);
-      } else {
-        let current = this.adapter?.loadPact(id);
-        if (!current && this.isRecordingEnabled()) {
-          const info: C8yPactInfo = {
-            baseUrl: this.baseUrl || "",
-            requestMatching: this.options.requestMatching,
-            preprocessor: this.options.preprocessor?.options,
-            strictMocking: this._isStrictMocking,
-            ..._.pick(req.body, [
-              "id",
-              "producer",
-              "consumer",
-              "version",
-              "title",
-              "tags",
-              "description",
-            ]),
-          };
-          current = new C8yDefaultPact([], info, id);
-          this.currentPact = current as C8yDefaultPact;
-          res.status(201);
-        }
+      let current = this.adapter?.loadPact(id);
+      if (!current && this.isRecordingEnabled()) {
+        const info: C8yPactInfo = {
+          baseUrl: this.baseUrl || "",
+          requestMatching: this.options.requestMatching,
+          preprocessor: this.options.preprocessor?.options,
+          strictMocking: this._isStrictMocking,
+          ..._.pick(req.body, [
+            "id",
+            "producer",
+            "consumer",
+            "version",
+            "title",
+            "tags",
+            "description",
+          ]),
+        };
+        current = new C8yDefaultPact([], info, id);
+        this.currentPact = current as C8yDefaultPact;
+        res.status(201);
+      }
 
+      if (!current) {
+        res
+          .status(404)
+          .send(`Not found. Enable recording to create a new pact.`);
+        return;
+      } else {
+        current = this.adapter?.loadPact(id);
         if (!current) {
           res
             .status(404)
-            .send(`Not found. Enable recording to create a new pact.`);
+            .send(`Not found. Could not find pact with id ${_.escape(id)}.`);
           return;
         } else {
-          current = this.adapter?.loadPact(id);
-          if (!current) {
-            res
-              .status(404)
-              .send(`Not found. Could not find pact with id ${_.escape(id)}.`);
-            return;
-          } else {
-            this.currentPact = C8yDefaultPact.from(current);
-            res.status(200);
-          }
+          this.currentPact = C8yDefaultPact.from(current);
+          res.status(200);
         }
       }
 
