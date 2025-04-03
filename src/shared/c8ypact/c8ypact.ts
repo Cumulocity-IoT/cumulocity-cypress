@@ -328,9 +328,37 @@ export function pactId(value: string | string[]): C8yPactID | undefined {
 export function validatePactMode(mode?: string) {
   if (mode != null) {
     const values = Object.values(C8yPactModeValues) as string[];
-    if (!_.isString(mode) || !values.includes(mode.toLowerCase())) {
+    if (
+      !_.isString(mode) ||
+      _.isEmpty(mode) ||
+      !values.includes(mode.toLowerCase())
+    ) {
       const error = new Error(
         `Unsupported pact mode: "${mode}". Supported values are: ${values.join(
+          ", "
+        )} or undefined.`
+      );
+      error.name = "C8yPactError";
+      throw error;
+    }
+  }
+}
+
+/**
+ * Validate the given pact recording mode. Throws an error if the mode is not supported
+ * or undefined.
+ * @param mode The pact recording mode to validate.
+ */
+export function validatePactRecordingMode(mode?: string) {
+  if (mode != null) {
+    const keys = Object.values(C8yPactRecordingModeValues) as string[];
+    if (
+      !_.isString(mode) ||
+      _.isEmpty(mode) ||
+      !keys.includes(mode.toLowerCase())
+    ) {
+      const error = new Error(
+        `Unsupported recording mode: "${mode}". Supported values are: ${keys.join(
           ", "
         )} or undefined.`
       );

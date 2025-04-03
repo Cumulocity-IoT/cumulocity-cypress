@@ -4,7 +4,7 @@ import { C8yAuthOptions } from "../../shared/auth";
 import { getC8yClientAuthentication } from "../utils";
 import { C8yClient } from "../../shared/c8yclient";
 import { C8yBaseUrl } from "../../shared/types";
-
+import { C8yCtrlCurrentResponse } from "../pact/cypressctrl";
 declare global {
   interface ChainableWithState {
     state(state: "window"): Cypress.AUTWindow;
@@ -46,5 +46,21 @@ if (!Cypress.c8ypact) {
     on: {},
     createFetchClient: (auth: C8yAuthOptions, baseUrl: C8yBaseUrl) =>
       new FetchClient(getC8yClientAuthentication(auth), baseUrl),
+  };
+}
+
+if (!Cypress.c8yctrl) {
+  Cypress.c8yctrl = {
+    mode: () => "disabled",
+    recordingMode: () => "append",
+    get current() {
+      return null;
+    },
+    isEnabled: () => false,
+    isRecordingEnabled: () => false,
+    isMockingEnabled: () => false,
+    setCurrent: () => cy.wrap<C8yCtrlCurrentResponse | null>(null),
+    resetCurrent: () => cy.wrap<C8yCtrlCurrentResponse | null>(null),
+    url: () => null,
   };
 }
