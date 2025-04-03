@@ -18,7 +18,6 @@ import {
   C8yPactMode,
   C8yPactRecordingMode,
   validatePactMode,
-  getEnvVar,
   validatePactRecordingMode,
 } from "../../shared/c8ypact";
 import { C8yDefaultPactRunner, C8yPactRunner } from "./runner";
