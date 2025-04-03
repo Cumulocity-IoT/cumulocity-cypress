@@ -19,6 +19,7 @@ import {
   isPactRecord,
   getEnvVar,
   C8yPactPreprocessorDefaultOptions,
+  validatePactRecordingMode,
 } from "cumulocity-cypress/c8ypact";
 
 const { _ } = Cypress;
@@ -126,7 +127,8 @@ describe("c8ypact", () => {
 
     it("should use disabled if unsupported pact mode", function () {
       stubEnv({ C8Y_PACT_MODE: "xyz" });
-      expect(Cypress.c8ypact.mode()).to.eq("disabled");
+      // validation is happeing in validatePactRecordingMode
+      expect(Cypress.c8ypact.mode()).to.eq("xyz");
     });
 
     it("should not be enabled if plugin is not loaded", function () {
@@ -162,7 +164,7 @@ describe("c8ypact", () => {
         done();
       });
       stubEnv({ C8Y_PACT_RECORDING_MODE: "xyz" });
-      Cypress.c8ypact.recordingMode();
+      validatePactRecordingMode(Cypress.c8ypact.recordingMode());
     });
 
     it("should use default recording mode for unssuported values", function () {

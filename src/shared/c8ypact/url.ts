@@ -40,7 +40,7 @@ export function removeBaseUrlFromRequestUrl(
   record.request.url = removeBaseUrlFromString(record.request.url, baseUrl);
 }
 
-function normalizeUrl(url: string): string {
+export function normalizeUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
