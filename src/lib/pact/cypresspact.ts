@@ -388,8 +388,8 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
     }
 
     try {
-      validatePactMode(getEnvVar("C8Y_PACT_MODE"));
-      validatePactRecordingMode(Cypress.env("C8Y_PACT_RECORDING_MODE"));
+      validatePactMode(Cypress.c8ypact.mode());
+      validatePactRecordingMode(Cypress.c8ypact.recordingMode());
       validateBaseUrl(getBaseUrlFromEnv());
     } catch (error) {
       logger?.end();

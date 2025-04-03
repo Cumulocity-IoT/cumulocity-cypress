@@ -5,7 +5,6 @@ import {
 import {
   C8yPactID,
   C8yPactMode,
-  C8yPactModeValues,
   C8yPactRecordingMode,
   C8yPactRecordingModeValues,
   pactId,
@@ -18,10 +17,12 @@ const { _ } = Cypress;
  * Determines the pact mode based on the provided environment variable.
  * @param envVar The environment variable to check for the mode.
  */
-export function mode(envVar: string, defaultValue: string = "disabled"): C8yPactMode {
+export function mode(
+  envVar: string,
+  defaultValue: string = "disabled"
+): C8yPactMode {
   let mode = Cypress.env(envVar) || defaultValue;
-  const values = Object.values(C8yPactModeValues) as string[];
-  if (!_.isString(mode) || _.isEmpty(mode) || !values.includes(mode.toLowerCase())) {
+  if (!_.isString(mode) || _.isEmpty(mode)) {
     mode = defaultValue;
   }
   return mode.toLowerCase() as C8yPactMode;
@@ -32,13 +33,12 @@ export function mode(envVar: string, defaultValue: string = "disabled"): C8yPact
  * @param envVar The environment variable to check for the recording mode.
  */
 export function recordingMode(envVar: string): C8yPactRecordingMode {
-  const keys: string[] = Object.values(C8yPactRecordingModeValues);
   const mode: string =
-    Cypress.config().c8ypact?.recordingMode ||
     Cypress.env(envVar) ||
+    Cypress.config().c8ypact?.recordingMode ||
     C8yPactRecordingModeValues[0];
 
-  if (!mode || !_.isString(mode) || !keys.includes(mode.toLowerCase())) {
+  if (!mode || !_.isString(mode)) {
     return C8yPactRecordingModeValues[0];
   }
 

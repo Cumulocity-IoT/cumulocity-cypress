@@ -330,7 +330,7 @@ export function validatePactMode(mode?: string) {
     const values = Object.values(C8yPactModeValues) as string[];
     if (
       !_.isString(mode) ||
-      !_.isEmpty(mode) ||
+      _.isEmpty(mode) ||
       !values.includes(mode.toLowerCase())
     ) {
       const error = new Error(
@@ -354,7 +354,7 @@ export function validatePactRecordingMode(mode?: string) {
     const keys = Object.values(C8yPactRecordingModeValues) as string[];
     if (
       !_.isString(mode) ||
-      !_.isEmpty(mode) ||
+      _.isEmpty(mode) ||
       !keys.includes(mode.toLowerCase())
     ) {
       const error = new Error(
