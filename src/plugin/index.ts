@@ -5,11 +5,14 @@ import debug from "debug";
 import { compare } from "odiff-bin";
 import WebSocket from "ws";
 import { watch, FSWatcher } from "chokidar";
+import fetch from "cross-fetch";
 
 import {
   C8yPactFileAdapter,
   C8yPactDefaultFileAdapter,
 } from "../shared/c8ypact/adapter/fileadapter";
+import { get_i } from "../shared/util";
+
 import {
   C8yPactHttpController,
   C8yPactHttpControllerOptions,
@@ -177,6 +180,70 @@ export function configureC8yPlugin(
     return await oauthLogin(options?.auth, options?.baseUrl);
   }
 
+  async function fetchRequest(options: {
+    url: string;
+    method: string;
+    headers: any;
+    body?: any;
+  }): Promise<{
+    status: number;
+    headers: any;
+    body: any;
+    statusText: string;
+    ok: boolean;
+    redirected: boolean;
+    type: string;
+    url: string;
+  }> {
+    try {
+      const response = await fetch(options.url, {
+        method: options.method,
+        headers: options.headers,
+        body: options.body,
+      });
+
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+
+      const contentType: string | undefined = get_i(
+        headers,
+        "content-type"
+      )?.toLowerCase();
+
+      let body: any;
+      if (contentType?.includes("application/json")) {
+        body = await response.json();
+      } else if (contentType?.includes("text/")) {
+        body = await response.text();
+      } else {
+        body = await response.blob();
+      }
+
+      const result = {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+        body,
+        ok: response.ok,
+        redirected: response.redirected,
+        type: response.type,
+        url: response.url,
+      } as const;
+
+      log(
+        `fetch() - ${options.method ?? "GET"} ${options.url} ${
+          result.status
+        } (${result.statusText})`
+      );
+      return result;
+    } catch (e) {
+      log(`fetch() - ${options.method ?? "GET"} ${options.url}. ${e}`);
+      throw e;
+    }
+  }
+
   if (on) {
     on("task", {
       "c8ypact:save": savePact,
@@ -185,6 +252,7 @@ export function configureC8yPlugin(
       "c8ypact:http:start": startHttpController,
       "c8ypact:http:stop": stopHttpController,
       "c8ypact:oauthLogin": login,
+      "c8ypact:fetch": fetchRequest,
     });
   }
 }

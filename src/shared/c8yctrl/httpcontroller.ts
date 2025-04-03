@@ -438,7 +438,6 @@ export class C8yPactHttpController {
           return;
         } else {
           this.currentPact = C8yDefaultPact.from(current);
-          res.status(200);
         }
       }
 
@@ -463,10 +462,11 @@ export class C8yPactHttpController {
 
       res.setHeader("content-type", "application/json");
       res.send(
-        this.stringifyPact({
-          ...this.currentPact,
-          records: (this.currentPact?.records?.length || 0) as any,
-        })
+        this.stringifyPact(current)
+        // {
+        //   ...this.currentPact,
+        //   records: (this.currentPact?.records?.length || 0) as any,
+        // })
       );
     });
     this.app.delete(`${this.resourcePath}/current`, (req, res) => {

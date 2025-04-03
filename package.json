@@ -112,6 +112,7 @@
     "cookie-parser": "^1.4.6",
     "cosmiconfig": "^9.0.0",
     "cosmiconfig-typescript-loader": "^6.1.0",
+    "cross-fetch": "^4.1.0",
     "cypress-file-upload": "^5.0.8",
     "cypress-wait-until": "^3.0.2",
     "date-fns": "^2.30.0",
