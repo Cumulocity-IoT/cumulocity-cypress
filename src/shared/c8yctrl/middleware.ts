@@ -136,7 +136,16 @@ export function createResponseInterceptor(
     }
 
     if (c8yctrl.isRecordingEnabled() === false) return responseBuffer;
-    const reqBody = (req as any).body;
+
+    let reqBody = (req as any).rawBody || req.body;
+    try {
+      if (_.isString(reqBody)) {
+        reqBody = JSON.parse(reqBody);
+      }
+    } catch {
+      // no-op : use body as string
+    }
+
     try {
       resBody = JSON.parse(resBody);
     } catch {
@@ -202,6 +211,18 @@ export function createRequestHandler(
   auth?: C8yAuthOptions
 ) {
   return (proxyReq: ClientRequest, req: Request, res: Response) => {
+    const rawBody = (req as any).rawBody;
+    if (rawBody && typeof rawBody === "string") {
+      proxyReq.setHeader("transfer-encoding", "chunked");
+      proxyReq.removeHeader("content-length");
+      proxyReq.write(rawBody);
+    } else if (req.body) {
+      const bodyString = JSON.stringify(req.body);
+      proxyReq.removeHeader("Transfer-Encoding");
+      proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyString));
+      proxyReq.write(bodyString);
+    }
+
     if (c8yctrl.currentPact?.id) {
       (req as any).c8yctrlId = c8yctrl.currentPact?.id;
     }
@@ -303,6 +324,6 @@ export function toCypressResponse(
     allRequestResponses: [],
   };
   result.headers = normalizeAuthHeaders(result.headers);
-  
+
   return result;
 }
