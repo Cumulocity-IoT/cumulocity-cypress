@@ -3,7 +3,7 @@ import { inspect } from "util";
 
 import express, { Express, RequestHandler } from "express";
 
-import bodyParser from "body-parser";
+import getRawBody from "raw-body";
 import cookieParser from "cookie-parser";
 
 import winston from "winston";
@@ -240,6 +240,29 @@ export class C8yPactHttpController {
       );
     }
 
+    this.app.use(
+      wrapPathIgnoreHandler((req, res, next) => {
+        const that = this;
+        getRawBody(
+          req,
+          {
+            length: req.headers["content-length"],
+          },
+          function (err, chunk) {
+            if (err != null) {
+              that.logger.warn(`Failed to parse request body: ${err}`);
+            } else {
+              const rawBody = Buffer.concat([chunk]).toString("utf8");
+              if (rawBody != null) {
+                (req as any).rawBody = rawBody;
+              }
+            }
+            next();
+          }
+        );
+      }, ignoredPaths)
+    );
+
     if (this.baseUrl) {
       this.logger.info(`BaseURL: ${this.baseUrl}`);
       // register proxy handler first requires to make the proxy ignore certain paths
@@ -259,10 +282,6 @@ export class C8yPactHttpController {
         );
       }
     }
-
-    // automatically parse request bodies - must come after proxy handler
-    this.app.use(bodyParser.json());
-    this.app.use(bodyParser.urlencoded({ extended: true }));
 
     this.registerC8yctrlInterface();
 
