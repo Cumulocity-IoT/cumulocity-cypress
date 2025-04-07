@@ -666,6 +666,11 @@ export class C8yPactHttpController {
     const responseBody = _.isString(response?.body)
       ? response?.body
       : this.stringify(response?.body);
+
+    if (res.hasHeader("transfer-encoding")) {
+      res.removeHeader("transfer-encoding");
+      res.removeHeader("Transfer-Encoding");
+    }
     res.setHeader("content-length", Buffer.byteLength(responseBody));
 
     response.headers = _.defaults(
