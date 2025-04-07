@@ -215,10 +215,12 @@ export function createRequestHandler(
     if (rawBody && typeof rawBody === "string") {
       proxyReq.setHeader("transfer-encoding", "chunked");
       proxyReq.removeHeader("content-length");
+      proxyReq.removeHeader("Content-Length");
       proxyReq.write(rawBody);
     } else if (req.body) {
       const bodyString = JSON.stringify(req.body);
       proxyReq.removeHeader("transfer-encoding");
+      proxyReq.removeHeader("Transfer-Encoding");
       proxyReq.setHeader("content-length", Buffer.byteLength(bodyString));
       proxyReq.write(bodyString);
     }
@@ -233,7 +235,8 @@ export function createRequestHandler(
     if (
       (c8yctrl.isRecordingEnabled() === true || c8yctrl.mode === "forward") &&
       auth &&
-      !proxyReq.getHeader("authorization")
+      !proxyReq.getHeader("authorization") &&
+      !proxyReq.getHeader("Authorization")
     ) {
       const { bearer, xsrfToken, user, password } = auth as C8yAuthOptions;
       if (bearer) {
