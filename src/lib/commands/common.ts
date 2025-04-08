@@ -62,5 +62,6 @@ if (!Cypress.c8yctrl) {
     setCurrent: () => cy.wrap<C8yCtrlCurrentResponse | null>(null),
     resetCurrent: () => cy.wrap<C8yCtrlCurrentResponse | null>(null),
     url: () => null,
+    debugLog: false,
   };
 }
