@@ -2,7 +2,7 @@ import _ from "lodash";
 import { C8yPact, C8yPactRecord } from "./c8ypact";
 import * as setCookieParser from "set-cookie-parser";
 import * as libCookie from "cookie";
-import { toSensitiveObjectKeyPath } from "../util";
+import { get_i, toSensitiveObjectKeyPath } from "../util";
 
 /**
  * Preprocessor for C8yPact objects. Use C8yPactPreprocessor to preprocess any
@@ -81,6 +81,7 @@ export const C8yPactPreprocessorDefaultOptions = {
     "response.headers.set-cookie.authorization",
     "response.headers.set-cookie.XSRF-TOKEN",
     "response.body.password",
+    "response.body.users.password",
   ],
   obfuscationPattern: "****",
   ignoreCase: true,
@@ -218,7 +219,28 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     } else if (this.hasKey(keyPath, "cookie")) {
       this.removeCookie(obj, keyPath);
     } else {
-      _.unset(obj, key);
+      const processKeyPath = (
+        currentObj: any,
+        remainingKeyParts: string[]
+      ): void => {
+        if (!currentObj || remainingKeyParts.length === 0) return;
+
+        const [_currentKey, ...restKeys] = remainingKeyParts;
+        const currentKey =
+          toSensitiveObjectKeyPath(currentObj, _currentKey) ?? _currentKey;
+        const target = _.get(currentObj, currentKey);
+
+        if (_.isArray(target)) {
+          // If the current key points to an array, process each element
+          target.forEach((item) => processKeyPath(item, restKeys));
+        } else if (restKeys.length === 0) {
+          _.unset(currentObj, currentKey);
+        } else {
+          processKeyPath(target, restKeys);
+        }
+      };
+
+      processKeyPath(obj, keyPath);
     }
   }
 
@@ -287,8 +309,30 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     } else if (this.hasKey(keyParts, "cookie")) {
       this.obfuscateCookie(obj, keyParts, p);
     } else {
-      if (_.get(obj, key) == null) return;
-      _.set(obj, key, pattern);
+      const processKeyPath = (
+        currentObj: any,
+        remainingKeyParts: string[]
+      ): void => {
+        if (!currentObj || remainingKeyParts.length === 0) return;
+
+        const [_currentKey, ...restKeys] = remainingKeyParts;
+        const currentKey =
+          toSensitiveObjectKeyPath(currentObj, _currentKey) ?? _currentKey;
+        const target = _.get(currentObj, currentKey);
+
+        if (_.isArray(target)) {
+          // If the current key points to an array, process each element
+          target.forEach((item) => processKeyPath(item, restKeys));
+        } else if (restKeys.length === 0) {
+          if (_.get(currentObj, currentKey) != null) {
+            _.set(currentObj, currentKey, p);
+          }
+        } else {
+          processKeyPath(target, restKeys);
+        }
+      };
+
+      processKeyPath(obj, keyParts);
     }
   }
 
