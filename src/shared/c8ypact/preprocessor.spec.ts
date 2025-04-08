@@ -199,6 +199,35 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.body).not.toHaveProperty("nonexistent");
       expect(response!.requestBody.id).toBe("******");
     });
+
+    it("should obfuscate with array elements in path", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.linkedSeries.fragment"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.linkedSeries = [
+        { fragment: "Test_Fragment0", series: "Total" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.linkedSeries[0].fragment).toBe("******");
+    });
+
+    it("should obfuscate with case insensitive keys in array elements in path", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.linkedSeries.FRAGMENT"],
+        obfuscationPattern: "******",
+        ignoreCase: true,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.linkedSeries = [
+        { fragment: "Test_Fragment0", series: "Total" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.linkedSeries[0].fragment).toBe("******");
+    });
   });
 
   describe("ignore", () => {
@@ -282,6 +311,37 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.requestHeaders["cookie"]).toStrictEqual(
         "authorization=secret; XSRF-TOKEN=token"
       );
+    });
+
+    it("should remove from array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.linkedSeries.fragment"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.linkedSeries = [
+        { fragment: "Test_Fragment0", series: "Total" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.linkedSeries[0].fragment).toBeUndefined();
+      expect(response!.body.linkedSeries[0]).not.toHaveProperty("fragment");
+      expect(response!.body.linkedSeries[0].series).toBe("Total");
+    });
+
+    it("should remove with case insensitive keys from array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.linkedSeries.FRAGMENT"],
+        ignoreCase: true,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.linkedSeries = [
+        { fragment: "Test_Fragment0", series: "Total" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.linkedSeries[0].fragment).toBeUndefined();
+      expect(response!.body.linkedSeries[0]).not.toHaveProperty("fragment");
+      expect(response!.body.linkedSeries[0].series).toBe("Total");
     });
   });
 
