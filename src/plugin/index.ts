@@ -51,6 +51,12 @@ export type C8yPluginConfig = {
    * Default is C8yPactDefaultFileAdapter
    */
   pactAdapter?: C8yPactFileAdapter;
+  /**
+   * If enabled, all C8Y_* and C8YCTRL_* environment variables are passed to the
+   * Cypress process. If C8Y_BASEURL or baseUrl env variables are configured,
+   * the Cypress config baseUrl is overwritten. Default is true.
+   */
+  forwardEnvVariables?: boolean;
 };
 
 /**
@@ -81,6 +87,13 @@ export function configureC8yPlugin(
     log(`Created C8yPactDefaultFileAdapter with folder ${folder}`);
   } else {
     log(`Using adapter from options ${adapter}`);
+  }
+
+  if (
+    options.forwardEnvVariables != null &&
+    options.forwardEnvVariables === true
+  ) {
+    configureEnvVariables(config);
   }
 
   // validate pact mode and base url before starting the plugin
@@ -672,4 +685,39 @@ export function getFileUploadOptions(
   };
 
   return result;
+}
+
+export function configureEnvVariables(config: Cypress.PluginConfigOptions) {
+  const log = debug("c8y:plugin:env");
+
+  const env = process.env || {};
+  const c8yEnvKeys: string[] = Object.keys(env).filter((key) => {
+    return (
+      key.startsWith("C8Y_") || key.startsWith("C8YCTRL_") || key === "baseUrl"
+    );
+  });
+
+  c8yEnvKeys.forEach((key) => {
+    const value = env[key];
+    if (value != null) {
+      config.env[key] = value;
+      log(`Configured ${key} in config.env`);
+    }
+  });
+
+  const baseUrl = config.env.C8Y_BASEURL || config.env.baseUrl || null;
+  if (baseUrl != null) {
+    log("Configured baseUrl from env:", baseUrl);
+    config.baseUrl = baseUrl;
+  }
+
+  const grepTags =
+    config.env["tags"] ||
+    process.env["tags"] ||
+    process.env["grepTags"] ||
+    null;
+  if (grepTags != null) {
+    log("Configured grepTags from env:", grepTags);
+    config.env["grepTags"] = grepTags;
+  }
 }
