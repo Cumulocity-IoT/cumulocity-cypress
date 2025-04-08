@@ -281,27 +281,28 @@ export class C8yDefaultPact implements C8yPact {
   }
 }
 
-export async function toPactSerializableObject(
+export type C8yPactSerializeOptions = {
+  preprocessor?: C8yPactPreprocessor;
+  client?: C8yClient;
+  modifiedResponse?: Cypress.Response<any>;
+  schemaGenerator?: C8ySchemaGenerator;
+  loggedInUser?: string;
+  loggedInUserAlias?: string;
+  authType?: string;
+  baseUrl?: C8yBaseUrl;
+};
+
+export function toSerializablePactRecord(
   response: Partial<Cypress.Response<any>>,
-  info: C8yPactInfo,
-  options: {
-    preprocessor?: C8yPactPreprocessor;
-    client?: C8yClient;
-    modifiedResponse?: Cypress.Response<any>;
-    schemaGenerator?: C8ySchemaGenerator;
-    loggedInUser?: string;
-    loggedInUserAlias?: string;
-    authType?: string;
-  } = {}
-): Promise<Pick<C8yPact, C8yPactSaveKeys>> {
+  options: C8yPactSerializeOptions = {}
+) {
   const recordOptions = {
     loggedInUser: options?.loggedInUser,
     loggedInUserAlias: options?.loggedInUserAlias,
     authType: options?.authType,
   };
   const record = createPactRecord(response, options?.client, recordOptions);
-  removeBaseUrlFromRequestUrl(record, info.baseUrl);
-  const pact = new C8yDefaultPact([record], info, info.id);
+  removeBaseUrlFromRequestUrl(record, options.baseUrl);
 
   if (
     options?.modifiedResponse &&
@@ -312,11 +313,24 @@ export async function toPactSerializableObject(
       options?.client,
       recordOptions
     );
-    pact.records[pact.records.length - 1].modifiedResponse =
-      modifiedPactRecord.response;
+    record.modifiedResponse = modifiedPactRecord.response;
   }
 
-  options?.preprocessor?.apply(pact);
+  options?.preprocessor?.apply(record);
+
+  return record;
+}
+
+export async function toPactSerializableObject(
+  response: Partial<Cypress.Response<any>>,
+  info: C8yPactInfo,
+  options: C8yPactSerializeOptions = {}
+): Promise<Pick<C8yPact, C8yPactSaveKeys>> {
+  if (options.baseUrl == null) {
+    options.baseUrl = info.baseUrl;
+  }
+  const record = toSerializablePactRecord(response, options)
+  const pact = new C8yDefaultPact([record], info, info.id);
 
   const keysToSave: C8yPactSaveKeys[] = ["id", "info", "records"];
   try {
