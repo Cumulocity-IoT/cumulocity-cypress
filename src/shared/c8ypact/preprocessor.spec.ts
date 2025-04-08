@@ -214,7 +214,7 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.body.linkedSeries[0].fragment).toBe("******");
     });
 
-    it("should objfuscate with case insensitive keys in array elements in path", () => {
+    it("should obfuscate with case insensitive keys in array elements in path", () => {
       const options: C8yPactPreprocessorOptions = {
         obfuscate: ["body.linkedSeries.FRAGMENT"],
         obfuscationPattern: "******",
