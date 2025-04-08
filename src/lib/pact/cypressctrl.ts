@@ -87,6 +87,10 @@ declare global {
      * @returns The URL of the c8yctrl server. If the URL is not set, it returns null.
      */
     url: () => string | null;
+    /**
+     * Use debugLog to enable logging of debug information to the Cypress debug log.
+     */
+    debugLog: boolean;
   }
 }
 
@@ -121,13 +125,45 @@ if (_.get(Cypress, "__c8yctrl.initialized") === undefined) {
       const modeValue = mode();
       return isEnabled() && ["mock", "apply"].includes(modeValue);
     },
+    debugLog: false,
   };
 
   beforeEach(function () {
-    if (!isEnabled()) return;
+    let consoleProps: any = {};
+    let logger: Cypress.Log | undefined = undefined;
+    if (Cypress.c8yctrl.debugLog === true) {
+      consoleProps = {
+        id: Cypress.c8ypact.getCurrentTestId() || null,
+        current: Cypress.c8yctrl.current || null,
+        isEnabled: Cypress.c8yctrl.isEnabled(),
+        isRecordingEnabled: Cypress.c8yctrl.isRecordingEnabled(),
+        isMockingEnabled: Cypress.c8yctrl.isMockingEnabled(),
+        mode: Cypress.c8yctrl.mode() || null,
+        url: Cypress.c8yctrl.url() || null,
+        recordingMode: Cypress.c8yctrl.recordingMode(),
+        debugLog: Cypress.c8yctrl.debugLog,
+        cypressEnv: Cypress.env(),
+      };
+      logger = Cypress.log({
+        name: "c8yctrl",
+        displayName: "c8yctrl",
+        message: `init`,
+        consoleProps: () => consoleProps,
+      });
+    }
 
-    validatePactMode(Cypress.env("C8YCTRL_MODE"));
-    validatePactRecordingMode(Cypress.env("C8YCTRL_RECORDING_MODE"));
+    if (!isEnabled()) {
+      logger?.end();
+      return;
+    }
+
+    try {
+      validatePactMode(Cypress.env("C8YCTRL_MODE"));
+      validatePactRecordingMode(Cypress.env("C8YCTRL_RECORDING_MODE"));
+    } catch (error) {
+      logger?.end();
+      throw error;
+    }
 
     Cypress.c8yctrl
       .setCurrent({
@@ -136,6 +172,10 @@ if (_.get(Cypress, "__c8yctrl.initialized") === undefined) {
         recordingMode: recordingMode(),
       })
       .then((response) => {
+        consoleProps.setCurrentResponse = response;
+        consoleProps.current = Cypress.c8yctrl.current || null;
+        logger?.end();
+
         if (response?.ok === false) {
           throw new Error(
             `Failed to update current test in ${url()}/c8yctrl/current. c8yctrl returned ${
@@ -171,7 +211,7 @@ function recordingMode() {
 
 function isEnabled() {
   if (url() == null) return false;
-  
+
   const ignore = to_boolean(Cypress.env("C8YCTRL_IGNORE"), false);
   if (ignore === true) return false;
 
@@ -215,7 +255,9 @@ function setCurrent(options: {
     clear = true;
   }
 
-  const parameter = `?mode=${o.mode}&recordingMode=${o.recordingMode}${clear}`;
+  const parameter = `?mode=${o.mode}&recordingMode=${o.recordingMode}${
+    clear ? "&clear=true" : ""
+  }`;
 
   return cy
     .task<C8yCtrlCurrentResponse | null>("c8ypact:fetch", {
