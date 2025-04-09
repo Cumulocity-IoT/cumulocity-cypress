@@ -3,7 +3,7 @@ import { inspect } from "util";
 
 import express, { Express, RequestHandler } from "express";
 
-import bodyParser from "body-parser";
+import getRawBody from "raw-body";
 import cookieParser from "cookie-parser";
 
 import winston from "winston";
@@ -15,14 +15,15 @@ import {
   C8yDefaultPact,
   C8yPact,
   C8yPactInfo,
-  C8yPactSaveKeys,
   pactId,
-  toPactSerializableObject,
   C8yPactRecordingMode,
   C8yPactMode,
   C8yPactRecordingModeValues,
   C8yPactModeValues,
   C8yPactID,
+  isPact,
+  isCypressResponse,
+  toSerializablePactRecord,
 } from "../c8ypact";
 
 import {
@@ -233,18 +234,41 @@ export class C8yPactHttpController {
 
     this.registerOpenAPIRequestHandler();
 
+    const ignoredPaths = [this.resourcePath];
+    if (!this.mockHandler) {
+      this.mockHandler = this.app.use(
+        wrapPathIgnoreHandler(this.mockRequestHandler, ignoredPaths)
+      );
+    }
+
+    this.app.use(
+      wrapPathIgnoreHandler((req, res, next) => {
+        const that = this;
+        getRawBody(
+          req,
+          {
+            length: req.headers["content-length"],
+          },
+          function (err, chunk) {
+            if (err != null) {
+              that.logger.warn(`Failed to parse request body: ${err}`);
+            } else {
+              const rawBody = Buffer.concat([chunk]).toString("utf8");
+              if (rawBody != null) {
+                (req as any).rawBody = rawBody;
+              }
+            }
+            next();
+          }
+        );
+      }, ignoredPaths)
+    );
+
     if (this.baseUrl) {
       this.logger.info(`BaseURL: ${this.baseUrl}`);
       // register proxy handler first requires to make the proxy ignore certain paths
       // this is needed as bodyParser will break post requests in the proxy handler but
       // is needed before any other handlers dealing with request bodies
-      const ignoredPaths = [this.resourcePath];
-
-      if (!this.mockHandler) {
-        this.mockHandler = this.app.use(
-          wrapPathIgnoreHandler(this.mockRequestHandler, ignoredPaths)
-        );
-      }
 
       const errorHandler = _.isString(this.options.errorLogger)
         ? morgan(this.options.errorLogger, morganErrorOptions(this.logger))
@@ -259,10 +283,6 @@ export class C8yPactHttpController {
         );
       }
     }
-
-    // automatically parse request bodies - must come after proxy handler
-    this.app.use(bodyParser.json());
-    this.app.use(bodyParser.urlencoded({ extended: true }));
 
     this.registerC8yctrlInterface();
 
@@ -402,48 +422,41 @@ export class C8yPactHttpController {
         `mode: ${this.mode}, recordingMode: ${this.recordingMode}, strictMocking: ${this._isStrictMocking}, refresh: ${refreshPact}, clear: ${clearPact}`
       );
 
-      if (this.currentPact?.id === id) {
-        res.status(404);
-      } else {
-        let current = this.adapter?.loadPact(id);
-        if (!current && this.isRecordingEnabled()) {
-          const info: C8yPactInfo = {
-            baseUrl: this.baseUrl || "",
-            requestMatching: this.options.requestMatching,
-            preprocessor: this.options.preprocessor?.options,
-            strictMocking: this._isStrictMocking,
-            ..._.pick(req.body, [
-              "id",
-              "producer",
-              "consumer",
-              "version",
-              "title",
-              "tags",
-              "description",
-            ]),
-          };
-          current = new C8yDefaultPact([], info, id);
-          this.currentPact = current as C8yDefaultPact;
-          res.status(201);
-        }
+      let current = this.adapter?.loadPact(id);
+      if (!current && this.isRecordingEnabled()) {
+        const info: C8yPactInfo = {
+          baseUrl: this.baseUrl || "",
+          tenant: this.tenant || "",
+          recordingMode: this.recordingMode,
+          requestMatching: this.options.requestMatching,
+          preprocessor: this.options.preprocessor?.options,
+          strictMocking: this._isStrictMocking,
+          ..._.pick(req.body, [
+            "id",
+            "producer",
+            "consumer",
+            "version",
+            "title",
+            "tags",
+            "description",
+          ]),
+        };
+        current = new C8yDefaultPact([], info, id);
+        this.currentPact = current as C8yDefaultPact;
+        res.status(201);
+      }
 
-        if (!current) {
-          res
-            .status(404)
-            .send(`Not found. Enable recording to create a new pact.`);
-          return;
-        } else {
-          current = this.adapter?.loadPact(id);
-          if (!current) {
-            res
-              .status(404)
-              .send(`Not found. Could not find pact with id ${_.escape(id)}.`);
-            return;
-          } else {
-            this.currentPact = C8yDefaultPact.from(current);
-            res.status(200);
-          }
-        }
+      if (!current) {
+        res
+          .status(404)
+          .send(
+            `Not found. Could not find pact with id ${_.escape(
+              id
+            )}. Enable recording to create a new pact.`
+          );
+        return;
+      } else {
+        this.currentPact = C8yDefaultPact.from(current);
       }
 
       if (refreshPact === true || clearPact === true) {
@@ -467,10 +480,11 @@ export class C8yPactHttpController {
 
       res.setHeader("content-type", "application/json");
       res.send(
-        this.stringifyPact({
-          ...this.currentPact,
-          records: (this.currentPact?.records?.length || 0) as any,
-        })
+        this.stringifyPact(current)
+        // {
+        //   ...this.currentPact,
+        //   records: (this.currentPact?.records?.length || 0) as any,
+        // })
       );
     });
     this.app.delete(`${this.resourcePath}/current`, (req, res) => {
@@ -651,6 +665,11 @@ export class C8yPactHttpController {
     const responseBody = _.isString(response?.body)
       ? response?.body
       : this.stringify(response?.body);
+
+    if (res.hasHeader("transfer-encoding")) {
+      res.removeHeader("transfer-encoding");
+      res.removeHeader("Transfer-Encoding");
+    }
     res.setHeader("content-length", Buffer.byteLength(responseBody));
 
     response.headers = _.defaults(
@@ -722,65 +741,74 @@ export class C8yPactHttpController {
     response: Cypress.Response<any> | C8yPact,
     pactForId?: C8yPact
   ): Promise<boolean> {
-    if (!pactForId) return false;
+    let pact: C8yDefaultPact | undefined = undefined;
+    if (
+      pactForId == null &&
+      (("records" in response && "info" in response && "id" in response) ||
+        isPact(response))
+    ) {
+      pact = new C8yDefaultPact(response.records, response.info, response.id);
+    }
+
+    if (pactForId != null) {
+      pact =
+        pactForId instanceof C8yDefaultPact
+          ? pactForId
+          : C8yDefaultPact.from(pactForId);
+    }
+
+    if (pact == null && pactForId == null) {
+      pact = this.currentPact;
+    }
+
+    if (pact == null) {
+      this.logger.warn(
+        `savePact(): Could not save pact. No pact provided to save the response.`
+      );
+      return false;
+    }
+
+    if (this.adapter == null) {
+      this.logger.warn(
+        `savePact(): Failed to save pact ${pact.id}. No adapter configured.`
+      );
+      return false;
+    }
 
     let result = false;
-    const id = pactForId.id;
+
+    if (isCypressResponse(response)) {
+      const record = toSerializablePactRecord(response, {
+        preprocessor: this.options.preprocessor,
+        schemaGenerator: this.options.schemaGenerator,
+        ...(this.baseUrl && { baseUrl: this.baseUrl }),
+      });
+
+      if (
+        this.recordingMode === "append" ||
+        this.recordingMode === "new" ||
+        // refresh is the same as append as for refresh we remove the pact in each tests beforeEach
+        this.recordingMode === "refresh"
+      ) {
+        result =
+          result || pact.appendRecord(record, this.recordingMode === "new");
+      } else if (this.recordingMode === "replace") {
+        result = result || pact.replaceRecord(record);
+      }
+    }
+
     try {
-      let pact: Pick<C8yPact, C8yPactSaveKeys>;
-      if ("records" in response && "info" in response) {
-        pact = response;
-      } else {
-        const info: C8yPactInfo = {
-          id: pactForId?.id,
-          title: [],
-          tenant: this.tenant,
-          baseUrl: this.baseUrl || "",
-          preprocessor: this.options.preprocessor?.options,
-          requestMatching: this.options.requestMatching,
-          strictMocking: this._isStrictMocking,
-        };
-        pact = await toPactSerializableObject(response, info, {
-          preprocessor: this.options.preprocessor,
-          schemaGenerator: this.options.schemaGenerator,
-        });
+      // records might be empty for a new pact without having received a request
+      if (_.isEmpty(pact.records)) return false;
+      if (result === true) {
+        this.adapter?.savePact(pact);
       }
-
-      // see also cypresspact.ts savePact() implementation
-      const { records } = pact;
-      if (!pactForId) {
-        pactForId = new C8yDefaultPact(records, pact.info, id);
-        this.currentPact = pactForId as C8yDefaultPact;
-      } else {
-        if (
-          this.recordingMode === "append" ||
-          this.recordingMode === "new" ||
-          // refresh is the same as append as for refresh we remove the pact in each tests beforeEach
-          this.recordingMode === "refresh"
-        ) {
-          for (const record of pact.records) {
-            result =
-              result ||
-              pactForId.appendRecord(record, this.recordingMode === "new");
-          }
-        } else if (this.recordingMode === "replace") {
-          for (const record of pact.records) {
-            result = result || pactForId.replaceRecord(record);
-          }
-        }
-      }
-
-      // records might be empty when if a new pact without having received a request
-      if (!pact || _.isEmpty(pactForId.records)) return false;
-      if (result) {
-        this.adapter?.savePact(pactForId);
-      }
-      return result;
     } catch (error) {
       this.logger.error(`Failed to save pact ${error}`);
       this.logger.error(inspect(error, { depth: null }));
-      return false;
+      result = false;
     }
+    return result;
   }
 
   protected getObjectWithKeys(objs: any[], keys: string[]): any[] {

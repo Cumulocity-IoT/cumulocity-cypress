@@ -5,11 +5,14 @@ import debug from "debug";
 import { compare } from "odiff-bin";
 import WebSocket from "ws";
 import { watch, FSWatcher } from "chokidar";
+import fetch from "cross-fetch";
 
 import {
   C8yPactFileAdapter,
   C8yPactDefaultFileAdapter,
 } from "../shared/c8ypact/adapter/fileadapter";
+import { get_i } from "../shared/util";
+
 import {
   C8yPactHttpController,
   C8yPactHttpControllerOptions,
@@ -48,6 +51,12 @@ export type C8yPluginConfig = {
    * Default is C8yPactDefaultFileAdapter
    */
   pactAdapter?: C8yPactFileAdapter;
+  /**
+   * If enabled, all C8Y_* and C8YCTRL_* environment variables are passed to the
+   * Cypress process. If C8Y_BASEURL or baseUrl env variables are configured,
+   * the Cypress config baseUrl is overwritten. Default is true.
+   */
+  forwardEnvVariables?: boolean;
 };
 
 /**
@@ -78,6 +87,13 @@ export function configureC8yPlugin(
     log(`Created C8yPactDefaultFileAdapter with folder ${folder}`);
   } else {
     log(`Using adapter from options ${adapter}`);
+  }
+
+  if (
+    options.forwardEnvVariables != null &&
+    options.forwardEnvVariables === true
+  ) {
+    configureEnvVariables(config);
   }
 
   // validate pact mode and base url before starting the plugin
@@ -177,6 +193,70 @@ export function configureC8yPlugin(
     return await oauthLogin(options?.auth, options?.baseUrl);
   }
 
+  async function fetchRequest(options: {
+    url: string;
+    method: string;
+    headers: any;
+    body?: any;
+  }): Promise<{
+    status: number;
+    headers: any;
+    body: any;
+    statusText: string;
+    ok: boolean;
+    redirected: boolean;
+    type: string;
+    url: string;
+  }> {
+    try {
+      const response = await fetch(options.url, {
+        method: options.method,
+        headers: options.headers,
+        body: options.body,
+      });
+
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+
+      const contentType: string | undefined = get_i(
+        headers,
+        "content-type"
+      )?.toLowerCase();
+
+      let body: any;
+      if (contentType?.includes("application/json")) {
+        body = await response.json();
+      } else if (contentType?.includes("text/")) {
+        body = await response.text();
+      } else {
+        body = await response.blob();
+      }
+
+      const result = {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+        body,
+        ok: response.ok,
+        redirected: response.redirected,
+        type: response.type,
+        url: response.url,
+      } as const;
+
+      log(
+        `fetch() - ${options.method ?? "GET"} ${options.url} ${
+          result.status
+        } (${result.statusText})`
+      );
+      return result;
+    } catch (e) {
+      log(`fetch() - ${options.method ?? "GET"} ${options.url}. ${e}`);
+      throw e;
+    }
+  }
+
   if (on) {
     on("task", {
       "c8ypact:save": savePact,
@@ -185,6 +265,7 @@ export function configureC8yPlugin(
       "c8ypact:http:start": startHttpController,
       "c8ypact:http:stop": stopHttpController,
       "c8ypact:oauthLogin": login,
+      "c8ypact:fetch": fetchRequest,
     });
   }
 }
@@ -604,4 +685,39 @@ export function getFileUploadOptions(
   };
 
   return result;
+}
+
+export function configureEnvVariables(config: Cypress.PluginConfigOptions) {
+  const log = debug("c8y:plugin:env");
+
+  const env = process.env || {};
+  const c8yEnvKeys: string[] = Object.keys(env).filter((key) => {
+    return (
+      key.startsWith("C8Y_") || key.startsWith("C8YCTRL_") || key === "baseUrl"
+    );
+  });
+
+  c8yEnvKeys.forEach((key) => {
+    const value = env[key];
+    if (value != null) {
+      config.env[key] = value;
+      log(`Configured ${key} in config.env`);
+    }
+  });
+
+  const baseUrl = config.env.C8Y_BASEURL || config.env.baseUrl || null;
+  if (baseUrl != null) {
+    log("Configured baseUrl from env:", baseUrl);
+    config.baseUrl = baseUrl;
+  }
+
+  const grepTags =
+    config.env["tags"] ||
+    process.env["tags"] ||
+    process.env["grepTags"] ||
+    null;
+  if (grepTags != null) {
+    log("Configured grepTags from env:", grepTags);
+    config.env["grepTags"] = grepTags;
+  }
 }

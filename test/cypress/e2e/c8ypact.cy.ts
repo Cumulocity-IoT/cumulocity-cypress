@@ -19,6 +19,7 @@ import {
   isPactRecord,
   getEnvVar,
   C8yPactPreprocessorDefaultOptions,
+  validatePactRecordingMode,
 } from "cumulocity-cypress/c8ypact";
 
 const { _ } = Cypress;
@@ -126,7 +127,8 @@ describe("c8ypact", () => {
 
     it("should use disabled if unsupported pact mode", function () {
       stubEnv({ C8Y_PACT_MODE: "xyz" });
-      expect(Cypress.c8ypact.mode()).to.eq("disabled");
+      // validation is happeing in validatePactRecordingMode
+      expect(Cypress.c8ypact.mode()).to.eq("xyz");
     });
 
     it("should not be enabled if plugin is not loaded", function () {
@@ -162,7 +164,7 @@ describe("c8ypact", () => {
         done();
       });
       stubEnv({ C8Y_PACT_RECORDING_MODE: "xyz" });
-      Cypress.c8ypact.recordingMode();
+      validatePactRecordingMode(Cypress.c8ypact.recordingMode());
     });
 
     it("should use default recording mode for unssuported values", function () {
@@ -456,6 +458,32 @@ describe("c8ypact", () => {
         method: "POST",
         body: {
           id: "12312312",
+        },
+      };
+      const pactRecord = C8yDefaultPactRecord.from(response);
+      expect(pactRecord.createdObject).to.equal("12312312");
+    });
+
+    it("from() should create C8yDefaultPactRecord with createdObject from location header", function () {
+      // @ts-expect-error
+      const response: Cypress.Response<any> = {
+        method: "POST",
+        headers: {
+          location: Cypress.config().baseUrl + "/inventory/managedObjects/12312312",
+        },
+      };
+      const pactRecord = C8yDefaultPactRecord.from(response);
+      expect(pactRecord.createdObject).to.equal("12312312");
+    });
+
+    it("from() should create C8yDefaultPactRecord with createdObject from location header with query params", function () {
+      // @ts-expect-error
+      const response: Cypress.Response<any> = {
+        method: "POST",
+        headers: {
+          Location:
+            Cypress.config().baseUrl +
+            "/inventory/managedObjects/12312312?withChildren=true",
         },
       };
       const pactRecord = C8yDefaultPactRecord.from(response);
