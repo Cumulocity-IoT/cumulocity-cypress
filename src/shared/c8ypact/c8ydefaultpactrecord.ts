@@ -14,6 +14,9 @@ import {
   toPactResponse,
 } from "./c8ypact";
 
+import { get_i } from "../util";
+import { isAbsoluteURL } from "./url";
+
 import _ from "lodash";
 
 /**
@@ -48,6 +51,17 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
       const newId = response.body?.id;
       if (newId) {
         this.createdObject = newId;
+      } else {
+        const location = get_i(response, "headers.location");
+        if (isAbsoluteURL(location)) {
+          try {
+            const url = new URL(location);
+            const pathSegments = url.pathname.split("/").filter(Boolean);
+            this.createdObject = pathSegments.pop();
+          } catch {
+            // do nothing
+          }
+        }
       }
     }
   }
