@@ -464,6 +464,32 @@ describe("c8ypact", () => {
       expect(pactRecord.createdObject).to.equal("12312312");
     });
 
+    it("from() should create C8yDefaultPactRecord with createdObject from location header", function () {
+      // @ts-expect-error
+      const response: Cypress.Response<any> = {
+        method: "POST",
+        headers: {
+          location: Cypress.config().baseUrl + "/inventory/managedObjects/12312312",
+        },
+      };
+      const pactRecord = C8yDefaultPactRecord.from(response);
+      expect(pactRecord.createdObject).to.equal("12312312");
+    });
+
+    it("from() should create C8yDefaultPactRecord with createdObject from location header with query params", function () {
+      // @ts-expect-error
+      const response: Cypress.Response<any> = {
+        method: "POST",
+        headers: {
+          Location:
+            Cypress.config().baseUrl +
+            "/inventory/managedObjects/12312312?withChildren=true",
+        },
+      };
+      const pactRecord = C8yDefaultPactRecord.from(response);
+      expect(pactRecord.createdObject).to.equal("12312312");
+    });
+
     it("toCypressResponse() should create Response from record", function () {
       const response: Cypress.Response<any> = {
         status: 200,
