@@ -1,6 +1,16 @@
 /// <reference types="jest" />
 
-import { C8yDefaultPactMatcher, C8yIdentifierMatcher, C8yIgnoreMatcher, C8yISODateStringMatcher, C8yNumberMatcher, C8ySameTypeMatcher, C8yStringMatcher } from "./matcher";
+import {
+  C8yDefaultPactMatcher,
+  C8yIdentifierMatcher,
+  C8yIgnoreMatcher,
+  C8yISODateStringMatcher,
+  C8yNumberMatcher,
+  C8ySameTypeMatcher,
+  C8yStringMatcher,
+} from "./matcher";
+
+import { C8yAjvSchemaMatcher } from "../../contrib/ajv";
 
 describe("matcher", () => {
   describe("C8yDefaultPactMatcher", () => {
@@ -19,7 +29,7 @@ describe("matcher", () => {
       expect(matcher.propertyMatchers).toHaveProperty("url");
       expect(matcher.propertyMatchers).toHaveProperty("X-XSRF-TOKEN");
       expect(matcher.propertyMatchers).toHaveProperty("lastMessage");
-    })
+    });
 
     it("should get property matcher ignore case", () => {
       const matcher = new C8yDefaultPactMatcher();
@@ -31,8 +41,8 @@ describe("matcher", () => {
 
       const p3 = matcher.getPropertyMatcher("BODY", true);
       expect(p3).toBeDefined();
-    })
-  })
+    });
+  });
 
   describe("C8yISODateStringMatcher", () => {
     it("should match ISO date string", () => {
@@ -141,5 +151,115 @@ describe("matcher", () => {
 
       expect(() => matcher.match(obj1, obj2)).toThrow();
     });
-  })
+  });
+
+  describe("schema matcher", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        age: { type: "number" },
+      },
+      required: ["name", "age"],
+    };
+
+    C8yDefaultPactMatcher.schemaMatcher = new C8yAjvSchemaMatcher();
+
+    beforeEach(() => {
+      C8yDefaultPactMatcher.matchSchemaAndObject = false;
+    });
+
+    it("should match schema", () => {
+      const matcher = new C8yDefaultPactMatcher();
+
+      const obj = {
+        response: {
+          body: { name: "John Doe", age: 30 },
+        },
+      };
+      const pact = {
+        response: { $body: schema },
+      };
+
+      expect(matcher.match(obj, pact)).toBeTruthy();
+    });
+
+    it("should not match schema", () => {
+      const matcher = new C8yDefaultPactMatcher();
+
+      const obj = {
+        response: {
+          body: {
+            name: "John Doe",
+            age: "30", // Invalid age
+          },
+        },
+      };
+      const pact = {
+        response: { $body: schema },
+      };
+
+      expect(() => matcher.match(obj, pact)).toThrow();
+    });
+
+    it("should match object and schema", () => {
+      const matcher = new C8yDefaultPactMatcher();
+
+      const obj = {
+        response: {
+          body: { name: "John Doe", age: 30 },
+        },
+      };
+      const pact = {
+        response: {
+          $body: schema,
+          body: { name: "John Doe", age: 35 },
+        },
+      };
+
+      // schema matching success
+      expect(
+        matcher.match(obj, pact, {
+          strictMatching: true,
+          matchSchemaAndObject: false,
+        })
+      ).toBeTruthy();
+
+      // object matching failure
+      expect(() =>
+        matcher.match(obj, pact, {
+          strictMatching: true,
+          matchSchemaAndObject: true,
+        })
+      ).toThrow(
+        `Pact validation failed! Values for "response > body > age" do not match.`
+      );
+    });
+
+    it("should not match object and schema with global matchSchemaAndObject config", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      C8yDefaultPactMatcher.matchSchemaAndObject = true;
+
+      const obj = {
+        response: {
+          body: { name: "John Doe", age: 30 },
+        },
+      };
+      const pact = {
+        response: {
+          $body: schema,
+          body: { name: "John Doe", age: 35 },
+        },
+      };
+
+      // object matching failure
+      expect(() =>
+        matcher.match(obj, pact, {
+          strictMatching: true,
+        })
+      ).toThrow(
+        `Pact validation failed! Values for "response > body > age" do not match.`
+      );
+    });
+  });
 });
