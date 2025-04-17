@@ -8,6 +8,7 @@ import {
   C8yPact,
   C8yPactInfo,
   C8yPactRecord,
+  getCreatedObjectId,
   isPact,
 } from "../../shared/c8ypact";
 import { getBaseUrlFromEnv } from "../utils";
@@ -241,11 +242,10 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
               Cypress.env(`${username}_password`, password);
             }
           }
-          if (response.method === "POST") {
-            const newId = response.body.id;
-            if (newId && record.createdObject) {
-              this.idMapper[record.createdObject] = newId;
-            }
+
+          const createdObjectId = getCreatedObjectId(response);
+          if (createdObjectId != null && record.createdObject != null) {
+            this.idMapper[record.createdObject] = createdObjectId;
           }
         };
 
@@ -272,7 +272,9 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
                   // should not get here as cy.getAuth(user) should fail if
                   // no auth is found for the user. just making sure we get the
                   // correct error message in case we still get here
-                  throw new Error(`Auth missing for user ${user}. This should not happen.`);
+                  throw new Error(
+                    `Auth missing for user ${user}. This should not happen.`
+                  );
                 }
                 cy.wrap(auth, { log: false })
                   .c8yclient(f, cOpts)

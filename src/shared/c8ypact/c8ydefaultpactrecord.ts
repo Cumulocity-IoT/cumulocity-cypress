@@ -10,12 +10,10 @@ import {
   C8yPactRecord,
   C8yPactRequest,
   C8yPactResponse,
+  getCreatedObjectId,
   toPactRequest,
   toPactResponse,
 } from "./c8ypact";
-
-import { get_i } from "../util";
-import { isAbsoluteURL } from "./url";
 
 import _ from "lodash";
 
@@ -48,20 +46,9 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
     if (modifiedResponse) this.modifiedResponse = modifiedResponse;
 
     if (request?.method?.toLowerCase() === "post") {
-      const newId = response.body?.id;
+      const newId = getCreatedObjectId(response);
       if (newId) {
         this.createdObject = newId;
-      } else {
-        const location = get_i(response, "headers.location");
-        if (isAbsoluteURL(location)) {
-          try {
-            const url = new URL(location);
-            const pathSegments = url.pathname.split("/").filter(Boolean);
-            this.createdObject = pathSegments.pop();
-          } catch {
-            // do nothing
-          }
-        }
       }
     }
   }
