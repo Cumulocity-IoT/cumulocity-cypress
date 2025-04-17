@@ -26,6 +26,7 @@ export interface C8yPactMatcher {
 
 export interface C8yPactMatcherOptions {
   strictMatching?: boolean;
+  matchSchemaAndObject?: boolean;
   loggerProps?: { [key: string]: any };
   schemaMatcher?: C8ySchemaMatcher;
   parents?: string[];
@@ -43,6 +44,7 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
   propertyMatchers: { [key: string]: C8yPactMatcher } = {};
 
   static schemaMatcher: C8ySchemaMatcher;
+  static matchSchemaAndObject = false;
 
   constructor(
     propertyMatchers: { [key: string]: C8yPactMatcher } = {
@@ -68,6 +70,10 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
 
     const parents = options?.parents ?? [];
     const strictMatching = options?.strictMatching ?? false;
+    const matchSchemaAndObject =
+      options?.matchSchemaAndObject ??
+      C8yDefaultPactMatcher.matchSchemaAndObject;
+
     const schemaMatcher =
       options?.schemaMatcher || C8yDefaultPactMatcher.schemaMatcher;
 
@@ -118,12 +124,15 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     const schemaKeys = Object.keys(obj2).filter((k) => k.startsWith("$"));
     // normalize pact keys and remove keys that have a schema defined
     // we do not want for example body and $body
-    const pactKeys = Object.keys(obj2).reduce((acc, key) => {
-      if (!schemaKeys.includes(`$${key}`)) {
-        acc.push(key);
-      }
-      return acc;
-    }, [] as string[]);
+    const pactKeys =
+      matchSchemaAndObject === true
+        ? Object.keys(obj2)
+        : Object.keys(obj2).reduce((acc, key) => {
+            if (!schemaKeys.includes(`$${key}`)) {
+              acc.push(key);
+            }
+            return acc;
+          }, [] as string[]);
 
     if (_.isEmpty(objectKeys) && _.isEmpty(pactKeys)) {
       return true;
@@ -143,7 +152,7 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
         strictMatching || isSchema ? obj1 : obj2,
         removeSchemaPrefix(key)
       );
-      const pact = _.get(
+      let pact = _.get(
         strictMatching || isSchema ? obj2 : obj1,
         isSchema && !key.startsWith("$") ? `$${key}` : key
       );
@@ -179,7 +188,14 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
             errorKey
           );
         }
-      } else if (this.getPropertyMatcher(key, options?.ignoreCase) != null) {
+
+        if (!matchSchemaAndObject) {
+          continue;
+        }
+        pact = _.get(strictMatching ? obj2 : obj1, key);
+      }
+
+      if (this.getPropertyMatcher(key, options?.ignoreCase) != null) {
         if (!strictMatching && !value) {
           continue;
         }
