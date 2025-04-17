@@ -9,6 +9,8 @@ import { C8yPactPreprocessorOptions } from "./preprocessor";
 import { C8yClientOptions } from "../c8yclient";
 import { C8yPactAuthObject } from "../auth";
 import { C8yBaseUrl, C8yTenant } from "../types";
+import { isAbsoluteURL } from "./url";
+import { get_i } from "../util";
 
 export const C8yPactModeValues = [
   "record",
@@ -543,4 +545,32 @@ export function getEnvVar(
 export function isOneOfStrings(value: string, values: string[]): boolean {
   if (!_.isString(value) || _.isEmpty(value)) return false;
   return values.includes(value.toLowerCase());
+}
+
+export function getCreatedObjectId(
+  response:
+    | Cypress.Response<any>
+    | Partial<Cypress.Response<any>>
+    | C8yPactResponse<any>
+): string | undefined {
+  let newId = response?.body?.id;
+  if (newId) {
+    return newId;
+  } else {
+    const location = get_i(response, "headers.location");
+    if (isAbsoluteURL(location)) {
+      try {
+        const url = new URL(location);
+        const pathSegments = url?.pathname.split("/").filter(Boolean);
+
+        newId = pathSegments?.pop();
+        if (newId != null) {
+          return decodeURIComponent(newId);
+        }
+      } catch {
+        // do nothing
+      }
+    }
+  }
+  return undefined;
 }
