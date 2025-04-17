@@ -5,6 +5,7 @@ import { C8yDefaultPactRecord } from "./c8ydefaultpactrecord";
 import {
   C8yPact,
   C8yPactModeValues,
+  getCreatedObjectId,
   getEnvVar,
   isPact,
   isPactError,
@@ -279,6 +280,91 @@ describe("c8ypact", () => {
           C8yPactModeValues
         ).join(", ")}`
       );
+    });
+  });
+
+  describe("getCreatedObjectId", () => {
+    it("should return the id from the response body", () => {
+      const response = {
+        body: {
+          id: "12345",
+        },
+      };
+      const result = getCreatedObjectId(response);
+      expect(result).toBe("12345");
+    });
+
+    it("should return undefined if no id is present", () => {
+      const response = {
+        body: {},
+      };
+      const result = getCreatedObjectId(response);
+      expect(result).toBe(undefined);
+    });
+
+    it("should return undefined if response is null or undefined", () => {
+      const result1 = getCreatedObjectId(null as any);
+      const result2 = getCreatedObjectId(undefined as any);
+      expect(result1).toBe(undefined);
+      expect(result2).toBe(undefined);
+    });
+
+    it("should return the id from location header", () => {
+      const response = {
+        headers: {
+          location: "http://example.com/resource/12345",
+        },
+      };
+      const result = getCreatedObjectId(response);
+      expect(result).toBe("12345");
+    });
+
+    it("should return the id from location header with trailing slash", () => {
+      const response = {
+        headers: {
+          location: "http://example.com/resource/12345/",
+        },
+      };
+      const result = getCreatedObjectId(response);
+      expect(result).toBe("12345");
+    });
+
+    it("should return the id from location header with query parameters", () => {
+      const response = {
+        headers: {
+          location: "http://example.com/resource/12345?param=value",
+        },
+      };
+      const result = getCreatedObjectId(response);
+      expect(result).toBe("12345");
+    });
+
+    it("should return the id from location header with url encoded id", () => {
+      const response = {
+        headers: {
+          location: "http://example.com/resource/123%2045",
+        },
+      };
+      const result = getCreatedObjectId(response);
+      expect(result).toBe("123 45");
+    });
+
+    it("should return undefined if location header is not present", () => {
+      const response = {
+        headers: {},
+      };
+      const result = getCreatedObjectId(response);
+      expect(result).toBe(undefined);
+    });
+
+    it("should return undefined if location header is empty", () => {
+      const response = {
+        headers: {
+          location: "",
+        },
+      };
+      const result = getCreatedObjectId(response);
+      expect(result).toBe(undefined);
     });
   });
 });
