@@ -55,6 +55,14 @@ export interface C8yPactPreprocessorOptions {
    */
   pick?: { [key: string]: string[] } | string[];
   /**
+   * Apply regex replace to the key path. The key is the key path and the value
+   * is the regex to apply, or an array of regexes to apply in sequence.
+   * Regex string should be in the format of `/regex/replace/flags`.
+   */
+  regexReplace?: {
+    [key: string]: string | string[];
+  };
+  /**
    * Obfuscation pattern to use. Default is ********.
    */
   obfuscationPattern?: string;
@@ -140,9 +148,33 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
         }
       }
 
+      if (o?.regexReplace != null) {
+        Object.entries(o.regexReplace ?? {}).forEach(([key, value]) => {
+          const patterns = Array.isArray(value) ? value : [value];
+          const keysToReplace = mapSensitiveKeys(obj, [key]);
+
+          keysToReplace.forEach((k) => {
+            let v = _.get(obj, k);
+            if (v != null) {
+              // Apply each regex pattern in sequence
+              for (const pattern of patterns) {
+                try {
+                  const regex = parseRegexReplace(pattern);
+                  v = performRegexReplace(v, regex);
+                } catch {
+                  // ignore invalid regex
+                }
+              }
+              _.set(obj, k, v);
+            }
+          });
+        });
+      }
+
       const keysToObfuscate = mapSensitiveKeys(obj, o.obfuscate ?? []);
-      const keysToRemove = mapSensitiveKeys(obj, o.ignore ?? []);
       this.handleObfuscation(obj, keysToObfuscate, obfuscationPattern);
+
+      const keysToRemove = mapSensitiveKeys(obj, o.ignore ?? []);
       this.handleRemoval(obj, keysToRemove);
     });
   }
@@ -424,4 +456,65 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     const cookieHeader = _.get(obj, keyPath);
     return { name, keyPath, cookieHeader };
   }
+}
+
+export function parseRegexReplace(input: string): {
+  pattern: RegExp;
+  replacement: string;
+} {
+  if (!input || !_.isString(input)) {
+    throw new Error("Invalid replacement expression input. Regex must be a string.");
+  }
+
+  // Match a regex pattern with replacement in format /pattern/replacement/flags
+  const match = input.match(/^\/(.+?)(?<!\\)\/(.+?)(?<!\\)\/([gimsuy]*)$/);
+
+  if (!match) {
+    throw new Error(`Invalid replacement regular expression: ${input}`);
+  }
+
+  const [, patternStr, replacement, flags] = match;
+
+  return {
+    pattern: new RegExp(patternStr, flags),
+    replacement: replacement,
+  };
+}
+
+export function performRegexReplace(
+  input: string | any,
+  regexes: {
+    pattern: RegExp;
+    replacement: string;
+  }[] | {
+    pattern: RegExp;
+    replacement: string;
+  }
+): string | any {
+  if (!input) return input;
+
+  // Convert single regex to array for uniform handling
+  const regexArray = Array.isArray(regexes) ? regexes : [regexes];
+  if (regexArray.length === 0) return input;
+
+  // Direct string replacement
+  if (_.isString(input)) {
+    return regexArray.reduce((result, regex) => 
+      result.replace(regex.pattern, regex.replacement), input);
+  }
+  
+  // Object/array traversal - do a single traversal applying all regexes
+  if (_.isObjectLike(input)) {
+    return _.cloneDeepWith(input, (value) => {
+      if (_.isString(value)) {
+        // Apply all regex replacements to the string value
+        return regexArray.reduce((result, regex) => 
+          result.replace(regex.pattern, regex.replacement), value);
+      }
+      return undefined; // Return undefined for default cloning
+    });
+  }
+  
+  // Return unchanged for other types
+  return input;
 }
