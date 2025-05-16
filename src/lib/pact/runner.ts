@@ -246,6 +246,29 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           const createdObjectId = getCreatedObjectId(response);
           if (createdObjectId != null && record.createdObject != null) {
             this.idMapper[record.createdObject] = createdObjectId;
+            // Ensure config, preprocessor, and regexReplace objects exist
+            const config = Cypress.config();
+            if (config.c8ypact != null) {
+              const preprocessorOptions = config.c8ypact.preprocessor ?? {};
+              preprocessorOptions.regexReplace ??= {};
+
+              const key = "response";
+              const newValue = `/${createdObjectId}/${record.createdObject}/g`;
+              const existing = preprocessorOptions.regexReplace[key];
+
+              if (Array.isArray(existing)) {
+                preprocessorOptions.regexReplace[key] = [...existing, newValue];
+              } else if (_.isString(existing)) {
+                preprocessorOptions.regexReplace[key] = [existing, newValue];
+              } else if (existing == null) {
+                preprocessorOptions.regexReplace[key] = [newValue];
+              }
+              _.set(
+                Cypress.config(),
+                "c8ypact.preprocessor",
+                preprocessorOptions
+              );
+            }
           }
         };
 
