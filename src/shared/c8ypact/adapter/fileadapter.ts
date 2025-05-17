@@ -58,13 +58,27 @@ export interface C8yPactFileAdapter {
 const log = debug("c8y:fileadapter");
 
 /**
- * Default implementation of C8yPactFileAdapter which loads and saves pact objects from/to
- * json files using C8yPact objects.
+ * Default implementation of C8yPactFileAdapter which loads and saves C8yPact objects 
+ * Provide location of the files using folder option. Default location is 
+ * cypress/fixtures/c8ypact folder.
+ * 
+ * This adapter supports loading of JSON and YAML pact files (.json, .yaml, .yml). When
+ * saviing pact files, it saves them as JSON files (.json).
+ * 
+ * By using C8yPactAdapterOptions you can enable loading of JavaScript pact files (.js, .cjs). 
+ * Use with caution, as this can lead to security issues if the files are not trusted.
  */
 export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
   folder: string;
   private enabledExtensions: string[];
 
+  /**
+   * Creates an instance of C8yPactDefaultFileAdapter.
+   *
+   * @param folder - The folder where pact files are stored. Can be an absolute or relative path.
+   * @param options - Optional configuration for the adapter.
+   * @param options.enableJavaScript - If true, enables loading of JavaScript pact files (.js, .cjs). Defaults to false.
+   */
   constructor(folder: string, options?: C8yPactAdapterOptions) {
     this.folder = path.isAbsolute(folder)
       ? folder
@@ -74,7 +88,11 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
     if (options?.enableJavaScript) {
       this.enabledExtensions.push(".js", ".cjs");
     }
-    log(`Initialized with enabled extensions: ${this.enabledExtensions.join(", ")}`);
+    log(
+      `Initialized with enabled extensions: ${this.enabledExtensions.join(
+        ", "
+      )}`
+    );
   }
 
   description(): string {
@@ -135,15 +153,9 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
 
   pactExists(id: string): boolean {
     const pId = pactId(id);
-    const extensions = this.enabledExtensions;
-
-    for (const ext of extensions) {
-      if (fs.existsSync(path.join(this.folder, `${pId}${ext}`))) {
-        return true;
-      }
-    }
-
-    return false;
+    return this.enabledExtensions.some((ext) =>
+      fs.existsSync(path.join(this.folder, `${pId}${ext}`))
+    );
   }
 
   savePact(pact: C8yPact | Pick<C8yPact, C8yPactSaveKeys>): void {
@@ -228,9 +240,11 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
     }
 
     // Find all files with supported extensions
-    const extensions = this.enabledExtensions;
-    const patterns = extensions.map((ext) => path.join(this.folder, `*${ext}`));
-    const allFiles = patterns.flatMap((pattern) => glob.sync(pattern));
+    const combinedPattern = path.join(
+      this.folder,
+      `*{${this.enabledExtensions.join(",")}}`
+    );
+    const allFiles = glob.sync(combinedPattern);
 
     log(
       `loadPactObjects() - reading ${allFiles.length} files from ${this.folder}`
@@ -263,7 +277,7 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
     // Check if the extension is enabled
     if (!this.enabledExtensions.includes(extension)) {
       log(
-        `loadPactFromFile() - file extension ${extension} is not enabled for loading: ${filePath}`
+        `loadPactFromFile() - file extension ${extension} is not supported or enabled for loading: ${filePath}`
       );
       return null;
     }
@@ -294,18 +308,14 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
           return pactModule.default || pactModule;
         } catch (error) {
           log(
-            `loadPactFromFile() - error requiring module file ${absolutePath}: ${error}`
+            `loadPactFromFile() - error loading ${extension} file ${absolutePath}: ${error}`
           );
-          return null;
         }
       }
-
-      log(`loadPactFromFile() - unsupported file extension: ${extension}`);
-      return null;
     } catch (error) {
       log(`loadPactFromFile() - error parsing file ${filePath}: ${error}`);
-      return null;
     }
+    return null;
   }
 
   protected createFolderRecursive(f: string) {
