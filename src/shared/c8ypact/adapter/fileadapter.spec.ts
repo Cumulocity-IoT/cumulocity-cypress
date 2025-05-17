@@ -27,6 +27,9 @@ describe("C8yPactDefaultFileAdapter", () => {
             id: "simpletest",
           })
         ),
+        "yamltest.yaml": Buffer.from(
+          "info:\n  id: yamltest\nrecords: []\nid: yamltest"
+        ),
       },
     });
   });
@@ -66,6 +69,35 @@ describe("C8yPactDefaultFileAdapter", () => {
       const adapter = new C8yPactDefaultFileAdapter(path.join(CWD, "23"));
       const pacts = adapter.loadPacts();
       expect(pacts).toEqual({});
+    });
+
+    it("should load json pact file", () => {
+      const adapter = new C8yPactDefaultFileAdapter(
+        path.join("cypress", "test", "c8ypact")
+      );
+      const pact = adapter.loadPact("simpletest");
+      expect(pact).toBeDefined();
+      expect(pact?.id).toBe("simpletest");
+      expect(pact?.info.id).toBe("simpletest");
+    });
+
+    it("should load yaml pact file", () => {
+      const adapter = new C8yPactDefaultFileAdapter(
+        path.join("cypress", "test", "c8ypact")
+      );
+      const pact = adapter.loadPact("yamltest");
+      expect(pact).toBeDefined();
+      expect(pact?.id).toBe("yamltest");
+      expect(pact?.info.id).toBe("yamltest");
+    });
+
+    it("should correctly check if pact exists with different file extensions", () => {
+      const adapter = new C8yPactDefaultFileAdapter(
+        path.join("cypress", "test", "c8ypact")
+      );
+      expect(adapter.pactExists("simpletest")).toBe(true);
+      expect(adapter.pactExists("yamltest")).toBe(true);
+      expect(adapter.pactExists("nonexistent")).toBe(false);
     });
   });
 
