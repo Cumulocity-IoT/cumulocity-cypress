@@ -17,8 +17,11 @@ module.exports = defineConfig({
         config.env.grepTags = config.env.C8Y_PACT_RUNNER_TAGS;
       }
 
-      const adapter = new C8yPactDefaultFileAdapter(`${fixture}`);
-      config.env._pacts = adapter.readJsonFiles();
+      const javascriptEnabled = config.env.C8Y_PACT_RUNNER_JS_ENABLED ?? false;
+      const adapter = new C8yPactDefaultFileAdapter(`${fixture}`, {
+        enableJavaScript: javascriptEnabled,
+      });
+      config.env._pacts = adapter.readPactFiles();
 
       const baseUrl =
         config.env.baseUrl || config.env.C8Y_PACT_RUNNER_BASEURL || null;

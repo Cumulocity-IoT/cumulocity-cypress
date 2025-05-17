@@ -58,14 +58,14 @@ export interface C8yPactFileAdapter {
 const log = debug("c8y:fileadapter");
 
 /**
- * Default implementation of C8yPactFileAdapter which loads and saves C8yPact objects 
- * Provide location of the files using folder option. Default location is 
+ * Default implementation of C8yPactFileAdapter which loads and saves C8yPact objects
+ * Provide location of the files using folder option. Default location is
  * cypress/fixtures/c8ypact folder.
- * 
+ *
  * This adapter supports loading of JSON and YAML pact files (.json, .yaml, .yml). When
  * saviing pact files, it saves them as JSON files (.json).
- * 
- * By using C8yPactAdapterOptions you can enable loading of JavaScript pact files (.js, .cjs). 
+ *
+ * By using C8yPactAdapterOptions you can enable loading of JavaScript pact files (.js, .cjs).
  * Use with caution, as this can lead to security issues if the files are not trusted.
  */
 export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
@@ -202,6 +202,21 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
     }
   }
 
+  readPactFiles(): string[] {
+    log(`readPactFiles() - ${this.folder}`);
+    if (!this.folder || !fs.existsSync(this.folder)) {
+      log(`readPactFiles() - ${this.folder} does not exist`);
+      return [];
+    }
+    const pacts = this.loadPactObjects();
+    return pacts.map((pact) => {
+      return safeStringify(pact);
+    });
+  }
+
+  /**
+   * @deprecated Use readPactFiles() instead.
+   */
   readJsonFiles(): string[] {
     log(`readJsonFiles() - ${this.folder}`);
     if (!this.folder || !fs.existsSync(this.folder)) {
