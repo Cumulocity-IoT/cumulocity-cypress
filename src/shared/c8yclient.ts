@@ -179,9 +179,10 @@ export async function wrapFetchResponse(
     }
   }
 
-  // empty body ("") is not allowed, make sure to use undefined instead
-  if (_.isEmpty(rawBody)) {
-    rawBody = undefined;
+  // Log stack trace or error details if the response originates from an error
+  if (response.status >= 400) {
+    console.error("Error response received:", responseObj.body || rawBody);
+    rawBody = "An error occurred. Please contact support if the issue persists.";
   }
 
   const fetchOptions = options?.fetchOptions ?? {};
