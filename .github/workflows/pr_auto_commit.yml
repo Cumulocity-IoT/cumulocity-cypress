@@ -11,6 +11,8 @@ on:
       - auto_merge_enabled
       - auto_merge_disabled
 
+permissions:
+  contents: read
 env:
   TITLE_REGEX: '^(chore|build|ci|docs|feat|fix|perf|refactor|test)(\(.+\))?:[[:blank:]].+$'
 jobs:

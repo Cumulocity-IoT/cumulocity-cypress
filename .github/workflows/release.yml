@@ -6,6 +6,9 @@ on:
       - main
       - release/v**
       - next
+
+permissions: {} # Sets all permissions to 'none' by default
+
 jobs:
   release:
     name: "Run semantic release"
