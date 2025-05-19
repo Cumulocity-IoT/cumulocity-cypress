@@ -33,7 +33,7 @@ import {
 } from "../lib/screenshots/types";
 import { loadConfigFile } from "../c8yscrn/helper";
 import { C8yBaseUrl } from "../shared/types";
-import { resolvePact } from "cumulocity-cypress/shared/c8ypact/c8yresolver";
+import { resolveRefs } from "../shared/c8ypact/c8yresolver";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
 export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
@@ -263,7 +263,7 @@ export function configureC8yPlugin(
       "c8ypact:save": savePact,
       "c8ypact:get": getPact,
       "c8ypact:remove": removePact,
-      "c8ypact:resolve": resolvePact,
+      "c8ypact:resolve": resolveRefs,
       "c8ypact:http:start": startHttpController,
       "c8ypact:http:stop": stopHttpController,
       "c8ypact:oauthLogin": login,

@@ -38,6 +38,7 @@ import { validateBaseUrl } from "../../shared/c8ypact/url";
 import { C8yCypressEnvPreprocessor } from "./cypresspreprocessor";
 import { C8yBaseUrl } from "../../shared/types";
 import { to_boolean } from "../../shared/util";
+import { resolveRefs } from "../../shared/c8ypact/c8yresolver";
 
 declare global {
   namespace Cypress {
@@ -301,15 +302,23 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
         .then((pact) => {
           if (pact == null) return cy.wrap<C8yPact | null>(null, debugLogger());
 
-          // required to map the record object to a C8yPactRecord here as this can
-          // not be done in the plugin
-          pact.records = pact.records?.map((record) => {
-            return C8yDefaultPactRecord.from(record);
-          });
-          return cy.wrap<C8yPact | null>(
-            new C8yDefaultPact(pact.records, pact.info, pact.id),
-            debugLogger()
-          );
+          return cy
+            .wrap(resolveRefs(pact), debugLogger())
+            .then((resolvedPact) => {
+              if (resolvedPact == null)
+                return cy.wrap<C8yPact | null>(null, debugLogger());
+
+              const p = resolvedPact as C8yPact;
+              // required to map the record object to a C8yPactRecord here as this can
+              // not be done in the plugin
+              p.records = p.records?.map((record) => {
+                return C8yDefaultPactRecord.from(record);
+              });
+              return cy.wrap<C8yPact | null>(
+                new C8yDefaultPact(p.records, p.info, p.id),
+                debugLogger()
+              );
+            });
         });
     },
     env: () => {

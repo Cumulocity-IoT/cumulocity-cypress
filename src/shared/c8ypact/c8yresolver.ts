@@ -130,7 +130,7 @@ function replacePlaceholdersInCopy(
   return target; // For numbers, booleans, null, undefined
 }
 
-export async function resolvePact(doc: any): Promise<C8yPact | null> {
+export async function resolveRefs(doc: any): Promise<C8yPact | null> {
   if (doc == null || typeof doc !== "object") {
     return doc;
   }

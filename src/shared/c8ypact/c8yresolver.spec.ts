@@ -1,7 +1,7 @@
 // @ts-nocheck
 /// <reference types="jest" />
 
-import { resolvePact } from "./c8yresolver";
+import { resolveRefs } from "./c8yresolver";
 import { vol } from "memfs"; // Import vol
 
 import path from "path";
@@ -40,7 +40,7 @@ describe("resolvePact", () => {
         info: defaultPactInfo,
       };
 
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       expect(resolved.records[0].response.body.message).toBe("Hello");
       expect(resolved.id).toBe(defaultPactId);
       expect(resolved.info).toEqual(defaultPactInfo);
@@ -75,7 +75,7 @@ describe("resolvePact", () => {
         id: "param-pact-1",
         info: { type: "parameterized" },
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       expect(resolved.records[0].response.body.message).toBe("Hello World!");
       expect(resolved.records[0].response.body.details.value).toBe(
         "The value is 42."
@@ -110,7 +110,7 @@ describe("resolvePact", () => {
         id: "multi-param-pact",
         info: {},
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       expect(resolved.records[0].response.body.greeting).toBe(
         "Hi John Doe, welcome!"
       );
@@ -147,7 +147,7 @@ describe("resolvePact", () => {
         id: "array-pact",
       };
 
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       const responseBody = resolved.records[0].response.body;
       expect(responseBody.items[0]).toBe("Item 123");
       expect(responseBody.items[1].fixed).toBe("Value");
@@ -194,7 +194,7 @@ describe("resolvePact", () => {
         id: "typed-pact",
         info: defaultPactInfo,
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       const resultRecordBody = resolved.records[0].response.body;
       expect(resultRecordBody.numeric).toBe("Number: 100");
       expect(resultRecordBody.boolean).toBe("Boolean: true");
@@ -247,7 +247,7 @@ describe("resolvePact", () => {
         id: "internal-typed-pact",
         info: { source: "internal" },
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       const instanceRecordBody = resolved.records[0].response.body;
       expect(instanceRecordBody.internalNumeric).toBe(255);
       expect(typeof instanceRecordBody.internalNumeric).toBe("number");
@@ -285,7 +285,7 @@ describe("resolvePact", () => {
         ],
         id: "complex-ref-pact",
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       const outputBody = resolved.records[0].response.body;
       expect(outputBody.message).toBe("Parameterized: TestValue");
       expect(outputBody.internalRef).toBe("A simple string value.");
@@ -315,7 +315,7 @@ describe("resolvePact", () => {
         ],
         id: "no-param-pact",
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       expect(resolved.records[0].response.body.message).toBe("Data: {{data}}");
       expect(resolved.id).toBe("no-param-pact");
       expect(resolved.definitions).toBeUndefined();
@@ -345,7 +345,7 @@ describe("resolvePact", () => {
         ],
         id: "mismatch-param-pact",
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       expect(resolved.records[0].response.body.message).toBe(
         "Value: {{value}}"
       );
@@ -375,7 +375,7 @@ describe("resolvePact", () => {
         ],
         id: "primitive-param-string-pact",
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       expect(resolved.records[0].response.body).toBe("Value: Test");
       expect(resolved.id).toBe("primitive-param-string-pact");
       expect(resolved.definitions).toBeUndefined();
@@ -387,10 +387,10 @@ describe("resolvePact", () => {
     });
 
     it("should return null if input doc is null or not an object", async () => {
-      expect(await resolvePact(null)).toBeNull();
-      expect(await resolvePact(undefined)).toBeUndefined();
-      expect(await resolvePact("string")).toBe("string");
-      expect(await resolvePact(123)).toBe(123);
+      expect(await resolveRefs(null)).toBeNull();
+      expect(await resolveRefs(undefined)).toBeUndefined();
+      expect(await resolveRefs("string")).toBe("string");
+      expect(await resolveRefs(123)).toBe(123);
     });
 
     it("should return C8yPact with empty records, id, info if not present in input", async () => {
@@ -400,7 +400,7 @@ describe("resolvePact", () => {
         },
         someOtherProp: { $ref: "#/definitions/simple" },
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       expect(resolved.records).toBeUndefined();
       expect(resolved.id).toBeUndefined();
       expect(resolved.info).toBeUndefined();
@@ -428,7 +428,7 @@ describe("resolvePact", () => {
         extraProperty: "should be removed",
         anotherExtra: { key: "value" },
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       expect(resolved.records[0].response.body.value).toBe("test data");
       expect(resolved.id).toBe("pact123");
       expect(resolved.info).toEqual({ version: "1.0" });
@@ -512,7 +512,7 @@ describe("resolvePact", () => {
         id: "ext-simple-pact",
         info: defaultPactInfo,
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       expect(resolved.records[0].response.body.message).toBe(
         "Hello from external file!"
       );
@@ -546,7 +546,7 @@ describe("resolvePact", () => {
         id: "ext-uri-pact",
         info: defaultPactInfo,
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       expect(resolved.records[0].response.body.message).toBe(
         "Hello from external file!"
       );
@@ -573,7 +573,7 @@ describe("resolvePact", () => {
         id: "ext-param-pact",
         info: defaultPactInfo,
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       const responseBody = resolved.records[0].response.body;
       expect(responseBody.greeting).toBe(
         "Greetings, Galaxy, from an external source!"
@@ -602,7 +602,7 @@ describe("resolvePact", () => {
         id: "ext-ext-pact",
         info: defaultPactInfo,
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       const responseBody = resolved.records[0].response.body;
       expect(responseBody.name).toBe("Container for another external def");
       expect(responseBody.containedDef.message).toBe(
@@ -631,7 +631,7 @@ describe("resolvePact", () => {
         id: "ext-typed-pact",
         info: { type: "external-typed" },
       };
-      const resolved = await resolvePact(doc);
+      const resolved = await resolveRefs(doc);
       const instanceRecordBody = resolved.records[0].response.body;
       expect(instanceRecordBody.externalNumeric).toBe(255);
       expect(typeof instanceRecordBody.externalNumeric).toBe("number");
