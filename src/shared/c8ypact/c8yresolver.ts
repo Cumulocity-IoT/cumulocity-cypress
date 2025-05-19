@@ -3,6 +3,7 @@ import { URLSearchParams } from "url";
 
 import lodash1 from "lodash";
 import * as lodash2 from "lodash";
+import { C8yPact } from "./c8ypact";
 const _ = lodash1 || lodash2;
 
 interface RefParameterizationInfo {
@@ -129,7 +130,7 @@ function replacePlaceholdersInCopy(
   return target; // For numbers, booleans, null, undefined
 }
 
-export async function resolvePact(doc: any): Promise<any> {
+export async function resolvePact(doc: any): Promise<C8yPact | null> {
   if (doc == null || typeof doc !== "object") {
     return doc;
   }
@@ -167,5 +168,6 @@ export async function resolvePact(doc: any): Promise<any> {
     }
   }
 
-  return finalDoc;
+  const pact = _.pick(finalDoc, "records", "info", "id") as C8yPact;
+  return pact;
 }

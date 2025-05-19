@@ -4,8 +4,8 @@
 import { resolvePact } from "./c8yresolver";
 import { vol } from "memfs"; // Import vol
 
-import path from "path"; 
-import fs from "fs"; 
+import path from "path";
+import fs from "fs";
 import url from "url";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -14,24 +14,44 @@ jest.mock("fs", () => require("memfs").fs);
 const CWD = "/home/user";
 
 describe("resolvePact", () => {
+  const defaultPactId = "test-pact-id";
+  const defaultPactInfo = { description: "A test pact" };
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   describe("internal $refs", () => {
-    it("should resolve a simple internal $ref", async () => {
+    it("should resolve a simple internal $ref and return C8yPact structure", async () => {
       const doc = {
         definitions: {
           simple: { message: "Hello" },
         },
-        instance: { $ref: "#/definitions/simple" },
+        records: [
+          {
+            request: { method: "GET", path: "/simple-data" },
+            response: {
+              status: 200,
+              body: { $ref: "#/definitions/simple" },
+            },
+          },
+        ],
+        id: defaultPactId,
+        info: defaultPactInfo,
       };
 
       const resolved = await resolvePact(doc);
-      expect(resolved.instance.message).toBe("Hello");
+      expect(resolved.records[0].response.body.message).toBe("Hello");
+      expect(resolved.id).toBe(defaultPactId);
+      expect(resolved.info).toEqual(defaultPactInfo);
+      expect(resolved.definitions).toBeUndefined();
+      expect(resolved).not.toHaveProperty("definitions");
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
+      );
     });
 
-    it("should resolve a parameterized $ref with object definition", async () => {
+    it("should resolve a parameterized $ref with object definition and return C8yPact structure", async () => {
       const doc = {
         definitions: {
           parameterizedDef: {
@@ -41,32 +61,69 @@ describe("resolvePact", () => {
             },
           },
         },
-        instance: {
-          // Using #/ for internal refs as c8y:/ is normalized to #/
-          $ref: "#/definitions/parameterizedDef?name=World&value=42",
-        },
+        records: [
+          {
+            request: { method: "POST", path: "/params" },
+            response: {
+              status: 201,
+              body: {
+                $ref: "#/definitions/parameterizedDef?name=World&value=42",
+              },
+            },
+          },
+        ],
+        id: "param-pact-1",
+        info: { type: "parameterized" },
       };
       const resolved = await resolvePact(doc);
-      expect(resolved.instance.message).toBe("Hello World!");
-      expect(resolved.instance.details.value).toBe("The value is 42.");
+      expect(resolved.records[0].response.body.message).toBe("Hello World!");
+      expect(resolved.records[0].response.body.details.value).toBe(
+        "The value is 42."
+      );
+      expect(resolved.id).toBe("param-pact-1");
+      expect(resolved.info).toEqual({ type: "parameterized" });
+      expect(resolved.definitions).toBeUndefined();
+      expect(resolved).not.toHaveProperty("definitions");
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
+      );
     });
 
-    it("should resolve a parameterized $ref with multiple placeholders in one string", async () => {
+    it("should resolve a parameterized $ref with multiple placeholders and return C8yPact structure", async () => {
       const doc = {
         definitions: {
           multiParamDef: {
             greeting: "Hi {{firstName}} {{lastName}}, welcome!",
           },
         },
-        usage: {
-          $ref: "#/definitions/multiParamDef?firstName=John&lastName=Doe",
-        },
+        records: [
+          {
+            request: { method: "GET", path: "/greeting" },
+            response: {
+              status: 200,
+              body: {
+                $ref: "#/definitions/multiParamDef?firstName=John&lastName=Doe",
+              },
+            },
+          },
+        ],
+        id: "multi-param-pact",
+        info: {},
       };
       const resolved = await resolvePact(doc);
-      expect(resolved.usage.greeting).toBe("Hi John Doe, welcome!");
+      expect(resolved.records[0].response.body.greeting).toBe(
+        "Hi John Doe, welcome!"
+      );
+      expect(resolved.id).toBe("multi-param-pact");
+      expect(resolved.info).toEqual({});
+      expect(resolved.definitions).toBeUndefined();
+      expect(resolved).not.toHaveProperty("definitions");
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
+      );
     });
 
-    it("should resolve a parameterized $ref with an array in the definition", async () => {
+    it("should resolve a parameterized $ref with an array and return C8yPact structure", async () => {
       const doc = {
         definitions: {
           arrayDef: {
@@ -76,67 +133,98 @@ describe("resolvePact", () => {
             ],
           },
         },
-        data: {
-          $ref: "#/definitions/arrayDef?id=123&status=active",
-        },
+        records: [
+          {
+            request: { method: "GET", path: "/array-data" },
+            response: {
+              status: 200,
+              body: {
+                $ref: "#/definitions/arrayDef?id=123&status=active",
+              },
+            },
+          },
+        ],
+        id: "array-pact",
       };
+
       const resolved = await resolvePact(doc);
-      expect(resolved.data.items[0]).toBe("Item 123");
-      expect(resolved.data.items[1].fixed).toBe("Value");
-      expect(resolved.data.items[1].dynamic).toBe("Status: active");
+      const responseBody = resolved.records[0].response.body;
+      expect(responseBody.items[0]).toBe("Item 123");
+      expect(responseBody.items[1].fixed).toBe("Value");
+      expect(responseBody.items[1].dynamic).toBe("Status: active");
+      expect(resolved.id).toBe("array-pact");
+      expect(resolved.info).toBeUndefined();
+      expect(resolved.definitions).toBeUndefined();
+      expect(resolved).not.toHaveProperty("definitions");
+      const expectedKeys =
+        resolved.info === undefined
+          ? ["id", "records"]
+          : ["id", "info", "records"];
+      expect(Object.keys(resolved).sort()).toEqual(expectedKeys.sort());
     });
 
-    it("should convert parameters to strings during replacement", async () => {
+    it("should handle typed parameters and return C8yPact structure", async () => {
       const doc = {
         definitions: {
           typedDef: {
             numeric: "Number: {{numVal}}",
             boolean: "Boolean: {{boolVal}}",
-            // New test: property that is just the placeholder
             rawNumeric: "{{numVal}}",
             rawBoolean: "{{boolVal}}",
             rawFloat: "{{floatVal}}",
-            mixedString: "Count: {{numVal}}, Active: {{boolVal}}, Value: {{strVal}}",
+            mixedString:
+              "Count: {{numVal}}, Active: {{boolVal}}, Value: {{strVal}}",
             malformedInt: "{{badInt}}",
             malformedFloat: "{{badFloat}}",
             malformedBool: "{{badBool}}",
             untypedNum: "{{untypedNum}}",
           },
         },
-        result: {
-          $ref: "#/definitions/typedDef?numVal=Int(100)&boolVal=Bool(true)&floatVal=Float(123.45)&strVal=hello&badInt=Int(abc)&badFloat=Float(xyz.qr)&badBool=Bool(yes)&untypedNum=99",
-        },
+        records: [
+          {
+            request: { method: "GET", path: "/typed-data" },
+            response: {
+              status: 200,
+              body: {
+                $ref: "#/definitions/typedDef?numVal=Int(100)&boolVal=Bool(true)&floatVal=Float(123.45)&strVal=hello&badInt=Int(abc)&badFloat=Float(xyz.qr)&badBool=Bool(yes)&untypedNum=99",
+              },
+            },
+          },
+        ],
+        id: "typed-pact",
+        info: defaultPactInfo,
       };
       const resolved = await resolvePact(doc);
-      // Current implementation stringifies parameters
-      expect(resolved.result.numeric).toBe("Number: 100");
-      expect(resolved.result.boolean).toBe("Boolean: true");
+      const resultRecordBody = resolved.records[0].response.body;
+      expect(resultRecordBody.numeric).toBe("Number: 100");
+      expect(resultRecordBody.boolean).toBe("Boolean: true");
+      expect(resultRecordBody.rawNumeric).toBe(100);
+      expect(typeof resultRecordBody.rawNumeric).toBe("number");
+      expect(resultRecordBody.rawBoolean).toBe(true);
+      expect(typeof resultRecordBody.rawBoolean).toBe("boolean");
+      expect(resultRecordBody.rawFloat).toBe(123.45);
+      expect(typeof resultRecordBody.rawFloat).toBe("number");
+      expect(resultRecordBody.mixedString).toBe(
+        "Count: 100, Active: true, Value: hello"
+      );
+      expect(resultRecordBody.malformedInt).toBe("Int(abc)");
+      expect(typeof resultRecordBody.malformedInt).toBe("string");
+      expect(resultRecordBody.malformedFloat).toBe("Float(xyz.qr)");
+      expect(typeof resultRecordBody.malformedFloat).toBe("string");
+      expect(resultRecordBody.malformedBool).toBe("Bool(yes)");
+      expect(typeof resultRecordBody.malformedBool).toBe("string");
+      expect(resultRecordBody.untypedNum).toBe("99");
+      expect(typeof resultRecordBody.untypedNum).toBe("string");
 
-      // New tests for typed replacement
-      expect(resolved.result.rawNumeric).toBe(100);
-      expect(typeof resolved.result.rawNumeric).toBe("number");
-
-      expect(resolved.result.rawBoolean).toBe(true);
-      expect(typeof resolved.result.rawBoolean).toBe("boolean");
-
-      expect(resolved.result.rawFloat).toBe(123.45);
-      expect(typeof resolved.result.rawFloat).toBe("number");
-      
-      expect(resolved.result.mixedString).toBe("Count: 100, Active: true, Value: hello");
-
-      // Test malformed and untyped - should default to string
-      expect(resolved.result.malformedInt).toBe("Int(abc)");
-      expect(typeof resolved.result.malformedInt).toBe("string");
-      expect(resolved.result.malformedFloat).toBe("Float(xyz.qr)");
-      expect(typeof resolved.result.malformedFloat).toBe("string");
-      expect(resolved.result.malformedBool).toBe("Bool(yes)");
-      expect(typeof resolved.result.malformedBool).toBe("string");
-      expect(resolved.result.untypedNum).toBe("99"); // No type hint, defaults to string
-      expect(typeof resolved.result.untypedNum).toBe("string");
+      expect(resolved.id).toBe("typed-pact");
+      expect(resolved.info).toEqual(defaultPactInfo);
+      expect(resolved).not.toHaveProperty("definitions");
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
+      );
     });
 
-    it("should correctly handle typed parameters with internal $ref", async () => {
-      // No longer needs vol.fromNestedJSON for this test
+    it("should correctly handle typed parameters with internal $ref and return C8yPact structure", async () => {
       const doc = {
         definitions: {
           internalTypedDef: {
@@ -145,19 +233,37 @@ describe("resolvePact", () => {
             internalStringInterp: "Value: {{numVal}}",
           },
         },
-        instance: {
-          $ref: "#/definitions/internalTypedDef?numVal=Int(255)&boolVal=Bool(false)",
-        },
+        records: [
+          {
+            request: { method: "GET", path: "/internal-typed" },
+            response: {
+              status: 200,
+              body: {
+                $ref: "#/definitions/internalTypedDef?numVal=Int(255)&boolVal=Bool(false)",
+              },
+            },
+          },
+        ],
+        id: "internal-typed-pact",
+        info: { source: "internal" },
       };
       const resolved = await resolvePact(doc);
-      expect(resolved.instance.internalNumeric).toBe(255);
-      expect(typeof resolved.instance.internalNumeric).toBe("number");
-      expect(resolved.instance.internalBoolean).toBe(false);
-      expect(typeof resolved.instance.internalBoolean).toBe("boolean");
-      expect(resolved.instance.internalStringInterp).toBe("Value: 255");
+      const instanceRecordBody = resolved.records[0].response.body;
+      expect(instanceRecordBody.internalNumeric).toBe(255);
+      expect(typeof instanceRecordBody.internalNumeric).toBe("number");
+      expect(instanceRecordBody.internalBoolean).toBe(false);
+      expect(typeof instanceRecordBody.internalBoolean).toBe("boolean");
+      expect(instanceRecordBody.internalStringInterp).toBe("Value: 255");
+
+      expect(resolved.id).toBe("internal-typed-pact");
+      expect(resolved.info).toEqual({ source: "internal" });
+      expect(resolved).not.toHaveProperty("definitions");
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
+      );
     });
 
-    it("should resolve parameterized $ref whose definition contains a simple $ref", async () => {
+    it("should resolve parameterized $ref whose definition contains a simple $ref and return C8yPact structure", async () => {
       const doc = {
         definitions: {
           primitive: "A simple string value.",
@@ -166,65 +272,181 @@ describe("resolvePact", () => {
             internalRef: { $ref: "#/definitions/primitive" },
           },
         },
-        output: {
-          $ref: "#/definitions/complexDef?val=TestValue",
-        },
+        records: [
+          {
+            request: { method: "GET", path: "/complex" },
+            response: {
+              status: 200,
+              body: {
+                $ref: "#/definitions/complexDef?val=TestValue",
+              },
+            },
+          },
+        ],
+        id: "complex-ref-pact",
       };
       const resolved = await resolvePact(doc);
-      expect(resolved.output.message).toBe("Parameterized: TestValue");
-      expect(resolved.output.internalRef).toBe("A simple string value.");
+      const outputBody = resolved.records[0].response.body;
+      expect(outputBody.message).toBe("Parameterized: TestValue");
+      expect(outputBody.internalRef).toBe("A simple string value.");
+      expect(resolved.id).toBe("complex-ref-pact");
+      expect(resolved.definitions).toBeUndefined();
+      expect(resolved).not.toHaveProperty("definitions");
+      const expectedKeys =
+        resolved.info === undefined
+          ? ["id", "records"]
+          : ["id", "info", "records"];
+      expect(Object.keys(resolved).sort()).toEqual(expectedKeys.sort());
     });
 
-    it("should leave placeholders if no parameters are provided in $ref", async () => {
+    it("should leave placeholders if no parameters are provided and return C8yPact structure", async () => {
       const doc = {
         definitions: {
           needsParams: { message: "Data: {{data}}" },
         },
-        instance: { $ref: "#/definitions/needsParams" }, // No query parameters
+        records: [
+          {
+            request: { method: "GET", path: "/needs-params" },
+            response: {
+              status: 200,
+              body: { $ref: "#/definitions/needsParams" },
+            },
+          },
+        ],
+        id: "no-param-pact",
       };
       const resolved = await resolvePact(doc);
-      // The custom resolver runs, but params object is empty.
-      expect(resolved.instance.message).toBe("Data: {{data}}");
+      expect(resolved.records[0].response.body.message).toBe("Data: {{data}}");
+      expect(resolved.id).toBe("no-param-pact");
+      expect(resolved.definitions).toBeUndefined();
+      expect(resolved).not.toHaveProperty("definitions");
+      const expectedKeys =
+        resolved.info === undefined
+          ? ["id", "records"]
+          : ["id", "info", "records"];
+      expect(Object.keys(resolved).sort()).toEqual(expectedKeys.sort());
     });
 
-    it("should leave placeholders if $ref parameters do not match", async () => {
+    it("should leave placeholders if $ref parameters do not match and return C8yPact structure", async () => {
       const doc = {
         definitions: {
           specificPlaceholders: { message: "Value: {{value}}" },
         },
-        instance: {
-          $ref: "#/definitions/specificPlaceholders?otherParam=irrelevant",
-        },
+        records: [
+          {
+            request: { method: "GET", path: "/specific" },
+            response: {
+              status: 200,
+              body: {
+                $ref: "#/definitions/specificPlaceholders?otherParam=irrelevant",
+              },
+            },
+          },
+        ],
+        id: "mismatch-param-pact",
       };
       const resolved = await resolvePact(doc);
-      expect(resolved.instance.message).toBe("Value: {{value}}");
+      expect(resolved.records[0].response.body.message).toBe(
+        "Value: {{value}}"
+      );
+      expect(resolved.id).toBe("mismatch-param-pact");
+      expect(resolved.definitions).toBeUndefined();
+      expect(resolved).not.toHaveProperty("definitions");
+      const expectedKeys =
+        resolved.info === undefined
+          ? ["id", "records"]
+          : ["id", "info", "records"];
+      expect(Object.keys(resolved).sort()).toEqual(expectedKeys.sort());
     });
 
-    it("should handle $ref to a definition that is a parameterized string", async () => {
+    it("should handle $ref to a definition that is a parameterized string and return C8yPact structure", async () => {
       const doc = {
         definitions: {
           primitiveTemplate: "Value: {{val}}",
         },
-        instance: {
-          $ref: "#/definitions/primitiveTemplate?val=Test",
-        },
+        records: [
+          {
+            request: { method: "GET", path: "/primitive-string" },
+            response: {
+              status: 200,
+              body: { $ref: "#/definitions/primitiveTemplate?val=Test" },
+            },
+          },
+        ],
+        id: "primitive-param-string-pact",
       };
       const resolved = await resolvePact(doc);
-      // With the new three-stage approach, the string should be correctly parameterized.
-      expect(resolved.instance).toBe("Value: Test");
+      expect(resolved.records[0].response.body).toBe("Value: Test");
+      expect(resolved.id).toBe("primitive-param-string-pact");
+      expect(resolved.definitions).toBeUndefined();
+      const expectedKeys =
+        resolved.info === undefined
+          ? ["id", "records"]
+          : ["id", "info", "records"];
+      expect(Object.keys(resolved).sort()).toEqual(expectedKeys.sort());
+    });
+
+    it("should return null if input doc is null or not an object", async () => {
+      expect(await resolvePact(null)).toBeNull();
+      expect(await resolvePact(undefined)).toBeUndefined();
+      expect(await resolvePact("string")).toBe("string");
+      expect(await resolvePact(123)).toBe(123);
+    });
+
+    it("should return C8yPact with empty records, id, info if not present in input", async () => {
+      const doc = {
+        definitions: {
+          simple: { message: "Hello" },
+        },
+        someOtherProp: { $ref: "#/definitions/simple" },
+      };
+      const resolved = await resolvePact(doc);
+      expect(resolved.records).toBeUndefined();
+      expect(resolved.id).toBeUndefined();
+      expect(resolved.info).toBeUndefined();
+      expect(resolved.definitions).toBeUndefined();
+      expect(resolved.someOtherProp).toBeUndefined();
+      expect(Object.keys(resolved).length).toBe(0);
+    });
+
+    it("should correctly pick only records, id, and info properties", async () => {
+      const doc = {
+        definitions: {
+          dataDef: { value: "test data" },
+        },
+        records: [
+          {
+            request: { method: "GET", path: "/item" },
+            response: {
+              status: 200,
+              body: { $ref: "#/definitions/dataDef" },
+            },
+          },
+        ],
+        id: "pact123",
+        info: { version: "1.0" },
+        extraProperty: "should be removed",
+        anotherExtra: { key: "value" },
+      };
+      const resolved = await resolvePact(doc);
+      expect(resolved.records[0].response.body.value).toBe("test data");
+      expect(resolved.id).toBe("pact123");
+      expect(resolved.info).toEqual({ version: "1.0" });
+      expect(resolved.definitions).toBeUndefined();
+      expect(resolved.extraProperty).toBeUndefined();
+      expect(resolved.anotherExtra).toBeUndefined();
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
+      );
     });
   });
 
   describe("external file $refs", () => {
     beforeEach(() => {
-      // Ensure process.cwd() is mocked for each test in this suite
       jest.spyOn(process, "cwd").mockReturnValue(CWD);
 
-      // Setup memfs volume. Files will be created relative to CWD.
-      // e.g., /home/user/test/fixtures/externalDef.json
       vol.fromNestedJSON({
         [CWD]: {
-          // Base path for the structure
           test: {
             fixtures: {
               "externalDef.json": JSON.stringify({
@@ -241,8 +463,13 @@ describe("resolvePact", () => {
               "externalRefToExternal.json": JSON.stringify({
                 externalContainer: {
                   name: "Container for another external def",
-                  containedDef: { $ref: "./externalDef.json#/simpleExternal" }, 
+                  containedDef: { $ref: "./externalDef.json#/simpleExternal" },
                 },
+              }),
+              "externalTypedDef.json": JSON.stringify({
+                externalNumeric: "{{numVal}}",
+                externalBoolean: "{{boolVal}}",
+                externalStringInterp: "Value: {{numVal}}",
               }),
             },
           },
@@ -271,59 +498,151 @@ describe("resolvePact", () => {
       expect(JSON.parse(fileContent as string)).toEqual(expectedJson);
     });
 
-    it("should resolve a simple $ref to an external file", async () => {
+    it("should resolve a simple $ref to an external file and return C8yPact structure", async () => {
       const doc = {
-        // $ref path is relative to the mocked CWD (/home/user/test)
-        instance: { $ref: "test/fixtures/externalDef.json#/simpleExternal" },
+        records: [
+          {
+            request: { method: "GET", path: "/external-simple" },
+            response: {
+              status: 200,
+              body: { $ref: "test/fixtures/externalDef.json#/simpleExternal" },
+            },
+          },
+        ],
+        id: "ext-simple-pact",
+        info: defaultPactInfo,
       };
       const resolved = await resolvePact(doc);
-      expect(resolved.instance.message).toBe("Hello from external file!");
+      expect(resolved.records[0].response.body.message).toBe(
+        "Hello from external file!"
+      );
+      expect(resolved.id).toBe("ext-simple-pact");
+      expect(resolved.info).toEqual(defaultPactInfo);
+      expect(resolved.definitions).toBeUndefined();
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
+      );
     });
 
-    it("should resolve a simple $ref to an external file using file:// URI", async () => {
-      // Construct an absolute path for memfs
+    it("should resolve a simple $ref to an external file using file:// URI and return C8yPact structure", async () => {
       const absoluteFilePath = path.join(
         CWD,
         "test",
         "fixtures",
         "externalDef.json"
       );
-      // Create a file URI. Note: path.join handles platform-specific separators.
-      // For file URIs, forward slashes are standard. Node's url.pathToFileURL is robust.
       const fileUri = url.pathToFileURL(absoluteFilePath).href;
 
       const doc = {
-        instance: { $ref: `${fileUri}#/simpleExternal` },
+        records: [
+          {
+            request: { method: "GET", path: "/external-uri" },
+            response: {
+              status: 200,
+              body: { $ref: `${fileUri}#/simpleExternal` },
+            },
+          },
+        ],
+        id: "ext-uri-pact",
+        info: defaultPactInfo,
       };
       const resolved = await resolvePact(doc);
-      expect(resolved.instance.message).toBe("Hello from external file!");
+      expect(resolved.records[0].response.body.message).toBe(
+        "Hello from external file!"
+      );
+      expect(resolved.id).toBe("ext-uri-pact");
+      expect(resolved.info).toEqual(defaultPactInfo);
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
+      );
     });
 
-    it("should resolve a parameterized $ref to an external file", async () => {
+    it("should resolve a parameterized $ref to an external file and return C8yPact structure", async () => {
       const doc = {
-        instance: {
-          // $ref path is relative to the mocked CWD
-          $ref: "test/fixtures/externalParameterizedDef.json#/parameterizedExternal?name=Galaxy&value=123",
-        },
+        records: [
+          {
+            request: { method: "GET", path: "/external-param" },
+            response: {
+              status: 200,
+              body: {
+                $ref: "test/fixtures/externalParameterizedDef.json#/parameterizedExternal?name=Galaxy&value=123",
+              },
+            },
+          },
+        ],
+        id: "ext-param-pact",
+        info: defaultPactInfo,
       };
       const resolved = await resolvePact(doc);
-      expect(resolved.instance.greeting).toBe(
+      const responseBody = resolved.records[0].response.body;
+      expect(responseBody.greeting).toBe(
         "Greetings, Galaxy, from an external source!"
       );
-      expect(resolved.instance.detail).toBe("Your value is 123.");
+      expect(responseBody.detail).toBe("Your value is 123.");
+      expect(resolved.id).toBe("ext-param-pact");
+      expect(resolved.info).toEqual(defaultPactInfo);
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
+      );
     });
 
-    it("should resolve an external $ref that points to another external file (relative path)", async () => {
+    it("should resolve an external $ref that points to another external file and return C8yPact structure", async () => {
       const doc = {
-        instance: {
-          // $ref path is relative to the mocked CWD
-          $ref: "test/fixtures/externalRefToExternal.json#/externalContainer",
-        },
+        records: [
+          {
+            request: { method: "GET", path: "/external-ext" },
+            response: {
+              status: 200,
+              body: {
+                $ref: "test/fixtures/externalRefToExternal.json#/externalContainer",
+              },
+            },
+          },
+        ],
+        id: "ext-ext-pact",
+        info: defaultPactInfo,
       };
       const resolved = await resolvePact(doc);
-      expect(resolved.instance.name).toBe("Container for another external def");
-      expect(resolved.instance.containedDef.message).toBe(
+      const responseBody = resolved.records[0].response.body;
+      expect(responseBody.name).toBe("Container for another external def");
+      expect(responseBody.containedDef.message).toBe(
         "Hello from external file!"
+      );
+      expect(resolved.id).toBe("ext-ext-pact");
+      expect(resolved.info).toEqual(defaultPactInfo);
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
+      );
+    });
+
+    it("should correctly handle typed parameters in external files and return C8yPact structure", async () => {
+      const doc = {
+        records: [
+          {
+            request: { method: "GET", path: "/external-typed" },
+            response: {
+              status: 200,
+              body: {
+                $ref: "test/fixtures/externalTypedDef.json?numVal=Int(255)&boolVal=Bool(false)",
+              },
+            },
+          },
+        ],
+        id: "ext-typed-pact",
+        info: { type: "external-typed" },
+      };
+      const resolved = await resolvePact(doc);
+      const instanceRecordBody = resolved.records[0].response.body;
+      expect(instanceRecordBody.externalNumeric).toBe(255);
+      expect(typeof instanceRecordBody.externalNumeric).toBe("number");
+      expect(instanceRecordBody.externalBoolean).toBe(false);
+      expect(typeof instanceRecordBody.externalBoolean).toBe("boolean");
+      expect(instanceRecordBody.externalStringInterp).toBe("Value: 255");
+
+      expect(resolved.id).toBe("ext-typed-pact");
+      expect(resolved.info).toEqual({ type: "external-typed" });
+      expect(Object.keys(resolved).sort()).toEqual(
+        ["id", "info", "records"].sort()
       );
     });
   });
