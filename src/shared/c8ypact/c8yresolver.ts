@@ -8,7 +8,7 @@ const _ = lodash1 || lodash2;
 interface RefParameterizationInfo {
   // Path to the property in the document that, after dereferencing, will hold the resolved content.
   keyPath: (string | number)[];
-  params: Record<string, string>;
+  params: Record<string, any>; // Changed from string to any
   originalRefValue: string; // For debugging/context
 }
 
@@ -35,9 +35,23 @@ function traverseAndPreprocessRefs(
           const baseRef = value.substring(0, queryIndex);
           const queryString = value.substring(queryIndex + 1);
 
-          const params: Record<string, string> = {};
+          const params: Record<string, any> = {}; // Changed from string to any
           new URLSearchParams(queryString).forEach((paramValue, paramKey) => {
-            params[paramKey] = paramValue;
+            // Attempt to parse typed values
+            const intMatch = paramValue.match(/^Int\(([-+]?\d+)\)$/);
+            const floatMatch = paramValue.match(/^Float\(([-+]?\d*\.?\d+)\)$/);
+            const boolMatch = paramValue.match(/^Bool\((true|false)\)$/i);
+
+            if (intMatch) {
+              params[paramKey] = parseInt(intMatch[1], 10);
+            } else if (floatMatch) {
+              params[paramKey] = parseFloat(floatMatch[1]);
+            } else if (boolMatch) {
+              params[paramKey] = boolMatch[1].toLowerCase() === "true";
+            } else {
+              // Default to string if no type hint
+              params[paramKey] = paramValue;
+            }
           });
 
           collectedParams.push({
@@ -78,14 +92,26 @@ function setValueByPath(obj: any, path: (string | number)[], value: any): void {
 // Helper: Replace placeholders in a copy of the target
 function replacePlaceholdersInCopy(
   target: any,
-  params: Record<string, string>
+  params: Record<string, any> // Changed from string to any
 ): any {
   if (_.isString(target)) {
+    // Check if the entire string is a single placeholder
+    for (const paramKey in params) {
+      if (Object.prototype.hasOwnProperty.call(params, paramKey)) {
+        const placeholder = `{{${paramKey}}}`;
+        if (target === placeholder) {
+          return params[paramKey]; // Return the raw (potentially typed) value
+        }
+      }
+    }
+
+    // If not a single placeholder, perform string interpolation
     let result = target;
-    for (const key in params) {
-      if (Object.prototype.hasOwnProperty.call(params, key)) {
-        const placeholder = `{{${key}}}`;
-        result = result.split(placeholder).join(params[key]); // Basic global replacement
+    for (const paramKey in params) {
+      if (Object.prototype.hasOwnProperty.call(params, paramKey)) {
+        const placeholder = `{{${paramKey}}}`;
+        // Ensure param is stringified for interpolation within a larger string
+        result = result.split(placeholder).join(String(params[paramKey]));
       }
     }
     return result;

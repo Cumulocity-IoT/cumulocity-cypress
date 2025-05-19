@@ -92,16 +92,69 @@ describe("resolvePact", () => {
           typedDef: {
             numeric: "Number: {{numVal}}",
             boolean: "Boolean: {{boolVal}}",
+            // New test: property that is just the placeholder
+            rawNumeric: "{{numVal}}",
+            rawBoolean: "{{boolVal}}",
+            rawFloat: "{{floatVal}}",
+            mixedString: "Count: {{numVal}}, Active: {{boolVal}}, Value: {{strVal}}",
+            malformedInt: "{{badInt}}",
+            malformedFloat: "{{badFloat}}",
+            malformedBool: "{{badBool}}",
+            untypedNum: "{{untypedNum}}",
           },
         },
         result: {
-          $ref: "#/definitions/typedDef?numVal=100&boolVal=true",
+          $ref: "#/definitions/typedDef?numVal=Int(100)&boolVal=Bool(true)&floatVal=Float(123.45)&strVal=hello&badInt=Int(abc)&badFloat=Float(xyz.qr)&badBool=Bool(yes)&untypedNum=99",
         },
       };
       const resolved = await resolvePact(doc);
       // Current implementation stringifies parameters
       expect(resolved.result.numeric).toBe("Number: 100");
       expect(resolved.result.boolean).toBe("Boolean: true");
+
+      // New tests for typed replacement
+      expect(resolved.result.rawNumeric).toBe(100);
+      expect(typeof resolved.result.rawNumeric).toBe("number");
+
+      expect(resolved.result.rawBoolean).toBe(true);
+      expect(typeof resolved.result.rawBoolean).toBe("boolean");
+
+      expect(resolved.result.rawFloat).toBe(123.45);
+      expect(typeof resolved.result.rawFloat).toBe("number");
+      
+      expect(resolved.result.mixedString).toBe("Count: 100, Active: true, Value: hello");
+
+      // Test malformed and untyped - should default to string
+      expect(resolved.result.malformedInt).toBe("Int(abc)");
+      expect(typeof resolved.result.malformedInt).toBe("string");
+      expect(resolved.result.malformedFloat).toBe("Float(xyz.qr)");
+      expect(typeof resolved.result.malformedFloat).toBe("string");
+      expect(resolved.result.malformedBool).toBe("Bool(yes)");
+      expect(typeof resolved.result.malformedBool).toBe("string");
+      expect(resolved.result.untypedNum).toBe("99"); // No type hint, defaults to string
+      expect(typeof resolved.result.untypedNum).toBe("string");
+    });
+
+    it("should correctly handle typed parameters with internal $ref", async () => {
+      // No longer needs vol.fromNestedJSON for this test
+      const doc = {
+        definitions: {
+          internalTypedDef: {
+            internalNumeric: "{{numVal}}",
+            internalBoolean: "{{boolVal}}",
+            internalStringInterp: "Value: {{numVal}}",
+          },
+        },
+        instance: {
+          $ref: "#/definitions/internalTypedDef?numVal=Int(255)&boolVal=Bool(false)",
+        },
+      };
+      const resolved = await resolvePact(doc);
+      expect(resolved.instance.internalNumeric).toBe(255);
+      expect(typeof resolved.instance.internalNumeric).toBe("number");
+      expect(resolved.instance.internalBoolean).toBe(false);
+      expect(typeof resolved.instance.internalBoolean).toBe("boolean");
+      expect(resolved.instance.internalStringInterp).toBe("Value: 255");
     });
 
     it("should resolve parameterized $ref whose definition contains a simple $ref", async () => {
@@ -161,7 +214,7 @@ describe("resolvePact", () => {
       expect(resolved.instance).toBe("Value: Test");
     });
   });
-  // --- Tests for External File References ---
+
   describe("external file $refs", () => {
     beforeEach(() => {
       // Ensure process.cwd() is mocked for each test in this suite
