@@ -1,5 +1,4 @@
 import $RefParser from "@apidevtools/json-schema-ref-parser";
-import { URLSearchParams } from "url";
 
 import lodash1 from "lodash";
 import * as lodash2 from "lodash";
