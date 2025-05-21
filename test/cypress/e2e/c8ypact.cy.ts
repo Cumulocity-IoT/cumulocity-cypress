@@ -289,6 +289,8 @@ describe("c8ypact", () => {
           if (name === "c8ypact:get" && loadCalls === 0) {
             loadCalls++;
             return cy.wrap(pact);
+          } else if (name === "c8ypact:resolve") {
+            return cy.wrap(pact);
           } else {
             return cy.wrap(null);
           }
@@ -297,9 +299,12 @@ describe("c8ypact", () => {
 
       if (mode === "record") {
         it("should load existing pact and init current", function () {
-          expect(loadSpy).to.be.calledTwice;
+          expect(loadSpy).to.be.calledThrice;
           expect(loadSpy).to.be.calledWith(...cmd("c8ypact:remove"));
           expect(loadSpy).to.be.calledWith(...cmd("c8ypact:get"));
+          expect(loadSpy).to.be.calledWith("c8ypact:resolve", pact, {
+            log: false,
+          });
           expect(Cypress.c8ypact.current).to.deep.eq(pact);
           expect(isPact(Cypress.c8ypact.current)).to.be.true;
         });
@@ -309,8 +314,11 @@ describe("c8ypact", () => {
         });
       } else {
         it("should load existing pact and init current", function () {
-          expect(loadSpy).to.be.calledOnce;
+          expect(loadSpy).to.be.calledTwice;
           expect(loadSpy).to.be.calledWith(...cmd("c8ypact:get"));
+          expect(loadSpy).to.be.calledWith("c8ypact:resolve", pact, {
+            log: false,
+          });
           expect(Cypress.c8ypact.current).to.deep.eq(pact);
           expect(Cypress.env("C8Y_TENANT")).to.eq(pact.info.tenant);
           expect(Cypress.env("C8Y_BASEURL")).to.eq(pact.info.baseUrl);
@@ -469,7 +477,8 @@ describe("c8ypact", () => {
       const response: Cypress.Response<any> = {
         method: "POST",
         headers: {
-          location: Cypress.config().baseUrl + "/inventory/managedObjects/12312312",
+          location:
+            Cypress.config().baseUrl + "/inventory/managedObjects/12312312",
         },
       };
       const pactRecord = C8yDefaultPactRecord.from(response);

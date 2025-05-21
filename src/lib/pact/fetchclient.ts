@@ -5,7 +5,6 @@ import {
   IFetchResponse,
 } from "@c8y/client";
 import {
-  getCookieValue,
   toWindowFetchResponse,
   wrapFetchResponse,
 } from "../../shared/c8yclient";
@@ -17,6 +16,7 @@ import {
 } from "../utils";
 import { C8yBaseUrl } from "../../shared/types";
 import { get_i } from "../../shared/util";
+import { getCookieValue } from "../../shared/cookies";
 
 const { _ } = Cypress;
 

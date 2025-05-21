@@ -4,6 +4,7 @@ export * from "./c8ydefaultpactrecord";
 export * from "./schema";
 export * from "./matcher";
 export * from "./preprocessor";
+export * from "./../oauthlogin";
 
 export {
   isCypressError,
@@ -12,5 +13,4 @@ export {
   toCypressResponse,
   C8yClient,
   C8yClientOptions,
-  oauthLogin,
 } from "./../c8yclient";

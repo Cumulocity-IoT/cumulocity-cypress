@@ -3,9 +3,7 @@ import _ from "lodash";
 import { C8yAuthentication, getAuthOptionsFromBasicAuthHeader } from "./auth";
 
 import {
-  BasicAuth,
   Client,
-  FetchClient,
   IAuthentication,
   ICredentials,
   IFetchOptions,
@@ -19,10 +17,8 @@ import {
   isPactRecord,
 } from "./c8ypact/c8ypact";
 
-import * as setCookieParser from "set-cookie-parser";
 import { C8ySchemaMatcher } from "./c8ypact/schema";
 import { C8yBaseUrl } from "./types";
-import { get_i } from "./util";
 
 declare global {
   interface Response {
@@ -150,7 +146,11 @@ export async function wrapFetchResponse(
   } = {}
 ) {
   // only wrap valid responses or new Response() will fail later
-  if (response.status == null || response.status < 200 || response.status > 599) {
+  if (
+    response.status == null ||
+    response.status < 200 ||
+    response.status > 599
+  ) {
     return response;
   }
 
@@ -435,148 +435,4 @@ export function isIResult(obj: any): obj is IResult<any> {
  */
 export function isCypressError(error: any): boolean {
   return _.isError(error) && _.get(error, "name") === "CypressError";
-}
-
-export function getAuthCookies(response: Response | Cypress.Response<any>):
-  | {
-      authorization?: string;
-      xsrfToken?: string;
-    }
-  | undefined {
-  let setCookie: any = response.headers.getSetCookie;
-  let cookieHeader: string[] | string | undefined;
-  if (typeof response.headers.getSetCookie === "function") {
-    cookieHeader = response.headers.getSetCookie();
-  } else {
-    if (typeof response.headers.get === "function") {
-      setCookie = response.headers.get("set-cookie");
-      if (_.isString(setCookie)) {
-        cookieHeader = setCookieParser.splitCookiesString(setCookie);
-      } else if (_.isArrayLike(setCookie)) {
-        cookieHeader = setCookie;
-      }
-    } else {
-      if (_.isPlainObject(response.headers)) {
-        cookieHeader = get_i(response.headers, "set-cookie");
-      }
-    }
-  }
-  if (!cookieHeader) return undefined;
-
-  let authorization: string | undefined = undefined;
-  let xsrfToken: string | undefined = undefined;
-  setCookieParser.parse(cookieHeader || []).forEach((c: any) => {
-    if (_.isEqual(c.name.toLowerCase(), "authorization")) {
-      authorization = c.value;
-    }
-    if (_.isEqual(c.name.toLowerCase(), "xsrf-token")) {
-      xsrfToken = c.value;
-    }
-  });
-
-  // This method is intended for use on server environments (for example Node.js).
-  // Browsers block frontend JavaScript code from accessing the Set-Cookie header,
-  // as required by the Fetch spec, which defines Set-Cookie as a forbidden
-  // response-header name that must be filtered out from any response exposed to frontend code.
-  // https://developer.mozilla.org/en-US/docs/Web/API/Headers/getSetCookie
-  if (!authorization) {
-    authorization =
-      getCookieValue("authorization") || getCookieValue("Authorization");
-    if (_.isEmpty(authorization)) {
-      authorization = undefined;
-    }
-  }
-  if (!xsrfToken) {
-    xsrfToken = getCookieValue("XSRF-TOKEN") || getCookieValue("xsrf-token");
-    if (_.isEmpty(xsrfToken)) {
-      xsrfToken = undefined;
-    }
-  }
-
-  return { authorization, xsrfToken };
-}
-
-export async function oauthLogin(
-  auth: C8yAuthOptions,
-  baseUrl?: C8yBaseUrl
-): Promise<C8yAuthOptions> {
-  if (!auth || !auth.user || !auth.password) {
-    const error = new Error(
-      "Authentication required. oauthLogin requires user and password for authentication."
-    );
-    error.name = "C8yPactError";
-    throw error;
-  }
-
-  if (!baseUrl) {
-    const error = new Error(
-      "Base URL required. oauthLogin requires absolute url for login."
-    );
-    error.name = "C8yPactError";
-    throw error;
-  }
-
-  let tenant = auth.tenant;
-  if (!tenant) {
-    const fetchClient = new FetchClient(baseUrl);
-    const credentials = new BasicAuth(auth);
-    fetchClient.setAuth(credentials);
-    const res = await fetchClient.fetch("/tenant/currentTenant");
-    credentials.logout();
-
-    if (res.status !== 200) {
-      const error = new Error(
-        `Getting tenant id failed for ${baseUrl} with status code ${res.status}. Use env variable or pass it as part of auth object.`
-      );
-      error.name = "C8yPactError";
-      throw error;
-    }
-    const { name } = await res.json();
-    tenant = name;
-  }
-
-  const url = `/tenant/oauth?tenant_id=${tenant}`;
-  const params = new URLSearchParams({
-    grant_type: "PASSWORD",
-    username: auth.user || "",
-    password: auth.password || "",
-    ...(auth.tfa && { tfa_code: auth.tfa }),
-  });
-
-  const fetchClient = new FetchClient(baseUrl);
-  const res = await fetchClient.fetch(url, {
-    method: "POST",
-    body: params.toString(),
-    headers: {
-      "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
-    },
-  });
-
-  if (res.status !== 200) {
-    const error = new Error(
-      `Logging in to ${baseUrl} failed for user "${auth.user}" with status code ${res.status}.`
-    );
-    error.name = "C8yPactError";
-    throw error;
-  }
-
-  const cookies = getAuthCookies(res);
-  const { authorization, xsrfToken } = _.pick(cookies, [
-    "authorization",
-    "xsrfToken",
-  ]);
-  auth = {
-    ...auth,
-    ...(authorization && { bearer: authorization }),
-    ...(xsrfToken && { xsrfToken: xsrfToken }),
-  };
-
-  return auth;
-}
-
-// from c8y/client FetchClient
-export function getCookieValue(name: string) {
-  if (typeof document === "undefined") return undefined;
-  const value = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
-  return value ? value.pop() : "";
 }

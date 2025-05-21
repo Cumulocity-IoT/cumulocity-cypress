@@ -300,16 +300,23 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
         )
         .then((pact) => {
           if (pact == null) return cy.wrap<C8yPact | null>(null, debugLogger());
+          return cy
+            .task<C8yPact | null>("c8ypact:resolve", pact, debugLogger())
+            .then((resolvedPact) => {
+              if (resolvedPact == null)
+                return cy.wrap<C8yPact | null>(null, debugLogger());
 
-          // required to map the record object to a C8yPactRecord here as this can
-          // not be done in the plugin
-          pact.records = pact.records?.map((record) => {
-            return C8yDefaultPactRecord.from(record);
-          });
-          return cy.wrap<C8yPact | null>(
-            new C8yDefaultPact(pact.records, pact.info, pact.id),
-            debugLogger()
-          );
+              const p = resolvedPact as C8yPact;
+              // required to map the record object to a C8yPactRecord here as this can
+              // not be done in the plugin
+              p.records = p.records?.map((record) => {
+                return C8yDefaultPactRecord.from(record);
+              });
+              return cy.wrap<C8yPact | null>(
+                new C8yDefaultPact(p.records, p.info, p.id),
+                debugLogger()
+              );
+            });
         });
     },
     env: () => {

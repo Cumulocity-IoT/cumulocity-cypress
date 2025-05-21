@@ -39,7 +39,7 @@ import {
 
 import { C8yPactFileAdapter } from "../c8ypact/adapter/fileadapter";
 import { C8yAuthOptions } from "../auth";
-import { oauthLogin } from "../c8yclient";
+import { oauthLogin } from "../oauthlogin";
 
 import fs from "fs";
 import path from "path";
