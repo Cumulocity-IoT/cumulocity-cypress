@@ -38,7 +38,6 @@ import { validateBaseUrl } from "../../shared/c8ypact/url";
 import { C8yCypressEnvPreprocessor } from "./cypresspreprocessor";
 import { C8yBaseUrl } from "../../shared/types";
 import { to_boolean } from "../../shared/util";
-import { resolveRefs } from "../../shared/c8ypact/c8yresolver";
 
 declare global {
   namespace Cypress {
@@ -301,9 +300,8 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
         )
         .then((pact) => {
           if (pact == null) return cy.wrap<C8yPact | null>(null, debugLogger());
-
           return cy
-            .wrap(resolveRefs(pact), debugLogger())
+            .task<C8yPact | null>("c8ypact:resolve", pact, debugLogger())
             .then((resolvedPact) => {
               if (resolvedPact == null)
                 return cy.wrap<C8yPact | null>(null, debugLogger());
