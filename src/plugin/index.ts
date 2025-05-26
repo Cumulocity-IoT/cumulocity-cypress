@@ -34,11 +34,11 @@ import {
 } from "../lib/screenshots/types";
 import { loadConfigFile } from "../c8yscrn/helper";
 import { C8yBaseUrl } from "../shared/types";
-import { resolveRefs } from "../shared/c8ypact/c8yresolver";
 import {
-  JSONParserErrorGroup,
-  JSONParserError,
-} from "@apidevtools/json-schema-ref-parser";
+  logJSONParserErrorGroup,
+  resolveRefs,
+} from "../shared/c8ypact/c8yresolver";
+import { JSONParserErrorGroup } from "@apidevtools/json-schema-ref-parser";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
 export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
@@ -263,78 +263,18 @@ export function configureC8yPlugin(
     }
   }
 
-  async function resolvePact(pact: any): Promise<any | null> {
-    log(
-      `resolveRefs() - Starting for pact: ${
-        pact?.id
-      }, using base folder: ${adapter?.getFolder()}`
-    );
-    if (!pact || typeof pact.id === "undefined") {
-      log("resolveRefs() - Invalid or incomplete pact object received.");
-      return pact;
-    }
-
-    try {
-      const result = await resolveRefs(pact, adapter?.getFolder());
-      log(`resolveRefs() - Successfully resolved pact: ${pact.id}`);
-      return result;
-    } catch (e: any) {
-      log(`resolveRefs() - Error during resolution for pact '${pact.id}':`);
-      if (e instanceof JSONParserErrorGroup) {
-        log(`  Error Type: JSONParserErrorGroup`);
-        log(`  Summary: ${e.message}`); // Main message from the error group
-
-        // Accessing files involved - $refs is an array of $Ref objects
-        // Each $Ref object has a `path` property which is the URL/file path.
-        // We need to filter out unique paths as one file can have multiple errors.
-        const uniqueFilePaths = [
-          ...new Set(
-            e.errors.map((errItem: JSONParserError) => errItem.source)
-          ),
-        ].filter(Boolean);
-
-        if (uniqueFilePaths.length > 0) {
-          log(`  File(s) Involved: ${uniqueFilePaths.join(", ")}`);
-        }
-
-        log(`  Individual Errors:`);
-        e.errors.forEach((errorItem: JSONParserError, index: number) => {
-          const errorPath =
-            errorItem.path && Array.isArray(errorItem.path)
-              ? errorItem.path.join("/")
-              : "N/A";
-          log(`    Error ${index + 1}:`);
-          log(`      Name: ${errorItem.name}`);
-          log(`      Message: ${errorItem.message}`);
-          log(`      Path in Document: ${errorPath}`); // JSON Pointer path within the document
-          if (errorItem.source) {
-            log(`      Source File/URL: ${errorItem.source}`);
-          }
-        });
-      } else {
-        // Log other types of errors
-        log(`  Error Type: ${e?.constructor?.name || "UnknownError"}`);
-        log(`  Message: ${e.message || String(e)}`);
-        // if (e.stack) {
-        //   log(`  Stack Trace:`);
-        //   e.stack.split("\\n").forEach((line: string) => log(`    ${line}`));
-        // }
-      }
-      log(`resolveRefs() - Returning original pact '${pact.id}' due to error.`);
-    }
-    return pact; // Return original pact on any error
-  }
-
   if (on) {
     on("task", {
       "c8ypact:save": savePact,
       "c8ypact:get": getPact,
       "c8ypact:remove": removePact,
-      "c8ypact:resolve": resolvePact,
       "c8ypact:http:start": startHttpController,
       "c8ypact:http:stop": stopHttpController,
       "c8ypact:oauthLogin": login,
       "c8ypact:fetch": fetchRequest,
+      "c8ypact:resolve": (pact: any) => {
+        return resolvePact(pact, adapter.getFolder(), log);
+      },
     });
   }
 }
@@ -754,6 +694,38 @@ export function getFileUploadOptions(
   };
 
   return result;
+}
+
+export async function resolvePact(
+  pact: any,
+  baseFolder?: string,
+  log: (message: string) => void = debug("c8y:pact:resolveRefs")
+): Promise<any | null> {
+  log(
+    `resolveRefs() - Starting for pact: ${pact?.id}, using base folder: ${baseFolder}`
+  );
+  if (!pact || typeof pact.id === "undefined") {
+    log("resolveRefs() - Invalid or incomplete pact object received.");
+    return pact;
+  }
+
+  try {
+    const result = await resolveRefs(pact, baseFolder);
+    log(`resolveRefs() - Successfully resolved pact: ${pact.id}`);
+    return result;
+  } catch (e: any) {
+    log(`resolveRefs() - Error during resolution for pact '${pact.id}':`);
+    if (e instanceof JSONParserErrorGroup) {
+      logJSONParserErrorGroup(e, log);
+    } else {
+      log(`  Error Type: ${e?.constructor?.name || "UnknownError"}`);
+      log(`  Message: ${e.message || String(e)}`);
+    }
+    log(
+      `resolveRefs() - Returning original document due to error dereferencing refs.`
+    );
+  }
+  return pact; // Return original pact on any error
 }
 
 export function configureEnvVariables(config: Cypress.PluginConfigOptions) {

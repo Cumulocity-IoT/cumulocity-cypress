@@ -1,4 +1,7 @@
-import $RefParser from "@apidevtools/json-schema-ref-parser";
+import $RefParser, {
+  JSONParserError,
+  JSONParserErrorGroup,
+} from "@apidevtools/json-schema-ref-parser";
 import * as path from "path";
 import { pathToFileURL } from "url";
 
@@ -281,4 +284,26 @@ export async function resolveRefs(
   }
 
   return _.pick(finalDoc, C8yPactObjectKeys) as C8yPact;
+}
+
+export function logJSONParserErrorGroup(
+  error: JSONParserErrorGroup,
+  logger: (...args: any[]) => any
+) {
+  if (!(error instanceof JSONParserErrorGroup)) return;
+
+  logger(`  Error Type: JSONParserErrorGroup`);
+  logger(`  Summary: ${error.message}`); // Main message from the error group
+
+  logger(`  Individual Errors:`);
+  error.errors.forEach((errorItem: JSONParserError, index: number) => {
+    const errorPath =
+      errorItem.path && Array.isArray(errorItem.path)
+        ? errorItem.path.join("/")
+        : "N/A";
+    logger(`    Error ${index + 1}:`);
+    logger(`      Name: ${errorItem.name}`);
+    logger(`      Message: ${errorItem.message}`);
+    logger(`      Path in Document: ${errorPath}`); // JSON Pointer path within the document
+  });
 }
