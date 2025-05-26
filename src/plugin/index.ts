@@ -11,7 +11,7 @@ import {
   C8yPactFileAdapter,
   C8yPactDefaultFileAdapter,
 } from "../shared/c8ypact/adapter/fileadapter";
-import { get_i } from "../shared/util";
+import { get_i, safeStringify } from "../shared/util";
 
 import {
   C8yPactHttpController,
@@ -22,7 +22,8 @@ import {
   getEnvVar,
   validatePactMode,
 } from "../shared/c8ypact/c8ypact";
-import { C8yAuthOptions, oauthLogin } from "../shared/c8yclient";
+import { C8yAuthOptions } from "../shared/auth";
+import { oauthLogin } from "../shared/oauthlogin";
 import { validateBaseUrl } from "../shared/c8ypact/url";
 import { getPackageVersion } from "../shared/util-node";
 
@@ -33,6 +34,11 @@ import {
 } from "../lib/screenshots/types";
 import { loadConfigFile } from "../c8yscrn/helper";
 import { C8yBaseUrl } from "../shared/types";
+import {
+  logJSONParserErrorGroup,
+  resolveRefs,
+} from "../shared/c8ypact/c8yresolver";
+import { JSONParserErrorGroup } from "@apidevtools/json-schema-ref-parser";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
 export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
@@ -266,6 +272,9 @@ export function configureC8yPlugin(
       "c8ypact:http:stop": stopHttpController,
       "c8ypact:oauthLogin": login,
       "c8ypact:fetch": fetchRequest,
+      "c8ypact:resolve": (pact: any) => {
+        return resolvePactRefs(pact, adapter.getFolder(), log);
+      },
     });
   }
 }
@@ -685,6 +694,57 @@ export function getFileUploadOptions(
   };
 
   return result;
+}
+
+export async function resolvePactRefs(
+  pact: any | string,
+  baseFolder?: string,
+  log: (message: string) => void = debug("c8y:pact:resolve")
+): Promise<any | null> {
+  if (!pact) {
+    log(
+      "Invalid or incomplete pact object received. Returning input pact object."
+    );
+    return pact; // Return original pact on parse error
+  }
+
+  let pactObject: any = pact;
+  if (typeof pact === "string") {
+    log(`Pact is a string, parsing JSON.`);
+    try {
+      pactObject = JSON.parse(pact);
+    } catch (e: any) {
+      log(`Error parsing pact from string (expected valid JSON): ${e.message}`);
+      log(`Returning original document due to error dereferencing refs.`);
+
+      return pact; // Return original pact on parse error
+    }
+  }
+
+  try {
+    log(`Starting for pact: ${pact?.id}, using base folder: ${baseFolder}`);
+
+    const result = await resolveRefs(pactObject, baseFolder);
+    log(
+      `Successfully resolved $ref references in pact with id: ${pactObject.id}`
+    );
+    if (typeof pact === "string") {
+      log(`Returning stringified result.`);
+      return safeStringify(result);
+    }
+    return result;
+  } catch (e: any) {
+    log(`Error during $ref resolving for pact with id: '${pactObject.id}':`);
+    if (e instanceof JSONParserErrorGroup) {
+      logJSONParserErrorGroup(e, log);
+    } else {
+      log(`  Error Type: ${e?.constructor?.name || "UnknownError"}`);
+      log(`  Message: ${e.message || String(e)}`);
+    }
+    log(`Returning original document due to error dereferencing refs.`);
+  }
+
+  return pact; // Return original pact on any error
 }
 
 export function configureEnvVariables(config: Cypress.PluginConfigOptions) {
