@@ -11,7 +11,7 @@ import {
   C8yPactFileAdapter,
   C8yPactDefaultFileAdapter,
 } from "../shared/c8ypact/adapter/fileadapter";
-import { get_i } from "../shared/util";
+import { get_i, safeStringify } from "../shared/util";
 
 import {
   C8yPactHttpController,
@@ -273,7 +273,7 @@ export function configureC8yPlugin(
       "c8ypact:oauthLogin": login,
       "c8ypact:fetch": fetchRequest,
       "c8ypact:resolve": (pact: any) => {
-        return resolvePact(pact, adapter.getFolder(), log);
+        return resolvePactRefs(pact, adapter.getFolder(), log);
       },
     });
   }
@@ -696,35 +696,54 @@ export function getFileUploadOptions(
   return result;
 }
 
-export async function resolvePact(
-  pact: any,
+export async function resolvePactRefs(
+  pact: any | string,
   baseFolder?: string,
-  log: (message: string) => void = debug("c8y:pact:resolveRefs")
+  log: (message: string) => void = debug("c8y:pact:resolve")
 ): Promise<any | null> {
-  log(
-    `resolveRefs() - Starting for pact: ${pact?.id}, using base folder: ${baseFolder}`
-  );
-  if (!pact || typeof pact.id === "undefined") {
-    log("resolveRefs() - Invalid or incomplete pact object received.");
-    return pact;
+  if (!pact) {
+    log(
+      "Invalid or incomplete pact object received. Returning input pact object."
+    );
+    return pact; // Return original pact on parse error
+  }
+
+  let pactObject: any = pact;
+  if (typeof pact === "string") {
+    log(`Pact is a string, parsing JSON.`);
+    try {
+      pactObject = JSON.parse(pact);
+    } catch (e: any) {
+      log(`Error parsing pact from string (expected valid JSON): ${e.message}`);
+      log(`Returning original document due to error dereferencing refs.`);
+
+      return pact; // Return original pact on parse error
+    }
   }
 
   try {
-    const result = await resolveRefs(pact, baseFolder);
-    log(`resolveRefs() - Successfully resolved pact: ${pact.id}`);
+    log(`Starting for pact: ${pact?.id}, using base folder: ${baseFolder}`);
+
+    const result = await resolveRefs(pactObject, baseFolder);
+    log(
+      `Successfully resolved $ref references in pact with id: ${pactObject.id}`
+    );
+    if (typeof pact === "string") {
+      log(`Returning stringified result.`);
+      return safeStringify(result);
+    }
     return result;
   } catch (e: any) {
-    log(`resolveRefs() - Error during resolution for pact '${pact.id}':`);
+    log(`Error during $ref resolving for pact with id: '${pactObject.id}':`);
     if (e instanceof JSONParserErrorGroup) {
       logJSONParserErrorGroup(e, log);
     } else {
       log(`  Error Type: ${e?.constructor?.name || "UnknownError"}`);
       log(`  Message: ${e.message || String(e)}`);
     }
-    log(
-      `resolveRefs() - Returning original document due to error dereferencing refs.`
-    );
+    log(`Returning original document due to error dereferencing refs.`);
   }
+
   return pact; // Return original pact on any error
 }
 

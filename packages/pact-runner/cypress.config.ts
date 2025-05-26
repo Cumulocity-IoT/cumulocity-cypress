@@ -2,9 +2,8 @@ import { defineConfig } from "cypress";
 import {
   configureC8yPlugin,
   C8yPactDefaultFileAdapter,
-  resolvePact,
+  resolvePactRefs,
 } from "cumulocity-cypress/plugin";
-import { safeStringify } from "cumulocity-cypress/shared/util";
 
 import debug from "debug";
 const log = debug("c8y:pact-runner");
@@ -30,41 +29,42 @@ module.exports = defineConfig({
 
       if (config.env.C8Y_PACT_RUNNER_TAGS) {
         log(
-          `Filter enabled fortags from C8Y_PACT_RUNNER_TAGS: ${config.env.C8Y_PACT_RUNNER_TAGS}`
+          `Filter enabled from C8Y_PACT_RUNNER_TAGS: ${config.env.C8Y_PACT_RUNNER_TAGS}`
         );
         config.env.grepTags = config.env.C8Y_PACT_RUNNER_TAGS;
       }
 
       if (config.env.C8Y_PACT_RUNNER_METHODS) {
         log(
-          `Filter enabled for methods from C8Y_PACT_RUNNER_METHODS: ${config.env.C8Y_PACT_RUNNER_METHODS}`
+          `Filter enabled from C8Y_PACT_RUNNER_METHODS: ${config.env.C8Y_PACT_RUNNER_METHODS}`
         );
       }
 
       if (config.env.C8Y_PACT_RUNNER_PATHS) {
         log(
-          `Filter enabled for paths from C8Y_PACT_RUNNER_PATHS: ${config.env.C8Y_PACT_RUNNER_PATHS}`
+          `Filter enabled from C8Y_PACT_RUNNER_PATHS: ${config.env.C8Y_PACT_RUNNER_PATHS}`
         );
       }
 
-      log(`resolveRefs() - Found ${pacts.length} pact files to process.`);
+      log(`Found ${pacts.length} pact files to process.`);
 
       pacts = await Promise.all(
         pacts.map(async (item) => {
           if (item.includes('"$ref"')) {
-            const p = JSON.parse(item);
-            log(`resolveRefs() - Resolving refs for pact: ${p.id}`);
+            log(`Resolving refs`);
             try {
-              const result = await resolvePact(p, adapter?.getFolder(), log);
-              return safeStringify(result);
+              const result = await resolvePactRefs(
+                item,
+                adapter?.getFolder(),
+                log
+              );
+              return result;
             } catch (e: any) {
               log(`Error resolving pact: ${e.message}`);
             }
-            log(
-              `resolveRefs() - Returning original document due to error dereferencing refs.`
-            );
+            log(`Returning original document due to error dereferencing refs.`);
           } else {
-            log(`resolveRefs() - No refs to resolve for pact: ${item}`);
+            log(`No refs to resolve for pact: ${item}`);
           }
           return item;
         })
