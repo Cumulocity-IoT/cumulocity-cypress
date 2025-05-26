@@ -127,12 +127,7 @@ export interface C8yPactEnv {
   pluginFolder?: string;
 }
 
-/**
- * Pact object. Contains all information about a recorded pact, including
- * the pact records with requests and responses as well as info object with
- * meta data. A C8yPact objtect must have an unique id.
- */
-export interface C8yPact {
+export interface C8yPactObject {
   /**
    * Pact records containing the requests and responses as well as auth information,
    * configuration options and created objects.
@@ -146,6 +141,15 @@ export interface C8yPact {
    * Unique id of the pact.
    */
   id: C8yPactID;
+}
+export const C8yPactObjectKeys = ["records", "info", "id"] as string[];
+
+/**
+ * Pact object. Contains all information about a recorded pact, including
+ * the pact records with requests and responses as well as info object with
+ * meta data. A C8yPact objtect must have an unique id.
+ */
+export interface C8yPact extends C8yPactObject {
   /**
    * Clears all records of the pact. Also resets all indexes internally used for
    * iterating over the records.
