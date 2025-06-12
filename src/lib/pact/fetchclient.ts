@@ -158,8 +158,12 @@ export class C8yPactFetchClient extends FetchClient {
         return Promise.reject(failure);
       }
 
+      const sanitizedFailure = {
+        ...failure,
+        body: "An error occurred. Please contact support if the issue persists.",
+      };
       const result = await this.savePact(
-        failure as IFetchResponse,
+        sanitizedFailure as IFetchResponse,
         url,
         fetchOptions
       );
