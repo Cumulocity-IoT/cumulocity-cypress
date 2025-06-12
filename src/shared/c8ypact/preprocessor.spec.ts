@@ -832,7 +832,7 @@ describe("C8yDefaultPactPreprocessor", () => {
     it("should apply multiple regex replacements in sequence when using array", () => {
       const options: C8yPactPreprocessorOptions = {
         regexReplace: {
-          "body.name": ["/hello/hi/g", "/world/earth/g"]
+          "body.name": ["/hello/hi/g", "/world/earth/g"],
         },
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
@@ -844,7 +844,7 @@ describe("C8yDefaultPactPreprocessor", () => {
     it("should apply each regex replacement in array order", () => {
       const options: C8yPactPreprocessorOptions = {
         regexReplace: {
-          "body.name": ["/abc/xyz/g", "/xyz/123/g"]
+          "body.name": ["/abc/xyz/g", "/xyz/123/g"],
         },
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
@@ -856,8 +856,8 @@ describe("C8yDefaultPactPreprocessor", () => {
     it("should handle mixed string and array values for different keys", () => {
       const options: C8yPactPreprocessorOptions = {
         regexReplace: {
-          "body.name": ["/John/Jane/", "/Doe/Smith/"], 
-          "body.id": "/ID-\\d+/ID-000/"
+          "body.name": ["/John/Jane/", "/Doe/Smith/"],
+          "body.id": "/ID-\\d+/ID-000/",
         },
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
@@ -866,11 +866,15 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response.body.name).toBe("Jane Smith");
       expect(response.body.id).toBe("ID-000");
     });
-    
+
     it("should continue with valid patterns if one pattern in array is invalid", () => {
       const options: C8yPactPreprocessorOptions = {
         regexReplace: {
-          "body.name": ["/valid/replaced/g", "invalid-pattern", "/pattern/newpattern/g"]
+          "body.name": [
+            "/valid/replaced/g",
+            "invalid-pattern",
+            "/pattern/newpattern/g",
+          ],
         },
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
@@ -883,13 +887,25 @@ describe("C8yDefaultPactPreprocessor", () => {
     it("should handle empty array gracefully", () => {
       const options: C8yPactPreprocessorOptions = {
         regexReplace: {
-          "body.name": []
+          "body.name": [],
         },
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
       const response = { body: { name: "original value" } };
       preprocessor.apply(response);
       expect(response.body.name).toBe("original value");
+    });
+
+    it("should replace with empty string if replacement is empty", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": "/abc//g", // Empty replacement
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { body: { name: "abc" } };
+      preprocessor.apply(response);
+      expect(response.body.name).toBe(""); // Should replace with empty string
     });
   });
 
@@ -959,13 +975,6 @@ describe("C8yDefaultPactPreprocessor", () => {
       const s = "abc/def/g"; // Missing opening slash
       expect(() => parseRegexReplace(s)).toThrow(
         "Invalid replacement regular expression: abc/def/g"
-      );
-    });
-
-    it("should throw error for regex without replacement", () => {
-      const s = "/abc//g"; // Empty replacement
-      expect(() => parseRegexReplace(s)).toThrow(
-        "Invalid replacement regular expression: /abc//g"
       );
     });
 

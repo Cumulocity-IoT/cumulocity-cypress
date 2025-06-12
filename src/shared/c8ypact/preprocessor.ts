@@ -467,7 +467,7 @@ export function parseRegexReplace(input: string): {
   }
 
   // Match a regex pattern with replacement in format /pattern/replacement/flags
-  const match = input.match(/^\/(.+?)(?<!\\)\/(.+?)(?<!\\)\/([gimsuy]*)$/);
+  const match = input.match(/^\/(.+?)(?<!\\)\/(.*?)(?<!\\)\/([gimsuy]*)$/);
 
   if (!match) {
     throw new Error(`Invalid replacement regular expression: ${input}`);
