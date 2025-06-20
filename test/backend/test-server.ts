@@ -31,7 +31,7 @@ app.post("/tenant/oauth", (req, res) => {
   res.send();
 });
 
-app.all("/*", (req, res) => {
+app.all("/*splat", (req, res) => {
   res.json({
     request: {
       headers: req.headers,
