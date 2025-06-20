@@ -136,6 +136,10 @@ export class C8yPactHttpController {
       );
     }
 
+    // Express 5 compatibility: explicitly add body parsing middleware
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
+
     // register cookie parser
     this.app.use(cookieParser());
 
@@ -286,10 +290,20 @@ export class C8yPactHttpController {
 
     this.registerC8yctrlInterface();
 
-    this.server = await this.app.listen(this.port);
-    this.logger.info(
-      `Started: ${this.hostname}:${this.port} (mode: ${this.mode})`
-    );
+    // Express 5 compatible app.listen with error handling
+    return new Promise<void>((resolve, reject) => {
+      this.server = this.app.listen(this.port, '0.0.0.0', (error?: Error) => {
+        if (error) {
+          this.logger.error('Server failed to start:', error);
+          reject(error);
+        } else {
+          this.logger.info(
+            `Started: ${this.hostname}:${this.port} (mode: ${this.mode})`
+          );
+          resolve();
+        }
+      });
+    });
   }
 
   /**
@@ -388,7 +402,7 @@ export class C8yPactHttpController {
     });
     this.app.get(`${this.resourcePath}/current`, (req, res) => {
       if (!this.currentPact) {
-        // return 204 instead of 404 to indicate that no pact is set
+        // return 404 instead of 204 to indicate that no pact is set
         res.status(404).send("No current pact set");
         return;
       }
@@ -396,7 +410,9 @@ export class C8yPactHttpController {
       res.send(this.stringifyPact(this.currentPact));
     });
     this.app.post(`${this.resourcePath}/current`, async (req, res) => {
-      const parameters = { ...req.body, ...req.query };
+      // Express 5 compatibility: create a copy of query parameters
+      const bodyParams = req.body || {};
+      const parameters = { ...bodyParams, ...req.query };
       const { mode, clear, recordingMode, strictMocking } = parameters;
       const id: C8yPactID | undefined =
         pactId(parameters.id) || pactId(parameters.title);
@@ -508,9 +524,10 @@ export class C8yPactHttpController {
       }
 
       const { keys } = { ...req.query };
+      const queryKeys = Object.keys(req.query);
       const result = this.getObjectWithKeys(
         this.currentPact!.records.map((r) => r.request),
-        keys ?? (Object.keys(req.query) as any)
+        keys ?? (queryKeys as any)
       );
       res.setHeader("content-type", "application/json");
       res.status(200).send(JSON.stringify(result, null, 2));
@@ -521,11 +538,12 @@ export class C8yPactHttpController {
         return;
       }
       const { keys } = { ...req.query };
+      const queryKeys = Object.keys(req.query);
       const result = this.getObjectWithKeys(
         this.currentPact!.records.map((r) => {
           return { ...r.response, url: r.request.url };
         }),
-        keys ?? (Object.keys(req.query) as any)
+        keys ?? (queryKeys as any)
       );
       res.setHeader("content-type", "application/json");
       res.status(200).send(JSON.stringify(result, null, 2));
@@ -538,7 +556,8 @@ export class C8yPactHttpController {
       res.status(200).send(JSON.stringify({ level: this.logger.level }));
     });
     this.app.post(`${this.resourcePath}/log`, (req, res) => {
-      const parameters = { ...req.body, ...req.query };
+      const bodyParams = req.body || {};
+      const parameters = { ...bodyParams, ...req.query };
       const { message, level } = parameters;
       if (
         level != null &&
@@ -555,7 +574,8 @@ export class C8yPactHttpController {
       res.sendStatus(204);
     });
     this.app.put(`${this.resourcePath}/log`, (req, res) => {
-      const parameters = { ...req.body, ...req.query };
+      const bodyParams = req.body || {};
+      const parameters = { ...bodyParams, ...req.query };
       const { level } = parameters;
       if (_.isString(level) && logLevels.includes(level.toLowerCase())) {
         this.logger.level = level.toLowerCase() as any;

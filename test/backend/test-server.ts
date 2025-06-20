@@ -28,14 +28,14 @@ app.post("/tenant/oauth", (req, res) => {
     domain: "localhost",
     path: "/",
   });
-  res.send();
+  res.send("{}");
 });
 
-app.all("/*", (req, res) => {
+app.all("/*splat", (req, res) => {
   res.json({
     request: {
-      headers: req.headers,
-      body: req.body,
+      headers: req.headers ?? {},
+      body: req.body ?? {},
       cookies: req.cookies,
       method: req.method,
       url: req.url,
@@ -45,9 +45,14 @@ app.all("/*", (req, res) => {
 });
 
 const PORT = 8080;
-app.listen(PORT, () =>
-  console.log(`Cypress test backend running on http://localhost:${PORT}`)
-);
+app.listen(PORT, '0.0.0.0', (error?: Error) => {
+  if (error) {
+    console.error('Test server failed to start:', error);
+    process.exit(1);
+  } else {
+    console.log(`Cypress test backend running on http://localhost:${PORT}`);
+  }
+});
 
 function setCustomHeaders(res: express.Response, filePath: string) {
   if (path.extname(filePath) === "") {

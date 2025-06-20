@@ -137,7 +137,11 @@ export function createResponseInterceptor(
 
     if (c8yctrl.isRecordingEnabled() === false) return responseBuffer;
 
+    // Express 5 compatibility: handle undefined req.body
     let reqBody = (req as any).rawBody || req.body;
+    if (reqBody === undefined) {
+      reqBody = {};
+    }
     try {
       if (_.isString(reqBody)) {
         reqBody = JSON.parse(reqBody);
@@ -217,7 +221,7 @@ export function createRequestHandler(
       proxyReq.removeHeader("content-length");
       proxyReq.removeHeader("Content-Length");
       proxyReq.write(rawBody);
-    } else if (req.body) {
+    } else if (req.body && req.body !== undefined) {
       const bodyString = JSON.stringify(req.body);
       proxyReq.removeHeader("transfer-encoding");
       proxyReq.removeHeader("Transfer-Encoding");
