@@ -70,7 +70,7 @@ export async function oauthLogin(
 
   if (oauthResponse.status !== 200) {
     const error = new Error(
-      `Logging in to ${baseUrl} failed for user "${auth.user}" with status code ${oauthResponse.status}.`
+      `Logging in to ${baseUrl} failed for user "${auth.user}" with status code ${oauthResponse.status}.${oauthResponse.body ? "\n" + await oauthResponse.text() : ""}`
     );
     error.name = "C8yPactError";
     throw error;

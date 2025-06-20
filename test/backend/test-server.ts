@@ -45,9 +45,14 @@ app.all("/*", (req, res) => {
 });
 
 const PORT = 8080;
-app.listen(PORT, () =>
-  console.log(`Cypress test backend running on http://localhost:${PORT}`)
-);
+app.listen(PORT, '0.0.0.0', (error?: Error) => {
+  if (error) {
+    console.error('Test server failed to start:', error);
+    process.exit(1);
+  } else {
+    console.log(`Cypress test backend running on http://localhost:${PORT}`);
+  }
+});
 
 function setCustomHeaders(res: express.Response, filePath: string) {
   if (path.extname(filePath) === "") {
