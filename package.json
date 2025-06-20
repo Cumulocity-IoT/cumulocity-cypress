@@ -44,7 +44,7 @@
     "url": "https://github.com/Cumulocity-IoT/cumulocity-cypress/issues"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "bin": {
     "c8yctrl": "./c8yctrl/c8yctrl.js",
