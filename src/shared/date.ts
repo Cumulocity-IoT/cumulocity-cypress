@@ -6,7 +6,7 @@ export function parseDate(
   format: string
 ): Date | undefined {
   let parsedDate: Date | undefined = undefined;
-  // try to parse as number fist, if string is passed it might be converted without format being used
+  // try to parse as number first, if string is passed it might be converted without format being used
   if (_.isNumber(date)) {
     parsedDate = new Date(date);
   }
