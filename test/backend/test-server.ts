@@ -28,14 +28,14 @@ app.post("/tenant/oauth", (req, res) => {
     domain: "localhost",
     path: "/",
   });
-  res.send();
+  res.send("{}");
 });
 
 app.all("/*splat", (req, res) => {
   res.json({
     request: {
-      headers: req.headers,
-      body: req.body,
+      headers: req.headers ?? {},
+      body: req.body ?? {},
       cookies: req.cookies,
       method: req.method,
       url: req.url,
