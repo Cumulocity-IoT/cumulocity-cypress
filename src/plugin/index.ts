@@ -5,11 +5,14 @@ import debug from "debug";
 import { compare } from "odiff-bin";
 import WebSocket from "ws";
 import { watch, FSWatcher } from "chokidar";
+import fetch from "cross-fetch";
 
 import {
   C8yPactFileAdapter,
   C8yPactDefaultFileAdapter,
 } from "../shared/c8ypact/adapter/fileadapter";
+import { get_i, safeStringify } from "../shared/util";
+
 import {
   C8yPactHttpController,
   C8yPactHttpControllerOptions,
@@ -19,7 +22,8 @@ import {
   getEnvVar,
   validatePactMode,
 } from "../shared/c8ypact/c8ypact";
-import { C8yAuthOptions, oauthLogin } from "../shared/c8yclient";
+import { C8yAuthOptions } from "../shared/auth";
+import { oauthLogin } from "../shared/oauthlogin";
 import { validateBaseUrl } from "../shared/c8ypact/url";
 import { getPackageVersion } from "../shared/util-node";
 
@@ -30,6 +34,11 @@ import {
 } from "../lib/screenshots/types";
 import { loadConfigFile } from "../c8yscrn/helper";
 import { C8yBaseUrl } from "../shared/types";
+import {
+  logJSONParserErrorGroup,
+  resolveRefs,
+} from "../shared/c8ypact/c8yresolver";
+import { JSONParserErrorGroup } from "@apidevtools/json-schema-ref-parser";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
 export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
@@ -48,6 +57,12 @@ export type C8yPluginConfig = {
    * Default is C8yPactDefaultFileAdapter
    */
   pactAdapter?: C8yPactFileAdapter;
+  /**
+   * If enabled, all C8Y_* and C8YCTRL_* environment variables are passed to the
+   * Cypress process. If C8Y_BASEURL or baseUrl env variables are configured,
+   * the Cypress config baseUrl is overwritten. Default is true.
+   */
+  forwardEnvVariables?: boolean;
 };
 
 /**
@@ -78,6 +93,13 @@ export function configureC8yPlugin(
     log(`Created C8yPactDefaultFileAdapter with folder ${folder}`);
   } else {
     log(`Using adapter from options ${adapter}`);
+  }
+
+  if (
+    options.forwardEnvVariables != null &&
+    options.forwardEnvVariables === true
+  ) {
+    configureEnvVariables(config);
   }
 
   // validate pact mode and base url before starting the plugin
@@ -124,7 +146,12 @@ export function configureC8yPlugin(
   function getPact(pact: string): C8yPact | null {
     log(`getPact() - ${pact}`);
     validateId(pact);
-    return adapter?.loadPact(pact) || null;
+    try {
+      return adapter?.loadPact(pact) || null;
+    } catch (e) {
+      log(`getPact() - ${e}`);
+      return null;
+    }
   }
 
   function removePact(pact: string): boolean {
@@ -172,6 +199,70 @@ export function configureC8yPlugin(
     return await oauthLogin(options?.auth, options?.baseUrl);
   }
 
+  async function fetchRequest(options: {
+    url: string;
+    method: string;
+    headers: any;
+    body?: any;
+  }): Promise<{
+    status: number;
+    headers: any;
+    body: any;
+    statusText: string;
+    ok: boolean;
+    redirected: boolean;
+    type: string;
+    url: string;
+  }> {
+    try {
+      const response = await fetch(options.url, {
+        method: options.method,
+        headers: options.headers,
+        body: options.body,
+      });
+
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+
+      const contentType: string | undefined = get_i(
+        headers,
+        "content-type"
+      )?.toLowerCase();
+
+      let body: any;
+      if (contentType?.includes("application/json")) {
+        body = await response.json();
+      } else if (contentType?.includes("text/")) {
+        body = await response.text();
+      } else {
+        body = await response.blob();
+      }
+
+      const result = {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+        body,
+        ok: response.ok,
+        redirected: response.redirected,
+        type: response.type,
+        url: response.url,
+      } as const;
+
+      log(
+        `fetch() - ${options.method ?? "GET"} ${options.url} ${
+          result.status
+        } (${result.statusText})`
+      );
+      return result;
+    } catch (e) {
+      log(`fetch() - ${options.method ?? "GET"} ${options.url}. ${e}`);
+      throw e;
+    }
+  }
+
   if (on) {
     on("task", {
       "c8ypact:save": savePact,
@@ -180,6 +271,10 @@ export function configureC8yPlugin(
       "c8ypact:http:start": startHttpController,
       "c8ypact:http:stop": stopHttpController,
       "c8ypact:oauthLogin": login,
+      "c8ypact:fetch": fetchRequest,
+      "c8ypact:resolve": (pact: any) => {
+        return resolvePactRefs(pact, adapter.getFolder(), log);
+      },
     });
   }
 }
@@ -599,4 +694,90 @@ export function getFileUploadOptions(
   };
 
   return result;
+}
+
+export async function resolvePactRefs(
+  pact: any | string,
+  baseFolder?: string,
+  log: (message: string) => void = debug("c8y:pact:resolve")
+): Promise<any | null> {
+  if (!pact) {
+    log(
+      "Invalid or incomplete pact object received. Returning input pact object."
+    );
+    return pact; // Return original pact on parse error
+  }
+
+  let pactObject: any = pact;
+  if (typeof pact === "string") {
+    log(`Pact is a string, parsing JSON.`);
+    try {
+      pactObject = JSON.parse(pact);
+    } catch (e: any) {
+      log(`Error parsing pact from string (expected valid JSON): ${e.message}`);
+      log(`Returning original document due to error dereferencing refs.`);
+
+      return pact; // Return original pact on parse error
+    }
+  }
+
+  try {
+    log(`Starting for pact: ${pact?.id}, using base folder: ${baseFolder}`);
+
+    const result = await resolveRefs(pactObject, baseFolder);
+    log(
+      `Successfully resolved $ref references in pact with id: ${pactObject.id}`
+    );
+    if (typeof pact === "string") {
+      log(`Returning stringified result.`);
+      return safeStringify(result);
+    }
+    return result;
+  } catch (e: any) {
+    log(`Error during $ref resolving for pact with id: '${pactObject.id}':`);
+    if (e instanceof JSONParserErrorGroup) {
+      logJSONParserErrorGroup(e, log);
+    } else {
+      log(`  Error Type: ${e?.constructor?.name || "UnknownError"}`);
+      log(`  Message: ${e.message || String(e)}`);
+    }
+    log(`Returning original document due to error dereferencing refs.`);
+  }
+
+  return pact; // Return original pact on any error
+}
+
+export function configureEnvVariables(config: Cypress.PluginConfigOptions) {
+  const log = debug("c8y:plugin:env");
+
+  const env = process.env || {};
+  const c8yEnvKeys: string[] = Object.keys(env).filter((key) => {
+    return (
+      key.startsWith("C8Y_") || key.startsWith("C8YCTRL_") || key === "baseUrl"
+    );
+  });
+
+  c8yEnvKeys.forEach((key) => {
+    const value = env[key];
+    if (value != null) {
+      config.env[key] = value;
+      log(`Configured ${key} in config.env`);
+    }
+  });
+
+  const baseUrl = config.env.C8Y_BASEURL || config.env.baseUrl || null;
+  if (baseUrl != null) {
+    log("Configured baseUrl from env:", baseUrl);
+    config.baseUrl = baseUrl;
+  }
+
+  const grepTags =
+    config.env["tags"] ||
+    process.env["tags"] ||
+    process.env["grepTags"] ||
+    null;
+  if (grepTags != null) {
+    log("Configured grepTags from env:", grepTags);
+    config.env["grepTags"] = grepTags;
+  }
 }

@@ -1,15 +1,28 @@
-import { C8yBaseUrl, C8yTenant } from "../../shared/types";
+import {
+  C8yBaseUrl,
+  C8yTenant,
+  C8yTestHierarchyTree,
+} from "../../shared/types";
 import { C8yAuthOptions, C8yClientOptions } from "../../shared/c8yclient";
 import {
   C8yPact,
   C8yPactInfo,
   C8yPactRecord,
+  getCreatedObjectId,
   isPact,
 } from "../../shared/c8ypact";
 import { getBaseUrlFromEnv } from "../utils";
 import { Client } from "@c8y/client";
+import { buildTestHierarchy, to_array } from "../../shared/util";
 
 const { _ } = Cypress;
+
+// Infos:
+// https://github.com/cypress-io/cypress-example-recipes/tree/master/examples/fundamentals__dynamic-tests
+// Cannot dynamically create tests with cy.task
+// https://github.com/cypress-io/cypress/issues/5418
+// Ability to dynamically create tests while inside of a test
+// https://github.com/cypress-io/cypress/issues/7757
 
 /**
  * Configuration options for C8yPactRunner.
@@ -58,8 +71,6 @@ export interface C8yPactRunner {
   runTest: (pact: C8yPact, options?: C8yPactRunnerOptions) => void;
 }
 
-type TestHierarchyTree<T> = { [key: string]: T | TestHierarchyTree<T> };
-
 /**
  * Default implementation of C8yPactRunner. Runtime for C8yPact objects that will
  * create the tests dynamically and rerun recorded requests. Supports Basic and Cookie based
@@ -105,33 +116,15 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
       tests.push(pact);
     }
 
-    const testHierarchy = this.buildTestHierarchy(tests);
+    const testHierarchy = buildTestHierarchy<C8yPact>(
+      tests,
+      (item) => item.info.title ?? [item.id]
+    );
     this.createTestsFromHierarchy(testHierarchy, options);
   }
 
-  protected buildTestHierarchy(
-    pactObjects: C8yPact[]
-  ): TestHierarchyTree<C8yPact> {
-    const tree: TestHierarchyTree<C8yPact> = {};
-    pactObjects.forEach((pact) => {
-      const titles = pact.info.title ?? [pact.id];
-
-      let currentNode = tree;
-      const protectedKeys = ["__proto__", "constructor", "prototype"];
-      titles?.forEach((title, index) => {
-        if (!protectedKeys.includes(title)) {
-          if (!currentNode[title]) {
-            currentNode[title] = index === titles.length - 1 ? pact : {};
-          }
-          currentNode = currentNode[title] as TestHierarchyTree<C8yPact>;
-        }
-      });
-    });
-    return tree;
-  }
-
   protected createTestsFromHierarchy(
-    hierarchy: TestHierarchyTree<C8yPact>,
+    hierarchy: C8yTestHierarchyTree<C8yPact>,
     options: C8yPactRunnerOptions
   ): void {
     const keys = Object.keys(hierarchy);
@@ -183,9 +176,6 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
       }
 
       cy.then(() => {
-        Cypress.c8ypact.config.strictMatching =
-          pact.info?.strictMatching != null ? pact.info.strictMatching : true;
-
         const url = this.createURL(record, pact.info);
         if (!url) {
           cy.log("Skipping request without URL.");
@@ -200,22 +190,45 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           }
         }
 
-        let user = record.auth?.userAlias || record.auth?.user;
-        if ((user || "").split("/").length > 1) {
-          user = user?.split("/")?.slice(1)?.join("/");
-        }
+        let users: (string | undefined)[] = (
+          to_array(record.auth?.userAlias ?? record.auth?.user) ?? []
+        ).map((item) => {
+          if ((item || "").split("/").length > 1) {
+            return item?.split("/")?.slice(1)?.join("/");
+          } else {
+            return item;
+          }
+        });
+
         if (url === "/devicecontrol/deviceCredentials") {
-          user = "devicebootstrap";
+          users = to_array("devicebootstrap") ?? [];
         }
 
+        if (users?.length === 0) {
+          users = [undefined];
+        }
+
+        const configKeys = [
+          "skipClientAuthentication",
+          "preferBasicAuth",
+          "failOnStatusCode",
+          "timeout",
+        ];
+        const strictMatching =
+          Cypress.config().c8ypact?.strictMatching ??
+          record.options?.strictMatching ??
+          pact.info?.strictMatching ??
+          Cypress.c8ypact.getConfigValue("strictMatching") ??
+          true;
+
+        const failOnStatusCode = (record.response?.status ?? 200) < 400;
         const cOpts: C8yClientOptions = {
-          // pact: { record: record, info: pact.info },
-          ..._.pick(record.options, [
-            "skipClientAuthentication",
-            "preferBasicAuth",
-            "failOnStatusCode",
-            "timeout",
-          ]),
+          strictMatching,
+          record,
+          failOnStatusCode,
+          // config keys from record override pact info values
+          ..._.pick(pact.info, configKeys),
+          ..._.pick(record.options, configKeys),
         };
 
         const responseFn = (response: Cypress.Response<any>) => {
@@ -229,37 +242,71 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
               Cypress.env(`${username}_password`, password);
             }
           }
-          if (response.method === "POST") {
-            const newId = response.body.id;
-            if (newId && record.createdObject) {
-              this.idMapper[record.createdObject] = newId;
+
+          const createdObjectId = getCreatedObjectId(response);
+          if (createdObjectId != null && record.createdObject != null) {
+            this.idMapper[record.createdObject] = createdObjectId;
+            // Ensure config, preprocessor, and regexReplace objects exist
+            const config = Cypress.config();
+            if (config.c8ypact != null) {
+              const preprocessorOptions = config.c8ypact.preprocessor ?? {};
+              preprocessorOptions.regexReplace ??= {};
+
+              const key = "response";
+              const newValue = `/${createdObjectId}/${record.createdObject}/g`;
+              const existing = preprocessorOptions.regexReplace[key];
+
+              if (Array.isArray(existing)) {
+                preprocessorOptions.regexReplace[key] = [...existing, newValue];
+              } else if (_.isString(existing)) {
+                preprocessorOptions.regexReplace[key] = [existing, newValue];
+              } else if (existing == null) {
+                preprocessorOptions.regexReplace[key] = [newValue];
+              }
+              _.set(
+                Cypress.config(),
+                "c8ypact.preprocessor",
+                preprocessorOptions
+              );
             }
           }
         };
 
         const envAuth = Cypress.env("C8Y_PACT_RUNNER_AUTH");
+        const pactAuth = options.authType ?? record.authType();
 
         const isCookieAuth =
-          (envAuth ?? record.authType()) === "CookieAuth" &&
-          envAuth !== "BasicAuth";
+          (envAuth ?? pactAuth) === "CookieAuth" && envAuth !== "BasicAuth";
 
-        const isBasicAuth = (envAuth ?? record.authType()) === "BasicAuth";
+        const isBasicAuth = (envAuth ?? pactAuth) === "BasicAuth";
         const f = (c: Client) => c.core.fetch(url, clientFetchOptions);
 
-        (user ? cy.getAuth(user) : cy.getAuth()).then((auth) => {
-          if (user !== "devicebootstrap" && isCookieAuth) {
-            if (currentAuth == null || auth?.user !== currentAuth?.user) {
-              cy.wrap(auth).login();
-              currentAuth = auth;
-            }
-            cy.c8yclient(f, cOpts).then(responseFn);
-          } else {
-            if (isBasicAuth) {
-              cy.wrap(auth).c8yclient(f, cOpts).then(responseFn);
-            } else {
+        users.forEach((user) => {
+          (user ? cy.getAuth(user) : cy.getAuth()).then((auth) => {
+            if (user !== "devicebootstrap" && isCookieAuth) {
+              if (currentAuth == null || auth?.user !== currentAuth?.user) {
+                cy.wrap(auth, { log: false }).login();
+                currentAuth = auth;
+              }
               cy.c8yclient(f, cOpts).then(responseFn);
+            } else {
+              if (isBasicAuth || user != null) {
+                if (auth == null) {
+                  // should not get here as cy.getAuth(user) should fail if
+                  // no auth is found for the user. just making sure we get the
+                  // correct error message in case we still get here
+                  throw new Error(
+                    `Auth missing for user ${user}. This should not happen.`
+                  );
+                }
+                cy.wrap(auth, { log: false })
+                  .c8yclient(f, cOpts)
+                  .then(responseFn);
+              } else {
+                cy.c8yclient(f, cOpts).then(responseFn);
+              }
             }
-          }
+          });
         });
       });
     }

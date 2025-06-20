@@ -47,12 +47,7 @@ export interface GlobalOptions {
 
 export type SemverRange = string;
 
-export type LoginUserType = {
-  /**
-   * The alias of the user to login. The alias is used to reference the username and password to login from env variables.
-   */
-  authAlias: string;
-} & Partial<
+type UserType = Partial<
   Pick<
     IUser,
     | "userName"
@@ -85,18 +80,16 @@ export interface ScreenshotOptions {
    * Load Cumulocity with the given language
    * @example "en"
    */
-  language?: "en" | "de" | string;
+  language?: "en" | "de" | string | string[];
   /**
-   * Use login instead of user
-   * @deprecated Use login instead
+   * A user object with properties used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.
    */
-  user?: string;
+  user?: string | UserType;
   /**
    * The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated.
-   * If a user object is provided, the user to login is taken from userAlias property. All other properties are used to mock the user information in Cumulocity. This is useful to anonymize the user information in the screenshots.
    * @examples [["admin", false]]
    */
-  login?: string | LoginUserType | false;
+  login?: string | false;
   /**
    * The date to simulate when running the screenshot workflows
    * @format date-time
@@ -116,6 +109,10 @@ export interface Screenshot {
    * @examples ["/images/cockpit/dashboard.png"]
    */
   image: string;
+  /**
+   * The title of the screenshot workflow. The title is used to group the screenshots. To provide a hierarchy of titles, use an array of strings.
+   */
+  title?: string | string[];
   /**
    * The URI to visit. This typically a relative path to the baseUrl.
    * @examples ["/apps/cockpit/index.html#/"]
@@ -278,13 +275,11 @@ export interface ScrollToAction {
   element?: string | ({ offset?: [number, number] } & Selectable);
   /**
    * The position to scroll to. The default is 'top'. Provide a string, an array of strings, or a number to scroll to a specific position.
-   * @examples ["top", "bottom", "100px", ["top", "100px"], [0, 100], ["0%", "25%"]]
+   * @examples ["top", "bottom", ["top", "100px"], [0, 100], ["0%", "25%"]]
    */
   position?:
     | CyPositionType
-    | string
     | [string, string]
-    | number
     | [number, number];
 }
 
@@ -480,15 +475,42 @@ export interface Action {
   wait?: number | WaitAction;
 }
 
-export type DataCySelector = {
-  "data-cy": string;
+type SelectorDataCyProperties = {
+  "data-cy"?: string;
 };
+
+type SelectorLanguageProperties = {
+  /**
+   * The language(s) this selector is valid for. If the language of the application matches the language of the selector, the selector is used to select the element.
+   * If language is not supported by the selector, the selector is ignored.
+   * @examples ["en", "de", ["en", "de"]]   
+   */
+  language?: string | string[];
+};
+
+type SelectorLocalizedProperties = {
+  /**
+   * Language key and localized selector mapping. Use for example to select elements based on the language of the application.
+   * @examples [{ "de": "span.label-info:not(:contains('Objekt'))", "en": "span.label-info:not(:contains('Object'))" }]
+   */
+  localized?: {
+    [key: string]: string;
+  };
+};
+
+type SelectorProperties =
+  | SelectorDataCyProperties
+  | SelectorLanguageProperties
+  | SelectorLocalizedProperties;
 
 export type Selector = {
-  selector: string | DataCySelector;
+  /**
+   * The selector to use to select the DOM element. The selector can be defined as string or an object with properties to select the element.
+   */
+  selector: string | SelectorProperties;
 };
 
-export type Selectable = Selector | DataCySelector;
+export type Selectable = Selector | SelectorProperties;
 
 export type SharedSelector = {
   [key: string]: string;

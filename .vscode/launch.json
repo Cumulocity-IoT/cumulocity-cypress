@@ -11,7 +11,6 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "envFile": "${workspaceFolder}/src/c8ytrl/.env",
-      "args": ["--config", "src/c8ytrl/c8yctrl-dev.config.ts"],
       "skipFiles": [
         "<node_internals>/**",
         "${workspaceFolder}/node_modules/**"

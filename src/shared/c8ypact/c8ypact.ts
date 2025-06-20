@@ -9,6 +9,8 @@ import { C8yPactPreprocessorOptions } from "./preprocessor";
 import { C8yClientOptions } from "../c8yclient";
 import { C8yPactAuthObject } from "../auth";
 import { C8yBaseUrl, C8yTenant } from "../types";
+import { isAbsoluteURL } from "./url";
+import { get_i } from "../util";
 
 export const C8yPactModeValues = [
   "record",
@@ -92,7 +94,7 @@ export interface C8yPactConfigOptions {
   /**
    * Use strictMatching to enable strict matching of the pact records. If strict matching
    * is enabled, all properties of the pact records must match and tests fail if a property
-   * is missing.
+   * is missing. Default is false.
    */
   strictMatching?: boolean;
   /**
@@ -125,12 +127,7 @@ export interface C8yPactEnv {
   pluginFolder?: string;
 }
 
-/**
- * Pact object. Contains all information about a recorded pact, including
- * the pact records with requests and responses as well as info object with
- * meta data. A C8yPact objtect must have an unique id.
- */
-export interface C8yPact {
+export interface C8yPactObject {
   /**
    * Pact records containing the requests and responses as well as auth information,
    * configuration options and created objects.
@@ -144,6 +141,15 @@ export interface C8yPact {
    * Unique id of the pact.
    */
   id: C8yPactID;
+}
+export const C8yPactObjectKeys = ["records", "info", "id"] as string[];
+
+/**
+ * Pact object. Contains all information about a recorded pact, including
+ * the pact records with requests and responses as well as info object with
+ * meta data. A C8yPact objtect must have an unique id.
+ */
+export interface C8yPact extends C8yPactObject {
   /**
    * Clears all records of the pact. Also resets all indexes internally used for
    * iterating over the records.
@@ -328,9 +334,37 @@ export function pactId(value: string | string[]): C8yPactID | undefined {
 export function validatePactMode(mode?: string) {
   if (mode != null) {
     const values = Object.values(C8yPactModeValues) as string[];
-    if (!_.isString(mode) || !values.includes(mode.toLowerCase())) {
+    if (
+      !_.isString(mode) ||
+      _.isEmpty(mode) ||
+      !values.includes(mode.toLowerCase())
+    ) {
       const error = new Error(
         `Unsupported pact mode: "${mode}". Supported values are: ${values.join(
+          ", "
+        )} or undefined.`
+      );
+      error.name = "C8yPactError";
+      throw error;
+    }
+  }
+}
+
+/**
+ * Validate the given pact recording mode. Throws an error if the mode is not supported
+ * or undefined.
+ * @param mode The pact recording mode to validate.
+ */
+export function validatePactRecordingMode(mode?: string) {
+  if (mode != null) {
+    const keys = Object.values(C8yPactRecordingModeValues) as string[];
+    if (
+      !_.isString(mode) ||
+      _.isEmpty(mode) ||
+      !keys.includes(mode.toLowerCase())
+    ) {
+      const error = new Error(
+        `Unsupported recording mode: "${mode}". Supported values are: ${keys.join(
           ", "
         )} or undefined.`
       );
@@ -515,4 +549,32 @@ export function getEnvVar(
 export function isOneOfStrings(value: string, values: string[]): boolean {
   if (!_.isString(value) || _.isEmpty(value)) return false;
   return values.includes(value.toLowerCase());
+}
+
+export function getCreatedObjectId(
+  response:
+    | Cypress.Response<any>
+    | Partial<Cypress.Response<any>>
+    | C8yPactResponse<any>
+): string | undefined {
+  let newId = response?.body?.id;
+  if (newId) {
+    return newId;
+  } else {
+    const location = get_i(response, "headers.location");
+    if (isAbsoluteURL(location)) {
+      try {
+        const url = new URL(location);
+        const pathSegments = url?.pathname.split("/").filter(Boolean);
+
+        newId = pathSegments?.pop();
+        if (newId != null) {
+          return decodeURIComponent(newId);
+        }
+      } catch {
+        // do nothing
+      }
+    }
+  }
+  return undefined;
 }

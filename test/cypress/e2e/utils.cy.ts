@@ -7,6 +7,7 @@ import {
   normalizedArguments,
   normalizedArgumentsWithAuth,
   normalizedC8yclientArguments,
+  persistAuth,
 } from "../../../src/lib/utils";
 
 describe("utils", () => {
@@ -256,6 +257,25 @@ describe("utils", () => {
       expect(result?.password).to.eq("oeeadminpassword");
     });
 
+    it("auth options from __auth not overwritten by auth env variables", () => {
+      Cypress.env("C8Y_USERNAME", "a");
+      Cypress.env("C8Y_PASSWORD", "p");
+      persistAuth({user: "admin", password: "password"});
+      const result = getAuthOptions();
+      expect(result?.user).to.eq("admin");
+      expect(result?.password).to.eq("password");
+    });
+
+    it("auth options from Cypress.config().auth not overwritten by auth env variables", () => {
+      Cypress.env("C8Y_USERNAME", "a");
+      Cypress.env("C8Y_PASSWORD", "p");
+      Cypress.config("auth", { user: "admin", password: "password" });
+      const result = getAuthOptions();
+      expect(result?.user).to.eq("admin");
+      expect(result?.password).to.eq("password");
+      Cypress.config().auth = undefined;
+    });
+
     it("auth options from env variables with login options", () => {
       Cypress.env("C8Y_USERNAME", "oeeadmin2");
       Cypress.env("C8Y_PASSWORD", "oeeadminpassword2");
@@ -275,6 +295,20 @@ describe("utils", () => {
       expect(result2).to.be.undefined;
       const result3 = getAuthOptions();
       expect(result3).to.be.undefined;
+    });
+
+    it("auth options from IUser", () => {
+      const user = {
+        userName: "admin",
+        password: "password",
+        email: "test@test.de",
+        displayName: "Admin"
+      };
+      const result = getAuthOptions(user);
+      expect(result?.user).to.eq("admin");
+      expect(result?.password).to.eq("password");
+      expect(result).to.not.have.property("email");
+      expect(result).to.not.have.property("displayName");
     });
   });
 

@@ -1,10 +1,18 @@
 import _ from "lodash";
 
-import { ScreenshotSetup, Selector } from "../lib/screenshots/types";
+import {
+  Screenshot,
+  ScreenshotOptions,
+  ScreenshotSetup,
+  Selector,
+} from "../lib/screenshots/types";
+import { buildTestHierarchy, to_array } from "../shared/util";
+import { C8yTestHierarchyTree } from "../shared/types";
 
 export function getSelector(
   selector: any | string | undefined,
-  predefined?: ScreenshotSetup["selectors"]
+  predefined?: ScreenshotSetup["selectors"],
+  language?: string
 ): string | undefined {
   if (!selector) return undefined;
 
@@ -13,7 +21,7 @@ export function getSelector(
     const sharedSelector = _.isArray(predefined)
       ? _.get(_.first(predefined.filter((s) => name in s)), name)
       : _.get(predefined, name);
-      
+
     return sharedSelector ?? name;
   };
 
@@ -22,13 +30,17 @@ export function getSelector(
     let result = name;
     if (_.isArray(predefined)) {
       for (const item of predefined) {
-        const sortedKeys = Object.keys(item).sort((a, b) => b.length - a.length);
+        const sortedKeys = Object.keys(item).sort(
+          (a, b) => b.length - a.length
+        );
         for (const key of sortedKeys) {
-            result = result.split(key).join(item[key]);
+          result = result.split(key).join(item[key]);
         }
       }
     } else {
-      const sortedKeys = Object.keys(predefined).sort((a, b) => b.length - a.length);
+      const sortedKeys = Object.keys(predefined).sort(
+        (a, b) => b.length - a.length
+      );
       for (const key of sortedKeys) {
         result = result.split(key).join(predefined[key]);
       }
@@ -43,8 +55,21 @@ export function getSelector(
   if (_.isString(selector)) {
     return getResolvedSelector(selector);
   }
-  
+
   if (_.isPlainObject(selector)) {
+    if (language != null) {
+      if ("localized" in selector) {
+        return selector.localized[language];
+      }
+      if ("language" in selector) {
+        const l = selector.language;
+        if (_.isArray(l) && !l.includes(language)) {
+          return undefined;
+        } else if (_.isString(l) && l !== language) {
+          return undefined;
+        }
+      }
+    }
     if ("data-cy" in selector) {
       return `[data-cy=${_.get(selector, "data-cy")}]`;
     }
@@ -52,7 +77,7 @@ export function getSelector(
       return getSelector(selector.selector as Selector, predefined);
     }
   }
-  
+
   return undefined;
 }
 
@@ -100,6 +125,41 @@ export function parseSelector(selector: string): string[] {
   return result;
 }
 
-export function imageName(name: string): string {
-  return name.replace(/.png$/i, "");
+export function imageName(name: string, language?: string): string {
+  const n = name.replace(/.png$/i, "");
+  return language ? `${n}_${language}` : n;
+}
+
+export function buildTestHierarchyWithOptions(
+  objects: (Screenshot & ScreenshotOptions)[],
+  options: {
+    tags?: string[];
+    titles?: string[];
+    images?: string[];
+  }
+): C8yTestHierarchyTree<Screenshot & ScreenshotOptions> {
+  return buildTestHierarchy(objects, (item) => {
+    if (options.tags != null && item.tags != null) {
+      if (
+        _.intersection(options.tags, to_array(item.tags) ?? []).length === 0
+      ) {
+        return undefined;
+      }
+    }
+
+    const titles = to_array(item.title) ?? item.image?.split(/[/\\]/);
+    if (options.titles != null && titles != null && !_.isEmpty(titles)) {
+      if (!options.titles.every((title, index) => titles[index] === title)) {
+        return undefined;
+      }
+    }
+
+    if (options.images != null && item.image != null) {
+      if (!options.images.includes(item.image)) {
+        return undefined;
+      }
+    }
+
+    return titles;
+  });
 }

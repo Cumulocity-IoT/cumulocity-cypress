@@ -1,13 +1,13 @@
 import tseslint from 'typescript-eslint';
 import eslint from '@eslint/js';
-import pluginCypress from 'eslint-plugin-cypress/flat'
+import pluginCypress from 'eslint-plugin-cypress'
 
 export default tseslint.config(
   eslint.configs.recommended,
   tseslint.configs.recommended,
   pluginCypress.configs.recommended,
   {
-    ignores: ["**/dist/", "test/", "**/cypress/*.js", "**/*.spec.*", ".github/"],
+    ignores: ["**/dist/", "test/", "**/cypress/*.js", "**/*.spec.*", ".github/", "**/.yalc/"],
   },
   {
     rules: {

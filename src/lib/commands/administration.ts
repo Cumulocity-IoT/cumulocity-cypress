@@ -9,6 +9,8 @@ import {
   IApplication,
   ICurrentTenant,
   IDeviceCredentials,
+  IUserGroup,
+  IRole,
 } from "@c8y/client";
 import { C8yAuthOptions } from "../../shared/auth";
 import { C8yClientOptions } from "../../shared/c8yclient";
@@ -20,7 +22,7 @@ declare global {
   namespace Cypress {
     interface Chainable {
       /**
-       * Create a new user in Cumulocity. Assigns requested permissions and subcribes to
+       * Create a new user in Cumulocity. Assigns requested roles and subcribes to
        * applications with given names.
        *
        * Uses cy.c8yclient internally. Will fail if user already exists.
@@ -38,7 +40,7 @@ declare global {
        *
        * @param {C8yAuthOptions} authOptions the C8yAuthOptions authentication options including username and password
        * @param {IUser} userOptions the user options defining the user to be created
-       * @param {string[]} permissions the permissions to be assigned to the user
+       * @param {string[]} roles the roles to be assigned to the user
        * @param {string[] | IApplication[]} applications the name of applications to subscribe the user to
        * @param {C8yClientOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
        *
@@ -49,13 +51,13 @@ declare global {
           | [
               authOptions: C8yAuthOptions,
               userOptions: IUser,
-              permissions?: string[],
+              roles?: string[],
               applications?: string[] | IApplication[],
               c8yoptions?: C8yClientOptions
             ]
           | [
               userOptions: IUser,
-              permissions?: string[],
+              roles?: string[],
               applications?: string[] | IApplication[],
               c8yoptions?: C8yClientOptions
             ]
@@ -88,26 +90,69 @@ declare global {
       ): Chainable<Cypress.Response<null>>;
 
       /**
-       * Clear all roles currently assigned to a user.
+       * Creates a global role in Cumulocity with specified permissions.
        *
-       * Pass auth if required or call `cy.login()` before to use `XSRF-TOKEN`cookie for
-       * authentication.
+       * This command creates a new global role with the provided name and description,
+       * then assigns the specified permissions to it.
        *
        * @example
-       * cy.clearUserRoles("user");
+       * cy.createGlobalRole(
+       *   { name: "DeviceManager", description: "Can manage all devices" },
+       *   ["ROLE_INVENTORY_READ", "ROLE_INVENTORY_ADMIN", "ROLE_IDENTITY_READ"]
+       * );
        *
-       * @param {C8yAuthOptions} authOptions the C8yAuthOptions authentication options including username and password
-       * @param {string} username the name of the user to be deleted
-       * @param {C8yClientOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
+       * @example
+       * cy.getAuth("admin").createGlobalRole(
+       *   { name: "ReportViewer", description: "Access to view reports" },
+       *   ["ROLE_REPORT_READ"]
+       * );
        *
-       * @returns {C8yAuthOptions} the auth options for chaining
+       * @param {C8yAuthOptions} authOptions - Authentication options including username and password
+       * @param {{ name: string, description?: string }} roleOptions - The name and optional description for the global role
+       * @param {string[]} roles - Array of role permissions to assign to the global role
+       * @param {C8yClientOptions} c8yoptions - Options passed to cy.c8yclient
+       *
+       * @returns {Chainable<IUserGroup>} The created global role for chaining
        */
-      clearUserRoles(
+      createGlobalRole(
         ...args:
-          | [username: string | IUser, c8yoptions?: C8yClientOptions]
+          | [
+              roleOptions: string | { name: string; description?: string },
+              roles: string[],
+              c8yoptions?: C8yClientOptions
+            ]
           | [
               authOptions: C8yAuthOptions,
-              username: string | IUser,
+              roleOptions: string | { name: string; description?: string },
+              roles: string[],
+              c8yoptions?: C8yClientOptions
+            ]
+      ): Chainable<IUserGroup>;
+
+      /**
+       * Deletes global roles from Cumulocity by name.
+       *
+       * This command retrieves all global roles, filters those matching the provided names,
+       * and then deletes them. Will not fail if a role does not exist.
+       *
+       * @example
+       * cy.deleteGlobalRoles(["DeviceManager", "ReportViewer"]);
+       *
+       * @example
+       * cy.getAuth("admin").deleteGlobalRoles(["AdminRole", "UserRole"]);
+       *
+       * @param {C8yAuthOptions} authOptions - Authentication options including username and password
+       * @param {string[]} roleNames - Array of role names to delete
+       * @param {C8yClientOptions} c8yoptions - Options passed to cy.c8yclient
+       *
+       * @returns {Chainable<C8yAuthOptions>} The auth options for chaining
+       */
+      deleteGlobalRoles(
+        ...args:
+          | [roleNames: string[], c8yoptions?: C8yClientOptions]
+          | [
+              authOptions: C8yAuthOptions,
+              roleNames: string[],
               c8yoptions?: C8yClientOptions
             ]
       ): Chainable<C8yAuthOptions>;
@@ -139,6 +184,31 @@ declare global {
               authOptions: C8yAuthOptions,
               username: string | IUser,
               roles: string[],
+              c8yoptions?: C8yClientOptions
+            ]
+      ): Chainable<C8yAuthOptions>;
+
+      /**
+       * Clear all roles currently assigned to a user.
+       *
+       * Pass auth if required or call `cy.login()` before to use `XSRF-TOKEN`cookie for
+       * authentication.
+       *
+       * @example
+       * cy.clearUserRoles("user");
+       *
+       * @param {C8yAuthOptions} authOptions the C8yAuthOptions authentication options including username and password
+       * @param {string} username the name of the user to be deleted
+       * @param {C8yClientOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
+       *
+       * @returns {C8yAuthOptions} the auth options for chaining
+       */
+      clearUserRoles(
+        ...args:
+          | [username: string | IUser, c8yoptions?: C8yClientOptions]
+          | [
+              authOptions: C8yAuthOptions,
+              username: string | IUser,
               c8yoptions?: C8yClientOptions
             ]
       ): Chainable<C8yAuthOptions>;
@@ -264,13 +334,13 @@ declare global {
 
 Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
   const $args = normalizedC8yclientArguments(args);
-  const [auth, userOptions, permissions, applications, clientOptions] = $args;
+  const [auth, userOptions, roles, applications, clientOptions] = $args;
 
   const consoleProps: any = {
     args: args || null,
     auth: auth || null,
     userOptions: userOptions || null,
-    permissions: permissions || null,
+    roles: roles || null,
     applications: applications || null,
     clientOptions: clientOptions || null,
   };
@@ -296,15 +366,13 @@ Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
     .then((userResponse) => {
       const userId = userResponse.body.id;
       consoleProps.userId = userId;
-      if (permissions && !_.isEmpty(permissions)) {
-        consoleProps.permissions = permissions;
-        cy.wrap(permissions, { log: false }).each((permission) => {
+      if (roles && !_.isEmpty(roles)) {
+        consoleProps.roles = roles;
+        cy.wrap(roles, { log: false }).each((role) => {
           cy.wrap(auth, { log: false }).c8yclient(
             [
               (c) =>
-                c.core.fetch(
-                  "/user/" + c.core.tenant + "/groupByName/" + permission
-                ),
+                c.core.fetch("/user/" + c.core.tenant + "/groupByName/" + role),
               (c, groupResponse) => {
                 const childId = userResponse?.body?.self;
                 const groupId = groupResponse?.body?.id;
@@ -458,6 +526,159 @@ Cypress.Commands.add(
         });
         logger.end();
         return cy.wrap<C8yAuthOptions>(auth, { log: false });
+      });
+  }
+);
+
+Cypress.Commands.add(
+  "createGlobalRole",
+  {
+    prevSubject: "optional",
+  },
+  (...args) => {
+    const $args = normalizedC8yclientArguments(args);
+    const [auth, globalRole, rolesToAssign, clientOptions] = $args;
+
+    const roleOptions = _.isObjectLike(globalRole)
+      ? globalRole
+      : { name: globalRole };
+    const consoleProps: any = {
+      args: args || null,
+      auth: auth || null,
+      rolesToAssign: rolesToAssign || null,
+      roleOptions: roleOptions || null,
+      clientOptions: clientOptions || null,
+    };
+
+    const logger = Cypress.log({
+      autoEnd: false,
+      name: "createGlobalRole",
+      message: roleOptions.name ?? "",
+      consoleProps: () => consoleProps,
+    });
+
+    if (!_.isString(roleOptions.name) || _.isEmpty(roleOptions.name)) {
+      logger.end();
+      throwError("Missing argument. Requiring a name for the global role.");
+    }
+
+    return cy
+      .wrap(auth, { log: false })
+      .c8yclient(
+        (client) => client.userGroup.create(roleOptions),
+        clientOptions
+      )
+      .then((createResponse) => {
+        const userGroup = createResponse.body;
+        consoleProps.role = userGroup;
+
+        const userGroupId = userGroup.id;
+        if (!userGroupId) {
+          logger.end();
+          throwError("Failed to create global role. UserGroup id is missing.");
+        }
+
+        return cy
+          .wrap(auth, { log: false })
+          .c8yclient(
+            (client) =>
+              client.userRole.list({ pageSize: 2000, withTotalPages: false }),
+            clientOptions
+          )
+          .then((listResponse: Cypress.Response<any>) => {
+            const listRoles: IRole[] | undefined = listResponse.body.roles;
+            consoleProps.existingRoles = listRoles || null;
+            const matches: IRole[] = [];
+            if (!listRoles || listRoles.length === 0) {
+              logger.end();
+              throwError("Failed to load roles. No roles found.");
+            }
+
+            for (const r of listRoles) {
+              if (
+                rolesToAssign?.find(
+                  (item: string) => item === r.id || item === r.name
+                ) != null
+              ) {
+                matches.push(r);
+              }
+            }
+
+            if (matches.length < rolesToAssign.length) {
+              logger.end();
+              throwError(
+                `Failed to assign one of provided userRoles to ${roleOptions.name}. User role not found.`
+              );
+            }
+
+            cy.wrap(auth, { log: false }).c8yclient(
+              (c) =>
+                matches
+                  ?.filter((item) => item.self != null)
+                  .map((match) =>
+                    c.userGroup.addRoleToGroup(userGroupId, match.self!)
+                  ),
+              clientOptions
+            );
+          })
+          .then(() => {
+            logger.end();
+            return cy.wrap(userGroup);
+          });
+      });
+  }
+);
+
+Cypress.Commands.add(
+  "deleteGlobalRoles",
+  { prevSubject: "optional" },
+  (...args) => {
+    const $args = normalizedC8yclientArguments(args);
+    const [auth, roleNames, clientOptions] = $args;
+
+    const consoleProps: any = {
+      args: args || null,
+      auth: auth || null,
+      roleNames: roleNames || null,
+      clientOptions: clientOptions || null,
+    };
+
+    const logger = Cypress.log({
+      autoEnd: false,
+      name: "deleteGlobalRoles",
+      consoleProps: () => consoleProps,
+    });
+
+    if (!roleNames || !_.isArray(roleNames) || _.isEmpty(roleNames)) {
+      logger.end();
+      throwError("Missing argument. Requiring an array of role names.");
+    }
+
+    return cy
+      .wrap(auth, { log: false })
+      .c8yclient((c) => c.userGroup.list({ pageSize: 2000 }), clientOptions)
+      .then((listResponse: Cypress.Response<any>) => {
+        const groups: IUserGroup[] = listResponse.body.groups;
+        if (!groups || groups.length === 0) {
+          logger.end();
+          throwError("Failed to load userGroups. No groups found.");
+        }
+        return cy
+          .wrap(auth, { log: false })
+          .c8yclient(
+            (c) =>
+              groups
+                .filter((g) => roleNames.includes(g.name) && g.id != null)
+                .map((g) => c.userGroup.delete(g.id!)),
+            { ...clientOptions, ...{ failOnStatusCode: false } }
+          )
+          .then((response) => {
+            for (const res of response) {
+              expect(res.status).to.be.oneOf([204, 404]);
+            }
+            logger.end();
+            return cy.wrap<C8yAuthOptions>(auth, { log: false });
+          });
       });
   }
 );

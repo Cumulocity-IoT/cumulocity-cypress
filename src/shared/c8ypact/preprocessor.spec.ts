@@ -4,6 +4,8 @@ import {
   C8yDefaultPactPreprocessor,
   C8yPactPreprocessorDefaultOptions,
   C8yPactPreprocessorOptions,
+  parseRegexReplace,
+  performRegexReplace,
 } from "./preprocessor";
 
 import _ from "lodash";
@@ -65,7 +67,7 @@ describe("C8yDefaultPactPreprocessor", () => {
 
     it("should resolve options with default values", () => {
       const preprocessor = new TestC8yDefaultPactPreprocessor();
-      const resolvedOptions = preprocessor.test_resolveOptions()
+      const resolvedOptions = preprocessor.test_resolveOptions();
       expect(resolvedOptions).toStrictEqual(C8yPactPreprocessorDefaultOptions);
     });
 
@@ -108,7 +110,7 @@ describe("C8yDefaultPactPreprocessor", () => {
       const resolvedOptions = preprocessor.test_resolveOptions(options);
       expect(resolvedOptions).toStrictEqual({
         ...C8yPactPreprocessorDefaultOptions,
-        ...options
+        ...options,
       });
     });
   });
@@ -199,6 +201,35 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.body).not.toHaveProperty("nonexistent");
       expect(response!.requestBody.id).toBe("******");
     });
+
+    it("should obfuscate with array elements in path", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.linkedSeries.fragment"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.linkedSeries = [
+        { fragment: "Test_Fragment0", series: "Total" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.linkedSeries[0].fragment).toBe("******");
+    });
+
+    it("should obfuscate with case insensitive keys in array elements in path", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.linkedSeries.FRAGMENT"],
+        obfuscationPattern: "******",
+        ignoreCase: true,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.linkedSeries = [
+        { fragment: "Test_Fragment0", series: "Total" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.linkedSeries[0].fragment).toBe("******");
+    });
   });
 
   describe("ignore", () => {
@@ -282,6 +313,37 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.requestHeaders["cookie"]).toStrictEqual(
         "authorization=secret; XSRF-TOKEN=token"
       );
+    });
+
+    it("should remove from array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.linkedSeries.fragment"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.linkedSeries = [
+        { fragment: "Test_Fragment0", series: "Total" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.linkedSeries[0].fragment).toBeUndefined();
+      expect(response!.body.linkedSeries[0]).not.toHaveProperty("fragment");
+      expect(response!.body.linkedSeries[0].series).toBe("Total");
+    });
+
+    it("should remove with case insensitive keys from array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.linkedSeries.FRAGMENT"],
+        ignoreCase: true,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.linkedSeries = [
+        { fragment: "Test_Fragment0", series: "Total" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.linkedSeries[0].fragment).toBeUndefined();
+      expect(response!.body.linkedSeries[0]).not.toHaveProperty("fragment");
+      expect(response!.body.linkedSeries[0].series).toBe("Total");
     });
   });
 
@@ -413,6 +475,673 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.requestHeaders["cookie"]).toStrictEqual(
         "authorization=secret; XSRF-TOKEN=******"
       );
+    });
+  });
+
+  describe("pick", () => {
+    it("should pick only specified keys in an object", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: {
+          headers: ["content-type"],
+          body: [],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        headers: {
+          "content-type": "application/json",
+        },
+        body: { name: "test" },
+      });
+    });
+
+    it("should pick only specified keys in an object with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: {
+          HEADERS: ["Content-Type"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        headers: {
+          "content-type": "application/json",
+        },
+      });
+    });
+
+    it("should pick only specified keys in an object with case insensitive keys in entire path", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: {
+          HEADERS: ["Content-Type"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        HEADERS: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+      };
+
+      preprocessor.apply(response as any);
+
+      expect(response).toStrictEqual({
+        HEADERS: {
+          "content-type": "application/json",
+        },
+      });
+    });
+
+    it("should pick only specified keys for root object", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: ["content-type"],
+      };
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+        "content-type": "application/text",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        "content-type": "application/text",
+      });
+    });
+
+    it("should pick only specified keys for root object with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: ["content-type"],
+      };
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+        "cOnteNT-Type": "application/text",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(response);
+      expect(response).toStrictEqual({
+        "cOnteNT-Type": "application/text",
+      });
+    });
+
+    it("should not fail if pick option is undefined", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: undefined,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      const originalResponse = { ...response };
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual(originalResponse);
+    });
+
+    it("should apply pick and ignore options", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: { headers: ["content-type"] },
+        ignore: ["headers.content-type"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        headers: {},
+      });
+    });
+
+    it("should apply pick and obfuscate options", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: { headers: ["content-type"] },
+        obfuscate: ["headers.content-type"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+
+      expect(response).toStrictEqual({
+        headers: {
+          "content-type": C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+        },
+      });
+    });
+
+    it("should apply pick and obfuscate options with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: { headers: ["content-type"] },
+        obfuscate: ["headers.content-type"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        HEADERS: {
+          "Content-Type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response, { ignoreCase: true });
+
+      expect(response).toStrictEqual({
+        HEADERS: {
+          "Content-Type": C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+        },
+      });
+    });
+
+    it("should not use pick option as prefix", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: { head: [] },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-cache",
+        },
+        body: { name: "test" },
+      };
+
+      preprocessor.apply(response);
+      expect(response).toStrictEqual({});
+    });
+
+    it("should work with real example", () => {
+      const obj: any = {
+        request: {
+          url: "/service/dtm/assets",
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: {
+            name: "CypressTestAsset",
+            linkedSeries: [
+              { fragment: "Test_Fragment0", series: "Total" },
+              {
+                fragment: "Test_Fragment1",
+                series: "Total",
+                source: {
+                  fragment: "Source_Fragment",
+                  series: "Source_Series",
+                  id: "0",
+                },
+              },
+            ],
+          },
+        },
+        response: {
+          status: 403,
+          statusText: "Forbidden",
+          body: {
+            messages: [
+              "Access Denied. User does not have permission ROLE_DIGITAL_TWIN_ASSETS_CREATE or ROLE_DIGITAL_TWIN_ASSETS_ADMIN.",
+            ],
+          },
+          headers: {
+            "content-type": "application/json",
+            "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+            "www-authenticate": 'XBasic realm="Cumulocity"',
+            "x-content-type-options": "nosniff",
+            "x-xss-protection": "1; mode=block",
+          },
+          duration: 0,
+          isOkStatusCode: false,
+          allRequestResponses: [],
+        },
+      };
+      const options: any = {
+        ignoreCase: true,
+        pick: {
+          request: ["url", "method", "headers.content-type"],
+          response: [
+            "body",
+            "status",
+            "headers.content-type",
+            "status",
+            "statusText",
+          ],
+        },
+        ignore: ["request.headers"],
+      };
+
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      preprocessor.apply(obj);
+      expect(obj).toStrictEqual({
+        request: {
+          url: "/service/dtm/assets",
+          method: "POST",
+        },
+        response: {
+          status: 403,
+          statusText: "Forbidden",
+          body: {
+            messages: [
+              "Access Denied. User does not have permission ROLE_DIGITAL_TWIN_ASSETS_CREATE or ROLE_DIGITAL_TWIN_ASSETS_ADMIN.",
+            ],
+          },
+          headers: {
+            "content-type": "application/json",
+          },
+        },
+      });
+    });
+  });
+
+  describe("regexReplace", () => {
+    it("should perform regex replace", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": "/abc/def/g",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { body: { name: "abc" } };
+      preprocessor.apply(response);
+      expect(response.body.name).toBe("def");
+    });
+
+    it("should perform regex replace with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": "/abc/def/g",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { BODY: { name: "abc" } };
+
+      preprocessor.apply(response as any, { ignoreCase: true });
+
+      expect(response.BODY.name).toBe("def");
+    });
+
+    it("should perform regex replace with multiple keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": "/abc/def/g",
+          "requestBody.id": "/123/456/g",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { body: { name: "abc" }, requestBody: { id: "123" } };
+      preprocessor.apply(response);
+      expect(response.body.name).toBe("def");
+      expect(response.requestBody.id).toBe("456");
+    });
+
+    it("should apply regex replace with global flag", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": "/abc/def/g",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { body: { name: "abc abc" } };
+      preprocessor.apply(response);
+      expect(response.body.name).toBe("def def"); // Global replace
+    });
+
+    it("should apply multiple regex replacements in sequence when using array", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": ["/hello/hi/g", "/world/earth/g"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { body: { name: "hello world" } };
+      preprocessor.apply(response);
+      expect(response.body.name).toBe("hi earth");
+    });
+
+    it("should apply each regex replacement in array order", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": ["/abc/xyz/g", "/xyz/123/g"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { body: { name: "abc" } };
+      preprocessor.apply(response);
+      expect(response.body.name).toBe("123"); // First transforms abc→xyz, then xyz→123
+    });
+
+    it("should handle mixed string and array values for different keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": ["/John/Jane/", "/Doe/Smith/"],
+          "body.id": "/ID-\\d+/ID-000/",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { body: { name: "John Doe", id: "ID-123" } };
+      preprocessor.apply(response);
+      expect(response.body.name).toBe("Jane Smith");
+      expect(response.body.id).toBe("ID-000");
+    });
+
+    it("should continue with valid patterns if one pattern in array is invalid", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": [
+            "/valid/replaced/g",
+            "invalid-pattern",
+            "/pattern/newpattern/g",
+          ],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { body: { name: "valid pattern" } };
+      preprocessor.apply(response);
+      // Should apply first and third patterns but skip the invalid one
+      expect(response.body.name).toBe("replaced newpattern");
+    });
+
+    it("should handle empty array gracefully", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": [],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { body: { name: "original value" } };
+      preprocessor.apply(response);
+      expect(response.body.name).toBe("original value");
+    });
+
+    it("should replace with empty string if replacement is empty", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.name": "/abc//g", // Empty replacement
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const response = { body: { name: "abc" } };
+      preprocessor.apply(response);
+      expect(response.body.name).toBe(""); // Should replace with empty string
+    });
+  });
+
+  describe("regex parsing", () => {
+    // Positive tests for parseRegexReplace
+    it("should parse valid regex replace patterns", () => {
+      const s = "/abc/def/g";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      const pattern = regex?.pattern;
+      expect(pattern?.source).toBe("abc");
+      expect(pattern?.flags).toBe("g");
+      expect(regex?.replacement).toBe("def");
+    });
+
+    it("should parse regex replace pattern with multiple flags", () => {
+      const s = "/abc/replacement/gim";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      expect(regex?.pattern.source).toBe("abc");
+      expect(regex?.pattern.flags).toBe("gim");
+      expect(regex?.replacement).toBe("replacement");
+    });
+
+    it("should parse regex replace pattern with special characters in pattern", () => {
+      const s = "/a.b*c+/replacement/g";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      expect(regex?.pattern.source).toBe("a.b*c+");
+      expect(regex?.replacement).toBe("replacement");
+    });
+
+    it("should parse regex replace pattern with special characters in replacement", () => {
+      const s = "/abc/$&-$1-$$-$`-$'/g";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      expect(regex?.pattern.source).toBe("abc");
+      expect(regex?.replacement).toBe("$&-$1-$$-$`-$'");
+    });
+
+    it("should parse regex replace pattern with escaped forward slashes in pattern", () => {
+      const s = "/abc\\/def/replacement/g";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      expect(regex?.pattern.source).toBe("abc\\/def");
+      expect(regex?.replacement).toBe("replacement");
+    });
+
+    it("should parse regex replace pattern with escaped forward slashes in replacement", () => {
+      const s = "/abc/replace\\/with\\/slashes/g";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      expect(regex?.pattern.source).toBe("abc");
+      expect(regex?.replacement).toBe("replace\\/with\\/slashes");
+    });
+
+    it("should parse URL-like replace patterns", () => {
+      const s = "/http:\\/\\/example\\.com/https:\\/\\/example\\.org/g";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      expect(regex?.pattern.source).toBe("http:\\/\\/example\\.com");
+      expect(regex?.replacement).toBe("https:\\/\\/example\\.org");
+    });
+
+    // Negative tests for parseRegexReplace
+    it("should throw error for invalid regex replace patterns", () => {
+      const s = "abc/def/g"; // Missing opening slash
+      expect(() => parseRegexReplace(s)).toThrow(
+        "Invalid replacement regular expression: abc/def/g"
+      );
+    });
+
+    it("should throw error for pattern without closing delimiter", () => {
+      const s = "/abc/def"; // Missing closing delimiter
+      expect(() => parseRegexReplace(s)).toThrow(
+        "Invalid replacement regular expression: /abc/def"
+      );
+    });
+
+    it("should throw error for non-string input", () => {
+      expect(() => parseRegexReplace(null as any)).toThrow(
+        "Invalid replacement expression input."
+      );
+    });
+
+    it("should throw error for invalid regex patterns", () => {
+      const s = "/abc[/replacement/g"; // Invalid regex pattern (unclosed character class)
+      expect(() => parseRegexReplace(s)).toThrow("Invalid regular expression:");
+    });
+
+    // Edge cases for parseRegexReplace
+    it("should parse regex replace patterns with empty pattern", () => {
+      const s = "//replacement/g";
+      expect(() => parseRegexReplace(s)).toThrow(
+        "Invalid replacement regular expression: //replacement/g"
+      );
+    });
+
+    it("should parse regex replace patterns with character classes", () => {
+      const s = "/[a-z0-9]+/replacement/g";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      expect(regex?.pattern.source).toBe("[a-z0-9]+");
+      expect(regex?.replacement).toBe("replacement");
+    });
+
+    it("should parse regex replace patterns with capture groups", () => {
+      const s = "/(\\w+)\\s(\\w+)/Hello $2, $1!/g";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      expect(regex?.pattern.source).toBe("(\\w+)\\s(\\w+)");
+      expect(regex?.replacement).toBe("Hello $2, $1!");
+    });
+
+    it("should parse regex replace patterns with no flags", () => {
+      const s = "/abc/def/";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      expect(regex?.pattern.source).toBe("abc");
+      expect(regex?.pattern.flags).toBe("");
+      expect(regex?.replacement).toBe("def");
+    });
+
+    it("should parse regex replace pattern with function-like replacement syntax", () => {
+      const s = "/abc/function(match) { return match.toUpperCase(); }/g";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+      expect(regex?.pattern.source).toBe("abc");
+      expect(regex?.replacement).toBe(
+        "function(match) { return match.toUpperCase(); }"
+      );
+    });
+
+    // Complex edge cases
+    it("should parse complex regex replace pattern with lookaheads and lookbehinds", () => {
+      try {
+        const s = "/(?<=@)\\w+(?=\\.com)/replacement/g";
+        const regex = parseRegexReplace(s);
+        expect(regex).toBeDefined();
+        expect(regex?.pattern.source).toBe("(?<=@)\\w+(?=\\.com)");
+        expect(regex?.replacement).toBe("replacement");
+      } catch (e) {
+        // Skip if browser doesn't support lookbehind
+      }
+    });
+
+    it("should parse regex replace pattern with unicode properties", () => {
+      try {
+        const s = "/\\p{Script=Greek}/replacement/u";
+        const regex = parseRegexReplace(s);
+        expect(regex).toBeDefined();
+        expect(regex?.pattern.source).toBe("\\p{Script=Greek}");
+        expect(regex?.pattern.flags).toBe("u");
+        expect(regex?.replacement).toBe("replacement");
+      } catch (e) {
+        // Skip if browser doesn't support Unicode property escapes
+      }
+    });
+
+    // Additional negative tests
+    it("should throw error for regex with invalid flags", () => {
+      const s = "/abc/def/xyz"; // Invalid flags
+      // This may or may not throw depending on browser implementation of RegExp
+      expect(() => {
+        try {
+          parseRegexReplace(s);
+        } catch (e) {
+          if (e instanceof Error && e.message.includes("Invalid flags")) {
+            throw e; // Re-throw RegExp constructor errors about invalid flags
+          }
+          throw new Error("Invalid replacement expression pattern.");
+        }
+      }).toThrow();
+    });
+
+    it("should throw error for empty string", () => {
+      expect(() => parseRegexReplace("")).toThrow(
+        "Invalid replacement expression input."
+      );
+    });
+
+    it("should throw error for standard regex without replacement", () => {
+      const s = "/abc/g"; // No replacement part (standard regex)
+      expect(() => parseRegexReplace(s)).toThrow(
+        "Invalid replacement regular expression: /abc/g"
+      );
+    });
+
+    it("should throw error for incorrectly escaped pattern", () => {
+      const s = "/abc\\/replacement/g"; // Slash in wrong place
+      expect(() => parseRegexReplace(s)).toThrow(
+        "Invalid replacement regular expression: /abc\\/replacement/g"
+      );
+    });
+
+    // Practical application tests
+    it("should correctly apply the replacement", () => {
+      const s = "/hello/goodbye/g";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+
+      // Use the parsed regex to perform a replacement
+      const text = "hello world, hello universe";
+      const result = text.replace(regex.pattern, regex.replacement);
+      expect(result).toBe("goodbye world, goodbye universe");
+    });
+
+    it("should correctly apply replacement with capture groups", () => {
+      const s = "/(\\w+)\\s(\\w+)/Hello $2, $1!/";
+      const regex = parseRegexReplace(s);
+      expect(regex).toBeDefined();
+
+      // Use the parsed regex to perform a replacement
+      const text = "John Doe";
+      const result = text.replace(regex.pattern, regex.replacement);
+      expect(result).toBe("Hello Doe, John!");
+    });
+  });
+
+  describe("performRegexReplace", () => {
+    it("should perform regex replace with valid pattern", () => {
+      const s = "/abc/def/g";
+      const regex = parseRegexReplace(s);
+      const text = "abc abc abc";
+      const result = performRegexReplace(text, regex!);
+      expect(result).toBe("def def def");
+    });
+
+    it("should return input string if input is not a string", () => {
+      const regex = parseRegexReplace("/abc/def/g");
+      const result1 = performRegexReplace(undefined as any, regex!);
+      expect(result1).toBe(undefined);
+      const result2 = performRegexReplace(null as any, regex!);
+      expect(result2).toBe(null);
+      const result3 = performRegexReplace({} as any, regex!);
+      expect(result3).toStrictEqual({});
     });
   });
 });

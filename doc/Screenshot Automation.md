@@ -62,6 +62,9 @@ Contents of this document:
 - [Environment Variables](#environment-variables)
 - [Authentication](#authentication)
 - [Selectors](#selectors)
+  - [Localization of Selectors](#localization-of-selectors)
+  - [Using the `localized` Property](#using-the-localized-property)
+  - [Using the `language` Property](#using-the-language-property)
 - [Diffing](#diffing)
 - [Tags](#tags)
 - [Version Requirements](#version-requirements)
@@ -244,7 +247,7 @@ configureC8yScreenshotPlugin(on, config, myYamlConfig);
 Create a new file, e.g. `screenshot.cy.ts`, in your Cypress project folder to host `C8yScreenshotRunner`:
 
 ```typescript
-import { C8yScreenshotRunner } from "cumulocity-cypress/screenshot";
+import { C8yScreenshotRunner } from "cumulocity-cypress/c8yscrn";
 
 describe('My Custom Screenshot Automation', () => {
   const runner = new C8yScreenshotRunner();
@@ -252,7 +255,27 @@ describe('My Custom Screenshot Automation', () => {
 });
 ```
 
-When integrating into an existing Cypress project, you'll use the `C8yScreenshotRunner` in your test files. See the "Using C8yScreenshotRunner in Your Project" section for details.
+When integrating into an existing Cypress project, you'll use the `C8yScreenshotRunner` in your test files. 
+
+You can also use the `C8yScreenshotRunner` in your existing Cypress tests for selected workflows. This would allow to run workflows with different setups, as for example different interceptions, before taking the screenshots.
+
+```typescript
+
+import { C8yScreenshotRunner } from "cumulocity-cypress/c8yscrn";
+
+describe('My Custom Screenshot Automation', () => {
+
+  const runner = new C8yScreenshotRunner();
+  
+  context("Requires mocked users", () => {
+    beforeEach(() => {
+      cy.intercept("GET", "/users", { fixture: "user.json" });
+    });
+
+    runner.run({ tags: ["user"] });
+  });
+});
+```
 
 #### Custom Commands
 
@@ -330,13 +353,13 @@ global:
   login: admin
 ```
 
-You can also provide additional user properties to overwrite user information in the UI. This can be useful for setting the user's name, email, phone number, etc., for the screenshots. When providing an object, `authAlias` is required to look up the user credentials.
+You can also provide additional `user` property to overwrite user information in the UI. This can be useful for setting the user's name, email, phone number, etc., for the screenshots. 
 
 ```yaml
 global:
-  login:
-    authAlias: admin
-    # additional user properties to overwrite user information in the UI
+  login: admin
+  # additional user properties to overwrite user information in the UI
+  user:
     id: max
     userName: Max
     firstName: Max
@@ -419,6 +442,41 @@ The names can be used for any `selector` property in the screenshot configuratio
 - click:
   selector: rightDrawerHeader
 ```
+
+### Localization of Selectors
+
+When creating screenshots for applications that support multiple languages, you may encounter selectors that need to be different based on the current language of the application. The screenshot automation tool provides two ways to handle localized selectors:
+
+### Using the `localized` Property
+
+The `localized` property allows you to specify different selectors for different languages. The system will automatically use the selector that matches the current language of the application.
+
+**Example:**
+```yaml
+- click:
+    selector:
+      localized:
+        en: .btn:contains("Enum"):first
+        de: .btn:contains("Aufzählung"):first
+```
+
+In this example, the `click` action will use the `.btn:contains("Enum"):first` selector when the language is set to English (`en`) and the `.btn:contains("Aufzählung"):first` selector when the language is set to German (`de`). If the current language is neither English nor German, the action will be skipped.
+
+### Using the `language` Property
+
+The `language` property allows you to specify a language or list of languages the selector works with. If the current language does not match any of the specified languages, the action will be skipped.
+
+**Example:**
+```yaml
+- click:
+    selector: .btn:contains("Aufzählung"):first
+      language: de
+- click:
+    selector: .btn:contains("Enum"):first
+      language: en
+```
+
+In this example, the first `click` action will only be executed when the language is set to German (`de`), and the second action will only be executed when the language is set to English (`en`).
 
 ## Diffing
 
@@ -546,7 +604,7 @@ The `global` object can contain the following properties:
 global:
   viewportWidth: number
   viewportHeight: number
-  language: string
+  language: string | string[]
   user: string
   shell: string
   requires: string
@@ -584,9 +642,14 @@ global:
 - **Example**: `"en"` or `"de"`
 
 **login**
-- **Type**: string | object | false
+- **Type**: string | false
 - **Description**: The alias referencing the username and password to login. Configure the username and password using *login*_username and *login*_password env variables. If set to false, login is disabled and visit is performed unauthenticated. See the [Authentication](#authentication) section for more details.
 - **Example**: `"admin"` or `false`
+
+**user**
+- **Type**: object
+- **Description**: Additional user properties to overwrite user information in the UI. This can be useful for setting the user's name, email, phone number, etc., for the screenshots.
+- **Example**: `{ id: "max", userName: "Max", firstName: "Max", lastName: "Mustermann", phone: "+49123456789", email: "mm@test.de", displayName: "Max Mustermann" }`
 
 **shell**
 - **Type**: string

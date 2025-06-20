@@ -1,8 +1,10 @@
 import {
+  buildTestHierarchy,
   get_i,
   sanitizeStringifiedObject,
   shortestUniquePrefixes,
-  toBoolean,
+  to_array,
+  to_boolean,
   toSensitiveObjectKeyPath,
 } from "./util";
 
@@ -47,46 +49,46 @@ describe("util", () => {
     ).toEqual("{ password: ***, username: myuser }");
   });
 
-  describe("toBoolean", () => {
+  describe("to_boolean", () => {
     it("should return the default value if input is null", () => {
       const defaultValue = true;
-      const result = toBoolean(null as any, defaultValue);
+      const result = to_boolean(null as any, defaultValue);
       expect(result).toBe(defaultValue);
     });
 
     it("should return the default value if input is not a string", () => {
       const defaultValue = false;
-      const result = toBoolean({} as any, defaultValue);
+      const result = to_boolean({} as any, defaultValue);
       expect(result).toBe(defaultValue);
     });
 
     it("should return true if input is 'true'", () => {
       const defaultValue = false;
-      const result = toBoolean("true", defaultValue);
+      const result = to_boolean("true", defaultValue);
       expect(result).toBe(true);
     });
 
     it("should return true if input is not lowercase", () => {
       const defaultValue = false;
-      const result = toBoolean("TrUe", defaultValue);
+      const result = to_boolean("TrUe", defaultValue);
       expect(result).toBe(true);
     });
 
     it("should return true if input is '1'", () => {
       const defaultValue = false;
-      const result = toBoolean("1", defaultValue);
+      const result = to_boolean("1", defaultValue);
       expect(result).toBe(true);
     });
 
     it("should return false if input is 'false'", () => {
       const defaultValue = true;
-      const result = toBoolean("false", defaultValue);
+      const result = to_boolean("false", defaultValue);
       expect(result).toBe(false);
     });
 
     it("should return false if input is '0'", () => {
       const defaultValue = true;
-      const result = toBoolean("0", defaultValue);
+      const result = to_boolean("0", defaultValue);
       expect(result).toBe(false);
     });
   });
@@ -207,60 +209,188 @@ describe("util", () => {
     });
   });
 
-    describe("shortestUniquePrefixes", () => {
-      it("should return an empty array for empty input", () => {
-        const result = shortestUniquePrefixes([]);
-        expect(result).toEqual([]);
-      });
-  
-      it("should return an empty string for an empty word", () => {
-        const result = shortestUniquePrefixes([""]);
-        expect(result).toEqual([""]);
-      });
-  
-      it("should return empty strings for multiple empty words", () => {
-        const result = shortestUniquePrefixes(["", "", ""]);
-        expect(result).toEqual(["", "", ""]);
-      });
-  
-      it("should return the first character for a single word input", () => {
-        const result = shortestUniquePrefixes(["test"]);
-        expect(result).toEqual(["t"]);
-      });
-  
-      it("should return first characters for completely different words", () => {
-        const result = shortestUniquePrefixes(["apple", "banana", "cherry"]);
-        expect(result).toEqual(["a", "b", "c"]);
-      });
-  
-      it("should find the shortest unique prefixes for words with common prefixes", () => {
-        const result = shortestUniquePrefixes([
-          "apple",
-          "application",
-          "apartment",
-        ]);
-        expect(result).toEqual(["apple", "appli", "apa"]);
-      });
-  
-      it("should handle words where one is a prefix of another", () => {
-        const result = shortestUniquePrefixes(["test", "test", "testing"]);
-        expect(result).toEqual(["test", "test", "testi"]);
-      });
-  
-      it("should not add prefixes for duplicate words", () => {
-        const result = shortestUniquePrefixes(["same", "same", "different"]);
-        expect(result).toEqual(["same", "same", "d"]);
-      });
-  
-      it("should handle complex combinations", () => {
-        const result = shortestUniquePrefixes(["dog", "doll", "donut", "cat"]);
-        expect(result).toEqual(["dog", "dol", "don", "c"]);
-      });
-  
-      it("should handle case sensitivity", () => {
-        const result = shortestUniquePrefixes(["Test", "test"]);
-        expect(result).toEqual(["T", "t"]);
+  describe("shortestUniquePrefixes", () => {
+    it("should return an empty array for empty input", () => {
+      const result = shortestUniquePrefixes([]);
+      expect(result).toEqual([]);
+    });
+
+    it("should return an empty string for an empty word", () => {
+      const result = shortestUniquePrefixes([""]);
+      expect(result).toEqual([""]);
+    });
+
+    it("should return empty strings for multiple empty words", () => {
+      const result = shortestUniquePrefixes(["", "", ""]);
+      expect(result).toEqual(["", "", ""]);
+    });
+
+    it("should return the first character for a single word input", () => {
+      const result = shortestUniquePrefixes(["test"]);
+      expect(result).toEqual(["t"]);
+    });
+
+    it("should return first characters for completely different words", () => {
+      const result = shortestUniquePrefixes(["apple", "banana", "cherry"]);
+      expect(result).toEqual(["a", "b", "c"]);
+    });
+
+    it("should find the shortest unique prefixes for words with common prefixes", () => {
+      const result = shortestUniquePrefixes([
+        "apple",
+        "application",
+        "apartment",
+      ]);
+      expect(result).toEqual(["apple", "appli", "apa"]);
+    });
+
+    it("should handle words where one is a prefix of another", () => {
+      const result = shortestUniquePrefixes(["test", "test", "testing"]);
+      expect(result).toEqual(["test", "test", "testi"]);
+    });
+
+    it("should not add prefixes for duplicate words", () => {
+      const result = shortestUniquePrefixes(["same", "same", "different"]);
+      expect(result).toEqual(["same", "same", "d"]);
+    });
+
+    it("should handle complex combinations", () => {
+      const result = shortestUniquePrefixes(["dog", "doll", "donut", "cat"]);
+      expect(result).toEqual(["dog", "dol", "don", "c"]);
+    });
+
+    it("should handle case sensitivity", () => {
+      const result = shortestUniquePrefixes(["Test", "test"]);
+      expect(result).toEqual(["T", "t"]);
+    });
+  });
+
+  describe("to_array", () => {
+    it("should return undefined if input is null", () => {
+      expect(to_array(null as any)).toBeUndefined();
+      expect(to_array(undefined as any)).toBeUndefined();
+    });
+
+    it("should return array if input is not an array", () => {
+      const result = to_array("test" as any);
+      expect(result).toEqual(["test"]);
+    });
+
+    it("should return array if input is an array", () => {
+      const result = to_array(["test"]);
+      expect(result).toEqual(["test"]);
+    });
+
+    it("should return array if input is an object", () => {
+      const result = to_array({ test: "test" });
+      expect(result).toEqual([{ test: "test" }]);
+    });
+  });
+
+  describe("buildTestHierarchy", () => {
+    it("should build a test hierarchy tree", () => {
+      const objects = [
+        { name: "test1", type: "type1" },
+        { name: "test2", type: "type2" },
+        { name: "test3", type: "type3" },
+        { name: "test4", type: "type4" },
+      ];
+      const tree = buildTestHierarchy(objects, (obj) => [obj.type, obj.name]);
+      expect(tree).toEqual({
+        type1: { test1: { name: "test1", type: "type1" } },
+        type2: { test2: { name: "test2", type: "type2" } },
+        type3: { test3: { name: "test3", type: "type3" } },
+        type4: { test4: { name: "test4", type: "type4" } },
       });
     });
-  
+
+    it("should build a test hierarchy tree with multiple levels", () => {
+      const objects = [
+        { name: "test1", type: "type1", group: "group1" },
+        { name: "test2", type: "type2", group: "group2" },
+        { name: "test3", type: "type3", group: "group3" },
+        { name: "test4", type: "type4", group: "group4" },
+      ];
+      const tree = buildTestHierarchy(objects, (obj) => [
+        obj.type,
+        obj.group,
+        obj.name,
+      ]);
+      expect(tree).toEqual({
+        type1: {
+          group1: { test1: { name: "test1", type: "type1", group: "group1" } },
+        },
+        type2: {
+          group2: { test2: { name: "test2", type: "type2", group: "group2" } },
+        },
+        type3: {
+          group3: { test3: { name: "test3", type: "type3", group: "group3" } },
+        },
+        type4: {
+          group4: { test4: { name: "test4", type: "type4", group: "group4" } },
+        },
+      });
+    });
+
+    it("should build a test hierarchy tree with multiple levels and multiple objects", () => {
+      const objects = [
+        { name: "test1", type: "type1", group: "group1" },
+        { name: "test2", type: "type2", group: "group2" },
+        { name: "test3", type: "type3", group: "group3" },
+        { name: "test4", type: "type4", group: "group4" },
+        { name: "test5", type: "type1", group: "group1" },
+        { name: "test6", type: "type2", group: "group2" },
+        { name: "test7", type: "type3", group: "group3" },
+        { name: "test8", type: "type4", group: "group4" },
+      ];
+      const tree = buildTestHierarchy(objects, (obj) => [
+        obj.type,
+        obj.group,
+        obj.name,
+      ]);
+      expect(tree).toEqual({
+        type1: {
+          group1: {
+            test1: { name: "test1", type: "type1", group: "group1" },
+            test5: { name: "test5", type: "type1", group: "group1" },
+          },
+        },
+        type2: {
+          group2: {
+            test2: { name: "test2", type: "type2", group: "group2" },
+            test6: { name: "test6", type: "type2", group: "group2" },
+          },
+        },
+        type3: {
+          group3: {
+            test3: { name: "test3", type: "type3", group: "group3" },
+            test7: { name: "test7", type: "type3", group: "group3" },
+          },
+        },
+        type4: {
+          group4: {
+            test4: { name: "test4", type: "type4", group: "group4" },
+            test8: { name: "test8", type: "type4", group: "group4" },
+          },
+        },
+      });
+    });
+
+    it("should handle empty objects", () => {
+      const objects: any[] = [];
+      const tree = buildTestHierarchy(objects, (obj) => []);
+      expect(tree).toEqual({});
+    });
+
+    it("should handle empty title function", () => {
+      const objects = [
+        { name: "test1", type: "type1" },
+        { name: "test2", type: "type2" },
+        { name: "test3", type: "type3" },
+        { name: "test4", type: "type4" },
+      ];
+      const tree = buildTestHierarchy(objects, (obj) => []);
+      expect(tree).toEqual({});
+    });
+  });
 });

@@ -10,6 +10,7 @@ import {
   C8yPactRecord,
   C8yPactRequest,
   C8yPactResponse,
+  getCreatedObjectId,
   toPactRequest,
   toPactResponse,
 } from "./c8ypact";
@@ -45,7 +46,7 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
     if (modifiedResponse) this.modifiedResponse = modifiedResponse;
 
     if (request?.method?.toLowerCase() === "post") {
-      const newId = response.body?.id;
+      const newId = getCreatedObjectId(response);
       if (newId) {
         this.createdObject = newId;
       }

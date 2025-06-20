@@ -315,9 +315,8 @@ export const applyDefaultConfig = (
   }
 
   if (!("preprocessor" in config)) {
-    config.preprocessor = new C8yDefaultPactPreprocessor({
-      obfuscate: ["request.headers.Authorization", "response.body.password"],
-    });
+    // use default preprocessor config
+    config.preprocessor = new C8yDefaultPactPreprocessor();
     log("configured default preprocessor");
   }
 

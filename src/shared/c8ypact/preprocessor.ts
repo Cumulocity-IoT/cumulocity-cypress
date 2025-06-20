@@ -46,6 +46,23 @@ export interface C8yPactPreprocessorOptions {
    */
   ignore?: string[];
   /**
+   * Key paths to pick. All other keys (children) of the object will
+   * be removed.
+   *
+   * @example
+   * response.headers: ["content-type"]
+   * ["request.headers", "response.headers"]
+   */
+  pick?: { [key: string]: string[] } | string[];
+  /**
+   * Apply regex replace to the key path. The key is the key path and the value
+   * is the regex to apply, or an array of regexes to apply in sequence.
+   * Regex string should be in the format of `/regex/replace/flags`.
+   */
+  regexReplace?: {
+    [key: string]: string | string[];
+  };
+  /**
    * Obfuscation pattern to use. Default is ********.
    */
   obfuscationPattern?: string;
@@ -72,6 +89,7 @@ export const C8yPactPreprocessorDefaultOptions = {
     "response.headers.set-cookie.authorization",
     "response.headers.set-cookie.XSRF-TOKEN",
     "response.body.password",
+    "response.body.users.password",
   ],
   obfuscationPattern: "****",
   ignoreCase: true,
@@ -115,11 +133,96 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
       );
 
     objs.forEach((obj) => {
+      if (o?.pick != null) {
+        const keepPaths: string[] = [];
+        if (_.isPlainObject(o.pick)) {
+          Object.entries(o.pick ?? {}).forEach(([parentKey, childKeys]) => {
+            if (_.isEmpty(childKeys)) keepPaths.push(parentKey);
+            childKeys.forEach((childKey: string) => {
+              keepPaths.push(`${parentKey}.${childKey}`);
+            });
+          });
+          this.filterObjectByKeepPaths(obj, keepPaths, ignoreCase);
+        } else if (_.isArray(o.pick)) {
+          this.applyKeepArray(obj, o.pick);
+        }
+      }
+
+      if (o?.regexReplace != null) {
+        Object.entries(o.regexReplace ?? {}).forEach(([key, value]) => {
+          const patterns = Array.isArray(value) ? value : [value];
+          const keysToReplace = mapSensitiveKeys(obj, [key]);
+
+          keysToReplace.forEach((k) => {
+            let v = _.get(obj, k);
+            if (v != null) {
+              // Apply each regex pattern in sequence
+              for (const pattern of patterns) {
+                try {
+                  const regex = parseRegexReplace(pattern);
+                  v = performRegexReplace(v, regex);
+                } catch {
+                  // ignore invalid regex
+                }
+              }
+              _.set(obj, k, v);
+            }
+          });
+        });
+      }
+
       const keysToObfuscate = mapSensitiveKeys(obj, o.obfuscate ?? []);
-      const keysToRemove = mapSensitiveKeys(obj, o.ignore ?? []);
       this.handleObfuscation(obj, keysToObfuscate, obfuscationPattern);
+
+      const keysToRemove = mapSensitiveKeys(obj, o.ignore ?? []);
       this.handleRemoval(obj, keysToRemove);
     });
+  }
+
+  private filterObjectByKeepPaths(
+    obj: any,
+    keepPaths: string[],
+    ignoreCase: boolean = false
+  ): void {
+    const prepKey = (key: string): string =>
+      key != null && ignoreCase === true ? key.toLowerCase() : key;
+
+    const shouldKeep = (keyPath: string): boolean => {
+      return keepPaths
+        .map((k) => prepKey(k))
+        .some(
+          (keepPath) =>
+            prepKey(keyPath) === keepPath ||
+            keepPath?.startsWith(`${prepKey(keyPath)}.`)
+        );
+    };
+
+    const recursiveFilter = (currentObj: any, currentPath: string): void => {
+      if (!_.isObject(currentObj)) return;
+
+      Object.keys(currentObj).forEach((key) => {
+        const fullPath = currentPath ? `${currentPath}.${key}` : key;
+        if (!shouldKeep(fullPath)) {
+          _.unset(obj, fullPath);
+        } else if (!keepPaths.includes(fullPath)) {
+          recursiveFilter(_.get(currentObj, key), fullPath);
+        }
+      });
+    };
+
+    recursiveFilter(obj, "");
+  }
+
+  private applyKeepArray(obj: any, keep: string[]): void {
+    if (keep == null || _.isEmpty(keep)) return;
+    if (_.isObjectLike(obj)) {
+      const keysToRemove = Object.keys(obj).filter(
+        (childKey) => !keep.includes(childKey.toLowerCase())
+      );
+      keysToRemove.forEach((childKey) => {
+        _.unset(obj, childKey);
+      });
+    }
   }
 
   private handleObfuscation(
@@ -148,7 +251,28 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     } else if (this.hasKey(keyPath, "cookie")) {
       this.removeCookie(obj, keyPath);
     } else {
-      _.unset(obj, key);
+      const processKeyPath = (
+        currentObj: any,
+        remainingKeyParts: string[]
+      ): void => {
+        if (!currentObj || remainingKeyParts.length === 0) return;
+
+        const [_currentKey, ...restKeys] = remainingKeyParts;
+        const currentKey =
+          toSensitiveObjectKeyPath(currentObj, _currentKey) ?? _currentKey;
+        const target = _.get(currentObj, currentKey);
+
+        if (_.isArray(target)) {
+          // If the current key points to an array, process each element
+          target.forEach((item) => processKeyPath(item, restKeys));
+        } else if (restKeys.length === 0) {
+          _.unset(currentObj, currentKey);
+        } else {
+          processKeyPath(target, restKeys);
+        }
+      };
+
+      processKeyPath(obj, keyPath);
     }
   }
 
@@ -217,8 +341,30 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     } else if (this.hasKey(keyParts, "cookie")) {
       this.obfuscateCookie(obj, keyParts, p);
     } else {
-      if (_.get(obj, key) == null) return;
-      _.set(obj, key, pattern);
+      const processKeyPath = (
+        currentObj: any,
+        remainingKeyParts: string[]
+      ): void => {
+        if (!currentObj || remainingKeyParts.length === 0) return;
+
+        const [_currentKey, ...restKeys] = remainingKeyParts;
+        const currentKey =
+          toSensitiveObjectKeyPath(currentObj, _currentKey) ?? _currentKey;
+        const target = _.get(currentObj, currentKey);
+
+        if (_.isArray(target)) {
+          // If the current key points to an array, process each element
+          target.forEach((item) => processKeyPath(item, restKeys));
+        } else if (restKeys.length === 0) {
+          if (_.get(currentObj, currentKey) != null) {
+            _.set(currentObj, currentKey, p);
+          }
+        } else {
+          processKeyPath(target, restKeys);
+        }
+      };
+
+      processKeyPath(obj, keyParts);
     }
   }
 
@@ -310,4 +456,65 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     const cookieHeader = _.get(obj, keyPath);
     return { name, keyPath, cookieHeader };
   }
+}
+
+export function parseRegexReplace(input: string): {
+  pattern: RegExp;
+  replacement: string;
+} {
+  if (!input || !_.isString(input)) {
+    throw new Error("Invalid replacement expression input. Regex must be a string.");
+  }
+
+  // Match a regex pattern with replacement in format /pattern/replacement/flags
+  const match = input.match(/^\/(.+?)(?<!\\)\/(.*?)(?<!\\)\/([gimsuy]*)$/);
+
+  if (!match) {
+    throw new Error(`Invalid replacement regular expression: ${input}`);
+  }
+
+  const [, patternStr, replacement, flags] = match;
+
+  return {
+    pattern: new RegExp(patternStr, flags),
+    replacement: replacement,
+  };
+}
+
+export function performRegexReplace(
+  input: string | any,
+  regexes: {
+    pattern: RegExp;
+    replacement: string;
+  }[] | {
+    pattern: RegExp;
+    replacement: string;
+  }
+): string | any {
+  if (!input) return input;
+
+  // Convert single regex to array for uniform handling
+  const regexArray = Array.isArray(regexes) ? regexes : [regexes];
+  if (regexArray.length === 0) return input;
+
+  // Direct string replacement
+  if (_.isString(input)) {
+    return regexArray.reduce((result, regex) => 
+      result.replace(regex.pattern, regex.replacement), input);
+  }
+  
+  // Object/array traversal - do a single traversal applying all regexes
+  if (_.isObjectLike(input)) {
+    return _.cloneDeepWith(input, (value) => {
+      if (_.isString(value)) {
+        // Apply all regex replacements to the string value
+        return regexArray.reduce((result, regex) => 
+          result.replace(regex.pattern, regex.replacement), value);
+      }
+      return undefined; // Return undefined for default cloning
+    });
+  }
+  
+  // Return unchanged for other types
+  return input;
 }

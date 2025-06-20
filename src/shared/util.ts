@@ -1,4 +1,5 @@
 import _ from "lodash";
+import { C8yTestHierarchyTree } from "./types";
 
 export function safeStringify(obj: any, indent = 2) {
   let cache: any[] = [];
@@ -24,14 +25,6 @@ export function sanitizeStringifiedObject(value: string) {
     /("?)(password)("?):\s+("?).*?(")?(\s*,?[\s\n}]+)/gi,
     "$1$2$3: $4***$5$6"
   );
-}
-
-export function toBoolean(input: string, defaultValue: boolean): boolean {
-  if (input == null || !_.isString(input)) return defaultValue;
-  const booleanString = input.toString().toLowerCase();
-  if (booleanString == "true" || booleanString === "1") return true;
-  if (booleanString == "false" || booleanString === "0") return false;
-  return defaultValue;
 }
 
 /**
@@ -103,21 +96,18 @@ export function toSensitiveObjectKeyPath(
  * Gets the value of a case-insensitive key path from an object. The path is
  * assumed to be a dot-separated string. If the path is an array, it is assumed
  * to be a list of keys.
- * 
+ *
  * @example
- * geti(obj, "obj.key.token") 
+ * geti(obj, "obj.key.token")
  * geti(obj, ["obj", "key", "token"])
  * geti(obj, "obj.key[0].token")
  * geti(obj, "obj.key.0.token")
- * 
+ *
  * @param obj The object to query
  * @param keyPath The case-insensitive key path to find
  * @returns The value of the key path if found, undefined otherwise
  */
-export function get_i(
-  obj: any,
-  keyPath: string | string[]
-): string | undefined {
+export function get_i(obj: any, keyPath: string | string[]): any | undefined {
   if (obj == null || keyPath == null) return undefined;
   const sensitivePath = toSensitiveObjectKeyPath(obj, keyPath);
   if (sensitivePath == null) return undefined;
@@ -209,4 +199,52 @@ export function getLastDefinedValue<T>(data: T[], index: number): T | undefined{
     return value;
   }
   return undefined;
+}
+
+/**
+ * Converts a value to an array. If the value is an array, it is returned as is.
+ * @param value The value to convert to an array
+ * @returns The value as an array if it is not already an array
+ */
+export function to_array<T>(value: T | T[] | undefined): T[] | undefined {
+  if (value == null) return undefined;
+  if (_.isArray(value)) return value;
+  return [value];
+}
+
+/**
+ * Converts a string value to a boolean. Supported values are "true", "false", "1", and "0".
+ * @param input The input string to convert to a boolean
+ * @param defaultValue The default value to return if the input is not a valid boolean string
+ * @returns The boolean value of the input string or the default value if the input is not a valid boolean string
+ */
+export function to_boolean(input: string, defaultValue: boolean): boolean {
+  if (input == null || !_.isString(input)) return defaultValue;
+  const booleanString = input.toString().toLowerCase();
+  if (booleanString == "true" || booleanString === "1") return true;
+  if (booleanString == "false" || booleanString === "0") return false;
+  return defaultValue;
+}
+
+export function buildTestHierarchy<T>(
+  objects: T[],
+  hierarchyfn: (obj: T) => string[] | undefined
+): C8yTestHierarchyTree<T> {
+  const tree: C8yTestHierarchyTree<T> = {};
+  objects.forEach((item) => {
+    const titles = hierarchyfn(item);
+    if (titles) {
+      let currentNode = tree;
+      const protectedKeys = ["__proto__", "constructor", "prototype"];
+      titles?.forEach((title, index) => {
+        if (!protectedKeys.includes(title)) {
+          if (!currentNode[title]) {
+            currentNode[title] = index === titles.length - 1 ? item : {};
+          }
+          currentNode = currentNode[title] as C8yTestHierarchyTree<T>;
+        }
+      });
+    }
+  });
+  return tree;
 }
