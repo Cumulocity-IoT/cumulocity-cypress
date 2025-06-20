@@ -58,6 +58,8 @@ Date related commands
 - `toDate`
 - `toISODate`
 - `compareDates`
+
+More information on date handling can be found in [Date Handling](./doc/Date%20Handling.md).
   
 Administration related commands
 - `getCurrentTenant` and `getTenantId`

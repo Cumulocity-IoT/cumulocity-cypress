@@ -115,6 +115,93 @@ export function get_i(obj: any, keyPath: string | string[]): any | undefined {
 }
 
 /**
+ * Returns the shortest unique prefixes for the given words. The prefixes are
+ * unique in the sense that they are not prefixes of any other word in the list.
+ *
+ * @param words The list of words to find the prefixes for.
+ * @returns The list of shortest unique prefixes.
+ */
+export function shortestUniquePrefixes(words: string[]) {
+  class TrieNode {
+    public children: Map<string, TrieNode>;
+    public isEndOfWord: boolean;
+    public count: number;
+
+    constructor() {
+      this.children = new Map();
+      this.isEndOfWord = false;
+      this.count = 0;
+    }
+  }
+
+  const insertWord = (root: TrieNode, word: string) => {
+    let currentNode: TrieNode | undefined = root;
+
+    for (let i = 0; i < word.length; i++) {
+      const char = word[i];
+      if (!currentNode?.children.has(char)) {
+        currentNode?.children.set(char, new TrieNode());
+      }
+      currentNode = currentNode?.children.get(char);
+      if (currentNode) {
+        currentNode.count++;
+      }
+    }
+    if (currentNode) {
+      currentNode.isEndOfWord = true;
+    }
+  };
+
+  const root = new TrieNode();
+  const prefixes: string[] = [];
+
+  // Build the trie with all words
+  for (const word of words) {
+    insertWord(root, word);
+  }
+
+  // Find the shortest unique prefix for each word
+  for (const word of words) {
+    if (word.length === 0) {
+      prefixes.push("");
+      continue;
+    }
+
+    let currentNode: TrieNode | undefined = root;
+    let prefix = "";
+    let foundUniquePrefix = false;
+
+    for (let i = 0; i < word.length; i++) {
+      const char = word[i];
+      prefix += char;
+      currentNode = currentNode?.children.get(char);
+
+      // If this node has a count of 1, it means this prefix is unique
+      if (currentNode && currentNode.count === 1) {
+        prefixes.push(prefix);
+        foundUniquePrefix = true;
+        break;
+      }
+    }
+
+    // If no unique prefix is found, use the entire word
+    if (!foundUniquePrefix) {
+      prefixes.push(word);
+    }
+  }
+
+  return prefixes;
+}
+
+export function getLastDefinedValue<T>(data: T[], index: number): T | undefined{
+  const value = _.findLast(data.slice(0, index + 1), (item) => !_.isUndefined(item));
+  if (value !== undefined) {
+    return value;
+  }
+  return undefined;
+}
+
+/**
  * Converts a value to an array. If the value is an array, it is returned as is.
  * @param value The value to convert to an array
  * @returns The value as an array if it is not already an array

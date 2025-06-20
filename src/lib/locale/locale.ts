@@ -2,11 +2,10 @@
 import localeDe from "@angular/common/locales/de";
 import localeEn from "@angular/common/locales/en-GB";
 
-// @ts-expect-error
-import buildLocalizeFn from "date-fns/locale/_lib/buildLocalizeFn";
-// @ts-expect-error
-import buildMatchFn from "date-fns/locale/_lib/buildMatchFn";
-import { shortestUniquePrefixes } from "./localeutil";
+import { normalizeLocaleId } from "../../shared/date";
+import { getLastDefinedValue, shortestUniquePrefixes } from "../../shared/util";
+
+import { Locale } from "date-fns";
 
 const { _ } = Cypress;
 
@@ -122,10 +121,6 @@ export async function registerDefaultLocales() {
   );
 }
 
-function normalizeLocaleId(localeId: string): string {
-  return localeId.toLowerCase().replace(/_/g, "-");
-}
-
 export function getNgLocale(localeId: string): any {
   const getNgLocaleData = (localeId: string) => {
     const normalizedLocale = normalizeLocaleId(localeId);
@@ -155,26 +150,34 @@ export function localizedTimeFormat(
   localeId: string = "en",
   formatWidth: FormatWidth | number = FormatWidth.Short
 ): string {
-  return getLocaleTimeFormat(localeId, formatWidth);
+  return getLocaleValue(localeId, NgLocaleDataIndex.TimeFormat, formatWidth);
 }
 
 export function localizedDateFormat(
   localeId: string = "en",
   formatWidth: FormatWidth | number = FormatWidth.Short
 ): string {
-  return getLocaleDateFormat(localeId, formatWidth);
+  return getLocaleValue(localeId, NgLocaleDataIndex.DateFormat, formatWidth);
 }
 
 export function localizedDateTimeFormat(
   localeId: string = "en",
   formatWidth: FormatWidth | number = FormatWidth.Short
 ): string {
-  const fullTime = getLocaleTimeFormat(localeId, formatWidth);
-  const fullDate = getLocaleDateFormat(localeId, formatWidth);
-  return formatDateTime(getLocaleDateTimeFormat(localeId, formatWidth), [
-    fullTime,
-    fullDate,
-  ]);
+  const fullTime = getLocaleValue(
+    localeId,
+    NgLocaleDataIndex.TimeFormat,
+    formatWidth
+  );
+  const fullDate = getLocaleValue(
+    localeId,
+    NgLocaleDataIndex.DateFormat,
+    formatWidth
+  );
+  return formatDateTime(
+    getLocaleValue(localeId, NgLocaleDataIndex.DateTimeFormat, formatWidth),
+    [fullTime, fullDate]
+  );
 }
 
 // https://github.com/angular/angular/blob/fe691935091aaf7090864c8111a15f7cc7e53b6c/packages/common/src/i18n/format_date.ts#L201
@@ -187,31 +190,6 @@ function formatDateTime(str: string, opt_values: any): string {
   return str;
 }
 
-export function parseDate(
-  date: string | number | Date,
-  format: string
-): Date | undefined {
-  let parsedDate: Date | undefined = undefined;
-  // try to parse as number fist, if string is passed it might be converted without format being used
-  if (_.isNumber(date)) {
-    parsedDate = new Date(date);
-  }
-
-  // parse with format
-  if (!isValidDate(parsedDate) && _.isString(date)) {
-    parsedDate = Cypress.datefns.parse(<string>date, format, new Date());
-
-    // if (!isValidDate(parsedDate) && _.isString(date)) {
-    //   parsedDate = new Date(date);
-    // }
-  }
-  return parsedDate;
-}
-
-export function isValidDate(date?: Date): boolean {
-  return date != null && !isNaN(<any>date) && _.isDate(date);
-}
-
 function isModule(module: any): boolean {
   return (
     // @ts-expect-error
@@ -219,38 +197,19 @@ function isModule(module: any): boolean {
   );
 }
 
-function getLastDefinedValue<T>(data: T[], index: number): T {
-  for (let i = index; i > -1; i--) {
-    if (typeof data[i] !== "undefined") {
-      return data[i];
-    }
+function getLocaleValue(
+  locale: string,
+  index: NgLocaleDataIndex,
+  width: FormatWidth
+): string {
+  const data = getNgLocale(locale);
+  const result = getLastDefinedValue<string>(data[index], width);
+  if (!result) {
+    throw new Error(
+      `Missing value for locale "${locale}" and width "${width}".`
+    );
   }
-  throw new Error("Locale data API: locale data undefined");
-}
-
-function getLocaleTimeFormat(
-  locale: string,
-  width: FormatWidth | number
-): string {
-  const data = getNgLocale(locale);
-  return getLastDefinedValue(data[NgLocaleDataIndex.TimeFormat], width);
-}
-
-function getLocaleDateFormat(
-  locale: string,
-  width: FormatWidth | number
-): string {
-  const data = getNgLocale(locale);
-  return getLastDefinedValue(data[NgLocaleDataIndex.DateFormat], width);
-}
-
-function getLocaleDateTimeFormat(
-  locale: string,
-  width: FormatWidth | number
-): string {
-  const data = getNgLocale(locale);
-  const dateTimeFormatData = <string[]>data[NgLocaleDataIndex.DateTimeFormat];
-  return getLastDefinedValue(dateTimeFormatData, width);
+  return result;
 }
 
 async function loadDfnsLocale(
@@ -393,4 +352,92 @@ function dayValuesForLocale(locale: string): {
     wide: monthData[2],
   };
   return result;
+}
+
+// Copied from date-fns as data-fns does not allow importing from locale files
+// See https://github.com/date-fns/date-fns/issues/3686
+
+function buildLocalizeFn(args: any) {
+  return (value: any, options: any) => {
+    const context = options?.context ? String(options.context) : "standalone";
+
+    let valuesArray;
+    if (context === "formatting" && args.formattingValues) {
+      const defaultWidth = args.defaultFormattingWidth || args.defaultWidth;
+      const width = options?.width ? String(options.width) : defaultWidth;
+
+      valuesArray =
+        args.formattingValues[width] || args.formattingValues[defaultWidth];
+    } else {
+      const defaultWidth = args.defaultWidth;
+      const width = options?.width ? String(options.width) : args.defaultWidth;
+
+      valuesArray = args.values[width] || args.values[defaultWidth];
+    }
+    const index = args.argumentCallback ? args.argumentCallback(value) : value;
+
+    return valuesArray[index];
+  };
+}
+
+export function buildMatchFn(args: any) {
+  return (string: string, options: any = {}) => {
+    const width = options.width;
+
+    const matchPattern =
+      (width && args.matchPatterns[width]) ||
+      args.matchPatterns[args.defaultMatchWidth];
+    const matchResult = string.match(matchPattern);
+
+    if (!matchResult) {
+      return null;
+    }
+    const matchedString = matchResult[0];
+
+    const parsePatterns =
+      (width && args.parsePatterns[width]) ||
+      args.parsePatterns[args.defaultParseWidth];
+
+    const key = Array.isArray(parsePatterns)
+      ? findIndex(parsePatterns, (pattern: RegExp) =>
+          pattern.test(matchedString)
+        )
+      : // [TODO] -- I challenge you to fix the type
+        findKey(parsePatterns, (pattern: RegExp) =>
+          pattern.test(matchedString)
+        );
+
+    let value;
+
+    value = args.valueCallback ? args.valueCallback(key) : key;
+    value = options.valueCallback
+      ? // [TODO] -- I challenge you to fix the type
+        options.valueCallback(value)
+      : value;
+
+    const rest = string.slice(matchedString.length);
+
+    return { value, rest };
+  };
+}
+
+function findKey(object: any, predicate: any) {
+  for (const key in object) {
+    if (
+      Object.prototype.hasOwnProperty.call(object, key) &&
+      predicate(object[key])
+    ) {
+      return key;
+    }
+  }
+  return undefined;
+}
+
+function findIndex(array: any, predicate: any) {
+  for (let key = 0; key < array.length; key++) {
+    if (predicate(array[key])) {
+      return key;
+    }
+  }
+  return undefined;
 }
