@@ -1,6 +1,6 @@
 import tseslint from 'typescript-eslint';
 import eslint from '@eslint/js';
-import pluginCypress from 'eslint-plugin-cypress/flat'
+import pluginCypress from 'eslint-plugin-cypress'
 
 export default tseslint.config(
   eslint.configs.recommended,
