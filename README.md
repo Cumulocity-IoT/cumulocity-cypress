@@ -96,6 +96,12 @@ or
 yarn add -D cumulocity-cypress
 ```
 
+If you are using `C8yQuicktypeSchemaGenerator` from `src/contrib/quicktype`, you also need to install `quicktype` as a dependency.
+
+```
+npm install quicktype-core
+```
+
 ### Peer dependencies
 
 `cumulocity-cypress` requires some peer dependencies to be installed in your project for all commands to work as expected. This is to make sure the exact versions of the dependencies in your tested project are used by `cumulocity-cypress`.
