@@ -19,6 +19,7 @@ module.exports = defineConfig({
             },
           }),
         ],
+        resolveExtensions: [".ts", ".js", ".mjs", ".cjs", ".json"],
         sourcemap: "inline",
       });
 
