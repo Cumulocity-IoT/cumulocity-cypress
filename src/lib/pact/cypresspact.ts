@@ -8,7 +8,6 @@ import {
   C8yPactInfo,
   C8yPactRecord,
   C8yPactPreprocessor,
-  C8ySchemaGenerator,
   C8ySchemaMatcher,
   C8yDefaultPactMatcher,
   C8yPactMatcher,
@@ -101,12 +100,6 @@ declare global {
      * The C8yPactPreprocessor implementation used to preprocess the pact objects.
      */
     preprocessor?: C8yPactPreprocessor;
-    /**
-     * The C8ySchemaGenerator implementation used to generate json schemas from json objects. The
-     * implementation of `C8ySchemaGenerator` must support browser runtimes!
-     * Default is undefined and schema generation is disabled.
-     */
-    schemaGenerator?: C8ySchemaGenerator;
     /**
      * The C8ySchemaMatcher implementation used to match json schemas. The schema matcher implementation
      * must support browser runtimes! Default is undefined and schema matching is disabled.
@@ -252,7 +245,6 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
     recordingMode,
     matcher: new C8yDefaultPactMatcher(),
     pactRunner: new C8yDefaultPactRunner(),
-    schemaGenerator: undefined,
     schemaMatcher: undefined,
     debugLog: false,
     preprocessor: new C8yCypressEnvPreprocessor(),

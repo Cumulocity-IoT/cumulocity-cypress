@@ -167,7 +167,6 @@
     "glob": "^11.0.1",
     "jest": "^29.7.0",
     "memfs": "^4.8.2",
-    "quicktype-core": "^23.2.6",
     "rimraf": "^6.0.1",
     "rollup": "^4.34.8",
     "rollup-plugin-dts": "^6.1.0",

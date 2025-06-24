@@ -2,7 +2,10 @@ import { BasicAuth, Client, IManagedObject } from "@c8y/client";
 import { initRequestStub, stubEnv, stubResponses } from "../support/testutils";
 
 import { defaultClientOptions } from "cumulocity-cypress/lib/commands/c8yclient";
-import { C8yAjvJson6SchemaMatcher } from "cumulocity-cypress/contrib/ajv";
+import {
+  C8yAjvJson6SchemaMatcher,
+  C8yAjvSchemaMatcher,
+} from "cumulocity-cypress/contrib/ajv";
 
 import {
   C8yAuthentication,
@@ -110,7 +113,6 @@ describe("c8ypact", () => {
       expect(Cypress.c8ypact.preprocessor).to.be.a("object");
       expect(Cypress.c8ypact.pactRunner).to.be.a("object");
       expect(Cypress.c8ypact.matcher).to.be.a("object");
-      expect(Cypress.c8ypact.schemaGenerator).to.be.undefined;
       expect(Cypress.c8ypact.schemaMatcher).to.not.be.undefined;
       expect(Cypress.c8ypact.recordingMode).to.be.a("function");
       expect(Cypress.c8ypact.recordingMode()).to.eq("refresh");
@@ -936,24 +938,6 @@ describe("c8ypact", () => {
         });
     });
 
-    it("should not fail if no schemaGenerator is set", function () {
-      const generator = Cypress.c8ypact.schemaGenerator;
-      Cypress.c8ypact.schemaGenerator = undefined;
-      cy.getAuth({ user: "admin", password: "mypassword", tenant: "test" })
-        .c8yclient([
-          (c) => c.inventory.detail(1, { withChildren: false }),
-          (c) => c.inventory.detail(1, { withChildren: false }),
-        ])
-        .then((response) => {
-          Cypress.c8ypact.schemaGenerator = generator;
-          Cypress.c8ypact.loadCurrent().then((pact) => {
-            expect(pact?.records).to.have.length(2);
-            expect(pact?.records[0].response.$body).to.be.undefined;
-            expect(pact?.records[1].response.$body).to.be.undefined;
-          });
-        });
-    });
-
     it("should call savePact callback", function () {
       expect(Cypress.c8ypact.isRecordingEnabled()).to.be.true;
       expect(Cypress.c8ypact.recordingMode()).to.eq("refresh");
@@ -1364,6 +1348,60 @@ describe("c8ypact", () => {
             schema,
             true,
           ]);
+        })
+        .then(() => {
+          Cypress.c8ypact.preprocessor = storedPreprocessor;
+        });
+    });
+
+    it("should match with $body ref", function (done) {
+      const openapi = {
+        openapi: "3.0.0",
+        info: {
+          title: "MySpec",
+        },
+        components: {
+          schemas: {
+            ManagedObject: {
+              type: "object",
+              properties: {
+                name: {
+                  type: "number",
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const storedPreprocessor = _.cloneDeep(Cypress.c8ypact.preprocessor);
+      Cypress.c8ypact.preprocessor = new C8yCypressEnvPreprocessor({
+        ignore: ["request.headers", "response.isOkStatusCode"],
+      });
+      
+      const matcher = new C8yAjvSchemaMatcher();
+      matcher.ajv.addSchema(openapi, "MySpec");
+      Cypress.c8ypact.schemaMatcher = matcher;
+
+      Cypress.c8ypact.current = C8yDefaultPact.from(response, {
+        id: "testid",
+        baseUrl: Cypress.config("baseUrl")!,
+      });
+      Cypress.c8ypact.current!.records[0].response.$body = {
+        $ref: "MySpec#/components/schemas/ManagedObject",
+      };
+
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.contain(
+          'Pact validation failed! Schema for "response > body" does not match'
+        );
+        expect(err.message).to.contain("data/name must be number");
+        done();
+      });
+
+      cy.getAuth({ user: "admin", password: "mypassword", tenant: "test" })
+        .c8yclient((c) => c.inventory.detail(1, { withChildren: false }), {
+          strictMatching: true,
         })
         .then(() => {
           Cypress.c8ypact.preprocessor = storedPreprocessor;

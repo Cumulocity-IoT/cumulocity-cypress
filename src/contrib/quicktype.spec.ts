@@ -2,7 +2,7 @@
 
 import { C8yQicktypeSchemaGenerator } from "./quicktype";
 
-describe("C8yQicktypeSchemaGenerator", () => {
+describe.skip("C8yQicktypeSchemaGenerator", () => {
   it("should generate schema from object", async function () {
     const generator = new C8yQicktypeSchemaGenerator();
     const schema = await generator.generate({
