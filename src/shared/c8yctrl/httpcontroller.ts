@@ -800,7 +800,6 @@ export class C8yPactHttpController {
     if (isCypressResponse(response)) {
       const record = toSerializablePactRecord(response, {
         preprocessor: this.options.preprocessor,
-        schemaGenerator: this.options.schemaGenerator,
         ...(this.baseUrl && { baseUrl: this.baseUrl }),
       });
 

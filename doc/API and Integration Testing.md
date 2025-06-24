@@ -286,6 +286,47 @@ Cypress.c8ypact.schemaMatcher.ajv.addFormat("myformat", {
 });
 ```
 
+For matching against an OpenAPI schema, use `C8yOpenApiSchemaMatcher` as in the following example.
+
+```typescript
+// assume loadOpenApiSpec is a function that loads the OpenAPI spec
+loadOpenApiSpec()
+  .then(openapi => {
+    // register the schema matcher with the openapi schema
+    const matcher = new C8yAjvSchemaMatcher();
+    matcher.ajv.addSchema(openapi, 'MySpec');
+    Cypress.c8ypact.schemaMatcher = matcher;
+  })
+  .as('MySpec');
+```
+
+To match against the OpenAPI schema, use the `schema` option in `cy.c8yclient` as in the following example.
+
+```typescript
+cy.c8yclient((c) => c.core.fetch("/api/custom/"), {
+    schema: { 
+      "$ref": "MySpec#/components/schemas/MySchema",},
+  });
+```
+
+When matching against `Cypress.c8ypact.current` , use `$body` to define the schema for the response body to match as in the following example.
+
+```json
+{ 
+  "request": {
+    "method": "GET",
+    "url": "/api/custom/"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "$body": { "$ref": "MySpec#/components/schemas/MySchema" },
+  }
+}
+```
+
 ### Custom REST endpoints
 
 If a REST endpoint is not supported by `c8y/client` or if for example a microservice is providing an endpoint to be tested, use the following approach to request using `cy.c8yclient`. For custom APIs consider adding services into `c8y/client`.
@@ -559,52 +600,33 @@ import {  C8yPactPreprocessorDefaultOptions } from "cumulocity-cypress/c8ypact";
 
 ### Recording JSON-Schema
 
-When recording requests and responses, `cy.c8yclient` will automatically generate JSON schemas for the response body. This is useful to validate responses against a schema instead of the object itself. If a schema is found for the response body, it will be used for validation instead of the response object itself.
+For generating Json-Schema for your recordings, it is recommended to run the schema generation outside of the recording process. This allows to review schemas before they are used for matching or validation. 
 
-The schema is stored in the pact response object as `$body`.
+As an example for a schema generator, `cumulocity-cypress` provides `C8yQicktypeSchemaGenerator` from `contrib/quicktype` that uses [quicktype](https://quicktype.io/) to generate JSON schemas for any Json object input. 
 
-```json
-"response": {
-  "status": 201,
-  "body": {
-    ...
-  },
-  "$body": {
-    "type": "object",
-    "properties": {
-      ...
-    },
-    "required": [
-      ...
-    ]
-  },
-  "headers": {
-    ....
-  }
-},
-```
+>**Note:** You might need to customize the generated schema to match your requirements, especially for configuration of `additionalProperties` and `required` properties. Without correct configuration, the generated schema might be too permissive and allow any additional properties or not require properties that are required in json objects making the schema useless for validation.
 
->**Note:** By, default there is no schema generator registered and with this schema will not be automatically generated. To enable schema generation, set `Cypress.c8ypact.schemaGenerator` to a custom implementation of `C8ySchemaGenerator`. This is the same for schema matching. To enable schema matching, set `Cypress.c8ypact.schemaMatcher` to a custom implementation of `C8ySchemaMatcher`.
-
-`cumulocity-cypress` comes with `C8yQicktypeSchemaGenerator` that uses [quicktype](https://quicktype.io/) to generate JSON schemas for response bodies. For schema matching, is provided `C8yAjvSchemaMatcher` based on [Ajv](https://ajv.js.org/) JSON schema validator. 
-
-To enable schema generation or matching, register the implementations to use for example in your support file.
+Schema matching is automatically verifying Json-Schema if the key has a `$` prefix. For example, if the response body is expected to match a schema, use `$body` as key in the recorded pact object. This will cause the schema matcher to validate the response body against the schema.
 
 ```typescript
-import { C8yQicktypeSchemaGenerator } from "cumulocity-cypress/contrib/quicktype";
-Cypress.c8ypact.schemaGenerator = new C8yQicktypeSchemaGenerator();
-
-import { C8yAjvJson6SchemaMatcher } from "cumulocity-cypress/contrib/ajv";
-Cypress.c8ypact.schemaMatcher = new C8yAjvJson6SchemaMatcher();
-// should be optional in browser runtimes. Node.js runtime, such as in the plugin, this is required
-C8yDefaultPactMatcher.schemaMatcher = Cypress.c8ypact.schemaMatcher;
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/custom/"
+  },
+  "response": {
+    "status": 201,
+    "$body": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    }
+  }
+}
 ```
-
-The `C8yAjvJson6SchemaMatcher` uses [Ajv](https://ajv.js.org/) JSON schema validator with JSON schema draft 6. You might want to use different schema version and register with `C8yAjvSchemaMatcher` by imorting schema definition as for example from `ajv/lib/refs/json-schema-draft-06.json`.
-
-> **Important:** The schema generator and matcher implementations MUST support browser runtime. Node.js specific code will not work and will cause issues when running tests in the browser.
-
-To disable schema generation, set `Cypress.c8ypact.schemaGenerator` to `undefined`.
 
 ### Recording of created objects
 

@@ -34,7 +34,6 @@ if (!Cypress.c8ypact) {
     isEnabled: () => false,
     matcher: undefined,
     pactRunner: undefined,
-    schemaGenerator: undefined,
     schemaMatcher: undefined,
     debugLog: false,
     preprocessor: undefined,

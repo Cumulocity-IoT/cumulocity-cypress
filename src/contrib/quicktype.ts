@@ -1,9 +1,3 @@
-import {
-  InputData,
-  jsonInputForTargetLanguage,
-  quicktype,
-} from "quicktype-core";
-
 import { C8ySchemaGenerator } from "../shared/c8ypact/schema";
 
 /**
@@ -16,6 +10,17 @@ import { C8ySchemaGenerator } from "../shared/c8ypact/schema";
  */
 export class C8yQicktypeSchemaGenerator implements C8ySchemaGenerator {
   async generate(obj: any, options: any = {}): Promise<any> {
+    let InputData, jsonInputForTargetLanguage, quicktype;
+    try {
+      // @ts-expect-error
+      const quicktypeCore = await import("quicktype-core");
+      ({ InputData, jsonInputForTargetLanguage, quicktype } = quicktypeCore);
+    } catch {
+      throw new Error(
+        "quicktype-core is not installed. Please run `npm install quicktype-core` in your project to use this feature."
+      );
+    }
+
     const { name } = options;
     const inputData = new InputData();
     const jsonInput = jsonInputForTargetLanguage("json-schema");

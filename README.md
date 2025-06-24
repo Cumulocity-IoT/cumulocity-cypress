@@ -90,11 +90,6 @@ Add dependency to your package.json and install via npm or yarn.
 ```bash
 npm install --save-dev cumulocity-cypress
 ```
-or 
-
-```bash
-yarn add -D cumulocity-cypress
-```
 
 ### Peer dependencies
 

@@ -15,7 +15,6 @@ import {
   toPactResponse,
 } from "./c8ypact";
 
-import { C8ySchemaGenerator } from "./schema";
 import { C8yPactPreprocessor } from "./preprocessor";
 import { C8yDefaultPactRecord, createPactRecord } from "./c8ydefaultpactrecord";
 import { C8yBaseUrl } from "../types";
@@ -285,7 +284,6 @@ export type C8yPactSerializeOptions = {
   preprocessor?: C8yPactPreprocessor;
   client?: C8yClient;
   modifiedResponse?: Cypress.Response<any>;
-  schemaGenerator?: C8ySchemaGenerator;
   loggedInUser?: string;
   loggedInUserAlias?: string;
   authType?: string;
@@ -329,31 +327,8 @@ export async function toPactSerializableObject(
   if (options.baseUrl == null) {
     options.baseUrl = info.baseUrl;
   }
-  const record = toSerializablePactRecord(response, options)
+  const record = toSerializablePactRecord(response, options);
   const pact = new C8yDefaultPact([record], info, info.id);
-
   const keysToSave: C8yPactSaveKeys[] = ["id", "info", "records"];
-  try {
-    await Promise.all(
-      pact.records
-        .filter(
-          (record_1) =>
-            record_1.response.body &&
-            !record_1.response.$body &&
-            _.isObjectLike(record_1.response.body)
-        )
-        .map((record_2) =>
-          options?.schemaGenerator
-            ?.generate(record_2.response.body, { name: "body" })
-            .then((schema) => {
-              record_2.response.$body = schema;
-              return record_2;
-            })
-        )
-    );
-    return { ..._.pick(pact, keysToSave) };
-  } catch (error) {
-    console.error(error);
-    return { ..._.pick(pact, keysToSave) };
-  }
+  return { ..._.pick(pact, keysToSave) };
 }

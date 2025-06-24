@@ -8,7 +8,6 @@ import {
   C8yPactInfo,
   C8yPactRecord,
   C8yPactPreprocessor,
-  C8ySchemaGenerator,
   C8ySchemaMatcher,
   C8yDefaultPactMatcher,
   C8yPactMatcher,
@@ -101,12 +100,6 @@ declare global {
      * The C8yPactPreprocessor implementation used to preprocess the pact objects.
      */
     preprocessor?: C8yPactPreprocessor;
-    /**
-     * The C8ySchemaGenerator implementation used to generate json schemas from json objects. The
-     * implementation of `C8ySchemaGenerator` must support browser runtimes!
-     * Default is undefined and schema generation is disabled.
-     */
-    schemaGenerator?: C8ySchemaGenerator;
     /**
      * The C8ySchemaMatcher implementation used to match json schemas. The schema matcher implementation
      * must support browser runtimes! Default is undefined and schema matching is disabled.
@@ -252,7 +245,6 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
     recordingMode,
     matcher: new C8yDefaultPactMatcher(),
     pactRunner: new C8yDefaultPactRunner(),
-    schemaGenerator: undefined,
     schemaMatcher: undefined,
     debugLog: false,
     preprocessor: new C8yCypressEnvPreprocessor(),
@@ -372,7 +364,6 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
         recordingMode: Cypress.c8ypact.recordingMode(),
         matcher: Cypress.c8ypact.matcher || null,
         pactRunner: Cypress.c8ypact.pactRunner || null,
-        schemaGenerator: Cypress.c8ypact.schemaGenerator || null,
         schemaMatcher: Cypress.c8ypact.schemaMatcher || null,
         debugLog: Cypress.c8ypact.debugLog,
         preprocessor: Cypress.c8ypact.preprocessor || null,
@@ -526,7 +517,6 @@ async function savePact(
         client,
         modifiedResponse: options?.modifiedResponse,
         preprocessor: Cypress.c8ypact.preprocessor,
-        schemaGenerator: Cypress.c8ypact.schemaGenerator,
       });
       pactDesc = `${response.url?.replace(baseUrl, "") || ""}`;
     }

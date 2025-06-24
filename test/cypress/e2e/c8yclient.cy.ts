@@ -538,6 +538,49 @@ describe("c8yclient", () => {
         });
     });
 
+    it("should support schema reference", (done) => {
+      const openapi = {
+        openapi: "3.0.0",
+        info: {
+          title: "MySpec",
+          version: "1.0.0",
+        },
+        components: {
+          schemas: {
+            CurrentTenant: {
+              type: "object",
+              properties: {
+                name: {
+                  type: "number",
+                },
+              },
+            },
+          },
+        },
+      };
+
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.contain("Matching schema failed. Error:");
+        expect(err.message).to.contain("data/name must be number");
+        done();
+      });
+
+      const matcher = new C8yAjvSchemaMatcher();
+      matcher.ajv.addSchema(openapi, "MySpec");
+      Cypress.c8ypact.schemaMatcher = matcher;
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          schema: { $ref: "MySpec#/components/schemas/CurrentTenant" },
+        })
+        .then(() => {
+          // @ts-expect-error
+          const spy = Cypress.c8ypact.matcher.schemaMatcher
+            .match as sinon.SinonSpy;
+          expect(spy).to.have.been.calledOnce;
+        });
+    });
+
     it("should use schema if pact mode is disabled with default schema matcher", () => {
       Cypress.env("C8Y_PACT_MODE", undefined);
       expect(Cypress.c8ypact.isEnabled()).to.be.false;

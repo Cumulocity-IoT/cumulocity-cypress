@@ -5,7 +5,6 @@ import {
   C8yPactRecord,
   C8yPactRequestMatchingOptions,
   C8yPactResponse,
-  C8ySchemaGenerator,
   C8yPactMode,
   C8yPactRecordingMode,
   C8yPactID,
@@ -83,10 +82,6 @@ export interface C8yPactHttpControllerOptions {
    * Preprocessor to use for modifying requests and responses.
    */
   preprocessor?: C8yPactPreprocessor;
-  /**
-   * Schema generator to use for generating schemas for response bodies. If not set, no schema is generated.
-   */
-  schemaGenerator?: C8ySchemaGenerator;
   /**
    * Request matching options to use for matching requests to recorded responses.
    */
