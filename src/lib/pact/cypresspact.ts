@@ -364,7 +364,6 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
         recordingMode: Cypress.c8ypact.recordingMode(),
         matcher: Cypress.c8ypact.matcher || null,
         pactRunner: Cypress.c8ypact.pactRunner || null,
-        schemaGenerator: Cypress.c8ypact.schemaGenerator || null,
         schemaMatcher: Cypress.c8ypact.schemaMatcher || null,
         debugLog: Cypress.c8ypact.debugLog,
         preprocessor: Cypress.c8ypact.preprocessor || null,
@@ -518,7 +517,6 @@ async function savePact(
         client,
         modifiedResponse: options?.modifiedResponse,
         preprocessor: Cypress.c8ypact.preprocessor,
-        schemaGenerator: Cypress.c8ypact.schemaGenerator,
       });
       pactDesc = `${response.url?.replace(baseUrl, "") || ""}`;
     }
