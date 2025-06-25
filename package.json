@@ -133,7 +133,7 @@
     "winston": "^3.13.0",
     "ws": "^8.18.0",
     "yaml": "^2.7.0",
-    "yargs": "^17.7.2"
+    "yargs": "^18.0.0"
   },
   "devDependencies": {
     "@bahmutov/cypress-esbuild-preprocessor": "^2.2.5",
