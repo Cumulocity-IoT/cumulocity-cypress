@@ -90,6 +90,7 @@ const getAuthEnvVariables = () => {
       key.endsWith("_username") ||
       key.endsWith("_password") ||
       key === "C8Y_USERNAME" ||
+      key === "C8Y_USER" ||
       key === "C8Y_PASSWORD"
     ) {
       filteredKeysAndValues[key] = env[key];

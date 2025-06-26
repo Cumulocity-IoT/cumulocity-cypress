@@ -111,7 +111,7 @@ export function getAuthOptionsFromEnv() {
   }
 
   // check first environment variables
-  const user = Cypress.env(`C8Y_USERNAME`);
+  const user = Cypress.env(`C8Y_USERNAME`) ?? Cypress.env(`C8Y_USER`);
   const password = Cypress.env(`C8Y_PASSWORD`);
   if (!_.isEmpty(user) && !_.isEmpty(password)) {
     return authWithTenant({
@@ -326,6 +326,7 @@ export function getBaseUrlFromEnv(): string | undefined {
   return (
     getEnvVar("C8Y_BASEURL") ||
     getEnvVar("C8Y_BASE_URL") ||
+    getEnvVar("C8Y_HOST") ||
     Cypress.config().baseUrl ||
     undefined
   );

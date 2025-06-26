@@ -41,7 +41,7 @@ Cypress.Commands.add(
     const baseUrl = getBaseUrlFromEnv();
     if (!baseUrl) {
       const error = new Error(
-        "No base URL configured. oauthLogin requires a baseUrl. For component testing use C8Y_BASEURL env variable."
+        "No base URL configured. oauthLogin requires a baseUrl. For component testing use C8Y_BASEURL or C8Y_HOST env variable."
       );
       error.name = "C8yPactError";
       throw error;

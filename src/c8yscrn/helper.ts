@@ -132,5 +132,5 @@ export function resolveConfigOptions(args: Partial<C8yScreenshotOptions>): any {
 export function resolveBaseUrl(
   args: Partial<C8yScreenshotOptions>
 ): string | undefined {
-  return args.baseUrl ?? process.env.C8Y_BASEURL;
+  return args.baseUrl ?? process.env.C8Y_BASEURL ?? process.env.C8Y_HOST
 }

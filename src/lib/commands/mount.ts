@@ -15,8 +15,8 @@ declare global {
       /**
        * Mount a Cumulocity Angular component. When mounting the component FetchClient
        * provider will be C8yPactFetchClient to enable recording and mocking of
-       * requests and responses. Set base url with C8Y_BASEURL and pass authentication
-       * via cy.getAuth() or cy.useAuth().
+       * requests and responses. Set base url with C8Y_BASEURL or C8Y_HOST and pass
+       * authentication via cy.getAuth() or cy.useAuth().
        */
       mount: typeof mount;
     }
@@ -55,7 +55,7 @@ Cypress.Commands.add(
     if (!baseUrl) {
       logger.end();
       const error = new Error(
-        "No base URL configured. cy.mount requires a base url. For component testing use C8Y_BASEURL env variable."
+        "No base URL configured. cy.mount requires a base url. For component testing use C8Y_BASEURL or C8Y_HOST env variable."
       );
       error.name = "C8yPactError";
       throw error;

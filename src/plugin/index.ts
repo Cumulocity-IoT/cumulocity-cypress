@@ -112,8 +112,10 @@ export function configureC8yPlugin(
   const baseUrl =
     getEnvVar("C8Y_BASEURL") ||
     getEnvVar("CYPRESS_BASEURL") ||
+    getEnvVar("C8Y_HOST") ||
     getEnvVar("C8Y_BASEURL", config.env) ||
-    getEnvVar("CYPRESS_BASEURL", config.env);
+    getEnvVar("CYPRESS_BASEURL", config.env) ||
+    getEnvVar("C8Y_HOST", config.env);
 
   log(`validateBaseUrl() - ${baseUrl}`);
   validateBaseUrl(baseUrl); // throws on error
@@ -765,7 +767,8 @@ export function configureEnvVariables(config: Cypress.PluginConfigOptions) {
     }
   });
 
-  const baseUrl = config.env.C8Y_BASEURL || config.env.baseUrl || null;
+  const baseUrl =
+    config.env.C8Y_BASEURL || config.env.baseUrl || config.env.C8Y_HOST || null;
   if (baseUrl != null) {
     log("Configured baseUrl from env:", baseUrl);
     config.baseUrl = baseUrl;
