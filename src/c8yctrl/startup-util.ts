@@ -26,7 +26,7 @@ import { C8yPactDefaultFileAdapter } from "../shared/c8ypact/adapter/fileadapter
 import { morganErrorOptions } from "../shared/c8yctrl/httpcontroller";
 
 import { RequestHandler } from "express";
-import { safeStringify } from "../shared/util";
+import { normalizeBaseUrl, safeStringify } from "../shared/util";
 import { getPackageVersion } from "../shared/util-node";
 
 import debug from "debug";
@@ -189,11 +189,12 @@ export function getConfigFromEnvironment(): Partial<C8yPactHttpControllerConfig>
   return {
     folder: getEnvVar("C8YCTRL_FOLDER"),
     port: +(getEnvVar("C8YCTRL_PORT") || getEnvVar("C8Y_HTTP_PORT") || 3000),
-    baseUrl:
+    baseUrl: normalizeBaseUrl(
       getEnvVar("C8YCTRL_BASEURL") ||
-      getEnvVar("C8Y_BASE_URL") ||
-      getEnvVar("C8Y_BASEURL") ||
-      getEnvVar("C8Y_HOST"),
+        getEnvVar("C8Y_BASE_URL") ||
+        getEnvVar("C8Y_BASEURL") ||
+        getEnvVar("C8Y_HOST")
+    ),
     user:
       getEnvVar("C8YCTRL_USERNAME") ||
       getEnvVar("C8YCTRL_USER") ||

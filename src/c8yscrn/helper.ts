@@ -4,6 +4,7 @@ import * as path from "path";
 import debug from "debug";
 
 import schema from "./schema.json";
+import { normalizeBaseUrl } from "../shared/util";
 
 import {
   C8yScreenshotOptions,
@@ -132,5 +133,5 @@ export function resolveConfigOptions(args: Partial<C8yScreenshotOptions>): any {
 export function resolveBaseUrl(
   args: Partial<C8yScreenshotOptions>
 ): string | undefined {
-  return args.baseUrl ?? process.env.C8Y_BASEURL ?? process.env.C8Y_HOST
+  return normalizeBaseUrl(args.baseUrl ?? process.env.C8Y_BASEURL ?? process.env.C8Y_HOST);
 }

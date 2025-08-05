@@ -1,6 +1,9 @@
+/// <reference types="jest" />
+
 import {
   buildTestHierarchy,
   get_i,
+  normalizeBaseUrl,
   sanitizeStringifiedObject,
   shortestUniquePrefixes,
   to_array,
@@ -391,6 +394,129 @@ describe("util", () => {
       ];
       const tree = buildTestHierarchy(objects, (obj) => []);
       expect(tree).toEqual({});
+    });
+  });
+
+  describe("normalizeBaseUrl", () => {
+    it("should return undefined for undefined input", () => {
+      const result = normalizeBaseUrl(undefined);
+      expect(result).toBeUndefined();
+    });
+
+    it("should return undefined for null input", () => {
+      const result = normalizeBaseUrl(null as any);
+      expect(result).toBeUndefined();
+    });
+
+    it("should return undefined for empty string", () => {
+      const result = normalizeBaseUrl("");
+      expect(result).toBeUndefined();
+    });
+
+    it("should return undefined for whitespace-only string", () => {
+      const result = normalizeBaseUrl("   ");
+      expect(result).toBeUndefined();
+    });
+
+    it("should return undefined for non-string input", () => {
+      const result = normalizeBaseUrl(123 as any);
+      expect(result).toBeUndefined();
+    });    it("should return existing HTTPS URL unchanged", () => {
+      const result = normalizeBaseUrl("https://example.com");
+      expect(result).toBe("https://example.com/");
+    });
+
+    it("should return existing HTTP URL unchanged", () => {
+      const result = normalizeBaseUrl("http://example.com");
+      expect(result).toBe("http://example.com/");
+    });
+
+    it("should add HTTPS to URL without protocol", () => {
+      const result = normalizeBaseUrl("example.com");
+      expect(result).toBe("https://example.com/");
+    });
+
+    it("should add HTTPS to URL with path but no protocol", () => {
+      const result = normalizeBaseUrl("example.com/path");
+      expect(result).toBe("https://example.com/path");
+    });
+
+    it("should add HTTPS to URL with port but no protocol", () => {
+      const result = normalizeBaseUrl("example.com:8080");
+      expect(result).toBe("https://example.com:8080/");
+    });
+
+    it("should handle case-insensitive protocols", () => {
+      const result1 = normalizeBaseUrl("HTTPS://example.com");
+      expect(result1).toBe("HTTPS://example.com/");
+      
+      const result2 = normalizeBaseUrl("HTTP://example.com");
+      expect(result2).toBe("HTTP://example.com/");
+    });
+
+    it("should trim whitespace before processing", () => {
+      const result = normalizeBaseUrl("  example.com  ");
+      expect(result).toBe("https://example.com/");
+    });
+
+    it("should handle complex URLs without protocol", () => {
+      const result = normalizeBaseUrl("subdomain.example.com:8080/path?query=value#fragment");
+      expect(result).toBe("https://subdomain.example.com:8080/path?query=value#fragment");
+    });
+
+    it("should handle localhost URLs", () => {
+      const result1 = normalizeBaseUrl("localhost:3000");
+      expect(result1).toBe("https://localhost:3000/");
+
+      const result2 = normalizeBaseUrl("http://localhost:3000");
+      expect(result2).toBe("http://localhost:3000/");
+    });
+
+    it("should handle IP addresses", () => {
+      const result1 = normalizeBaseUrl("192.168.1.1:8080");
+      expect(result1).toBe("https://192.168.1.1:8080/");
+
+      const result2 = normalizeBaseUrl("https://192.168.1.1:8080");
+      expect(result2).toBe("https://192.168.1.1:8080/");
+    });
+
+    it("should handle URLs with subdomains", () => {
+      const result = normalizeBaseUrl("sub.domain.example.com");
+      expect(result).toBe("https://sub.domain.example.com/");
+    });
+
+    it("should handle URLs with query parameters", () => {
+      const result = normalizeBaseUrl("example.com?param=value");
+      expect(result).toBe("https://example.com/?param=value");
+    });
+
+    it("should handle URLs with fragments", () => {
+      const result = normalizeBaseUrl("example.com#section");
+      expect(result).toBe("https://example.com/#section");
+    });
+
+    it("should handle Cumulocity-style URLs", () => {
+      const result1 = normalizeBaseUrl("tenant.cumulocity.com");
+      expect(result1).toBe("https://tenant.cumulocity.com/");
+
+      const result2 = normalizeBaseUrl("tenant.eu-latest.cumulocity.com");
+      expect(result2).toBe("https://tenant.eu-latest.cumulocity.com/");
+    });
+
+    it("should not add trailing slash to URLs with existing paths", () => {
+      const result1 = normalizeBaseUrl("https://example.com/api");
+      expect(result1).toBe("https://example.com/api");
+
+      const result2 = normalizeBaseUrl("example.com/api/v1");
+      expect(result2).toBe("https://example.com/api/v1");
+    });
+
+    it("should handle URLs that already have trailing slash", () => {
+      const result1 = normalizeBaseUrl("https://example.com/");
+      expect(result1).toBe("https://example.com/");
+
+      const result2 = normalizeBaseUrl("example.com/");
+      expect(result2).toBe("https://example.com/");
     });
   });
 });

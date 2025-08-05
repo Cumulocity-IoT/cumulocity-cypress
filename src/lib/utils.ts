@@ -5,7 +5,7 @@ import { C8yAuthOptions, isAuthOptions } from "../shared/auth";
 import { C8yClient } from "../shared/c8yclient";
 import { getEnvVar } from "../shared/c8ypact/c8ypact";
 import { toSemverVersion } from "../shared/versioning";
-import { get_i } from "../shared/util";
+import { get_i, normalizeBaseUrl } from "../shared/util";
 
 const { _ } = Cypress;
 
@@ -319,17 +319,22 @@ export function getShellVersionFromEnv(): string | undefined {
  * environment variables are checked in order:
  * - C8Y_BASEURL
  * - C8Y_BASE_URL
+ * - C8Y_HOST
  *
- * @returns Base URL from environment variables.
+ * URLs without a protocol will have HTTPS added automatically.
+ *
+ * @returns Base URL from environment variables with HTTPS protocol.
  */
 export function getBaseUrlFromEnv(): string | undefined {
-  return (
+  const baseUrl = (
     getEnvVar("C8Y_BASEURL") ||
     getEnvVar("C8Y_BASE_URL") ||
     getEnvVar("C8Y_HOST") ||
     Cypress.config().baseUrl ||
     undefined
   );
+
+  return normalizeBaseUrl(baseUrl);
 }
 
 export function storeClient(client: C8yClient) {

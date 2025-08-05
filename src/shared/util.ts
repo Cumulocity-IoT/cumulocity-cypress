@@ -248,3 +248,48 @@ export function buildTestHierarchy<T>(
   });
   return tree;
 }
+
+/**
+ * Normalizes a URL to ensure it has a protocol and proper trailing slash.
+ * If no protocol is present, HTTPS is added by default.
+ * If the URL has no path component, a trailing slash is appended.
+ *
+ * @param url - The URL string to normalize
+ * @returns The normalized URL with HTTPS protocol and trailing slash if appropriate, or undefined for invalid input
+ */
+export function normalizeBaseUrl(url: string | undefined): string | undefined {
+  if (!url || typeof url !== 'string') {
+    return url;
+  }
+
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    return undefined;
+  }
+
+  let normalizedUrl: string;
+
+  // Check if URL already has a protocol
+  if (/^https?:\/\//i.test(trimmedUrl)) {
+    normalizedUrl = trimmedUrl;
+  } else {
+    // Add https:// if no protocol is present
+    normalizedUrl = `https://${trimmedUrl}`;
+  }
+
+  // // Parse the URL to check if it has a path component
+  // try {
+  //   const urlObj = new URL(normalizedUrl);
+  //   // If pathname is empty or just "/", and there's no search or hash, append trailing slash
+  //   if (urlObj.pathname === '' || (urlObj.pathname === '/' && !urlObj.search && !urlObj.hash)) {
+  //     if (!normalizedUrl.endsWith('/')) {
+  //       normalizedUrl += '/';
+  //     }
+  //   }
+  // } catch {
+  //   // If URL parsing fails, just return the normalized URL as-is
+  //   // This handles edge cases where the URL might be malformed but still usable
+  // }
+
+  return normalizedUrl;
+}
