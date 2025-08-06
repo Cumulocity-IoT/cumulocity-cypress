@@ -187,7 +187,7 @@ Cypress.Commands.add(
   (
     url,
     language = "en",
-    selector = "c8y-navigator-outlet c8y-app-icon",
+    selector = "c8y-drawer-outlet c8y-app-icon .c8y-icon, c8y-navigator-outlet c8y-app-icon",
     timeout = Cypress.config().pageLoadTimeout || 60000
   ) => {
     const consoleProps = {

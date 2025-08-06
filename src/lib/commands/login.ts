@@ -1,3 +1,4 @@
+import { sanitizeStringifiedObject } from "cumulocity-cypress/shared/util";
 import { C8yTenant } from "../../shared/types";
 import { getAuthOptions, resetClient } from "../utils";
 import { C8yAuthOptions, isAuthOptions } from "./auth";
@@ -78,7 +79,7 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
   const logger = Cypress.log({
     autoEnd: false,
     name: "login",
-    message: auth,
+    message: sanitizeStringifiedObject(JSON.stringify(auth)),
     consoleProps: () => consoleProps,
   });
   if (!auth) {
@@ -107,10 +108,12 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
         if (options.hideCookieBanner === true) {
           cy.hideCookieBanner();
         }
+        const tenant_id = tenant ? `?tenant_id=${tenant}` : "";
         return cy
           .request({
             method: "POST",
-            url: `/tenant/oauth?tenant_id=${tenant}`,
+            // tenant_id is optional, if not provided, it will use the tenant from auth object or hostname
+            url: `/tenant/oauth${tenant_id}`,
             body: {
               grant_type: "PASSWORD",
               username: auth?.user,
