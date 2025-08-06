@@ -5,7 +5,8 @@ on:
     branches:
       - main
       - develop
-
+      - merge/*
+      
 permissions:
   contents: read
   
