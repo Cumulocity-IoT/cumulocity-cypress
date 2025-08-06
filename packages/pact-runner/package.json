@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@angular/common": "^19.2.0",
-    "@c8y/client": "1022.9.6",
+    "@c8y/client": "^1022.9.6",
     "cumulocity-cypress": "latest",
     "cypress": "^14.1.0"
   }
