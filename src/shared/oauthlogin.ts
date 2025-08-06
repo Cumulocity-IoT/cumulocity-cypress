@@ -1,5 +1,5 @@
 import _ from "lodash";
-import fetch from "cross-fetch"; // Added for direct fetch usage
+import fetch from "cross-fetch";
 
 import { C8yBaseUrl } from "./types";
 import { C8yAuthOptions } from "./auth";
