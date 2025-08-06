@@ -1,6 +1,5 @@
 import _ from "lodash";
-import fetch from "cross-fetch"; // Added for direct fetch usage
-import { Buffer } from "buffer"; // Added for Basic Auth
+import fetch from "cross-fetch";
 
 import { C8yBaseUrl } from "./types";
 import { C8yAuthOptions } from "./auth";
@@ -26,33 +25,12 @@ export async function oauthLogin(
     throw error;
   }
 
-  let tenant = auth.tenant;
-  if (!tenant) {
-    const basicAuthHeader = `Basic ${Buffer.from(
-      `${auth.user}:${auth.password}`
-    ).toString("base64")}`;
-
-    const tenantUrl = `${baseUrl}/tenant/currentTenant`;
-    const tenantResponse = await fetch(tenantUrl, {
-      headers: {
-        Authorization: basicAuthHeader,
-      },
-    });
-
-    if (tenantResponse.status !== 200) {
-      const error = new Error(
-        `Getting tenant id failed for ${baseUrl} with status code ${
-          tenantResponse.status
-        }. Use env variable or pass it as part of auth object.`
-      );
-      error.name = "C8yPactError";
-      throw error;
-    }
-    const tenantData = await tenantResponse.json();
-    tenant = tenantData.name;
-  }
-
-  const oauthEndpointUrl = `${baseUrl}/tenant/oauth?tenant_id=${tenant}`;
+  const tenant = auth.tenant;
+  const tenant_id = tenant ? `?tenant_id=${tenant}` : "";
+  const normalizedBaseUrl = baseUrl.endsWith("/")
+    ? baseUrl.slice(0, baseUrl.lastIndexOf("/"))
+    : baseUrl;
+  const oauthEndpointUrl = `${normalizedBaseUrl}/tenant/oauth${tenant_id}`;
   const params = new URLSearchParams({
     grant_type: "PASSWORD",
     username: auth.user || "",
