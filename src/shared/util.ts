@@ -17,14 +17,12 @@ export function safeStringify(obj: any, indent = 2) {
   return retVal;
 }
 
-export function sanitizeStringifiedObject(value: string) {
-  if (!value || typeof value !== "string") {
-    return value;
+export function sanitizeStringifiedObject(obj: any): any {
+  if (!_.isString(obj)) {
+    return obj;
   }
-  return value.replace(
-    /("?)(password)("?):\s+("?).*?(")?(\s*,?[\s\n}]+)/gi,
-    "$1$2$3: $4***$5$6"
-  );
+  const regex = /((?:"password"|'password'|password)\s*:\s*["']?)(.*?)(["']|,|\s|}|$)/gi;
+  return obj.replace(regex, "$1***$3");
 }
 
 /**

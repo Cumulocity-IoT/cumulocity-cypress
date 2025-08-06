@@ -50,6 +50,14 @@ describe("util", () => {
     expect(
       sanitizeStringifiedObject("{ password: abc123, username: myuser }")
     ).toEqual("{ password: ***, username: myuser }");
+
+    expect(
+      sanitizeStringifiedObject(
+        '{"user":"abcdefg","password":"123456"}'
+      )
+    ).toEqual(
+      '{"user":"abcdefg","password":"***"}'
+    );
   });
 
   describe("to_boolean", () => {
