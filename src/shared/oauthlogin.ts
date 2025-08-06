@@ -27,7 +27,9 @@ export async function oauthLogin(
 
   const tenant = auth.tenant;
   const tenant_id = tenant ? `?tenant_id=${tenant}` : "";
-  const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
+  const normalizedBaseUrl = baseUrl.endsWith("/")
+    ? baseUrl.replace(/\/+$/, "")
+    : baseUrl;
   const oauthEndpointUrl = `${normalizedBaseUrl}/tenant/oauth${tenant_id}`;
   const params = new URLSearchParams({
     grant_type: "PASSWORD",
