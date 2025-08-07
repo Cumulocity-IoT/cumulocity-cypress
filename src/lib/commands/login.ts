@@ -133,7 +133,19 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
       const tenant: C8yTenant = auth?.tenant || Cypress.env("C8Y_TENANT");
       consoleProps.tenant = tenant || null;
 
-      if (options.useSession === true) {
+      if (auth?.token != null && auth.xsrfToken != null) {
+        const cookieOptions = {
+          domain: undefined,
+          httpOnly: false,
+          secure: false,
+          path: "/",
+        };
+
+        cy.setCookie("authorization", auth.token, cookieOptions);
+        cy.setCookie("XSRF-TOKEN", auth.xsrfToken, cookieOptions);
+        Cypress.env("C8Y_LOGGED_IN_USER", auth.user);
+        Cypress.env("C8Y_TENANT", auth.tenant);
+      } else if (options.useSession === true) {
         cy.session(
           auth?.user || auth,
           () => {

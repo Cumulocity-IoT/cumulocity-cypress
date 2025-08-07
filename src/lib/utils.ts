@@ -120,7 +120,34 @@ export function getAuthOptionsFromEnv() {
     });
   }
 
+  const jwtToken = Cypress.env("C8Y_TOKEN");
+  try {
+    const authFromToken = extractTokensFromJWT(jwtToken);
+    if (authFromToken) {
+      return authWithTenant(authFromToken);
+    }
+  } catch {
+    // ignore errors from extractTokensFromJWT
+    // this is expected if the token is not a valid JWT
+  }
+
   return undefined;
+}
+
+export function extractTokensFromJWT(jwtToken: string): C8yAuthOptions {
+  try {
+    const payload = JSON.parse(atob(jwtToken.split(".")[1]));
+    return {
+      token: jwtToken,
+      xsrfToken: payload.xsrfToken,
+      tenant: payload.ten,
+      user: payload.sub,
+      type: "BearerAuth"
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to decode JWT token: ${message}`);
+  }
 }
 
 export function getAuthOptions(...args: any[]): C8yAuthOptions | undefined {
@@ -326,13 +353,12 @@ export function getShellVersionFromEnv(): string | undefined {
  * @returns Base URL from environment variables with HTTPS protocol.
  */
 export function getBaseUrlFromEnv(): string | undefined {
-  const baseUrl = (
+  const baseUrl =
     getEnvVar("C8Y_BASEURL") ||
     getEnvVar("C8Y_BASE_URL") ||
     getEnvVar("C8Y_HOST") ||
     Cypress.config().baseUrl ||
-    undefined
-  );
+    undefined;
 
   return normalizeBaseUrl(baseUrl);
 }
