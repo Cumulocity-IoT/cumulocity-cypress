@@ -11,7 +11,7 @@ import {
   C8yPactFileAdapter,
   C8yPactDefaultFileAdapter,
 } from "../shared/c8ypact/adapter/fileadapter";
-import { get_i, safeStringify } from "../shared/util";
+import { get_i, normalizeBaseUrl, safeStringify } from "../shared/util";
 
 import {
   C8yPactHttpController,
@@ -109,13 +109,14 @@ export function configureC8yPlugin(
   log(`validatePactMode() - ${mode}`);
 
   validatePactMode(mode); // throws on error
-  const baseUrl =
+  const baseUrl = normalizeBaseUrl(
     getEnvVar("C8Y_BASEURL") ||
-    getEnvVar("CYPRESS_BASEURL") ||
-    getEnvVar("C8Y_HOST") ||
-    getEnvVar("C8Y_BASEURL", config.env) ||
-    getEnvVar("CYPRESS_BASEURL", config.env) ||
-    getEnvVar("C8Y_HOST", config.env);
+      getEnvVar("CYPRESS_BASEURL") ||
+      getEnvVar("C8Y_HOST") ||
+      getEnvVar("C8Y_BASEURL", config.env) ||
+      getEnvVar("CYPRESS_BASEURL", config.env) ||
+      getEnvVar("C8Y_HOST", config.env)
+  );
 
   log(`validateBaseUrl() - ${baseUrl}`);
   validateBaseUrl(baseUrl); // throws on error
