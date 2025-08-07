@@ -11,7 +11,7 @@ import {
   C8yPactFileAdapter,
   C8yPactDefaultFileAdapter,
 } from "../shared/c8ypact/adapter/fileadapter";
-import { get_i, normalizeBaseUrl, safeStringify } from "../shared/util";
+import { get_i, safeStringify } from "../shared/util";
 
 import {
   C8yPactHttpController,
@@ -24,7 +24,7 @@ import {
 } from "../shared/c8ypact/c8ypact";
 import { C8yAuthOptions } from "../shared/auth";
 import { oauthLogin } from "../shared/oauthlogin";
-import { validateBaseUrl } from "../shared/c8ypact/url";
+import { normalizeBaseUrl, validateBaseUrl } from "../shared/c8ypact/url";
 import { getPackageVersion } from "../shared/util-node";
 
 import {

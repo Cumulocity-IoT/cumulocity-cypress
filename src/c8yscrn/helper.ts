@@ -4,7 +4,6 @@ import * as path from "path";
 import debug from "debug";
 
 import schema from "./schema.json";
-import { normalizeBaseUrl } from "../shared/util";
 
 import {
   C8yScreenshotOptions,
@@ -12,6 +11,7 @@ import {
 } from "../lib/screenshots/types";
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import { C8yBaseUrl } from "../shared/types";
+import { normalizeBaseUrl } from "../shared/c8ypact/url";
 
 export function readYamlFile(filePath: string): any {
   const fileContent = fs.readFileSync(filePath, "utf-8");

@@ -5,7 +5,8 @@ import { C8yAuthOptions, isAuthOptions } from "../shared/auth";
 import { C8yClient } from "../shared/c8yclient";
 import { getEnvVar } from "../shared/c8ypact/c8ypact";
 import { toSemverVersion } from "../shared/versioning";
-import { get_i, normalizeBaseUrl } from "../shared/util";
+import { get_i } from "../shared/util";
+import { normalizeBaseUrl } from "../shared/c8ypact/url";
 
 const { _ } = Cypress;
 
