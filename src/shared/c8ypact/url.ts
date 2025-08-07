@@ -121,7 +121,7 @@ export function isAbsoluteURL(url: string) {
 export function validateBaseUrl(baseUrl?: C8yBaseUrl) {
   if (baseUrl != null && !isAbsoluteURL(baseUrl)) {
     const error = new Error(
-      `Invalid value for base url. The base url must be an absolute URL or undefined.`
+      `Invalid value for base url. '${baseUrl}' must be an absolute URL or undefined.`
     );
     error.name = "C8yPactError";
     throw error;
