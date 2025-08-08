@@ -21,7 +21,7 @@ export function sanitizeStringifiedObject(obj: any): any {
   if (!_.isString(obj)) {
     return obj;
   }
-  const regex = /((?:"password"|'password'|password)\s*:\s*["']?)(.*?)(["']|,|\s|}|$)/gi;
+  const regex = /((?:"password"|'password'|password|"token"|'token'|token)\s*:\s*["']?)(.*?)(["']|,|\s|}|$)/gi;
   return obj.replace(regex, "$1***$3");
 }
 
