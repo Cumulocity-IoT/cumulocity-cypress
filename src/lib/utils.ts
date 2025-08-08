@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 
 import { BasicAuth, CookieAuth, IAuthentication } from "@c8y/client";
-import { C8yAuthOptions, isAuthOptions } from "../shared/auth";
+import { C8yAuthOptions, getAuthOptionsFromJWT, isAuthOptions } from "../shared/auth";
 import { C8yClient } from "../shared/c8yclient";
 import { getEnvVar } from "../shared/c8ypact/c8ypact";
 import { toSemverVersion } from "../shared/versioning";
@@ -121,9 +121,17 @@ export function getAuthOptionsFromEnv() {
     });
   }
 
+  if (Cypress.env(`C8Y_AUTHORIZATION`) && Cypress.env("C8Y_XSRF_TOKEN")) {
+    return authWithTenant({
+      token: Cypress.env(`C8Y_AUTHORIZATION`),
+      xsrfToken: Cypress.env("C8Y_XSRF_TOKEN"),
+      user,
+    });     
+  }
+
   const jwtToken = Cypress.env("C8Y_TOKEN");
   try {
-    const authFromToken = extractTokensFromJWT(jwtToken);
+    const authFromToken = getAuthOptionsFromJWT(jwtToken);
     if (authFromToken) {
       return authWithTenant(authFromToken);
     }
@@ -133,22 +141,6 @@ export function getAuthOptionsFromEnv() {
   }
 
   return undefined;
-}
-
-export function extractTokensFromJWT(jwtToken: string): C8yAuthOptions {
-  try {
-    const payload = JSON.parse(atob(jwtToken.split(".")[1]));
-    return {
-      token: jwtToken,
-      xsrfToken: payload.xsrfToken,
-      tenant: payload.ten,
-      user: payload.sub,
-      type: "BearerAuth"
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to decode JWT token: ${message}`);
-  }
 }
 
 export function getAuthOptions(...args: any[]): C8yAuthOptions | undefined {

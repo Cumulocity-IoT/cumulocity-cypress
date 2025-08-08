@@ -98,6 +98,22 @@ export function getAuthOptionsFromBasicAuthHeader(
   return { user: components[0], password: components.slice(1).join(":") };
 }
 
+export function getAuthOptionsFromJWT(jwtToken: string): C8yAuthOptions {
+  try {
+    const payload = JSON.parse(atob(jwtToken.split(".")[1]));
+    return {
+      token: jwtToken,
+      xsrfToken: payload.xsrfToken,
+      tenant: payload.ten,
+      user: payload.sub,
+      baseUrl: payload.aud ?? payload.iss,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to decode JWT token: ${message}`);
+  }
+}
+
 export function encodeBase64(str: string): string {
   if (!str) return "";
 

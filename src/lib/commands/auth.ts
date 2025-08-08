@@ -91,7 +91,10 @@ const getAuthEnvVariables = () => {
       key.endsWith("_password") ||
       key === "C8Y_USERNAME" ||
       key === "C8Y_USER" ||
-      key === "C8Y_PASSWORD"
+      key === "C8Y_PASSWORD" ||
+      key === "C8Y_TOKEN" ||
+      key === "C8Y_XSRF_TOKEN" ||
+      key === "C8Y_AUTHORIZATION"
     ) {
       filteredKeysAndValues[key] = env[key];
     }
