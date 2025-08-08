@@ -2,7 +2,7 @@ import {
   getAuthOptions,
   resetClient,
   userAliasFromArgs,
-  getAuthOptionsFromEnv,
+  getAuthOptionsFromCypressEnv,
 } from "../utils";
 import {
   C8yAuthOptions,
@@ -14,7 +14,7 @@ export {
   C8yAuthOptions,
   C8yAuthentication,
   isAuthOptions,
-  getAuthOptionsFromEnv,
+  getAuthOptionsFromCypressEnv,
   getAuthEnvVariables,
 };
 

@@ -2,6 +2,7 @@
 
 import _ from "lodash";
 import { IAuthentication, ICredentials } from "@c8y/client";
+import { normalizeBaseUrl } from "./c8ypact/url";
 
 export interface C8yAuthOptions extends ICredentials {
   sendImmediately?: boolean;
@@ -75,6 +76,47 @@ export function normalizeAuthHeaders(headers: { [key: string]: any }) {
   return headers;
 }
 
+export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
+  // check first environment variables
+  const user = env[`C8Y_USERNAME`] ?? env[`C8Y_USER`];
+  const password = env[`C8Y_PASSWORD`];
+  if (!_.isEmpty(user) && !_.isEmpty(password)) {
+    return authWithTenant(env, {
+      user,
+      password,
+    });
+  }
+
+  if (env[`C8Y_AUTHORIZATION`] && env["C8Y_XSRF_TOKEN"]) {
+    return authWithTenant(env, {
+      token: env[`C8Y_AUTHORIZATION`],
+      xsrfToken: env["C8Y_XSRF_TOKEN"],
+      user,
+    });     
+  }
+
+  const jwtToken = env["C8Y_TOKEN"];
+  try {
+    const authFromToken = getAuthOptionsFromJWT(jwtToken);
+    if (authFromToken) {
+      return authWithTenant(env, authFromToken);
+    }
+  } catch {
+    // ignore errors from extractTokensFromJWT
+    // this is expected if the token is not a valid JWT
+  }
+
+  return undefined;
+}
+
+export function authWithTenant(env: any, options: C8yAuthOptions) {
+  const tenant = env[`C8Y_TENANT`];
+  if (tenant && !options.tenant) {
+    _.extend(options, { tenant });
+  }
+  return options;
+}
+
 export function getAuthOptionsFromBasicAuthHeader(
   authHeader: string
 ): { user: string; password: string } | undefined {
@@ -100,12 +142,14 @@ export function getAuthOptionsFromBasicAuthHeader(
 export function getAuthOptionsFromJWT(jwtToken: string): C8yAuthOptions {
   try {
     const payload = JSON.parse(atob(jwtToken.split(".")[1]));
+    // Remove all characters not valid in JWT tokens (base64url: A-Z, a-z, 0-9, -, _, .)
+    const cleanedToken = jwtToken?.replace(/[^A-Za-z0-9\-_.]/g, "");
     return {
-      token: jwtToken,
+      token: cleanedToken,
       xsrfToken: payload.xsrfToken,
       tenant: payload.ten,
       user: payload.sub,
-      baseUrl: payload.aud ?? payload.iss,
+      baseUrl: normalizeBaseUrl(payload.aud ?? payload.iss),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

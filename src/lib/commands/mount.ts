@@ -6,7 +6,7 @@ import "./intercept";
 import "./oauthlogin";
 
 import { FetchClient } from "@c8y/client";
-import { getAuthOptionsFromEnv, getBaseUrlFromEnv } from "../utils";
+import { getAuthOptionsFromCypressEnv, getBaseUrlFromEnv } from "../utils";
 import { C8yAuthOptions } from "../../shared/auth";
 
 declare global {
@@ -47,7 +47,7 @@ Cypress.Commands.add(
       baseUrl = Cypress.c8ypact.current?.info.baseUrl;
     }
 
-    const auth = subject || getAuthOptionsFromEnv();
+    const auth = subject || getAuthOptionsFromCypressEnv();
     consoleProps.baseUrl = baseUrl;
     consoleProps.auth = auth || null;
     consoleProps.options = options;
@@ -60,6 +60,13 @@ Cypress.Commands.add(
       error.name = "C8yPactError";
       throw error;
     }
+
+    const isRecordingEnabled = Cypress.c8ypact.isRecordingEnabled();
+    consoleProps.isRecordingEnabled = isRecordingEnabled;
+    const strictMocking =
+      Cypress.c8ypact?.getConfigValue("strictMocking") === true;
+
+    consoleProps.strictMocking = strictMocking;
 
     const registerFetchClient = (auth?: C8yAuthOptions) => {
       const fetchClient = Cypress.c8ypact.createFetchClient(
@@ -81,18 +88,18 @@ Cypress.Commands.add(
       }
     };
 
-    consoleProps.isRecordingEnabled = Cypress.c8ypact.isRecordingEnabled();
-    const strictMocking =
-      Cypress.c8ypact?.getConfigValue("strictMocking") === true;
+    const getAuthOptions = () => {
+      if (
+        auth != null &&
+        (isRecordingEnabled === true || strictMocking === false) &&
+        (auth.token == null || auth.xsrfToken == null)
+      ) {
+        return cy.oauthLogin(auth);
+      }
+      return cy.wrap<C8yAuthOptions | undefined>(auth, { log: false });
+    };
 
-    consoleProps.strictMocking = strictMocking;
-
-    return (
-      auth != null &&
-      (Cypress.c8ypact.isRecordingEnabled() || strictMocking === false)
-        ? cy.oauthLogin(auth)
-        : cy.wrap<C8yAuthOptions | undefined>(auth)
-    ).then((a) => {
+    return getAuthOptions().then((a) => {
       registerFetchClient(a);
       logger.end();
 
