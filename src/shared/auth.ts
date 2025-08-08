@@ -91,14 +91,6 @@ export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
     });
   }
 
-  if (env[`C8Y_AUTHORIZATION`] && env["C8Y_XSRF_TOKEN"]) {
-    return authWithTenant(env, {
-      token: env[`C8Y_AUTHORIZATION`],
-      xsrfToken: env["C8Y_XSRF_TOKEN"],
-      user,
-    });
-  }
-
   const jwtToken = env["C8Y_TOKEN"];
   try {
     const authFromToken = getAuthOptionsFromJWT(jwtToken);
