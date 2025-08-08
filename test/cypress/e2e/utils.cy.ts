@@ -14,8 +14,10 @@ describe("utils", () => {
   beforeEach(() => {
     Cypress.env("C8Y_USERNAME", undefined);
     Cypress.env("C8Y_PASSWORD", undefined);
+    Cypress.env("C8Y_USER", undefined);
     expect(Cypress.env("C8Y_USERNAME")).to.be.undefined;
     expect(Cypress.env("C8Y_PASSWORD")).to.be.undefined;
+    expect(Cypress.env("C8Y_USER")).to.be.undefined;
     cy.clearAllLocalStorage();
     cy.clearAllCookies();
   });
@@ -245,6 +247,15 @@ describe("utils", () => {
       expect(result?.password).to.eq("oeeadminpassword");
     });
 
+    it("auth options from env variables with C8Y_USER", () => {
+      Cypress.env("C8Y_USER", "oeeadmin");
+      Cypress.env("C8Y_PASSWORD", "oeeadminpassword");
+
+      const result = getAuthOptions();
+      expect(result?.user).to.eq("oeeadmin");
+      expect(result?.password).to.eq("oeeadminpassword");
+    });
+
     it("auth options in arguments overwrites auth env variables", () => {
       Cypress.env("C8Y_USERNAME", "admin");
       Cypress.env("C8Y_PASSWORD", "password");
@@ -260,7 +271,7 @@ describe("utils", () => {
     it("auth options from __auth not overwritten by auth env variables", () => {
       Cypress.env("C8Y_USERNAME", "a");
       Cypress.env("C8Y_PASSWORD", "p");
-      persistAuth({user: "admin", password: "password"});
+      persistAuth({ user: "admin", password: "password" });
       const result = getAuthOptions();
       expect(result?.user).to.eq("admin");
       expect(result?.password).to.eq("password");
@@ -302,7 +313,7 @@ describe("utils", () => {
         userName: "admin",
         password: "password",
         email: "test@test.de",
-        displayName: "Admin"
+        displayName: "Admin",
       };
       const result = getAuthOptions(user);
       expect(result?.user).to.eq("admin");

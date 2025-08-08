@@ -24,6 +24,7 @@ import {
   C8yPactPreprocessorDefaultOptions,
   validatePactRecordingMode,
 } from "cumulocity-cypress/c8ypact";
+import { getBaseUrlFromEnv } from "cumulocity-cypress/lib/utils";
 
 const { _ } = Cypress;
 
@@ -63,6 +64,7 @@ describe("c8ypact", () => {
     Cypress.env("C8Y_PACT_MODE", "apply");
     Cypress.env("C8Y_PACT_RECORDING_MODE", undefined);
     Cypress.env("C8Y_BASEURL", undefined);
+    Cypress.env("C8Y_HOST", undefined);
     Cypress.c8ypact.on = {};
 
     initRequestStub();
@@ -210,12 +212,20 @@ describe("c8ypact", () => {
     it("should use env variable as is", function () {
       stubEnv({ C8Y_BASEURL: "http://mytenant.cumulocity.com" });
       expect(getEnvVar("C8Y_BASEURL")).to.eq("http://mytenant.cumulocity.com");
+      expect(getBaseUrlFromEnv()).to.eq("http://mytenant.cumulocity.com");
+    });
+
+    it("should use env variable with C8Y_HOST", function () {
+      stubEnv({ C8Y_HOST: "http://mytenant.cumulocity.com" });
+      expect(getEnvVar("C8Y_HOST")).to.eq("http://mytenant.cumulocity.com");
+      expect(getBaseUrlFromEnv()).to.eq("http://mytenant.cumulocity.com");
     });
 
     it("should use env variable with CYPRESS_ prefix", function () {
       stubEnv({ CYPRESS_baseurl: "http://mytenant.cumulocity.com" });
       expect(getEnvVar("BASEURL")).to.eq("http://mytenant.cumulocity.com");
       expect(getEnvVar("C8Y_BASEURL")).to.eq("http://mytenant.cumulocity.com");
+      expect(getBaseUrlFromEnv()).to.eq("http://mytenant.cumulocity.com");
     });
 
     it("should use camelCase env variable without prefix", function () {

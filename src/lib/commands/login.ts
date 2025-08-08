@@ -133,11 +133,23 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
       const tenant: C8yTenant = auth?.tenant || Cypress.env("C8Y_TENANT");
       consoleProps.tenant = tenant || null;
 
+      const cookieOptions = {
+        domain: undefined,
+        httpOnly: false,
+        secure: false,
+        path: "/",
+      };
+
       if (options.useSession === true) {
         cy.session(
           auth?.user || auth,
           () => {
-            loginRequest(tenant);
+            if (auth?.token != null && auth.xsrfToken != null) {
+              cy.setCookie("authorization", auth.token, cookieOptions);
+              cy.setCookie("XSRF-TOKEN", auth.xsrfToken, cookieOptions);
+            } else {
+              loginRequest(tenant);
+            }
           },
           {
             validate() {
@@ -151,13 +163,18 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
           }
         );
       } else {
-        loginRequest(tenant).then(() => {
-          if (_.isFunction(options.validationFn)) {
-            options.validationFn();
-          }
+        if (auth?.token != null && auth.xsrfToken != null) {
+          cy.setCookie("authorization", auth.token, cookieOptions);
+          cy.setCookie("XSRF-TOKEN", auth.xsrfToken, cookieOptions);
+        } else {
+          loginRequest(tenant).then(() => {
+            if (_.isFunction(options.validationFn)) {
+              options.validationFn();
+            }
+          });
           Cypress.env("C8Y_LOGGED_IN_USER", auth.user);
           Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", auth.userAlias);
-        });
+        }
       }
 
       resetClient();

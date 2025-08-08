@@ -321,8 +321,10 @@ Environment variables can be used to overwrite configuration settings in the `c8
 
 The following environment variables are supported:
 - `C8Y_BASEURL`: The base URL of the Cumulocity instance.
+- `C8Y_HOST`: Alternative to `C8Y_BASEURL` for compatibility with Cumulocity standard environment variables.
 - `C8Y_TENANT`: The tenant id used for authentication. Will be determined from the base URL if not provided.
 - `C8Y_USERNAME`: The username to use for authentication.
+- `C8Y_USER`: An alias for `C8Y_USERNAME` for compatibility with Cumulocity standard environment variables.
 - `C8Y_PASSWORD`: The password to use for authentication.
 - `C8Y_BROWSER`: The browser to use for running the screenshot workflows ("chrome", "firefox" or "electron").
 - `C8Y_SHELL_VERSION`: The version of the shell application to validate `requires` version dependencies.

@@ -27,7 +27,9 @@ import { morganErrorOptions } from "../shared/c8yctrl/httpcontroller";
 
 import { RequestHandler } from "express";
 import { safeStringify } from "../shared/util";
+import { getAuthOptionsFromEnv } from "../shared/auth";
 import { getPackageVersion } from "../shared/util-node";
+import { normalizeBaseUrl } from "../shared/c8ypact/url";
 
 import debug from "debug";
 const log = debug("c8y:ctrl:startup");
@@ -186,11 +188,22 @@ export function getConfigFromArgs(): [
 }
 
 export function getConfigFromEnvironment(): Partial<C8yPactHttpControllerConfig> {
+  const auth = getAuthOptionsFromEnv(process.env);
   return {
     folder: getEnvVar("C8YCTRL_FOLDER"),
     port: +(getEnvVar("C8YCTRL_PORT") || getEnvVar("C8Y_HTTP_PORT") || 3000),
-    baseUrl: getEnvVar("C8YCTRL_BASEURL") || getEnvVar("C8Y_BASE_URL"),
-    user: getEnvVar("C8YCTRL_USERNAME") || getEnvVar("C8Y_USERNAME"),
+    baseUrl: normalizeBaseUrl(
+      getEnvVar("C8YCTRL_BASEURL") ||
+        getEnvVar("C8Y_BASE_URL") ||
+        getEnvVar("C8Y_BASEURL") ||
+        getEnvVar("C8Y_HOST") ||
+        auth?.baseUrl
+    ),
+    user:
+      getEnvVar("C8YCTRL_USERNAME") ||
+      getEnvVar("C8YCTRL_USER") ||
+      getEnvVar("C8Y_USERNAME") ||
+      getEnvVar("C8Y_USER"),
     password: getEnvVar("C8YCTRL_PASSWORD") || getEnvVar("C8Y_PASSWORD"),
     tenant: getEnvVar("C8YCTRL_TENANT") || getEnvVar("C8Y_TENANT"),
     staticRoot:
@@ -206,6 +219,7 @@ export function getConfigFromEnvironment(): Partial<C8yPactHttpControllerConfig>
     recordingMode: getEnvVar("C8YCTRL_RECORDING_MODE"),
     config: getEnvVar("C8YCTRL_CONFIG"),
     appsVersions: parseApps(getEnvVar("C8YCTRL_APPS")),
+    auth,
   } as Partial<C8yPactHttpControllerConfig>;
 }
 

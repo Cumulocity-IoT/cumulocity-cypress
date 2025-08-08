@@ -76,7 +76,6 @@ export interface C8yClient {
 export interface C8yAuthOptions extends ICredentials {
   // support cy.request properties
   sendImmediately?: boolean;
-  bearer?: (() => string) | string;
   userAlias?: string;
   type?: string;
 }

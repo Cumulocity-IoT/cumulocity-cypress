@@ -11,6 +11,7 @@ import {
 } from "../lib/screenshots/types";
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import { C8yBaseUrl } from "../shared/types";
+import { normalizeBaseUrl } from "../shared/c8ypact/url";
 
 export function readYamlFile(filePath: string): any {
   const fileContent = fs.readFileSync(filePath, "utf-8");
@@ -132,5 +133,5 @@ export function resolveConfigOptions(args: Partial<C8yScreenshotOptions>): any {
 export function resolveBaseUrl(
   args: Partial<C8yScreenshotOptions>
 ): string | undefined {
-  return args.baseUrl ?? process.env.C8Y_BASEURL;
+  return normalizeBaseUrl(args.baseUrl ?? process.env.C8Y_BASEURL ?? process.env.C8Y_HOST);
 }
