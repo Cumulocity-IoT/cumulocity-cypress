@@ -5,7 +5,6 @@ import { IAuthentication, ICredentials } from "@c8y/client";
 
 export interface C8yAuthOptions extends ICredentials {
   sendImmediately?: boolean;
-  bearer?: (() => string) | string;
   userAlias?: string;
   type?: string;
   xsrfToken?: string;

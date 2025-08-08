@@ -66,9 +66,9 @@ Cypress.Commands.add(
       Cypress.env("C8Y_LOGGED_IN_USER", auth.user);
       Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", auth.userAlias);
 
-      if (a.bearer && typeof a.bearer === "string") {
-        consoleProps.bearer = a.bearer;
-        cy.setCookie("Authorization", a.bearer, {
+      if (a.token) {
+        consoleProps.token = a.token;
+        cy.setCookie("Authorization", a.token, {
           log: Cypress.c8ypact.debugLog,
         });
       }

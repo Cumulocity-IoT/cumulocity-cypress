@@ -242,11 +242,11 @@ export function createRequestHandler(
       !proxyReq.getHeader("authorization") &&
       !proxyReq.getHeader("Authorization")
     ) {
-      const { bearer, xsrfToken, user, password } = auth as C8yAuthOptions;
-      if (bearer) {
-        proxyReq.setHeader("Authorization", `Bearer ${bearer}`);
+      const { token, xsrfToken, user, password } = auth as C8yAuthOptions;
+      if (token) {
+        proxyReq.setHeader("Authorization", `Bearer ${token}`);
       }
-      if (!bearer && user && password) {
+      if (!token && user && password) {
         proxyReq.setHeader(
           "Authorization",
           `Basic ${Buffer.from(`${user}:${password}`).toString("base64")}`

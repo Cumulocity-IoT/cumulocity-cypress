@@ -205,7 +205,7 @@ export class C8yPactHttpController {
   /**
    * Starts the server. When started, the server listens on the configured port and hostname. If required,
    * the server will try to login to the target server using the provided credentials. If authOptions have
-   * a bearer token, the server will use this token for authentication. To enforce BasicAuth, set the type
+   * a token, the server will use this token for authentication. To enforce BasicAuth, set the type
    * property of the authOptions to "BasicAuth".
    */
   async start(): Promise<void> {
@@ -214,12 +214,12 @@ export class C8yPactHttpController {
     }
 
     if (this.authOptions && this.baseUrl) {
-      const { user, password, bearer, type } = this.authOptions;
-      if (!_.isEqual(type, "BasicAuth") && !bearer && user && password) {
+      const { user, password, token, type } = this.authOptions;
+      if (!_.isEqual(type, "BasicAuth") && !token && user && password) {
         try {
           const a = await oauthLogin(this.authOptions, this.baseUrl);
           this.logger.info(`oauthLogin -> ${this.baseUrl} (${a.user})`);
-          _.extend(this.authOptions, _.pick(a, ["bearer", "xsrfToken"]));
+          _.extend(this.authOptions, _.pick(a, ["token", "xsrfToken"]));
         } catch (error) {
           this.logger.error(
             `Login failed ${this.baseUrl} (${user})\n${inspect(error, {
