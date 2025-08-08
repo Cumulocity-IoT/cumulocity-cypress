@@ -77,6 +77,10 @@ export function normalizeAuthHeaders(headers: { [key: string]: any }) {
 }
 
 export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
+  if (env == null || !_.isObjectLike(env)) {
+    return undefined;
+  }
+
   // check first environment variables
   const user = env[`C8Y_USERNAME`] ?? env[`C8Y_USER`];
   const password = env[`C8Y_PASSWORD`];
@@ -92,7 +96,7 @@ export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
       token: env[`C8Y_AUTHORIZATION`],
       xsrfToken: env["C8Y_XSRF_TOKEN"],
       user,
-    });     
+    });
   }
 
   const jwtToken = env["C8Y_TOKEN"];
@@ -110,8 +114,12 @@ export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
 }
 
 export function authWithTenant(env: any, options: C8yAuthOptions) {
+  if (env == null || !_.isObjectLike(env)) {
+    return options;
+  }
+
   const tenant = env[`C8Y_TENANT`];
-  if (tenant && !options.tenant) {
+  if (tenant && !options?.tenant) {
     _.extend(options, { tenant });
   }
   return options;

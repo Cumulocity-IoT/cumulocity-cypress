@@ -214,12 +214,15 @@ export class C8yPactHttpController {
     }
 
     if (this.authOptions && this.baseUrl) {
-      const { user, password, token, type } = this.authOptions;
+      const { user, password, token, xsrfToken, type } = this.authOptions;
       if (!_.isEqual(type, "BasicAuth") && !token && user && password) {
+        this.logger.info("Auth: BasicAuth");
         try {
-          const a = await oauthLogin(this.authOptions, this.baseUrl);
-          this.logger.info(`oauthLogin -> ${this.baseUrl} (${a.user})`);
-          _.extend(this.authOptions, _.pick(a, ["token", "xsrfToken"]));
+          if (token == null || xsrfToken == null) {
+            const a = await oauthLogin(this.authOptions, this.baseUrl);
+            this.logger.info(`oauthLogin -> ${this.baseUrl} (${a.user})`);
+            _.extend(this.authOptions, _.pick(a, ["token", "xsrfToken"]));
+          }
         } catch (error) {
           this.logger.error(
             `Login failed ${this.baseUrl} (${user})\n${inspect(error, {
@@ -227,6 +230,8 @@ export class C8yPactHttpController {
             })}`
           );
         }
+      } else if (token != null) {
+        this.logger.info("Auth: BearerAuth");
       }
     }
 
@@ -292,9 +297,9 @@ export class C8yPactHttpController {
 
     // Express 5 compatible app.listen with error handling
     return new Promise<void>((resolve, reject) => {
-      this.server = this.app.listen(this.port, '0.0.0.0', (error?: Error) => {
+      this.server = this.app.listen(this.port, "0.0.0.0", (error?: Error) => {
         if (error) {
-          this.logger.error('Server failed to start:', error);
+          this.logger.error("Server failed to start:", error);
           reject(error);
         } else {
           this.logger.info(
