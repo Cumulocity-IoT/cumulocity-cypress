@@ -34,7 +34,10 @@ export type C8yAuthentication = IAuthentication;
  * @returns True if the object is a C8yAuthOptions, false otherwise.
  */
 export function isAuthOptions(obj: any): obj is C8yAuthOptions {
-  return _.isObjectLike(obj) && "user" in obj && "password" in obj;
+  return (
+    _.isObjectLike(obj) &&
+    (("user" in obj && "password" in obj) || "token" in obj)
+  );
 }
 
 export function toPactAuthObject(

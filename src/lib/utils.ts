@@ -273,7 +273,7 @@ export function persistAuth(auth: C8yAuthOptions) {
   }
 }
 
-export function tenantFromBasicAuth(auth: { user: string }) {
+export function tenantFromBasicAuth(auth: { user?: string | undefined }): string | undefined {
   if (!auth || !_.isObjectLike(auth) || !auth.user) return undefined;
 
   const components = auth.user.split("/");

@@ -1,6 +1,6 @@
-import _ from "lodash";
+import _, { get } from "lodash";
 
-import { C8yAuthentication, getAuthOptionsFromBasicAuthHeader } from "./auth";
+import { C8yAuthentication, getAuthOptionsFromBasicAuthHeader, getAuthOptionsFromJWT } from "./auth";
 
 import {
   Client,
@@ -19,6 +19,7 @@ import {
 
 import { C8ySchemaMatcher } from "./c8ypact/schema";
 import { C8yBaseUrl } from "./types";
+import { get_i } from "./util";
 
 declare global {
   interface Response {
@@ -233,24 +234,24 @@ function updateConsoleProps(
 ) {
   const props: any = {};
 
-  const cookieAuth =
-    (responseObj.requestHeaders &&
-      responseObj.requestHeaders["X-XSRF-TOKEN"]) ||
-    undefined;
-  const basicAuth =
-    (responseObj.requestHeaders &&
-      responseObj.requestHeaders["Authorization"]) ||
-    undefined;
+  const cookieAuth = get_i(responseObj, "requestHeaders.cookie.authorization");
+  const authorizationHeader = get_i(responseObj, "requestHeaders.authorization");
 
   // props["Options"] = options;
   if (cookieAuth) {
     const loggedInUser = logOptions?.loggedInUser || "";
-    props["CookieAuth"] = `XSRF-TOKEN ${cookieAuth} (${loggedInUser})`;
+    props["CookieAuth"] = `Authorization ${cookieAuth} (${loggedInUser})`;
   }
-  if (basicAuth) {
-    const auth = getAuthOptionsFromBasicAuthHeader(basicAuth);
-    if (auth?.user) {
-      props["BasicAuth"] = `${basicAuth} (${auth.user})`;
+  if (authorizationHeader) {
+    const auth = getAuthOptionsFromBasicAuthHeader(authorizationHeader);
+    if (auth?.user && auth?.password) {
+      props["BasicAuth"] = `${authorizationHeader} (${auth.user})`;
+    } else {
+      if (authorizationHeader.startsWith("Bearer ")) {
+        const jwt = authorizationHeader.replace("Bearer ", "");
+        const authOptions = getAuthOptionsFromJWT(jwt);
+        props["BearerAuth"] = authOptions;
+      }
     }
   }
 
