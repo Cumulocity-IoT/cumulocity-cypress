@@ -1,4 +1,4 @@
-import _, { get } from "lodash";
+import _ from "lodash";
 
 import {
   C8yAuthentication,
@@ -248,9 +248,13 @@ function updateConsoleProps(
       props["BasicAuth"] = `${authorizationHeader} (${auth.user})`;
     } else {
       if (authorizationHeader.startsWith("Bearer ")) {
+        try {
         const jwt = authorizationHeader.replace("Bearer ", "");
         const authOptions = getAuthOptionsFromJWT(jwt);
         props["BearerAuth"] = authOptions;
+        } catch {
+          // ignore errors parsing JWT
+        }
       }
     }
   } else {

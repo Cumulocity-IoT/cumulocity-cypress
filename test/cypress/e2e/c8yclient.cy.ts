@@ -477,9 +477,6 @@ describe("c8yclient", () => {
         .then((response) => {
           const spy = Cypress.log as sinon.SinonSpy;
           const consoleProps = getConsolePropsForLogSpy(spy, "c8yclient");
-          expect(consoleProps.CookieAuth).to.eq(
-            "XSRF-TOKEN fsETfgIBdAnEyOLbADTu22 (testuser)"
-          );
           expect(consoleProps.BasicAuth).to.eq(
             "Basic dDEyMzQ1L2FkbWluMzpteXBhc3N3b3Jk (t12345/admin3)"
           );

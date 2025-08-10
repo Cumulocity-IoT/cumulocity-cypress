@@ -6,7 +6,6 @@ import {
   normalizedC8yclientArguments,
   restoreClient,
   storeClient,
-  tenantFromBasicAuth,
   throwError,
 } from "./../utils";
 
@@ -27,7 +26,7 @@ import {
   toCypressResponse,
   C8yAuthOptions,
 } from "../../shared/c8yclient";
-import { C8yAuthentication, isAuthOptions } from "../../shared/auth";
+import { C8yAuthentication, isAuthOptions, tenantFromBasicAuth } from "../../shared/auth";
 import "../pact/c8ymatch";
 import { C8yBaseUrl } from "../../shared/types";
 
@@ -271,7 +270,9 @@ const c8yclientFn = (...args: any[]) => {
     } else {
       // keep as-is (undefined) for other cases
     }
-  } else if (_.isFunction($args[0]) || isArrayOfFunctions($args[0])) {
+  }
+  
+  if (_.isFunction($args[0]) || isArrayOfFunctions($args[0])) {
     $args.unshift(undefined);
   }
 
