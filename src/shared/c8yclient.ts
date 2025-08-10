@@ -1,6 +1,10 @@
 import _, { get } from "lodash";
 
-import { C8yAuthentication, getAuthOptionsFromBasicAuthHeader, getAuthOptionsFromJWT } from "./auth";
+import {
+  C8yAuthentication,
+  getAuthOptionsFromBasicAuthHeader,
+  getAuthOptionsFromJWT,
+} from "./auth";
 
 import {
   Client,
@@ -234,14 +238,10 @@ function updateConsoleProps(
 ) {
   const props: any = {};
 
-  const cookieAuth = get_i(responseObj, "requestHeaders.cookie.authorization");
-  const authorizationHeader = get_i(responseObj, "requestHeaders.authorization");
-
-  // props["Options"] = options;
-  if (cookieAuth) {
-    const loggedInUser = logOptions?.loggedInUser || "";
-    props["CookieAuth"] = `Authorization ${cookieAuth} (${loggedInUser})`;
-  }
+  const authorizationHeader = get_i(
+    responseObj,
+    "requestHeaders.authorization"
+  );
   if (authorizationHeader) {
     const auth = getAuthOptionsFromBasicAuthHeader(authorizationHeader);
     if (auth?.user && auth?.password) {
@@ -252,6 +252,16 @@ function updateConsoleProps(
         const authOptions = getAuthOptionsFromJWT(jwt);
         props["BearerAuth"] = authOptions;
       }
+    }
+  } else {
+    let token = get_i(responseObj, "requestHeaders.cookie.authorization");
+    if (!token) {
+      token = get_i(responseObj, "requestHeaders.X-XSRF-TOKEN");
+    }
+    // props["Options"] = options;
+    if (token) {
+      const loggedInUser = logOptions?.loggedInUser || "";
+      props["CookieAuth"] = `${token} (${loggedInUser})`;
     }
   }
 

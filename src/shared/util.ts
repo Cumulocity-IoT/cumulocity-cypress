@@ -1,4 +1,6 @@
 import _ from "lodash";
+import * as setCookieParser from "set-cookie-parser";
+import * as libCookie from "cookie";
 import { C8yTestHierarchyTree } from "./types";
 
 export function safeStringify(obj: any, indent = 2) {
@@ -21,7 +23,8 @@ export function sanitizeStringifiedObject(obj: any): any {
   if (!_.isString(obj)) {
     return obj;
   }
-  const regex = /((?:"password"|'password'|password|"token"|'token'|token)\s*:\s*["']?)(.*?)(["']|,|\s|}|$)/gi;
+  const regex =
+    /((?:"password"|'password'|password|"token"|'token'|token)\s*:\s*["']?)(.*?)(["']|,|\s|}|$)/gi;
   return obj.replace(regex, "$1***$3");
 }
 
@@ -95,11 +98,17 @@ export function toSensitiveObjectKeyPath(
  * assumed to be a dot-separated string. If the path is an array, it is assumed
  * to be a list of keys.
  *
+ * This function supports deep access to cookie and set-cookie headers, e.g.
+ * `requestHeaders.cookie.authorization`. Cookie headers are parsed and the value
+ * of the specified cookie is returned. If the cookie is not found, undefined is returned.
+ *
  * @example
- * geti(obj, "obj.key.token")
- * geti(obj, ["obj", "key", "token"])
- * geti(obj, "obj.key[0].token")
- * geti(obj, "obj.key.0.token")
+ * get_i(obj, "obj.key.token")
+ * get_i(obj, ["obj", "key", "token"])
+ * get_i(obj, "obj.key[0].token")
+ * get_i(obj, "obj.key.0.token")
+ * get_i(obj, "requestHeaders.cookie.authorization")
+ * get_i(obj, "requestHeaders.set-cookie.authorization")
  *
  * @param obj The object to query
  * @param keyPath The case-insensitive key path to find
@@ -109,7 +118,72 @@ export function get_i(obj: any, keyPath: string | string[]): any | undefined {
   if (obj == null || keyPath == null) return undefined;
   const sensitivePath = toSensitiveObjectKeyPath(obj, keyPath);
   if (sensitivePath == null) return undefined;
-  return _.get(obj, sensitivePath);
+
+  // Try direct access first
+  const direct = _.get(obj, sensitivePath);
+  if (direct !== undefined) return direct;
+
+  // Handle cookie and set-cookie deep access, e.g. requestHeaders.cookie.authorization
+  const keys = _.isArray(keyPath)
+    ? (keyPath as string[]).filter((k) => !_.isEmpty(k))
+    : (keyPath as string)
+        .split(/[.[\]]/g)
+        .filter((k) => !_.isEmpty(k));
+  if (!keys || keys.length === 0) return undefined;
+
+  const indexOfKey = (arr: string[], val: string) =>
+    arr.findIndex((k) => k.toLowerCase() === val.toLowerCase());
+
+  const cookieIdx = indexOfKey(keys, "cookie");
+  const setCookieIdx = indexOfKey(keys, "set-cookie");
+
+  // Helper to resolve the real path up to a certain index (inclusive)
+  const resolvePathUpTo = (idx: number): string | undefined => {
+    const part = keys.slice(0, idx + 1);
+    return toSensitiveObjectKeyPath(obj, part) ?? part.join(".");
+  };
+
+  // requestHeaders.cookie.<name>
+  if (cookieIdx >= 0) {
+    const parentPath = resolvePathUpTo(cookieIdx);
+    const cookieHeader: any = parentPath ? _.get(obj, parentPath) : undefined;
+    const cookieName = keys[cookieIdx + 1];
+    if (cookieHeader == null) return undefined;
+    if (!cookieName) return cookieHeader; // return full header if no name
+
+    // Parse Cookie header string into key/value
+    if (_.isString(cookieHeader)) {
+      const parsed = libCookie.parse(cookieHeader);
+      const matchKey = Object.keys(parsed).find(
+        (k) => k.toLowerCase() === cookieName.toLowerCase()
+      );
+      return matchKey ? parsed[matchKey] : undefined;
+    }
+    return undefined;
+  }
+
+  // headers.set-cookie.<name>
+  if (setCookieIdx >= 0) {
+    const parentPath = resolvePathUpTo(setCookieIdx);
+    const setCookieHeader: any = parentPath ? _.get(obj, parentPath) : undefined;
+    const cookieName = keys[setCookieIdx + 1];
+    if (setCookieHeader == null) return undefined;
+    if (!cookieName) return setCookieHeader; // return full header if no name
+
+    // Parse Set-Cookie header (array or string)
+    const headerInput = _.isString(setCookieHeader)
+      ? setCookieParser.splitCookiesString(setCookieHeader)
+      : setCookieHeader;
+    const cookies = setCookieParser.parse(headerInput as any, {
+      decodeValues: false,
+    });
+    const found = (cookies || []).find(
+      (c: any) => c?.name?.toLowerCase() === cookieName.toLowerCase()
+    );
+    return found?.value;
+  }
+
+  return direct;
 }
 
 /**
@@ -191,8 +265,14 @@ export function shortestUniquePrefixes(words: string[]) {
   return prefixes;
 }
 
-export function getLastDefinedValue<T>(data: T[], index: number): T | undefined{
-  const value = _.findLast(data.slice(0, index + 1), (item) => !_.isUndefined(item));
+export function getLastDefinedValue<T>(
+  data: T[],
+  index: number
+): T | undefined {
+  const value = _.findLast(
+    data.slice(0, index + 1),
+    (item) => !_.isUndefined(item)
+  );
   if (value !== undefined) {
     return value;
   }
