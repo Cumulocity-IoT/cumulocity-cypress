@@ -273,15 +273,6 @@ export function persistAuth(auth: C8yAuthOptions) {
   }
 }
 
-export function tenantFromBasicAuth(auth: { user?: string | undefined }): string | undefined {
-  if (!auth || !_.isObjectLike(auth) || !auth.user) return undefined;
-
-  const components = auth.user.split("/");
-  if (!components || components.length < 2) return undefined;
-
-  return components[0];
-}
-
 export function getSystemVersionFromEnv(): string | undefined {
   let result = toSemverVersion(
     Cypress.env(`C8Y_SYSTEM_VERSION`) || Cypress.env(`C8Y_VERSION`)

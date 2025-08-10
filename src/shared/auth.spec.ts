@@ -5,6 +5,7 @@ import {
   isAuthOptions,
   isPactAuthObject,
   normalizeAuthHeaders,
+  tenantFromBasicAuth,
   toPactAuthObject,
 } from "./auth";
 
@@ -229,6 +230,47 @@ describe("auth", () => {
       const header = "Basic dGVzdA==";
       const result = getAuthOptionsFromBasicAuthHeader(header);
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe("tenantFromBasicAuth", () => {
+    it("should return undefined if auth is not an object or string", () => {
+      expect(tenantFromBasicAuth(undefined as any)).toBeUndefined();
+      expect(tenantFromBasicAuth(null as any)).toBeUndefined();
+      expect(tenantFromBasicAuth(123 as any)).toBeUndefined();
+    });
+
+    it("should return undefined if auth object does not have user", () => {
+      expect(tenantFromBasicAuth({})).toBeUndefined();
+      expect(tenantFromBasicAuth({ password: "test" } as any)).toBeUndefined();
+    });
+
+    it("should return tenant from auth user", () => {
+      expect(tenantFromBasicAuth({ user: "tenant/test" })).toBe("tenant");
+      expect(tenantFromBasicAuth("tenant/test")).toBe("tenant");
+
+      expect(
+        tenantFromBasicAuth({ user: "tenant/test/", password: "test" } as any)
+      ).toBe("tenant");
+      expect(tenantFromBasicAuth("tenant/test/")).toBe("tenant");
+
+      expect(
+        tenantFromBasicAuth({
+          user: "tenant/test/sub",
+          password: "test",
+        } as any)
+      ).toBe("tenant");
+      expect(tenantFromBasicAuth("tenant/test/sub")).toBe("tenant");
+    });
+
+    it("should return undefined if user in auth does not have tenant", () => {
+      expect(tenantFromBasicAuth({ user: "test" })).toBeUndefined();
+      expect(tenantFromBasicAuth("test")).toBeUndefined();
+
+      expect(
+        tenantFromBasicAuth({ user: "test/", password: "test" } as any)
+      ).toBeUndefined();
+      expect(tenantFromBasicAuth("test/")).toBeUndefined();
     });
   });
 });

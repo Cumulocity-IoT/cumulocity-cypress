@@ -142,6 +142,11 @@ export function getAuthOptionsFromBasicAuthHeader(
   return { user: components[0], password: components.slice(1).join(":") };
 }
 
+/**
+ * Extracts the authentication options from a JWT token.
+ * @param jwtToken The JWT token to extract the authentication options from.
+ * @returns The extracted authentication options.
+ */
 export function getAuthOptionsFromJWT(jwtToken: string): C8yAuthOptions {
   try {
     const payload = JSON.parse(atob(jwtToken.split(".")[1]));
@@ -158,6 +163,31 @@ export function getAuthOptionsFromJWT(jwtToken: string): C8yAuthOptions {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to decode JWT token: ${message}`);
   }
+}
+
+/**
+ * Extracts the tenant from the basic auth object.
+ * @param auth The basic auth object containing the user property.
+ * @returns The tenant or undefined if not found.
+ */
+export function tenantFromBasicAuth(
+  auth: { user?: string | undefined } | string
+): string | undefined {
+  if (_.isString(auth)) {
+    auth = { user: auth };
+  }
+  if (!auth || !_.isObjectLike(auth) || !auth.user) return undefined;
+
+  const components = auth.user.split("/");
+  if (
+    !components ||
+    components.length < 2 ||
+    _.isEmpty(components[1]) ||
+    _.isEmpty(components[0])
+  )
+    return undefined;
+
+  return components[0];
 }
 
 export function encodeBase64(str: string): string {
