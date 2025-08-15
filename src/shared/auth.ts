@@ -1,8 +1,17 @@
 /// <reference types="cypress" />
 
 import _ from "lodash";
-import { IAuthentication, ICredentials } from "@c8y/client";
+import {
+  BasicAuth,
+  BearerAuth,
+  Client,
+  FetchClient,
+  IAuthentication,
+  ICredentials,
+} from "@c8y/client";
 import { normalizeBaseUrl } from "./c8ypact/url";
+import { get_i } from "./util";
+import { C8yClient } from "./c8yclient";
 
 export interface C8yAuthOptions extends ICredentials {
   sendImmediately?: boolean;
@@ -38,6 +47,53 @@ export function isAuthOptions(obj: any): obj is C8yAuthOptions {
     _.isObjectLike(obj) &&
     (("user" in obj && "password" in obj) || "token" in obj)
   );
+}
+
+// new function to convert C8yAuthOptions to IAuthentication
+export function toC8yAuthentication(
+  obj: C8yAuthOptions | IAuthentication | undefined
+): C8yAuthentication | undefined {
+  if (!obj || !_.isObjectLike(obj)) {
+    return undefined;
+  }
+  if (_.get(obj, "getFetchOptions")) {
+    return obj as C8yAuthentication;
+  }
+
+  if (!isAuthOptions(obj)) {
+    return undefined as any;
+  }
+  if (obj.token) {
+    return new BearerAuth(obj.token);
+  } else if (obj.user && obj.password) {
+    return new BasicAuth({
+      user: obj.user,
+      password: obj.password,
+      tenant: obj.tenant,
+    });
+  }
+  return undefined;
+}
+
+export function hasAuthentication(
+  client: C8yClient | Client | FetchClient
+): boolean {
+  if (!client) return false;
+  const fetchClient =
+    _.get(client, "_client.core") ?? _.get(client, "core") ?? client;
+  const getFetchOptionsFn = _.get(fetchClient, "getFetchOptions");
+
+  if (_.isFunction(getFetchOptionsFn)) {
+    const options = getFetchOptionsFn.apply(fetchClient);
+    if (!options) return false;
+
+    if (get_i(options, "headers.X-XSRF-TOKEN")) return true;
+    if (get_i(options, "headers.authorization")) return true;
+  }
+
+  if (_.get(fetchClient, "_auth")) return true;
+
+  return false;
 }
 
 export function toPactAuthObject(
