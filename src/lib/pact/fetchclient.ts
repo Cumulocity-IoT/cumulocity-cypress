@@ -174,7 +174,10 @@ export class C8yPactFetchClient extends FetchClient {
     // always add Bearer token if no authorization header is set
     if (!get_i(result, "headers.Authorization")) {
       const bearer =
-        this.authOptions?.bearer || getCookieValue("Authorization");
+        this.authOptions?.token ||
+        getCookieValue("Authorization") ||
+        // backward compatibility
+        this.authOptions?.bearer;
       if (bearer) {
         // xsrf token header is set in CookieAuth
         result.headers = Object.assign(

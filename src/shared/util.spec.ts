@@ -1,3 +1,5 @@
+/// <reference types="jest" />
+
 import {
   buildTestHierarchy,
   get_i,
@@ -49,12 +51,8 @@ describe("util", () => {
     ).toEqual("{ password: ***, username: myuser }");
 
     expect(
-      sanitizeStringifiedObject(
-        '{"user":"abcdefg","password":"123456"}'
-      )
-    ).toEqual(
-      '{"user":"abcdefg","password":"***"}'
-    );
+      sanitizeStringifiedObject('{"user":"abcdefg","password":"123456"}')
+    ).toEqual('{"user":"abcdefg","password":"***"}');
   });
 
   describe("to_boolean", () => {
@@ -200,7 +198,7 @@ describe("util", () => {
     });
 
     it("should return undefined if object is null", () => {
-      const result = get_i(null, "TEST");
+      const result = get_i(null as any, "TEST");
       expect(result).toBeUndefined();
     });
 
@@ -214,6 +212,53 @@ describe("util", () => {
       const obj = { test: "test", Complex: { key: { token: "value" } } };
       const result = get_i(obj, "");
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe("get_i with cookie header", () => {
+    it("should support parsing Cookie header for specific cookie name", () => {
+      const response = {
+        requestHeaders: {
+          cookie: "authorization=secret; XSRF-TOKEN=token123; Other=xyz",
+        },
+      } as any;
+      expect(get_i(response, "requestHeaders.cookie.authorization")).toBe(
+        "secret"
+      );
+      expect(get_i(response, "requestHeaders.cookie.XSRF-TOKEN")).toBe(
+        "token123"
+      );
+      expect(get_i(response, "requestHeaders.cookie.other")).toBe("xyz");
+      // unknown
+      expect(get_i(response, "requestHeaders.cookie.unknown")).toBeUndefined();
+    });
+
+    it("should support parsing Set-Cookie header for specific cookie name (array)", () => {
+      const response = {
+        HeAders: {
+          "Set-Cookie": [
+            "Authorization=secret; Path=/; HttpOnly",
+            "XSRF-TOKEN=tokenABC; Path=/",
+          ],
+        },
+      } as any;
+      expect(get_i(response, "headers.set-cookie.authorization")).toBe(
+        "secret"
+      );
+      expect(get_i(response, "headers.set-cookie.XSRF-TOKEN")).toBe("tokenABC");
+    });
+
+    it("should support parsing Set-Cookie header for specific cookie name (string)", () => {
+      const response = {
+        headers: {
+          "Set-Cookie":
+            "Authorization=secret; Path=/; HttpOnly, XSRF-TOKEN=tokenZZZ; Path=/",
+        },
+      } as any;
+      expect(get_i(response, "headers.set-cookie.authorization")).toBe(
+        "secret"
+      );
+      expect(get_i(response, "headers.set-cookie.XSRF-TOKEN")).toBe("tokenZZZ");
     });
   });
 

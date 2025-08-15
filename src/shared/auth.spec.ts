@@ -1,12 +1,17 @@
 /// <reference types="jest" />
 
+import { BasicAuth, BearerAuth, Client, FetchClient } from "@c8y/client";
 import {
   getAuthOptionsFromBasicAuthHeader,
+  hasAuthentication,
   isAuthOptions,
   isPactAuthObject,
   normalizeAuthHeaders,
+  tenantFromBasicAuth,
+  toC8yAuthentication,
   toPactAuthObject,
 } from "./auth";
+import { C8yClient } from "./c8yclient";
 
 describe("auth", () => {
   describe("isAuthOptions", function () {
@@ -41,6 +46,15 @@ describe("auth", () => {
 
     it("isAuthOptions does not validate object without user", function () {
       expect(isAuthOptions({ password: "test" })).toBe(false);
+    });
+
+    it("isAuthOptions validates object with token", function () {
+      expect(isAuthOptions({ token: "test" })).toBe(true);
+      expect(isAuthOptions({ token: "test", userAlias: "admin" })).toBe(true);
+      expect(isAuthOptions({ token: "test", type: "CookieAuth" })).toBe(true);
+      expect(
+        isAuthOptions({ token: "test", type: "CookieAuth", user: "admin" })
+      );
     });
   });
 
@@ -220,6 +234,198 @@ describe("auth", () => {
       const header = "Basic dGVzdA==";
       const result = getAuthOptionsFromBasicAuthHeader(header);
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe("tenantFromBasicAuth", () => {
+    it("should return undefined if auth is not an object or string", () => {
+      expect(tenantFromBasicAuth(undefined as any)).toBeUndefined();
+      expect(tenantFromBasicAuth(null as any)).toBeUndefined();
+      expect(tenantFromBasicAuth(123 as any)).toBeUndefined();
+    });
+
+    it("should return undefined if auth object does not have user", () => {
+      expect(tenantFromBasicAuth({})).toBeUndefined();
+      expect(tenantFromBasicAuth({ password: "test" } as any)).toBeUndefined();
+    });
+
+    it("should return tenant from auth user", () => {
+      expect(tenantFromBasicAuth({ user: "tenant/test" })).toBe("tenant");
+      expect(tenantFromBasicAuth("tenant/test")).toBe("tenant");
+
+      expect(
+        tenantFromBasicAuth({ user: "tenant/test/", password: "test" } as any)
+      ).toBe("tenant");
+      expect(tenantFromBasicAuth("tenant/test/")).toBe("tenant");
+
+      expect(
+        tenantFromBasicAuth({
+          user: "tenant/test/sub",
+          password: "test",
+        } as any)
+      ).toBe("tenant");
+      expect(tenantFromBasicAuth("tenant/test/sub")).toBe("tenant");
+    });
+
+    it("should return undefined if user in auth does not have tenant", () => {
+      expect(tenantFromBasicAuth({ user: "test" })).toBeUndefined();
+      expect(tenantFromBasicAuth("test")).toBeUndefined();
+
+      expect(
+        tenantFromBasicAuth({ user: "test/", password: "test" } as any)
+      ).toBeUndefined();
+      expect(tenantFromBasicAuth("test/")).toBeUndefined();
+    });
+  });
+
+  describe("hasAuthentication", () => {
+    const b = "https://example.com";
+    const basicAuth = new BasicAuth({
+      user: "testuser",
+      password: "testpass",
+    });
+
+    const bearerAuth = new BearerAuth("testtoken");
+
+    it("should return false for undefined client", () => {
+      expect(hasAuthentication(undefined as any)).toBe(false);
+    });
+
+    it("should return false for empty client", () => {
+      expect(hasAuthentication({} as any)).toBe(false);
+    });
+
+    it("should return false for client without fetch options", () => {
+      const client = { getFetchOptions: () => undefined as any } as any;
+      expect(hasAuthentication(client)).toBe(false);
+    });
+
+    it("should return true for client with X-XSRF-TOKEN header", () => {
+      const client = {
+        getFetchOptions: () => ({ headers: { "X-XSRF-TOKEN": "abc" } }),
+      } as any;
+      expect(hasAuthentication(client)).toBe(true);
+    });
+
+    it("should return true for client with authorization header", () => {
+      const client = {
+        getFetchOptions: () => ({ headers: { Authorization: "Bearer 123" } }),
+      } as any;
+      expect(hasAuthentication(client)).toBe(true);
+    });
+
+    it("should return false for client without authentication headers", () => {
+      const client = { getFetchOptions: () => ({ headers: {} }) } as any;
+      expect(hasAuthentication(client)).toBe(false);
+    });
+
+    it("should return true for FetchClient with authentication headers", () => {
+      expect(hasAuthentication(new FetchClient(basicAuth, b))).toBe(true);
+    });
+
+    it("should return true for FetchClient with BearerAuth", () => {
+      expect(hasAuthentication(new FetchClient(bearerAuth, b))).toBe(true);
+    });
+
+    it("should return false for FetchClient without authentication", () => {
+      const client = new FetchClient(undefined as any, b);
+      expect(hasAuthentication(client)).toBe(false);
+    });
+
+    it("should return true for C8yClient without _auth property", () => {
+      const c8yclient: C8yClient = {
+        _client: new Client(basicAuth, b),
+      };
+      expect(hasAuthentication(c8yclient)).toBe(true);
+    });
+
+    it("should return true for C8yClient with _auth property", () => {
+      const c8yclient: C8yClient = {
+        _auth: basicAuth,
+      };
+      expect(hasAuthentication(c8yclient)).toBe(true);
+    });
+
+    it("should return false for C8yClient without _auth and getFetchOptions", () => {
+      const c8yclient: C8yClient = {
+        _client: { getFetchOptions: () => undefined as any } as any,
+      };
+      expect(hasAuthentication(c8yclient)).toBe(false);
+    });
+
+    it("should return true for Client with authentication", () => {
+      const client = new Client(basicAuth, b);
+      expect(hasAuthentication(client)).toBe(true);
+    });
+
+    it("should return true for Client with BearerAuth", () => {
+      const client = new Client(bearerAuth, b);
+      expect(hasAuthentication(client)).toBe(true);
+    });
+    it("should return false for Client without authentication", () => {
+      const client = new Client(undefined as any, b);
+      expect(hasAuthentication(client)).toBe(false);
+    });
+
+    it("should return false for Client with fetchClient without authentication", () => {
+      const client = new Client(basicAuth, b);
+      client.core = new FetchClient(undefined as any, b);
+      expect(hasAuthentication(client)).toBe(false);
+    });
+  });
+
+  describe("toC8yAuthentication", () => {
+    it("should return undefined for undefined input", () => {
+      expect(toC8yAuthentication(undefined)).toBeUndefined();
+    });
+
+    it("should return undefined for null input", () => {
+      expect(toC8yAuthentication(null as any)).toBeUndefined();
+    });
+
+    it("should return undefined for non-object input", () => {
+      expect(toC8yAuthentication(123 as any)).toBeUndefined();
+      expect(toC8yAuthentication("test" as any)).toBeUndefined();
+    });
+
+    it("should return BearerAuth for object with token", () => {
+      const auth = { token: "testtoken" };
+      const result = toC8yAuthentication(auth);
+      expect(result).toBeInstanceOf(BearerAuth);
+    });
+
+    it("should return BasicAuth for object with user and password", () => {
+      const auth = { user: "testuser", password: "testpass" };
+      const result = toC8yAuthentication(auth);
+      expect(result).toBeInstanceOf(BasicAuth);
+      expect((result as BasicAuth).user).toBe("testuser");
+    });
+
+    it("should return undefined for object without token, user, or password", () => {
+      const auth = { other: "value" };
+      const result = toC8yAuthentication(auth);
+      expect(result).toBeUndefined();
+    });
+
+    it("should return object if is IAuthentication", () => {
+      const auth: any = {
+        getFetchOptions: () => ({ headers: { "X-XSRF-TOKEN": "abc" } }),
+      };
+      const result = toC8yAuthentication(auth);
+      expect(result).toBe(auth);
+    });
+
+    it("should return object if is IAuthentication instance", () => {
+      const auth = new BearerAuth("testtoken");
+      const result = toC8yAuthentication(auth);
+      expect(result).toBe(auth);
+
+      const auth2 = new BasicAuth({
+        user: "testuser",
+        password: "testpass",
+      });
+      const result2 = toC8yAuthentication(auth2);
+      expect(result2).toBe(auth2);
     });
   });
 });

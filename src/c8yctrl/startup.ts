@@ -55,10 +55,10 @@ const log = debug("c8y:ctrl:startup");
   if (!searchPlaces.includes("c8yctrl.config.ts")) {
     searchPlaces.push("c8yctrl.config.ts");
   }
-  
+
   log("searching for config file in:", searchPlaces);
   log("config file dir:", configFileDir);
-  
+
   const configLoader = cosmiconfig("cumulocity-cypress", {
     searchPlaces,
     loaders: {

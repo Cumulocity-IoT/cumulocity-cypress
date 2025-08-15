@@ -121,9 +121,49 @@ export function isAbsoluteURL(url: string) {
 export function validateBaseUrl(baseUrl?: C8yBaseUrl) {
   if (baseUrl != null && !isAbsoluteURL(baseUrl)) {
     const error = new Error(
-      `Invalid value for C8Y_BASEURL. C8Y_BASEURL must be an absolute URL or undefined.`
+      `Invalid value for base url. '${baseUrl}' must be an absolute URL or undefined.`
     );
     error.name = "C8yPactError";
     throw error;
   }
+}
+
+/**
+ * Normalizes a URL to ensure it has a protocol and proper trailing slash.
+ * If no protocol is present, HTTPS is added by default.
+ * If the URL has no path component, a trailing slash is appended.
+ *
+ * @param url - The URL string to normalize
+ * @returns The normalized URL with HTTPS protocol and trailing slash if appropriate, or undefined for invalid input
+ */
+export function normalizeBaseUrl(url: string | undefined): string | undefined {
+  if (!url || !_.isString(url)) {
+    return undefined;
+  }
+
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    return undefined;
+  }
+
+  let normalizedUrl: string;
+
+  // Check if URL already has a protocol
+  if (/^https?:\/\//i.test(trimmedUrl)) {
+    normalizedUrl = trimmedUrl;
+  } else {
+    // Add https:// if no protocol is present
+    normalizedUrl = `https://${trimmedUrl}`;
+  }
+
+  try {
+    const urlObj = new URL(normalizedUrl);
+    // remove all components other than protocol, host
+    normalizedUrl = `${urlObj.protocol}//${urlObj.host}`;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to normalize base url ${url}. ${errorMessage}`);
+  }
+
+  return normalizedUrl;
 }

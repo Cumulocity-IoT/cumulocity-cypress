@@ -6,7 +6,6 @@ import {
   normalizedC8yclientArguments,
   restoreClient,
   storeClient,
-  tenantFromBasicAuth,
   throwError,
 } from "./../utils";
 
@@ -17,6 +16,7 @@ import {
   IFetchResponse,
   IResult,
   IResultList,
+  BearerAuth,
 } from "@c8y/client";
 
 import {
@@ -24,8 +24,15 @@ import {
   C8yClient,
   C8yClientOptions,
   toCypressResponse,
+  C8yAuthOptions,
 } from "../../shared/c8yclient";
-import { C8yAuthentication, isAuthOptions } from "../../shared/auth";
+import {
+  C8yAuthentication,
+  hasAuthentication,
+  isAuthOptions,
+  tenantFromBasicAuth,
+  toC8yAuthentication,
+} from "../../shared/auth";
 import "../pact/c8ymatch";
 import { C8yBaseUrl } from "../../shared/types";
 
@@ -36,15 +43,17 @@ declare global {
        * Create a c8y/client `Client` to interact with Cumulocity API. Yielded
        * results are `Cypress.Response` objects as returned by `cy.request`.
        *
-       * `cy.c8yclient` supports c8y/client `BasicAuth` and `CookieAuth`. To use
-       * any other auth method, such as `BearerAuth`, create a custom `Client` and
-       * pass it in `options`.
+       * `cy.c8yclient` supports c8y/client `BasicAuth`, `CookieAuth` and `BearerAuth`.
        *
-       * Note: If there is a `X-XSRF-TOKEN` cookie, `CookieAuth` will be used as
-       * auth method and basic auth credentials will be ignored. To create the
-       * cookie token, call `cy.login` before using `cy.c8yclient`. To force using
-       * basic auth method, pass credentials via `cy.getAuth().c8yclient()` or use
-       * `preferBasicAuth` option.
+       * If auth is not passed explicitly using `cy.getAuth()`, `cy.useAuth()` or
+       * `cy.login()`, the following behavior will be applied:
+       * 1. Use Basic auth from `C8Y_USERNAME` and `C8Y_PASSWORD` env variables.
+       * 2. Use Bearer auth from `C8Y_TOKEN` env variable.
+       * 3. Use Cookie auth from `X-XSRF-TOKEN` cookie if present.
+       *
+       * For CookieAuth you should call `cy.login()` before using `cy.c8yclient` to
+       * create the the required cookies. To force using basic auth method, pass
+       * credentials via `cy.getAuth().c8yclient()` or use `preferBasicAuth` option.
        *
        * `cy.c8yclient` supports chaining of requests. By chaining the response of
        * one request will be provided as second argument to the next request.
@@ -184,7 +193,9 @@ globalThis.fetch = async function (
     logger = Cypress.log({
       name: "c8yclient",
       autoEnd: false,
-      message: "",
+      message: `${fetchOptions?.method || "GET"} ${getDisplayUrl(
+        url || consoleProps["Yielded"]?.url || ""
+      )}`,
       consoleProps: () => consoleProps,
       renderProps(): {
         message: string;
@@ -237,28 +248,39 @@ const c8yclientFn = (...args: any[]) => {
     args && prevSubject ? args.slice(1) : args
   );
 
-  let authOptions;
-  let basicAuth, cookieAuth;
+  let authOptions: C8yAuthOptions | undefined = undefined;
+  let basicAuthArg: C8yAuthOptions | undefined = undefined;
+
+  let cookieAuth: C8yAuthentication | undefined = undefined;
+  let bearerAuth: C8yAuthentication | undefined = undefined;
+  let basicAuth: C8yAuthentication | undefined = undefined;
+
+  let authFromOptions = false;
 
   if (!isAuthOptions($args[0]) && _.isObject($args[$args.length - 1])) {
-    $args = [
-      $args[$args.length - 1].auth,
-      ...($args[0] === undefined ? $args.slice(1) : $args),
-    ];
-    if ($args[0]?.user) {
-      basicAuth = $args[0];
-    } else {
-      cookieAuth = $args[0];
+    const opt = $args[$args.length - 1];
+    if (opt && opt.auth) {
+      // explicit auth provided via options has highest priority
+      authFromOptions = true;
+      $args = [opt.auth, ...($args[0] === undefined ? $args.slice(1) : $args)];
     }
-  } else if (!_.isEmpty($args) && $args[0]?.user) {
+  } else if (!_.isEmpty($args) && isAuthOptions($args[0])) {
     authOptions = $args[0];
-    basicAuth = new BasicAuth({
-      user: authOptions.user,
-      password: authOptions.password,
-      tenant: authOptions.tenant,
-    });
-    $args[0] = basicAuth;
-  } else if (_.isFunction($args[0]) || isArrayOfFunctions($args[0])) {
+    if (authOptions.user && authOptions.password) {
+      basicAuthArg = authOptions;
+      basicAuth = new BasicAuth({
+        user: authOptions.user,
+        password: authOptions.password,
+        tenant: authOptions.tenant,
+      });
+    }
+    if (authOptions.token) {
+      // use BearerAuth when token is provided via auth options (env or args)
+      bearerAuth = new BearerAuth(authOptions.token);
+    }
+  }
+
+  if (_.isFunction($args[0]) || isArrayOfFunctions($args[0])) {
     $args.unshift(undefined);
   }
 
@@ -277,14 +299,27 @@ const c8yclientFn = (...args: any[]) => {
 
   const [argAuth, clientFn, argOptions] = $args;
   const options = _.defaults(argOptions, defaultClientOptions());
-  // force CookieAuth over BasicAuth if present and not disabled by options
-  const auth: C8yAuthentication & { userAlias?: string } =
-    cookieAuth && options.preferBasicAuth === false && !prevSubjectIsAuth
-      ? cookieAuth
-      : argAuth;
+  // Select authentication with following precedence:
+  // 1) Explicit auth from options or previous subject wins over cookie
+  // 2) CookieAuth (if present) preferred unless preferBasicAuth=true
+  // 3) Fallback to argAuth (BasicAuth/BearerAuth) if present
+  const explicitAuth = authFromOptions || prevSubjectIsAuth;
+  let auth: C8yAuthentication | undefined = cookieAuth;
+  if (options.preferBasicAuth === true && basicAuth) {
+    auth = basicAuth;
+  } else if (bearerAuth && !cookieAuth) {
+    auth = bearerAuth;
+  } else {
+    auth = cookieAuth ?? bearerAuth ?? basicAuth;
+  }
+
+  if (explicitAuth && argAuth) {
+    auth = toC8yAuthentication(argAuth);
+  }
+
   const baseUrl = options.baseUrl || getBaseUrlFromEnv();
   const tenant =
-    (basicAuth && tenantFromBasicAuth(basicAuth)) ||
+    (basicAuthArg && tenantFromBasicAuth(basicAuthArg)) ||
     (authOptions && authOptions.tenant) ||
     Cypress.env("C8Y_TENANT");
 
@@ -293,36 +328,51 @@ const c8yclientFn = (...args: any[]) => {
 
   // restore client only if client is undefined and no auth is provided as previousSubject
   // previousSubject must have priority
-  if (!options.client && !(args[0] && isAuthOptions(args[0]))) {
+  if (!options.client && !prevSubjectIsAuth) {
     c8yclient = restoreClient() || { _client: undefined };
   }
 
-  if (!c8yclient._client && clientFn && !auth) {
-    throwError("Missing authentication. Authentication or Client required.");
+  // last fallback option to find authentication
+  if (!auth && c8yclient._auth) {
+    auth = c8yclient._auth;
   }
 
   // pass userAlias into the auth so it is part of the pact recording
   if (authOptions && authOptions.userAlias) {
-    auth.userAlias = authOptions.userAlias;
-  } else if (Cypress.env("C8Y_LOGGED_IN_USER_ALIAS")) {
-    auth.userAlias = Cypress.env("C8Y_LOGGED_IN_USER_ALIAS");
+    _.extend(auth, { userAlias: authOptions.userAlias });
+  } else if (Cypress.env("C8Y_LOGGED_IN_USER_ALIAS") && auth) {
+    _.extend(auth, { userAlias: Cypress.env("C8Y_LOGGED_IN_USER_ALIAS") });
+  }
+
+  if (!auth && !hasAuthentication(c8yclient)) {
+    throwError("Missing authentication. Authentication required.");
   }
 
   if (!c8yclient._client && !tenant && !options.skipClientAuthentication) {
     logOnce = options.log;
-    authenticateClient(auth, options, baseUrl).then(
-      { timeout: options.timeout },
-      (c) => {
-        return runClient(c, clientFn, prevSubject, baseUrl);
-      }
-    );
+    if (auth) {
+      authenticateClient(auth, options, baseUrl).then(
+        { timeout: options.timeout },
+        (c) => {
+          return runClient(c, clientFn, prevSubject, baseUrl);
+        }
+      );
+    } else {
+      throwError("Missing authentication. Authentication required.");
+    }
   } else {
     if (!c8yclient._client) {
+      if (!auth) {
+        throwError("Missing authentication. Authentication required.");
+      }
       c8yclient._client = new Client(auth, baseUrl);
       if (tenant) {
         c8yclient._client.core.tenant = tenant;
       }
     } else if ((auth && !options.client) || prevSubjectIsAuth) {
+      if (!auth) {
+        throwError("Missing authentication. Authentication required.");
+      }
       // overwrite auth for restored clients
       c8yclient._client.setAuth(auth);
       c8yclient._auth = auth;
@@ -372,7 +422,7 @@ function authenticateClient(
         throw ee;
       }
     }
-    
+
     if (res.status !== 200) {
       throwError(makeErrorMessage(res.responseObj));
     }
@@ -412,7 +462,8 @@ function run(
         if (Cypress.c8ypact.mode() !== "apply") return;
 
         for (const r of _.isArray(response) ? response : [response]) {
-          const record = options.record ?? Cypress.c8ypact.current?.nextRecord();
+          const record =
+            options.record ?? Cypress.c8ypact.current?.nextRecord();
           const info = Cypress.c8ypact.current?.info;
           if (record != null && info != null && !ignore) {
             cy.c8ymatch(r, record, info, options);
@@ -443,7 +494,9 @@ function run(
           );
         };
 
-        const preprocessedResponse = async (promise: Promise<any>): Promise<Cypress.Response<any> | undefined> => {
+        const preprocessedResponse = async (
+          promise: Promise<any>
+        ): Promise<Cypress.Response<any> | undefined> => {
           let result: any;
           try {
             result = await promise;

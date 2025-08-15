@@ -107,7 +107,7 @@ describe("oauthLogin", () => {
       expect(result).toEqual({
         ...auth,
         xsrfToken: expectedCookies.xsrfToken,
-        bearer: expectedCookies.authorization,
+        token: expectedCookies.authorization,
       });
     });
 
@@ -148,7 +148,7 @@ describe("oauthLogin", () => {
       expect(result).toEqual({
         ...auth,
         xsrfToken: expectedCookies.xsrfToken,
-        bearer: expectedCookies.authorization,
+        token: expectedCookies.authorization,
       });
     });
   });

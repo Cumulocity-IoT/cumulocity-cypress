@@ -1,11 +1,17 @@
 /// <reference types="cypress" />
 
 import { BasicAuth, CookieAuth, IAuthentication } from "@c8y/client";
-import { C8yAuthOptions, isAuthOptions } from "../shared/auth";
+import {
+  authWithTenant,
+  C8yAuthOptions,
+  getAuthOptionsFromEnv,
+  isAuthOptions,
+} from "../shared/auth";
 import { C8yClient } from "../shared/c8yclient";
 import { getEnvVar } from "../shared/c8ypact/c8ypact";
 import { toSemverVersion } from "../shared/versioning";
 import { get_i } from "../shared/util";
+import { normalizeBaseUrl } from "../shared/c8ypact/url";
 
 const { _ } = Cypress;
 
@@ -53,7 +59,7 @@ export function normalizedArgumentsWithAuth(args: any[]) {
     _.isEmpty(normalized) ||
     (!_.isEmpty(normalized) && !isAuthOptions(normalized[0]))
   ) {
-    const auth = getAuthOptionsFromEnv();
+    const auth = getAuthOptionsFromCypressEnv();
     if (auth) {
       normalized.unshift(auth);
     } else {
@@ -92,7 +98,7 @@ export function getXsrfToken() {
   return undefined;
 }
 
-export function getAuthOptionsFromEnv() {
+export function getAuthOptionsFromCypressEnv() {
   // check window.localStorage for __auth item
   const win = cy.state("window");
   const authString = win.localStorage.getItem("__auth");
@@ -110,22 +116,12 @@ export function getAuthOptionsFromEnv() {
     return auth;
   }
 
-  // check first environment variables
-  const user = Cypress.env(`C8Y_USERNAME`);
-  const password = Cypress.env(`C8Y_PASSWORD`);
-  if (!_.isEmpty(user) && !_.isEmpty(password)) {
-    return authWithTenant({
-      user,
-      password,
-    });
-  }
-
-  return undefined;
+  return getAuthOptionsFromEnv(Cypress.env());
 }
 
 export function getAuthOptions(...args: any[]): C8yAuthOptions | undefined {
   if (!args || !args.length || (args[0] == null && args.length === 1)) {
-    return getAuthOptionsFromEnv();
+    return getAuthOptionsFromCypressEnv();
   }
 
   // first args are null for every { prevSubject: option } command in the
@@ -138,12 +134,12 @@ export function getAuthOptions(...args: any[]): C8yAuthOptions | undefined {
 
   const auth = getAuthOptionsFromArgs(...args);
   if (isAuthOptions(auth)) {
-    return authWithTenant(auth);
+    return authWithTenant(Cypress.env(), auth);
   } else if (args.length === 1 && _.isString(args[0])) {
     return undefined;
   }
 
-  return getAuthOptionsFromEnv();
+  return getAuthOptionsFromCypressEnv();
 }
 
 export function userAliasFromArgs(...args: any[]): string | undefined {
@@ -166,7 +162,7 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
     const user = Cypress.env(`${args[0]}_username`) || args[0];
     const password = Cypress.env(`${args[0]}_password`);
     if (user && password) {
-      return authWithTenant({
+      return authWithTenant(Cypress.env(), {
         user,
         password,
         userAlias: args[0],
@@ -178,6 +174,7 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
   if (!_.isEmpty(args) && _.isObjectLike(args[0])) {
     if (isAuthOptions(args[0])) {
       return authWithTenant(
+        Cypress.env(),
         _.pick(args[0], ["user", "password", "tenant", "userAlias", "type"])
       );
     }
@@ -188,7 +185,7 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
         Cypress.env(`${args[0].userAlias}_username`) || args[0].userAlias;
       const password = Cypress.env(`${args[0].userAlias}_password`);
       if (user && password) {
-        return authWithTenant({
+        return authWithTenant(Cypress.env(), {
           user,
           password,
           userAlias: args[0].userAlias,
@@ -208,7 +205,7 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
       if (auth.tenantId) {
         delete Object.assign(auth, { tenant: auth.tenantId })["tenantId"];
       }
-      return authWithTenant(auth);
+      return authWithTenant(Cypress.env(), auth);
     }
 
     // from IUser: getAuthOptions({userName: "abc", password: "abc"}, ...)
@@ -220,13 +217,13 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
         "userAlias",
       ]);
       delete Object.assign(auth, { user: auth.userName })["userName"];
-      return authWithTenant(auth);
+      return authWithTenant(Cypress.env(), auth);
     }
   }
 
   // getAuthOptions("abc", "abc")
   if (args.length >= 2 && _.isString(args[0]) && _.isString(args[1])) {
-    return authWithTenant({
+    return authWithTenant(Cypress.env(), {
       user: args[0],
       password: args[1],
     });
@@ -276,23 +273,6 @@ export function persistAuth(auth: C8yAuthOptions) {
   }
 }
 
-export function tenantFromBasicAuth(auth: { user: string }) {
-  if (!auth || !_.isObjectLike(auth) || !auth.user) return undefined;
-
-  const components = auth.user.split("/");
-  if (!components || components.length < 2) return undefined;
-
-  return components[0];
-}
-
-function authWithTenant(options: C8yAuthOptions) {
-  const tenant = Cypress.env(`C8Y_TENANT`);
-  if (tenant && !options.tenant) {
-    _.extend(options, { tenant });
-  }
-  return options;
-}
-
 export function getSystemVersionFromEnv(): string | undefined {
   let result = toSemverVersion(
     Cypress.env(`C8Y_SYSTEM_VERSION`) || Cypress.env(`C8Y_VERSION`)
@@ -319,16 +299,21 @@ export function getShellVersionFromEnv(): string | undefined {
  * environment variables are checked in order:
  * - C8Y_BASEURL
  * - C8Y_BASE_URL
+ * - C8Y_HOST
  *
- * @returns Base URL from environment variables.
+ * URLs without a protocol will have HTTPS added automatically.
+ *
+ * @returns Base URL from environment variables with HTTPS protocol.
  */
 export function getBaseUrlFromEnv(): string | undefined {
-  return (
+  const baseUrl =
     getEnvVar("C8Y_BASEURL") ||
     getEnvVar("C8Y_BASE_URL") ||
+    getEnvVar("C8Y_HOST") ||
     Cypress.config().baseUrl ||
-    undefined
-  );
+    undefined;
+
+  return normalizeBaseUrl(baseUrl);
 }
 
 export function storeClient(client: C8yClient) {

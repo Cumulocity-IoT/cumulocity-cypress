@@ -1,5 +1,5 @@
 import {
-  getAuthOptionsFromEnv,
+  getAuthOptionsFromCypressEnv,
   getXsrfToken,
   normalizedArgumentsWithAuth,
 } from "../utils";
@@ -141,7 +141,7 @@ const requestCommandWrapper = (
     const originalFn = _.isFunction(args[0]) ? args[0] : undefined;
     const $args = originalFn ? args.slice(1) : args;
 
-    const auth = getAuthOptionsFromEnv.apply($args);
+    const auth = getAuthOptionsFromCypressEnv.apply($args);
     if (_.isObjectLike($args[0])) {
       _.extend(options, $args[0]);
     } else if ($args.length === 1) {

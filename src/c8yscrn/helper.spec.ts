@@ -84,6 +84,17 @@ describe("startup", () => {
   });
 
   describe("resolveConfigOptions", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      jest.resetModules(); 
+      process.env = {}; 
+    });
+
+    afterEach(() => {
+      process.env = originalEnv; 
+    });
+
     it("should return default options", () => {
       const options = resolveConfigOptions({});
       expect(options.browser).toBe("chrome");

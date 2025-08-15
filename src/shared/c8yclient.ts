@@ -1,6 +1,10 @@
 import _ from "lodash";
 
-import { C8yAuthentication, getAuthOptionsFromBasicAuthHeader } from "./auth";
+import {
+  C8yAuthentication,
+  getAuthOptionsFromBasicAuthHeader,
+  getAuthOptionsFromJWT,
+} from "./auth";
 
 import {
   Client,
@@ -19,6 +23,7 @@ import {
 
 import { C8ySchemaMatcher } from "./c8ypact/schema";
 import { C8yBaseUrl } from "./types";
+import { get_i } from "./util";
 
 declare global {
   interface Response {
@@ -76,7 +81,6 @@ export interface C8yClient {
 export interface C8yAuthOptions extends ICredentials {
   // support cy.request properties
   sendImmediately?: boolean;
-  bearer?: (() => string) | string;
   userAlias?: string;
   type?: string;
 }
@@ -234,24 +238,34 @@ function updateConsoleProps(
 ) {
   const props: any = {};
 
-  const cookieAuth =
-    (responseObj.requestHeaders &&
-      responseObj.requestHeaders["X-XSRF-TOKEN"]) ||
-    undefined;
-  const basicAuth =
-    (responseObj.requestHeaders &&
-      responseObj.requestHeaders["Authorization"]) ||
-    undefined;
-
-  // props["Options"] = options;
-  if (cookieAuth) {
-    const loggedInUser = logOptions?.loggedInUser || "";
-    props["CookieAuth"] = `XSRF-TOKEN ${cookieAuth} (${loggedInUser})`;
-  }
-  if (basicAuth) {
-    const auth = getAuthOptionsFromBasicAuthHeader(basicAuth);
-    if (auth?.user) {
-      props["BasicAuth"] = `${basicAuth} (${auth.user})`;
+  const authorizationHeader = get_i(
+    responseObj,
+    "requestHeaders.authorization"
+  );
+  if (authorizationHeader) {
+    const auth = getAuthOptionsFromBasicAuthHeader(authorizationHeader);
+    if (auth?.user && auth?.password) {
+      props["BasicAuth"] = `${authorizationHeader} (${auth.user})`;
+    } else {
+      if (authorizationHeader.startsWith("Bearer ")) {
+        try {
+        const jwt = authorizationHeader.replace("Bearer ", "");
+        const authOptions = getAuthOptionsFromJWT(jwt);
+        props["BearerAuth"] = authOptions;
+        } catch {
+          // ignore errors parsing JWT
+        }
+      }
+    }
+  } else {
+    let token = get_i(responseObj, "requestHeaders.cookie.authorization");
+    if (!token) {
+      token = get_i(responseObj, "requestHeaders.X-XSRF-TOKEN");
+    }
+    // props["Options"] = options;
+    if (token) {
+      const loggedInUser = logOptions?.loggedInUser || "";
+      props["CookieAuth"] = `${token} (${loggedInUser})`;
     }
   }
 

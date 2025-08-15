@@ -22,9 +22,9 @@ import {
   getEnvVar,
   validatePactMode,
 } from "../shared/c8ypact/c8ypact";
-import { C8yAuthOptions } from "../shared/auth";
+import { C8yAuthOptions, getAuthOptionsFromJWT } from "../shared/auth";
 import { oauthLogin } from "../shared/oauthlogin";
-import { validateBaseUrl } from "../shared/c8ypact/url";
+import { normalizeBaseUrl, validateBaseUrl } from "../shared/c8ypact/url";
 import { getPackageVersion } from "../shared/util-node";
 
 import {
@@ -109,11 +109,14 @@ export function configureC8yPlugin(
   log(`validatePactMode() - ${mode}`);
 
   validatePactMode(mode); // throws on error
-  const baseUrl =
+  const baseUrl = normalizeBaseUrl(
     getEnvVar("C8Y_BASEURL") ||
-    getEnvVar("CYPRESS_BASEURL") ||
-    getEnvVar("C8Y_BASEURL", config.env) ||
-    getEnvVar("CYPRESS_BASEURL", config.env);
+      getEnvVar("CYPRESS_BASEURL") ||
+      getEnvVar("C8Y_HOST") ||
+      getEnvVar("C8Y_BASEURL", config.env) ||
+      getEnvVar("CYPRESS_BASEURL", config.env) ||
+      getEnvVar("C8Y_HOST", config.env)
+  );
 
   log(`validateBaseUrl() - ${baseUrl}`);
   validateBaseUrl(baseUrl); // throws on error
@@ -747,7 +750,13 @@ export async function resolvePactRefs(
   return pact; // Return original pact on any error
 }
 
-export function configureEnvVariables(config: Cypress.PluginConfigOptions) {
+export function configureEnvVariables(
+  config: Cypress.PluginConfigOptions,
+  options: { overwrite?: boolean; omit?: string[] } = {
+    overwrite: false,
+    omit: [],
+  }
+) {
   const log = debug("c8y:plugin:env");
 
   const env = process.env || {};
@@ -758,16 +767,62 @@ export function configureEnvVariables(config: Cypress.PluginConfigOptions) {
   });
 
   c8yEnvKeys.forEach((key) => {
+    if (options.omit?.includes(key)) {
+      log(`Omitting ${key} from config.env`);
+      return;
+    }
     const value = env[key];
-    if (value != null) {
-      config.env[key] = value;
-      log(`Configured ${key} in config.env`);
+    const overwrite = options.overwrite ?? false;
+    if (value != null && config.env[key] != null && !overwrite) {
+      log(`Skipped setting ${key} in config.env -> ${value}`);
+    } else if (value != null) {
+      config.env[key] = ["C8Y_BASEURL", "C8Y_HOST", "baseUrl"].includes(key)
+        ? normalizeBaseUrl(value)
+        : value;
+      log(
+        `Configured ${key} in config.env -> ${
+          key === "C8Y_PASSWORD" ? "****" : value
+        }`
+      );
     }
   });
 
-  const baseUrl = config.env.C8Y_BASEURL || config.env.baseUrl || null;
+  const jwt = config.env["C8Y_TOKEN"];
+  let jwtBaseUrl: string | undefined = undefined;
+  if (jwt != null) {
+    log("Found C8Y_TOKEN. Configure env variables from JWT.", jwt);
+    const jwtParts = getAuthOptionsFromJWT(jwt);
+    if (jwtParts != null) {
+      log("Configured auth options from JWT:", jwtParts);
+      if (config.env.C8Y_USER == null && config.env.C8Y_USERNAME == null) {
+        config.env.C8Y_USER = jwtParts.user;
+      }
+      if (config.env.C8Y_TENANT == null && jwtParts.tenant != null) {
+        config.env.C8Y_TENANT = jwtParts.tenant;
+      }
+      if (config.env.C8Y_XSRF_TOKEN == null && jwtParts.xsrfToken != null) {
+        config.env.C8Y_XSRF_TOKEN = jwtParts.xsrfToken;
+      }
+      if (config.env.C8Y_AUTHORIZATION == null && jwtParts.token != null) {
+        config.env.C8Y_AUTHORIZATION = jwtParts.token;
+      }
+      if (config.env.C8Y_BASEURL == null && jwtParts.baseUrl != null) {
+        jwtBaseUrl = jwtParts.baseUrl;
+        config.env.C8Y_BASEURL = jwtParts.baseUrl;
+      }
+    }
+  }
+
+  const baseUrl = normalizeBaseUrl(
+    config.env.C8Y_BASEURL ||
+    config.env.baseUrl ||
+    config.env.C8Y_HOST ||
+    jwtBaseUrl ||
+    null
+  );
+
   if (baseUrl != null) {
-    log("Configured baseUrl from env:", baseUrl);
+    log("Configured config.baseUrl from env:", baseUrl);
     config.baseUrl = baseUrl;
   }
 
