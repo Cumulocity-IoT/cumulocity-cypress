@@ -338,7 +338,7 @@ export function throwError(message: string): never {
   } else if (newErr.stack) {
     // Fallback: remove frames that reference this helper
     const lines = newErr.stack.split("\n");
-    newErr.stack = lines.filter((l) => !/throwError/.test(l)).join("\n");
+    newErr.stack = lines.filter((l) => !/\s+at\s+throwError\s*\(/.test(l)).join("\n");
   }
   throw newErr;
 }
