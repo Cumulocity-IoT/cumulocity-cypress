@@ -24,6 +24,7 @@ import {
 import { C8ySchemaMatcher } from "./c8ypact/schema";
 import { C8yBaseUrl } from "./types";
 import { get_i } from "./util";
+import { throwC8yClientError } from "cumulocity-cypress/lib/utils";
 
 declare global {
   interface Response {
@@ -151,16 +152,7 @@ export async function wrapFetchRequest(
 
       // Check if this is a network error (TypeError) rather than an HTTP error response
       if (_.isError(error)) {
-        if (error instanceof TypeError) {
-          throw new C8yClientError(
-            `Network error occurred while making request to ${toUrlString(
-              url
-            )}: ${error.message}`,
-            error
-          );
-        } else {
-          throw new C8yClientError(`Request failed: ${error.message}`, error);
-        }
+        throwC8yClientError(error, url);
       }
 
       // If it's not an Error object, treat it as a response (shouldn't happen in normal cases)
@@ -478,4 +470,22 @@ export function isIResult(obj: any): obj is IResult<any> {
  */
 export function isCypressError(error: any): boolean {
   return _.isError(error) && _.get(error, "name") === "CypressError";
+}
+
+export function throwC8yClientError(
+  error: Error,
+  url: RequestInfo | URL | undefined = undefined
+): never {
+  if (error instanceof TypeError) {
+    throw new C8yClientError(
+      url
+        ? `Network error occurred while making request to ${toUrlString(
+            url
+          )}: ${error.message}`
+        : `Network error occurred while making request: ${error.message}`,
+      error
+    );
+  } else {
+    throw new C8yClientError(`Request failed: ${error.message}`, error);
+  }
 }

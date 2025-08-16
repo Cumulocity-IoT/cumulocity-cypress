@@ -24,8 +24,8 @@ import {
   C8yClient,
   C8yClientOptions,
   toCypressResponse,
-  C8yClientError,
   C8yAuthOptions,
+  throwC8yClientError,
 } from "../../shared/c8yclient";
 import {
   C8yAuthentication,
@@ -509,17 +509,7 @@ function run(
           } catch (error) {
             // Check if this is a network error (TypeError) rather than an HTTP error response
             if (_.isError(error)) {
-              if (error instanceof TypeError) {
-                throw new C8yClientError(
-                  `Network error occurred while making request: ${error.message}`,
-                  error
-                );
-              } else {
-                throw new C8yClientError(
-                  `Request failed: ${error.message}`,
-                  error
-                );
-              }
+              throwC8yClientError(error);
             }
             result = error;
           }
