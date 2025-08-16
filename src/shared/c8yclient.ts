@@ -42,6 +42,11 @@ declare global {
     }
   }
 }
+
+/**
+ * C8yClientError is an error class used to throw errors related to the c8yclient command.
+ * It extends the built-in Error class and adds an optional originalError property.
+ */
 export class C8yClientError extends Error {
   originalError?: Error;
   constructor(message: string, originalError?: Error) {

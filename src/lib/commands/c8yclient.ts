@@ -164,9 +164,6 @@ declare global {
     | C8yClientServiceArrayFn<R, T>[]
     | C8yClientServiceListFn<R, T>;
 
-  /**
-   * Custom error class for C8y client errors, particularly network issues.
-   */
   class C8yClientError extends Error {
     originalError?: Error;
     constructor(message: string, originalError?: Error);
