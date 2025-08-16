@@ -514,7 +514,7 @@ function run(
             if (_.isError(error)) {
               if (error instanceof TypeError) {
                 throw new C8yClientError(
-                  `Network error occurred while making request ${error.message}`,
+                  `Network error occurred while making request: ${error.message}`,
                   error
                 );
               } else {
