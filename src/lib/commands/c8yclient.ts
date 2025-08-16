@@ -24,6 +24,7 @@ import {
   C8yClient,
   C8yClientOptions,
   toCypressResponse,
+  C8yClientError,
   C8yAuthOptions,
 } from "../../shared/c8yclient";
 import {
@@ -162,6 +163,14 @@ declare global {
     | C8yClientServiceFn<R, T>
     | C8yClientServiceArrayFn<R, T>[]
     | C8yClientServiceListFn<R, T>;
+
+  /**
+   * Custom error class for C8y client errors, particularly network issues.
+   */
+  class C8yClientError extends Error {
+    originalError?: Error;
+    constructor(message: string, originalError?: Error);
+  }
 }
 
 export const defaultClientOptions = () => {
@@ -501,6 +510,20 @@ function run(
           try {
             result = await promise;
           } catch (error) {
+            // Check if this is a network error (TypeError) rather than an HTTP error response
+            if (_.isError(error)) {
+              if (error instanceof TypeError) {
+                throw new C8yClientError(
+                  `Network error occurred while making request ${error.message}`,
+                  error
+                );
+              } else {
+                throw new C8yClientError(
+                  `Request failed: ${error.message}`,
+                  error
+                );
+              }
+            }
             result = error;
           }
           const cypressResponse = toCypressResponse(result);
