@@ -24,7 +24,6 @@ import {
 import { C8ySchemaMatcher } from "./c8ypact/schema";
 import { C8yBaseUrl } from "./types";
 import { get_i } from "./util";
-import { throwC8yClientError } from "cumulocity-cypress/lib/utils";
 
 declare global {
   interface Response {
