@@ -44,6 +44,19 @@ declare global {
 }
 
 /**
+ * C8yClientError is an error class used to throw errors related to the c8yclient command.
+ * It extends the built-in Error class and adds an optional originalError property.
+ */
+export class C8yClientError extends Error {
+  originalError?: Error;
+  constructor(message: string, originalError?: Error) {
+    super(message);
+    this.name = "C8yClientError";
+    this.originalError = originalError;
+  }
+}
+
+/**
  * Options used to configure c8yclient command.
  */
 export type C8yClientOptions = Partial<Cypress.Loggable> &
@@ -133,9 +146,16 @@ export async function wrapFetchRequest(
       if (_.isFunction(logOptions?.logger?.end)) logOptions?.logger?.end();
       return Promise.resolve(res);
     })
-    .catch(async (response) => {
-      const res = await wrapFetchResponse(response, options);
+    .catch(async (error) => {
       if (_.isFunction(logOptions?.logger?.end)) logOptions?.logger?.end();
+
+      // Check if this is a network error (TypeError) rather than an HTTP error response
+      if (_.isError(error)) {
+        throwC8yClientError(error, url);
+      }
+
+      // If it's not an Error object, treat it as a response (shouldn't happen in normal cases)
+      const res = await wrapFetchResponse(error, options);
       return Promise.reject(res);
     });
 }
@@ -249,9 +269,9 @@ function updateConsoleProps(
     } else {
       if (authorizationHeader.startsWith("Bearer ")) {
         try {
-        const jwt = authorizationHeader.replace("Bearer ", "");
-        const authOptions = getAuthOptionsFromJWT(jwt);
-        props["BearerAuth"] = authOptions;
+          const jwt = authorizationHeader.replace("Bearer ", "");
+          const authOptions = getAuthOptionsFromJWT(jwt);
+          props["BearerAuth"] = authOptions;
         } catch {
           // ignore errors parsing JWT
         }
@@ -449,4 +469,22 @@ export function isIResult(obj: any): obj is IResult<any> {
  */
 export function isCypressError(error: any): boolean {
   return _.isError(error) && _.get(error, "name") === "CypressError";
+}
+
+export function throwC8yClientError(
+  error: Error,
+  url: RequestInfo | URL | undefined = undefined
+): never {
+  if (error instanceof TypeError) {
+    throw new C8yClientError(
+      url
+        ? `Network error occurred while making request to ${toUrlString(
+            url
+          )}: ${error.message}`
+        : `Network error occurred while making request: ${error.message}`,
+      error
+    );
+  } else {
+    throw new C8yClientError(`Request failed: ${error.message}`, error);
+  }
 }

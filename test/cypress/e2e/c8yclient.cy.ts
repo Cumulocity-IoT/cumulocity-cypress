@@ -1332,3 +1332,62 @@ describe("c8yclient", () => {
     });
   });
 });
+
+describe("c8yclient - network error handling", () => {
+  beforeEach(() => {
+    Cypress.env("C8Y_TENANT", "t123456789");
+    Cypress.env("C8Y_USERNAME", "admin");
+    Cypress.env("C8Y_PASSWORD", "mypassword");
+  });
+
+  it("should throw C8yClientError for TypeError (network issues)", (done) => {
+    const networkError = new TypeError("Failed to fetch");
+    cy.stub(window, "fetch").callsFake(() => Promise.reject(networkError));
+
+    cy.once("fail", (err) => {
+      expect(err.name).to.eq("C8yClientError");
+      expect(err.message).to.contain(
+        "Network error occurred while making request"
+      );
+      expect(err.message).to.contain("Failed to fetch");
+      expect((err as C8yClientError).originalError).to.eq(networkError);
+      done();
+    });
+
+    cy.c8yclient<ICurrentTenant>((client) => client.tenant.current());
+  });
+
+  it("should throw C8yClientError for generic Error types", (done) => {
+    const genericError = new Error("Something went wrong");
+    cy.stub(window, "fetch").callsFake(() => Promise.reject(genericError));
+
+    cy.once("fail", (err) => {
+      expect(err.name).to.eq("C8yClientError");
+      expect(err.message).to.contain("Request failed: Something went wrong");
+      expect((err as C8yClientError).originalError).to.eq(genericError);
+      done();
+    });
+
+    cy.c8yclient<ICurrentTenant>((client) => client.tenant.current());
+  });
+
+  it("should preserve original error stack trace for debugging", (done) => {
+    const originalError = new TypeError("Connection refused");
+    originalError.stack =
+      "TypeError: Connection refused\n    at fetch (test.js:1:1)";
+    cy.stub(window, "fetch").callsFake(() => Promise.reject(originalError));
+
+    cy.once("fail", (err) => {
+      expect((err as C8yClientError).originalError).to.deep.eq(originalError);
+      expect((err as C8yClientError).originalError?.stack).to.contain(
+        "Connection refused"
+      );
+      expect((err as C8yClientError).originalError?.stack).to.contain(
+        "test.js:1:1"
+      );
+      done();
+    });
+
+    cy.c8yclient<ICurrentTenant>((client) => client.tenant.current());
+  });
+});
