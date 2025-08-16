@@ -331,5 +331,14 @@ export function resetClient() {
 export function throwError(message: string): never {
   const newErr = new Error(message);
   // newErr.name = "CypressError";
+  const capture = (Error as any).captureStackTrace;
+  if (typeof capture === "function") {
+    // Exclude this helper from the stack so the call site is shown first
+    capture(newErr, throwError);
+  } else if (newErr.stack) {
+    // Fallback: remove frames that reference this helper
+    const lines = newErr.stack.split("\n");
+    newErr.stack = lines.filter((l) => !/\s+at\s+throwError\s*\(/.test(l)).join("\n");
+  }
   throw newErr;
 }
