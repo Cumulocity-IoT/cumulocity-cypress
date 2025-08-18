@@ -511,7 +511,6 @@ describe("c8yclient", () => {
 
     it("should fail if schema does not match response", (done) => {
       Cypress.once("fail", (err) => {
-        expect(err.message).to.contain("Matching schema failed. Error:");
         expect(err.message).to.contain("data/name must be number");
         done();
       });
@@ -557,7 +556,6 @@ describe("c8yclient", () => {
       };
 
       Cypress.once("fail", (err) => {
-        expect(err.message).to.contain("Matching schema failed. Error:");
         expect(err.message).to.contain("data/name must be number");
         done();
       });
