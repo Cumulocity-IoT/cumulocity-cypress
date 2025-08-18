@@ -4,9 +4,8 @@ import {
   C8yPactRecord,
   C8yPactMatcher,
   C8ySchemaMatcher,
-  isPactError,
 } from "../../shared/c8ypact";
-import { C8yClientOptions, isCypressError } from "../../shared/c8yclient";
+import { C8yClientOptions } from "../../shared/c8yclient";
 import { throwError } from "../utils";
 import { C8yAjvSchemaMatcher } from "../../contrib/ajv";
 
@@ -119,11 +118,7 @@ Cypress.Commands.add("c8ymatch", (response, pact, info = {}, options = {}) => {
     if (_.isFunction(Cypress.c8ypact.on?.matchingError)) {
       Cypress.c8ypact.on.matchingError(matcher, error, options);
     } else if (options.failOnPactValidation === true) {
-      if (isCypressError(error) || isPactError(error)) {
-        throw error;
-      } else {
-        throwError(`Matching schema failed. ${error}`);
-      }
+      throw error;
     }
   } finally {
     logger.end();

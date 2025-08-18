@@ -7,6 +7,7 @@ import addFormats from "ajv-formats";
 import { C8ySchemaMatcher } from "../shared/c8ypact/schema";
 
 import draft06Schema from "ajv/lib/refs/json-schema-draft-06.json";
+import { C8yPactMatchError } from "../shared/c8ypact/matcher";
 
 /**
  * Default implementation of C8ySchemaMatcher using AJV. By default
@@ -19,7 +20,8 @@ export class C8yAjvSchemaMatcher implements C8ySchemaMatcher {
   ajv: Ajv;
 
   constructor(metas?: AnySchemaObject[] | boolean, strict: boolean = false) {
-    if (_.isBoolean(metas)) { {
+    if (_.isBoolean(metas)) {
+      {
         strict = metas;
         metas = undefined;
       }
@@ -74,11 +76,7 @@ export class C8yAjvSchemaMatcher implements C8ySchemaMatcher {
     }
   }
 
-  match(
-    obj: any,
-    schema: SchemaObject,
-    strictMatching?: boolean
-  ): boolean {
+  match(obj: any, schema: SchemaObject, strictMatching?: boolean): boolean {
     if (!schema) return false;
     const schemaClone = _.cloneDeep(schema);
 
@@ -88,7 +86,10 @@ export class C8yAjvSchemaMatcher implements C8ySchemaMatcher {
 
     const valid = this.ajv.validate(schemaClone, obj);
     if (!valid) {
-      throw new Error(this.ajv.errorsText());
+      throw new C8yPactMatchError(this.ajv.errorsText(), {
+        actual: obj,
+        expected: schemaClone,
+      });
     }
     return valid;
   }

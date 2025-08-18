@@ -134,7 +134,7 @@ describe("c8ypactmatcher", () => {
 
       Cypress.once("fail", (err) => {
         expect(err.message).to.contain("Pact validation failed!");
-        expect(err.name).to.eq("C8yPactError");
+        expect(err.name).to.eq("C8yPactMatchError");
         done();
       });
       cy.c8ymatch(
@@ -650,7 +650,7 @@ describe("c8ypactmatcher", () => {
       const obj = _.cloneDeep(obj1);
       obj.response.body = { id: 123 };
       expect(() => matcher.match(obj, pact)).to.throw(
-        `Pact validation failed! Schema for "response > body" does not match.`
+        `Pact validation failed! Schema for "response > body" does not match (data/id must be string).`
       );
       expect(spy).to.have.been.calledOnce;
     });
@@ -670,7 +670,7 @@ describe("c8ypactmatcher", () => {
       const obj = _.cloneDeep(obj1);
       obj.response.body = "{ id: 123 }";
       expect(() => matcher.match(obj, pact, { strictMatching: true })).to.throw(
-        `Pact validation failed! Schema for "response > body" does not match.`
+        `Pact validation failed! Schema for "response > body" does not match (data must be object).`
       );
       expect(spy).to.have.been.calledOnce;
     });
@@ -690,7 +690,7 @@ describe("c8ypactmatcher", () => {
       const obj = _.cloneDeep(obj1);
       obj.response.body = { id: "123", other: 101 };
       expect(() => matcher.match(obj, pact, { strictMatching: true })).to.throw(
-        `Pact validation failed! Schema for "response > body" does not match.`
+        `Pact validation failed! Schema for "response > body" does not match (data must NOT have additional properties).`
       );
       expect(spy).to.have.been.calledOnce;
     });
@@ -754,7 +754,7 @@ describe("c8ypactmatcher", () => {
 
       const obj = _.cloneDeep(obj2);
       obj.response.body = { id: "123", nested: { name: "abcd" } };
-      expect(matcher.match(obj, pact, {strictMatching: true})).to.be.true;
+      expect(matcher.match(obj, pact, { strictMatching: true })).to.be.true;
       expect(spy).to.have.been.calledOnce;
     });
   });

@@ -24,6 +24,44 @@ export interface C8yPactMatcher {
   ) => boolean;
 }
 
+/**
+ * Error thrown when a C8yPactMatcher fails to match two objects.
+ * Contains the actual and expected values, the key that failed to match and
+ * the key path of the property that failed to match.
+ * The key path is a string representation of the path to the property that failed to match.
+ * For example: "body > id" for a property "id" in the "body" object.
+ * This error is used to provide detailed information about the match failure.
+ */
+export class C8yPactMatchError extends Error {
+  actual: any;
+  expected: any;
+  key?: string;
+  keyPath?: string;
+  schema?: any;
+
+  constructor(
+    message: string,
+    options: {
+      actual: any;
+      expected: any;
+      key?: string;
+      keyPath?: string;
+      schema?: any;
+    }
+  ) {
+    super(message);
+    this.name = "C8yPactMatchError";
+    this.actual = options.actual;
+    this.expected = options.expected;
+    this.key = options.key;
+    this.keyPath = options.keyPath;
+    this.schema = options.schema;
+    if ((Error as any).captureStackTrace) {
+      (Error as any).captureStackTrace(this, C8yPactMatchError);
+    }
+  }
+}
+
 export interface C8yPactMatcherOptions {
   strictMatching?: boolean;
   matchSchemaAndObject?: boolean;
@@ -77,12 +115,9 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     const schemaMatcher =
       options?.schemaMatcher || C8yDefaultPactMatcher.schemaMatcher;
 
-    const throwPactError = (message: string, key?: string) => {
-      const errorMessage = `Pact validation failed! ${message}`;
-      const newErr = new Error(errorMessage);
-      newErr.name = "C8yPactError";
+    const addLoggerProps = (props: any, message?: string, key?: string) => {
       if (options?.loggerProps) {
-        options.loggerProps.error = errorMessage;
+        options.loggerProps.error = message;
         options.loggerProps.key = key;
         options.loggerProps.keypath = keyPath(key);
         options.loggerProps.objects =
@@ -90,7 +125,34 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
             ? [_.pick(obj1, [key]), _.pick(obj2, [key])]
             : [obj1, obj2];
       }
+    };
 
+    const throwPactError = (message: string, key?: string) => {
+      const newErr = new C8yPactMatchError(`Pact validation failed! ${message}`, {
+        actual: obj1,
+        expected: obj2,
+        ...(key != null ? { key, keyPath: keyPath(key) } : {}),
+      });
+
+      addLoggerProps(options?.loggerProps, newErr.message, key);
+      throw newErr;
+    };
+
+    const throwSchemaError = (
+      message: string,
+      key?: string,
+      schema?: any,
+      value?: any
+    ) => {
+      const newErr = new C8yPactMatchError(`Pact validation failed! ${message}`, {
+        actual: value ?? obj1,
+        expected: schema ?? obj2,
+        key,
+        keyPath: keyPath(key),
+        schema: schema,
+      });
+
+      addLoggerProps(options?.loggerProps, newErr.message, key);
       throw newErr;
     };
 
@@ -170,22 +232,30 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
       if (isSchema) {
         const errorKey = removeSchemaPrefix(key);
         if (!schemaMatcher) {
-          throwPactError(
+          throwSchemaError(
             `No schema matcher registered to validate "${keyPath(errorKey)}".`,
-            errorKey
+            errorKey,
+            pact,
+            value
           );
         }
         try {
           if (!schemaMatcher.match(value, pact, strictMatching)) {
-            throwPactError(
+            throwSchemaError(
               `Schema for "${keyPath(errorKey)}" does not match.`,
-              errorKey
+              errorKey,
+              pact,
+              value
             );
           }
-        } catch (error) {
-          throwPactError(
-            `Schema for "${keyPath(errorKey)}" does not match. (${error})`,
-            errorKey
+        } catch (error: any) {
+          throwSchemaError(
+            `Schema for "${keyPath(errorKey)}" does not match (${
+              error?.message ?? error
+            }).`,
+            errorKey,
+            pact,
+            value
           );
         }
 
@@ -209,14 +279,17 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
             _.extend(options, { parents: [...parents, key] })
           );
           if (!result) throw new Error("");
-        } catch (error: unknown) {
+        } catch (error: any) {
           // calling match recursively requires to pass the root error
-          if (_.get(error, "name") === "C8yPactError") {
+          if (
+            _.get(error as any, "name") === "C8yPactError" ||
+            _.get(error as any, "name") === "C8yPactMatchError"
+          ) {
             throw error;
           } else {
             throwPactError(
               `Values for "${keyPath(key)}" do not match.${
-                error != null ? " " + error : ""
+                error != null ? " " + (error?.message ?? error) : ""
               }`,
               key
             );
