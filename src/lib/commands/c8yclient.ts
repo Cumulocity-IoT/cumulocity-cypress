@@ -428,7 +428,6 @@ function authenticateClient(
         throw ee;
       }
     }
-
     if (res.status !== 200) {
       throwError(makeErrorMessage(res.responseObj));
     }

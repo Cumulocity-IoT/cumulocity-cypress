@@ -219,6 +219,18 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
       delete Object.assign(auth, { user: auth.userName })["userName"];
       return authWithTenant(Cypress.env(), auth);
     }
+
+    // from IUser: getAuthOptions({userName: "abc", password: "abc"}, ...)
+    if (args[0].userName && args[0].password) {
+      const auth = _.pick(args[0], [
+        "userName",
+        "password",
+        "tenantId",
+        "userAlias",
+      ]);
+      delete Object.assign(auth, { user: auth.userName })["userName"];
+      return authWithTenant(Cypress.env(), auth);
+    }
   }
 
   // getAuthOptions("abc", "abc")

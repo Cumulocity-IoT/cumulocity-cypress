@@ -258,7 +258,6 @@ describe("matcher", () => {
       };
 
       // object matching failure
-
       expect(() =>
         matcher.match(obj, pact, {
           strictMatching: true,

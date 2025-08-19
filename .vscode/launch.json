@@ -10,7 +10,7 @@
       "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "envFile": ".env",
+      "envFile": "${workspaceFolder}/src/c8ytrl/.env",
       "skipFiles": [
         "<node_internals>/**",
         "${workspaceFolder}/node_modules/**"

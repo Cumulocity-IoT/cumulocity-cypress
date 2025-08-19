@@ -39,6 +39,10 @@ Contents of this document:
     - [Case sensitivity](#case-sensitivity)
     - [Default preprocessor configuration](#default-preprocessor-configuration)
   - [Recording JSON-Schema](#recording-json-schema)
+    - [Cookie obfuscation and removal](#cookie-obfuscation-and-removal-1)
+    - [Case sensitivity](#case-sensitivity-1)
+    - [Default preprocessor configuration](#default-preprocessor-configuration-1)
+  - [Recording JSON-Schema](#recording-json-schema-1)
   - [Recording of created objects](#recording-of-created-objects)
   - [Interceptions](#interceptions)
   - [Environment variables](#environment-variables)
@@ -558,6 +562,47 @@ Cypress.c8ypact.config.preprocessor = {
 To use a custom preprocessor, register a custom implementation of `C8yPactPreprocessor` with `Cypress.c8ypact.preprocessor`. With this any kind of preprocessing rules and configuration can be implemented.
 
 The default implementation of `C8yPactPreprocessor` is `C8yDefaultPactPreprocessor` that is extended by `C8yCypressEnvPreprocessor` for environment variable based configuration in Cypress tests. It uses the following environment variables with the configuration from `Cypress.c8ypact.preprocessor` to configure the preprocessor:
+
+```
+C8Y_PACT_PREPROCESSOR_IGNORE: string[] - pact property key paths to ignore
+C8Y_PACT_PREPROCESSOR_OBFUSCATE: string[] - pact property key paths to obfuscate
+C8Y_PACT_PREPROCESSOR_PATTERN: string - pattern to use for obfuscation, by default `********`
+C8Y_PACT_PREPROCESSOR_IGNORE_CASE: boolean - if set to `false`, preprocessor will match keys case sensitive 
+```
+
+#### Cookie obfuscation and removal
+
+`C8yDefaultPactPreprocessor` does support cookie obfuscation and removal. All keys components provided after a `cookie` or `set-cookie` in the obfuscation or ignore list will be obfuscated or removed. 
+
+Example configuration to obfuscate `authorization` and `XSRF-TOKEN` cookies in request headers and response headers:
+```typescript
+{
+    obfuscate: [
+      'request.headers.cookie.authorization',
+      'request.headers.cookie.XSRF-TOKEN',
+      'response.headers.set-cookie.authorization',
+      'response.headers.set-cookie.XSRF-TOKEN',
+    ]
+}
+```
+
+This is useful if you want to validate cookies in your tests without exposing sensitive data in your pact objects. It also enables more simple comparison of cookies in your tests as obfuscation will make cookies values equal if objects are applied to preprocessor before matching.
+
+#### Case sensitivity
+
+By default, preprocessor is case insensitive. This is useful to ignore case differences in headers or properties without knowing the exact case of header or property names.
+
+To enable case sensitivity, set `C8Y_PACT_PREPROCESSOR_IGNORE_CASE` to `false`. This will cause the preprocessor to match keys case sensitive and ignore only exact matches.
+
+#### Default preprocessor configuration
+
+The default preprocessor configuration can be imported and updated from
+
+```typescript
+import {  C8yPactPreprocessorDefaultOptions } from "cumulocity-cypress/c8ypact";
+``` 
+
+### Recording JSON-Schema
 
 ```
 C8Y_PACT_PREPROCESSOR_IGNORE: string[] - pact property key paths to ignore
