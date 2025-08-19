@@ -261,11 +261,9 @@ Cypress.Commands.add(
       !(
         _.isString(unsafeSource) ||
         _.isNumber(unsafeSource) ||
-        (Array.isArray(unsafeSource) &&
+        (Array.isArray(unsafeSource) && !_.isEmpty(unsafeSource) &&
           (unsafeSource.every((item) => typeof item === "string") ||
-          unsafeSource.length > 0 &&
-          (unsafeSource.every((item) => typeof item === typeof unsafeSource[0]) &&
-            (typeof unsafeSource[0] === "string" || typeof unsafeSource[0] === "number")))
+            unsafeSource.every((item) => typeof item === "number")))
       )
     ) {
       logger?.end();
