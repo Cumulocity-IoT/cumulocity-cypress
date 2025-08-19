@@ -1,10 +1,8 @@
 import * as localeTest from "./../support/test";
 import { Locale } from "cumulocity-cypress/lib/commands/dates";
 
-let localeEn: any;
-before(async () => {
-  localeEn = (await import("@angular/common/locales/en")).default;
-});
+import localeEn from "@angular/common/locales/en";
+import angularEs from "@angular/common/locales/es";
 import { enUS } from "date-fns/locale";
 
 describe("dates", () => {
@@ -16,6 +14,13 @@ describe("dates", () => {
   // see https://date-fns-interactive.netlify.app/ for datefns testing playground
 
   context("register locales", () => {
+    it("should have loaded locales", () => {
+      expect(localeEn).to.not.be.undefined;
+      expect(enUS).to.not.be.undefined;
+      expect(localeTest.default).to.not.be.undefined;
+      expect(angularEs).to.not.be.undefined;
+    });
+
     it("should auto register packaged default languages", () => {
       cy.setLanguage("en");
       cy.wrap("26 May 2023, 15:59:00")
