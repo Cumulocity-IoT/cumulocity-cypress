@@ -6,6 +6,8 @@ import { normalizeLocaleId } from "../../shared/date";
 import { getLastDefinedValue, shortestUniquePrefixes } from "../../shared/util";
 
 import { Locale } from "date-fns";
+import * as dateFnsDe from "date-fns/locale/de";
+import * as dateFnsEnGB from "date-fns/locale/en-GB";
 
 const { _ } = Cypress;
 
@@ -63,21 +65,29 @@ export function getNgLocaleId(locale: string): string {
   return data[NgLocaleDataIndex.LocaleId];
 }
 
-export async function registerLocale(
-  data: unknown[],
+/**
+ * Registers a locale with the given ID and data. Registered locale can be used
+ * with `cy.setLanguage` to set the locale for date formatting and other 
+ * locale-specific operations in `cy.toDate`, `cy.toISODate`, etc.
+ * @param c8yLocaleId The Cumulocity locale ID (e.g., "en", "de").
+ * @param angularLocale The Angular locale data.
+ * @param dfnsLocale The date-fns locale data (optional).
+ * @param extraData Additional data to be stored in the locale (optional).
+ */
+export function registerLocale(
   c8yLocaleId: string,
-  extraData: unknown = undefined,
-  localeId?: string
+  angularLocale: unknown[],
+  dfnsLocale: Locale | null = null,
+  extraData: unknown = undefined
 ) {
   const angularId = normalizeLocaleId(c8yLocaleId);
-  LOCALE_DATA[angularId] = data;
+  LOCALE_DATA[angularId] = angularLocale;
   if (extraData) {
     LOCALE_DATA[angularId][NgLocaleDataIndex.ExtraData] = extraData;
   }
 
-  const dfnsLocale = await loadDfnsLocale(getNgLocaleId(c8yLocaleId), localeId);
   LOCALE_DATA[angularId][NgLocaleDataIndex.DfnsLocale] = {
-    ...dfnsLocale,
+    ...(dfnsLocale || {}),
     localize: {
       ...dfnsLocale?.localize,
       month: buildLocalizeFn({
@@ -108,16 +118,22 @@ export async function registerLocale(
   };
 }
 
-export async function registerDefaultLocales() {
-  await registerLocale(
+/**
+ * Registers default locales `de` and `en` with their respective 
+ * Angular and date-fns locales for use in tests.
+ */
+export function registerDefaultLocales() {
+  registerLocale(
+    "de",
     // @ts-expect-error
     !isModule(localeDe) ? localeDe : localeDe.default,
-    "de"
+    (dateFnsDe as any).default || (dateFnsDe as any)
   );
-  await registerLocale(
+  registerLocale(
+    "en",
     // @ts-expect-error
     !isModule(localeEn) ? localeEn : localeEn.default,
-    "en"
+    (dateFnsEnGB as any).default || (dateFnsEnGB as any)
   );
 }
 
@@ -210,29 +226,6 @@ function getLocaleValue(
     );
   }
   return result;
-}
-
-async function loadDfnsLocale(
-  angularLocaleId: string,
-  dfnsLocaleId?: string
-): Promise<Locale | null> {
-  const load: (locale: string) => Promise<Locale> = async (locale: string) => {
-    try {
-      const l = await import(`date-fns/locale/${locale}/`);
-      return l.default;
-    } catch (e) {
-      console.error(e);
-      return null;
-    }
-  };
-  if (!angularLocaleId && !dfnsLocaleId) return null;
-
-  const r = load(dfnsLocaleId ?? angularLocaleId);
-  if (r) {
-    return r;
-  }
-
-  return null;
 }
 
 // var parseDayPatterns = {

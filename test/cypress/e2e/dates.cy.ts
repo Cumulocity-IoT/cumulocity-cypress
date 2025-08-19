@@ -1,6 +1,12 @@
 import * as localeTest from "./../support/test";
 import { Locale } from "cumulocity-cypress/lib/commands/dates";
 
+let localeEn: any;
+before(async () => {
+  localeEn = (await import("@angular/common/locales/en")).default;
+});
+import { enUS } from "date-fns/locale";
+
 describe("dates", () => {
   // en: [
   //   'dd/MM/y, HH:mm', 'd MMM y, HH:mm:ss', "d MMMM y 'at' HH:mm:ss X", "EEEE, d MMMM y 'at' HH:mm:ss 'GMT'X",
@@ -20,10 +26,20 @@ describe("dates", () => {
     });
 
     it("should allow registering additional locales", () => {
-      registerLocale(localeTest.default, "en", undefined, "en-US").then(() => {
+      // does not parse US date format as en-GB locale uses different date format
+      cy.setLanguage("en");
+      cy.wrap("May 26, 2023, 3:59:00 PM")
+        .toISODate()
+        .then((result) => {
+          expect(result).to.be.undefined;
+        });
+
+      // uses en (en-US) locale to parse the date (different from default en-GB)
+      // US format: "May 26, 2023, 3:59:00 PM" vs GB format: "26 May 2023, 15:59:00"
+      cy.then(() => {
+        registerLocale("en", localeEn, enUS);
         cy.setLanguage("en");
-        // uses en (en) local to parse the date (different from default en-GB)
-        cy.wrap("5/26/23, 3:59 PM")
+        cy.wrap("May 26, 2023, 3:59:00 PM")
           .toISODate()
           .then((result) => {
             expect(result).to.equal("2023-05-26T13:59:00.000Z");
@@ -42,7 +58,7 @@ describe("dates", () => {
       // use test locale to test completely custom locale mappings
       // days: Test0... (come up with something )
       // months: Alpha, ... (Greek Alphabet)
-      registerLocale(localeTest.default, "test").then(() => {});
+      registerLocale("test", localeTest.default, null);
     });
 
     it("should register datefns", () => {
@@ -248,17 +264,37 @@ describe("dates", () => {
         });
     });
 
-    it("should work with invalid input", (done) => {
+    it("should work with invalid input - undefined", (done) => {
       const errorListener = (err: Error) => {
         expect(err.message).to.contain(
           "No or undefined source provided to cy.toDate."
         );
         done();
       };
-      cy.on("fail", errorListener);
+      cy.once("fail", errorListener);
 
       cy.wrap(undefined).toISODate();
+    });
+
+    it("should work with invalid input - empty object", (done) => {
+      const errorListener = (err: Error) => {
+        expect(err.message).to.contain(
+          "No or undefined source provided to cy.toDate."
+        );
+        done();
+      };
+      cy.once("fail", errorListener);
       cy.wrap({}).toISODate();
+    });
+
+    it("should work with invalid input - array with undefined and empty object", (done) => {
+      const errorListener = (err: Error) => {
+        expect(err.message).to.contain(
+          "No or undefined source provided to cy.toDate."
+        );
+        done();
+      };
+      cy.once("fail", errorListener);
       cy.wrap([undefined, {}]).toISODate();
     });
 

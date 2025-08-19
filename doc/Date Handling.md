@@ -135,11 +135,24 @@ Before using the date commands, you need to register the locales you intend to u
 
 ```typescript
 // English and German locales are registered by default
+// (called automatically by cumulocity-cypress)
 registerDefaultLocales();
+
+// Register additional locales as needed
+import * as angularEs from "@angular/common/locales/es";
+import { es } from "date-fns/locale";
+
+// or 
+let angularEs: any;
+before(async () => {
+  angularEs = (await import("@angular/common/locales/es")).default;
+});
+
+registerLocale("es", angularEs, es);
 
 // Register a custom locale
 import * as localeCustom from "./path-to-your-locale-data";
-registerLocale(localeCustom.default, "custom-locale");
+registerLocale("custom-locale", localeCustom.default);
 ```
 
 ### Setting Active Locale
@@ -157,7 +170,7 @@ cy.setLanguage("de"); // Use German locale
 You can register and use custom locales for testing specific formatting requirements:
 
 ```typescript
-registerLocale(customLocaleData, "test").then(() => {
+registerLocale("test", customLocaleData).then(() => {
   // Use the custom locale
   cy.setLanguage("test");
   
