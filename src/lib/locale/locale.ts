@@ -87,7 +87,7 @@ export function registerLocale(
   }
 
   LOCALE_DATA[angularId][NgLocaleDataIndex.DfnsLocale] = {
-    ...(dfnsLocale || {}),
+    ...(typeof dfnsLocale === 'object' && dfnsLocale !== null ? dfnsLocale : {}),
     localize: {
       ...dfnsLocale?.localize,
       month: buildLocalizeFn({
