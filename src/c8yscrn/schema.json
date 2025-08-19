@@ -137,9 +137,7 @@
                             "type": "object"
                         },
                         {
-                            "enum": [
-                                true
-                            ],
+                            "const": true,
                             "type": "boolean"
                         },
                         {
@@ -1098,9 +1096,7 @@
                             "additionalProperties": false,
                             "properties": {
                                 "clear": {
-                                    "enum": [
-                                        true
-                                    ],
+                                    "const": true,
                                     "type": "boolean"
                                 }
                             },
@@ -3609,9 +3605,7 @@
                 "login": {
                     "anyOf": [
                         {
-                            "enum": [
-                                false
-                            ],
+                            "const": false,
                             "type": "boolean"
                         },
                         {
@@ -3788,9 +3782,7 @@
                     "login": {
                         "anyOf": [
                             {
-                                "enum": [
-                                    false
-                                ],
+                                "const": false,
                                 "type": "boolean"
                             },
                             {
