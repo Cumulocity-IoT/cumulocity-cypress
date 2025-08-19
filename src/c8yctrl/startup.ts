@@ -23,8 +23,8 @@ const log = debug("c8y:ctrl:startup");
 
 (async () => {
   // load .env file first and overwrite with .c8yctrl file if present
-  dotenv();
-  dotenv({ path: ".c8yctrl", override: true });
+  dotenv({ quiet: true });
+  dotenv({ quiet: true, path: ".c8yctrl", override: true });
 
   // read config from environment variables or command line arguments
   const [config, configFile] = getConfigFromArgsOrEnvironment();

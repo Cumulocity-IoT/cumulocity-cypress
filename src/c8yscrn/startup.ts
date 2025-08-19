@@ -59,8 +59,8 @@ const logEnv = debug("c8y:scrn:env");
     log(`Running with tags: ${tags}`);
 
     const envs = {
-      ...(dotenv().parsed ?? {}),
-      ...(dotenv({ path: ".c8yscrn" }).parsed ?? {}),
+      ...(dotenv({ quiet: true }).parsed ?? {}),
+      ...(dotenv({ quiet: true, path: ".c8yscrn" }).parsed ?? {}),
       ...(tags.length > 0 ? { grepTags: tags } : {}),
       ..._.pickBy(
         process.env,
