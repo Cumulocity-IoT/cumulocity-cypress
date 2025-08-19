@@ -11,7 +11,8 @@ import {
 } from "../locale/locale";
 
 import * as dateFns from "date-fns";
-export { Locale } from "date-fns";
+import { Locale } from "date-fns";
+export { Locale };
 
 import { throwError } from "../utils";
 import { isValidDate, parseDate } from "../../shared/date";
@@ -144,21 +145,29 @@ declare global {
   }
 
   /**
-   * Registers Angular locale data for given locale identifier.
+   * Register additional locale data to be used with `cy.toISODate()` and Cypress date related
+   * functionality. You need to provide Angular locale data and optionally the
+   * corresponding date-fns locale object for proper date parsing.
    *
+   * @param data Angular locale data. Angular locale data is an array of locale specific data.
+   * @param localeId The locale id to use for the locale. `cy.setLanguage(localeId)` will use this locale.
+   * @param dfnsLocale Optional date-fns locale object to use for date parsing.
+   * @param extraData Optional extra data to be added to the locale data.
+   *
+   * @example
    * ```typescript
    * // register en-GB to be used as english locale (en-GB is Cumulocity default english locale)
    * import localeEn = require("@angular/common/locales/en-GB");
-   * registerLocale(localeEn, "en");
+   * import { enGB } from "date-fns/locale";
+   * registerLocale(localeEn, "en", enGB);
    * ```
    */
   function registerLocale(
+    c8yLocaleId: string,
     data: unknown[],
-    localeId: string,
-    extraData?: unknown,
-    datefnsLocale?: string
-  ): Promise<void>;
-
+    dfnsLocale?: Locale | null,
+    extraData?: unknown | undefined
+  ): void;
   /**
    * Registers default Angular locales. Currently this is `en` (en-GB) and `de` (de) Angular locales.
    */
@@ -247,7 +256,16 @@ Cypress.Commands.add(
       ourlogger = true;
     }
 
-    if (!unsafeSource) {
+    if (
+      !unsafeSource ||
+      !(
+        _.isString(unsafeSource) ||
+        _.isNumber(unsafeSource) ||
+        (Array.isArray(unsafeSource) && !_.isEmpty(unsafeSource) &&
+          (unsafeSource.every((item) => typeof item === "string") ||
+            unsafeSource.every((item) => typeof item === "number")))
+      )
+    ) {
       logger?.end();
       throwError(`No or undefined source provided to cy.toDate.`);
     }
