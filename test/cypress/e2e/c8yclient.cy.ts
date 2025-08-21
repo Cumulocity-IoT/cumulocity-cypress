@@ -10,9 +10,12 @@ import {
   expectC8yClientRequest,
   getConsolePropsForLogSpy,
   initRequestStub,
+  restoreRequestStubs,
+  setupLoggerSetSpy,
   stubEnv,
   stubResponse,
   stubResponses,
+  url,
 } from "../support/testutils";
 import {
   defaultClientOptions,
@@ -470,17 +473,126 @@ describe("c8yclient", () => {
       cy.setCookie("XSRF-TOKEN", "fsETfgIBdAnEyOLbADTu22");
       Cypress.env("C8Y_LOGGED_IN_USER", "testuser");
 
-      cy.spy(Cypress, "log").log(false);
+      const logSpy = cy.spy(Cypress, "log").log(false);
+      const cleanup = setupLoggerSetSpy("c8yclient");
 
       cy.getAuth({ user: "admin3", password: "mypassword", tenant: "t12345" })
         .c8yclient<ICurrentTenant>((client) => client.tenant.current())
-        .then((response) => {
-          const spy = Cypress.log as sinon.SinonSpy;
-          const consoleProps = getConsolePropsForLogSpy(spy, "c8yclient");
-          expect(consoleProps.BasicAuth).to.eq(
+        .then(() => {
+          const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
+          expect(consoleProps.Basicauth).to.eq(
             "Basic dDEyMzQ1L2FkbWluMzpteXBhc3N3b3Jk (t12345/admin3)"
           );
+
+          cleanup();
         });
+    });
+
+    it("should log successful cookie auth request", () => {
+      Cypress.env("C8Y_TENANT", "t12345");
+      cy.setCookie("XSRF-TOKEN", "test-token");
+
+      const logSpy = cy.spy(Cypress, "log").log(false);
+      const cleanup = setupLoggerSetSpy("c8yclient");
+
+      const customOptions = { timeout: 5000, failOnStatusCode: false };
+      cy.c8yclient<ICurrentTenant>(
+        (client) => client.tenant.current(),
+        customOptions
+      ).then((response) => {
+        const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
+        expect(consoleProps["Request ID"]).to.be.a("string");
+        expect(consoleProps["Request URL"]).to.eq(url("/tenant/currentTenant"));
+        expect(consoleProps["Response Status"]).to.eq(200);
+        expect(consoleProps["Response Headers"]).to.be.an("object");
+        expect(consoleProps["Success"]).to.eq(true);
+        expect(consoleProps["Duration"]).to.be.a("string");
+        expect(consoleProps["Duration"]).to.match(/^\d+ms$/);
+        expect(consoleProps["Options"]).to.deep.equal(customOptions);
+        expect(consoleProps["Fetch Options"]).to.be.an("object");
+        expect(consoleProps["Fetch Options"]).to.have.property("headers");
+        expect(consoleProps["Yielded"]).to.deep.equal(response);
+
+        cleanup();
+      });
+    });
+
+    it("should log error details on failed requests", (done) => {
+      restoreRequestStubs();
+
+      Cypress.env("C8Y_TENANT", "t12345");
+      cy.setCookie("XSRF-TOKEN", "test-token");
+
+      // Stub fetch to reject with a network error (TypeError)
+      const networkError = new TypeError("Failed to fetch");
+      const stub = cy
+        .stub(globalThis, "fetchStub" as any)
+        .callsFake(() => Promise.reject(networkError));
+
+      const logSpy = cy.spy(Cypress, "log").log(false);
+      const cleanup = setupLoggerSetSpy("c8yclient");
+
+      cy.once("fail", (err) => {
+        stub.restore();
+
+        expect(err.name).to.eq("C8yClientError");
+
+        const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
+        expect(consoleProps["Error"]).to.contain("Failed to fetch");
+        expect(consoleProps["Error"]).to.contain("Network error");
+        expect(consoleProps["Success"]).to.eq(false);
+
+        cleanup();
+        done();
+      });
+
+      cy.c8yclient<ICurrentTenant>((client) => client.tenant.current());
+    });
+
+    it("should update console props during request lifecycle", () => {
+      Cypress.env("C8Y_TENANT", "t12345");
+      cy.setCookie("XSRF-TOKEN", "lifecycle-token");
+
+      const logSpy = cy.spy(Cypress, "log").log(false);
+      const cleanup = setupLoggerSetSpy("c8yclient");
+
+      cy.c8yclient<ICurrentTenant>((client) => client.tenant.current()).then(
+        () => {
+          // Get the stored spy to check all the calls made during the request
+          const storedKey = "__c8yclient_logger_set_spy";
+          const loggerSetSpy = (globalThis as any)[storedKey];
+
+          expect(loggerSetSpy).to.not.be.undefined;
+          expect(loggerSetSpy.callCount).to.be.greaterThan(1);
+
+          // Check that final console props contain both initial and final data
+          const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
+          expect(consoleProps["Request ID"]).to.be.a("string");
+          expect(consoleProps["Response Status"]).to.eq(200);
+          expect(consoleProps.CookieAuth).to.eq("lifecycle-token (testuser)");
+
+          cleanup();
+        }
+      );
+    });
+
+    it("should not log when log option is disables logging", () => {
+      Cypress.env("C8Y_TENANT", "t12345");
+      cy.setCookie("XSRF-TOKEN", "no-log-token");
+
+      const logSpy = cy.spy(Cypress, "log").log(false);
+
+      cy.c8yclient<ICurrentTenant>((client) => client.tenant.current(), {
+        log: false,
+      }).then(() => {
+        // Should not find any calls to Cypress.log for c8yclient
+        const calls = logSpy.getCalls().filter((call: any) => {
+          const arg = call.args && call.args[0];
+          return arg && arg.name === "c8yclient";
+        });
+
+        expect(calls).to.have.length(0);
+      });
     });
   });
 
