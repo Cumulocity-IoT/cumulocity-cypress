@@ -254,8 +254,15 @@ globalThis.fetch = async function (
           const statusIcon = details.success ? "✓" : "✗";
           const m = details.method ? `${details.method} ` : "";
 
-          const message = `${statusIcon} ${m}${details.status ?? 0} ${displayUrl} [${details.requestId}] (${details.duration}ms)`;
-
+          let message = `${statusIcon} ${m}${
+            details.status ?? 0
+          } ${displayUrl}`;
+          if (details.requestId) {
+            message += ` [${details.requestId}]`;
+          }
+          if (details.duration) {
+            message += ` (${details.duration}ms)`;
+          }
           currentRequestContext.logger.set({
             message,
             consoleProps: () => ({
