@@ -26,6 +26,9 @@ import {
   toCypressResponse,
   C8yAuthOptions,
   throwC8yClientError,
+  C8yClientLogOptions,
+  C8yClientRequestContext,
+  isC8yClientError,
 } from "../../shared/c8yclient";
 import {
   C8yAuthentication,
@@ -185,65 +188,116 @@ export const defaultClientOptions = () => {
   } as C8yClientOptions;
 };
 
-let logOnce = true;
+// Map to track active request contexts by request ID
+const requestContexts = new Map<string, C8yClientRequestContext>();
+// Store current request context for the active c8yclient command
+let currentRequestContext: C8yClientRequestContext | null = null;
+
+function generateRequestId(options?: C8yClientOptions): string {
+  if (options?.requestId) {
+    return options.requestId;
+  }
+  const prefix = Cypress.env("C8Y_CLIENT_REQUEST_ID_PREFIX") || "c8yclnt-";
+  return `${prefix}${_.uniqueId()}`;
+}
+
+function getRequestContext(
+  requestId: string
+): C8yClientRequestContext | undefined {
+  return requestContexts.get(requestId);
+}
 
 _.set(globalThis, "fetchStub", window.fetch);
 globalThis.fetch = async function (
   url: RequestInfo | URL,
   fetchOptions?: RequestInit
 ) {
-  const consoleProps: any = {};
+  // Use the current request context if available
+  const logOptions = currentRequestContext
+    ? {
+        ...currentRequestContext,
+        consoleProps: {},
+        loggedInUser:
+          Cypress.env("C8Y_LOGGED_IN_USER") ??
+          Cypress.env("C8Y_LOGGED_IN_USER_ALIAS"),
+        requestId: currentRequestContext.requestId,
+        startTime: Date.now(),
+        onRequestStart: (
+          details: Parameters<
+            NonNullable<C8yClientLogOptions["onRequestStart"]>
+          >[0]
+        ) => {
+          if (!currentRequestContext?.logger) return;
+          const displayUrl = getDisplayUrl(details.url);
+          const m = details.method ? `${details.method} ` : "";
+          currentRequestContext.logger.set({
+            message: `${m}${displayUrl} [${details.requestId}]`,
+            consoleProps: () => ({
+              "Request ID": details.requestId,
+              "Request URL": details.url,
+              "Request Method": details.method,
+              "Request Headers": details.headers,
+              "Request Body": details.body,
+              "Fetch Options": fetchOptions,
+              ...details.additionalInfo,
+            }),
+          });
+          requestContexts.set(details.requestId, currentRequestContext);
+        },
+        onRequestEnd: (
+          details: Parameters<
+            NonNullable<C8yClientLogOptions["onRequestEnd"]>
+          >[0]
+        ) => {
+          if (!currentRequestContext?.logger) return;
+          const displayUrl = getDisplayUrl(details.url);
+          const statusIcon = details.success ? "✓" : "✗";
+          const m = details.method ? `${details.method} ` : "";
 
-  let logger: Cypress.Log | undefined = undefined;
-  if (logOnce === true) {
-    logger = Cypress.log({
-      name: "c8yclient",
-      autoEnd: false,
-      message: `${fetchOptions?.method || "GET"} ${getDisplayUrl(
-        url || consoleProps["Yielded"]?.url || ""
-      )}`,
-      consoleProps: () => consoleProps,
-      renderProps(): {
-        message: string;
-        indicator: "aborted" | "pending" | "successful" | "bad";
-        status: string | number;
-      } {
-        function getIndicator() {
-          if (!consoleProps["Yielded"]) return "pending";
-          if (consoleProps["Yielded"].isOkStatusCode) return "successful";
-          return "bad";
-        }
+          let message = `${statusIcon} ${m}${
+            details.status ?? 0
+          } ${displayUrl}`;
+          if (details.requestId) {
+            message += ` [${details.requestId}]`;
+          }
+          if (details.duration) {
+            message += ` (${details.duration}ms)`;
+          }
+          currentRequestContext.logger.set({
+            message,
+            consoleProps: () => ({
+              "Request ID": details.requestId,
+              "Request URL": details.url,
+              "Request Method": details.method,
+              "Request Headers": fetchOptions?.headers,
+              "Request Body": fetchOptions?.body,
+              ...(details.error
+                ? { Error: details.error }
+                : {
+                    "Response Status": details.status ?? 0,
+                    "Response Headers": details.headers ?? {},
+                    "Response Body": details.body ?? null,
+                  }),
+              Duration: `${details.duration}ms`,
+              Success: details?.success,
+              "Fetch Options": fetchOptions,
+              Options: details.options,
+              Yielded: details.yielded,
+              ...details.additionalInfo,
+            }),
+          });
 
-        function getStatus() {
-          return (
-            (consoleProps["Yielded"] &&
-              !_.isEmpty(consoleProps["Yielded"]) &&
-              consoleProps["Yielded"].status) ||
-            "---"
-          );
-        }
+          currentRequestContext.logger.end();
+          requestContexts.delete(details.requestId);
+        },
+      }
+    : undefined;
 
-        return {
-          message: `${
-            fetchOptions?.method || "GET"
-          } ${getStatus()} ${getDisplayUrl(
-            url || consoleProps["Yielded"]?.url || ""
-          )}`,
-          indicator: getIndicator(),
-          status: getStatus(),
-        };
-      },
-    });
-  } else {
-    logOnce = true;
+  if (currentRequestContext != null) {
+    requestContexts.set(currentRequestContext.requestId, currentRequestContext);
   }
-  return wrapFetchRequest(url, fetchOptions, {
-    consoleProps,
-    logger,
-    loggedInUser:
-      Cypress.env("C8Y_LOGGED_IN_USER") ??
-      Cypress.env("C8Y_LOGGED_IN_USER_ALIAS"),
-  });
+
+  return wrapFetchRequest(url, fetchOptions, logOptions);
 };
 
 const c8yclientFn = (...args: any[]) => {
@@ -355,7 +409,6 @@ const c8yclientFn = (...args: any[]) => {
   }
 
   if (!c8yclient._client && !tenant && !options.skipClientAuthentication) {
-    logOnce = options.log;
     if (auth) {
       authenticateClient(auth, options, baseUrl).then(
         { timeout: options.timeout },
@@ -402,7 +455,6 @@ function runClient(
     // return Cypress.isCy(client) ? client : cy.wrap(client._client, { log: false });
     return cy.wrap(client._client, { log: false });
   }
-  logOnce = client._options?.log || true;
   return run(client, fns, prevSubject, client._options || {}, baseUrl);
 }
 
@@ -453,7 +505,36 @@ function run(
   if (!safeClient) {
     throwError("Client not initialized when running client function.");
   }
+
   return cy.then({ timeout: options.timeout }, async () => {
+    // Generate request ID and set up logging
+    const requestId = generateRequestId(options);
+    let logger: Cypress.Log | undefined;
+
+    if (options.log !== false) {
+      logger = Cypress.log({
+        name: "c8yclient",
+        autoEnd: false,
+        message: `Preparing request [${requestId}]`,
+        consoleProps: () => ({
+          "Request ID": requestId,
+          Options: options,
+          "Base URL": baseUrl,
+          "Previous Subject": prevSubject,
+        }),
+      });
+    }
+
+    // Set up the request context for the global fetch override
+    if (logger) {
+      currentRequestContext = {
+        requestId,
+        logger,
+        options,
+        startTime: Date.now(),
+      };
+    }
+
     const enabled = Cypress.c8ypact.isEnabled();
     const ignore = options?.ignorePact === true || false;
     const savePact = !ignore && Cypress.c8ypact.isRecordingEnabled();
@@ -508,7 +589,12 @@ function run(
           } catch (error) {
             // Check if this is a network error (TypeError) rather than an HTTP error response
             if (_.isError(error)) {
-              throwC8yClientError(error);
+              if (isC8yClientError(error)) throw error;
+              throwC8yClientError(
+                error,
+                undefined,
+                getRequestContext(requestId)
+              );
             }
             result = error;
           }
@@ -559,6 +645,8 @@ function run(
       matchPact(response, options.schema);
 
       cy.then(() => {
+        currentRequestContext = null;
+
         if (isArrayOfFunctions(fns) && !_.isEmpty(fns)) {
           run(client, fns, response, options, baseUrl);
         } else {
@@ -566,11 +654,16 @@ function run(
         }
       });
     } catch (err) {
-      if (_.isError(err)) throw err;
+      if (_.isError(err)) {
+        currentRequestContext = null;
+        throw err;
+      }
 
       matchPact(err, options.schema);
 
       cy.then(() => {
+        currentRequestContext = null;
+
         // @ts-expect-error: utils is not public
         Cypress.utils.throwErrByPath("request.c8yclient_status_invalid", {
           args: err,
@@ -613,7 +706,9 @@ function makeErrorMessage(obj: any) {
   return message;
 }
 
-// from error_utils.ts
+/**
+ * Gets a display-friendly URL string, removing the baseUrl for better readability in logs.
+ */
 function getDisplayUrl(url: string, baseUrl = getBaseUrlFromEnv()): string {
   if (!baseUrl) return url;
   return url.replace(baseUrl, "");

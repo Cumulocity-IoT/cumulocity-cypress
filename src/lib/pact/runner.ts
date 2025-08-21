@@ -213,6 +213,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           "preferBasicAuth",
           "failOnStatusCode",
           "timeout",
+          "requestId",
         ];
         const strictMatching =
           Cypress.config().c8ypact?.strictMatching ??
@@ -221,11 +222,19 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           Cypress.c8ypact.getConfigValue("strictMatching") ??
           true;
 
+        let requestId = record.id ?? record.options?.requestId;
+        if (!requestId) {
+          const prefix =
+            Cypress.env("C8Y_CLIENT_REQUEST_ID_PREFIX") || "c8yclnt-";
+          requestId = pact.id ?? pact.info.id ?? `${prefix}${_.uniqueId()}`;
+        }
+
         const failOnStatusCode = (record.response?.status ?? 200) < 400;
         const cOpts: C8yClientOptions = {
           strictMatching,
           record,
           failOnStatusCode,
+          ...(requestId ? { requestId } : {}),
           // config keys from record override pact info values
           ..._.pick(pact.info, configKeys),
           ..._.pick(record.options, configKeys),
@@ -283,12 +292,16 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
 
         users.forEach((user) => {
           (user ? cy.getAuth(user) : cy.getAuth()).then((auth) => {
+            const updatedOpts = _.cloneDeep(cOpts);
+            if (users.length > 1) {
+              updatedOpts.requestId = `${requestId}/${user}`;
+            }
             if (user !== "devicebootstrap" && isCookieAuth) {
               if (currentAuth == null || auth?.user !== currentAuth?.user) {
                 cy.wrap(auth, { log: false }).login();
                 currentAuth = auth;
               }
-              cy.c8yclient(f, cOpts).then(responseFn);
+              cy.c8yclient(f, updatedOpts).then(responseFn);
             } else {
               if (isBasicAuth || user != null) {
                 if (auth == null) {
@@ -300,10 +313,10 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
                   );
                 }
                 cy.wrap(auth, { log: false })
-                  .c8yclient(f, cOpts)
+                  .c8yclient(f, updatedOpts)
                   .then(responseFn);
               } else {
-                cy.c8yclient(f, cOpts).then(responseFn);
+                cy.c8yclient(f, updatedOpts).then(responseFn);
               }
             }
           });
