@@ -576,6 +576,7 @@ export function throwC8yClientError(
       method: logOptions.method || "GET",
       duration,
       success: false,
+      options: logOptions?.options as any,
       error: errorMessage || error.message || error.toString(),
     });
   }
