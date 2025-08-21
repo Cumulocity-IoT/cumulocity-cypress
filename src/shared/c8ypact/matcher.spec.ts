@@ -199,7 +199,14 @@ describe("matcher", () => {
         response: { $body: schema },
       };
 
-      expect(() => matcher.match(obj, pact)).toThrow();
+      expect(() => matcher.match(obj, pact)).toThrow(
+        expect.objectContaining({
+          name: "C8yPactMatchError",
+          message: expect.stringContaining(
+            `Pact validation failed! Schema for \"response > body\" does not match (data/age must be number).`
+          ),
+        })
+      );
     });
 
     it("should match object and schema", () => {
@@ -231,9 +238,7 @@ describe("matcher", () => {
           strictMatching: true,
           matchSchemaAndObject: true,
         })
-      ).toThrow(
-        `Pact validation failed! Values for "response > body > age" do not match.`
-      );
+      ).toThrow(`Values for "response > body > age" do not match.`);
     });
 
     it("should not match object and schema with global matchSchemaAndObject config", () => {
@@ -258,7 +263,12 @@ describe("matcher", () => {
           strictMatching: true,
         })
       ).toThrow(
-        `Pact validation failed! Values for "response > body > age" do not match.`
+        expect.objectContaining({
+          name: "C8yPactMatchError",
+          message: expect.stringContaining(
+            `Values for "response > body > age" do not match.`
+          ),
+        })
       );
     });
   });

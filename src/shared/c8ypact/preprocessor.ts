@@ -294,7 +294,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
           libCookie.serialize(
             cookie.name,
             cookie.value,
-            cookie as libCookie.CookieSerializeOptions
+            cookie as libCookie.SerializeOptions
           )
         );
 
@@ -391,7 +391,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
           libCookie.serialize(
             cookie.name,
             cookieValue,
-            cookie as libCookie.CookieSerializeOptions
+            cookie as libCookie.SerializeOptions
           )
         );
         return acc;
@@ -467,7 +467,7 @@ export function parseRegexReplace(input: string): {
   }
 
   // Match a regex pattern with replacement in format /pattern/replacement/flags
-  const match = input.match(/^\/(.+?)(?<!\\)\/(.+?)(?<!\\)\/([gimsuy]*)$/);
+  const match = input.match(/^\/(.+?)(?<!\\)\/(.*?)(?<!\\)\/([gimsuy]*)$/);
 
   if (!match) {
     throw new Error(`Invalid replacement regular expression: ${input}`);

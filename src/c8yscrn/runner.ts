@@ -734,7 +734,10 @@ function debug(message: string, options?: any) {
 }
 
 export function isRecording(): boolean {
-  return Cypress.env("C8YCTRL_MODE") === "recording" || Cypress.env("C8YCTRL_MODE") === "record";
+  return (
+    Cypress.env("C8YCTRL_MODE") === "recording" ||
+    Cypress.env("C8YCTRL_MODE") === "record"
+  );
 }
 
 export function isScreenshotAction(action: Action): boolean {

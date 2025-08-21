@@ -137,7 +137,11 @@ export function createResponseInterceptor(
 
     if (c8yctrl.isRecordingEnabled() === false) return responseBuffer;
 
+    // Express 5 compatibility: handle undefined req.body
     let reqBody = (req as any).rawBody || req.body;
+    if (reqBody === undefined) {
+      reqBody = {};
+    }
     try {
       if (_.isString(reqBody)) {
         reqBody = JSON.parse(reqBody);
@@ -164,7 +168,7 @@ export function createResponseInterceptor(
           return libCookie.serialize(
             cookie.name,
             cookie.value,
-            cookie as libCookie.CookieSerializeOptions
+            cookie as libCookie.SerializeOptions
           );
         })
       );
@@ -211,13 +215,44 @@ export function createRequestHandler(
   auth?: C8yAuthOptions
 ) {
   return (proxyReq: ClientRequest, req: Request, res: Response) => {
+    // 1) Set headers FIRST (before any proxyReq.write)
+    addC8yCtrlHeader(res, "x-c8yctrl-mode", c8yctrl.recordingMode);
+
+    if (
+      (c8yctrl.isRecordingEnabled() === true || c8yctrl.mode === "forward") &&
+      auth &&
+      !proxyReq.getHeader("authorization") &&
+      !proxyReq.getHeader("Authorization")
+    ) {
+      const { token, xsrfToken, user, password } = auth as C8yAuthOptions;
+
+      if (token) {
+        proxyReq.setHeader("Authorization", `Bearer ${token}`);
+      } else if (user && password) {
+        proxyReq.setHeader(
+          "Authorization",
+          `Basic ${Buffer.from(`${user}:${password}`).toString("base64")}`
+        );
+        if (xsrfToken) {
+          proxyReq.setHeader("X-XSRF-TOKEN", String(xsrfToken).trim());
+        }
+      }
+    }
+
+    if (c8yctrl.currentPact?.id) {
+      (req as any).c8yctrlId = c8yctrl.currentPact?.id;
+    }
+
+    // 2) Then write the body (but only one source)
     const rawBody = (req as any).rawBody;
-    if (rawBody && typeof rawBody === "string") {
-      proxyReq.setHeader("transfer-encoding", "chunked");
+    if (typeof rawBody === "string") {
+      // raw body provided by previous middleware – set correct headers, then write
       proxyReq.removeHeader("content-length");
       proxyReq.removeHeader("Content-Length");
+      proxyReq.setHeader("transfer-encoding", "chunked");
       proxyReq.write(rawBody);
-    } else if (req.body) {
+    } else if (req.body !== undefined && req.body !== null) {
+      // body already parsed – stringify and write once
       const bodyString = JSON.stringify(req.body);
       proxyReq.removeHeader("transfer-encoding");
       proxyReq.removeHeader("Transfer-Encoding");
@@ -225,55 +260,25 @@ export function createRequestHandler(
       proxyReq.write(bodyString);
     }
 
-    if (c8yctrl.currentPact?.id) {
-      (req as any).c8yctrlId = c8yctrl.currentPact?.id;
-    }
-
-    addC8yCtrlHeader(res, "x-c8yctrl-mode", c8yctrl.recordingMode);
-
-    // add authorization header
-    if (
-      (c8yctrl.isRecordingEnabled() === true || c8yctrl.mode === "forward") &&
-      auth &&
-      !proxyReq.getHeader("authorization") &&
-      !proxyReq.getHeader("Authorization")
-    ) {
-      const { bearer, xsrfToken, user, password } = auth as C8yAuthOptions;
-      if (bearer) {
-        proxyReq.setHeader("Authorization", `Bearer ${bearer}`);
-      }
-      if (!bearer && user && password) {
-        proxyReq.setHeader(
-          "Authorization",
-          `Basic ${Buffer.from(`${user}:${password}`).toString("base64")}`
-        );
-      }
-      if (xsrfToken) {
-        proxyReq.setHeader("X-XSRF-TOKEN", xsrfToken);
-      }
-    }
-
+    // Optional short-circuit response
     if (_.isFunction(c8yctrl.options.on.proxyRequest)) {
       const r = c8yctrl.options.on.proxyRequest(c8yctrl, proxyReq, req);
       if (r) {
         const responseBody = _.isString(r?.body)
           ? r?.body
           : c8yctrl.stringify(r?.body);
-
         res.setHeader("content-length", Buffer.byteLength(responseBody));
-
         r.headers = _.defaults(
           r?.headers,
           _.pick(r?.headers, ["content-type", "set-cookie"])
         );
-
         res.writeHead(r?.status || 200, r?.headers);
         res.end(responseBody);
+        return; // ensure we don’t touch headers after response is sent
       }
     }
   };
 }
-
 export function addC8yCtrlHeader(
   response: C8yPactHttpResponse | Response,
   ctrlHeader: C8yCtrlHeader,

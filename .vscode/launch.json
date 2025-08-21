@@ -6,7 +6,7 @@
       "name": "Launch c8yctrl",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/src/c8yctrl/startup.ts",
+      "program": "startup.ts",
       "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
@@ -14,7 +14,8 @@
       "skipFiles": [
         "<node_internals>/**",
         "${workspaceFolder}/node_modules/**"
-      ]
+      ],
+      "cwd": "${workspaceFolder}/src/c8yctrl",
     },
     {
       "name": "Launch c8yscrn",
@@ -25,10 +26,7 @@
       "internalConsoleOptions": "neverOpen",
       "console": "integratedTerminal",
       "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
-      "skipFiles": [
-        "<node_internals>/**",
-        "${workspaceFolder}/node_modules/**"
-      ]
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
     },
     {
       "name": "Cypress Chrome",

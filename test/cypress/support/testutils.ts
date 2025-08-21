@@ -29,8 +29,9 @@ export function url(path: string, baseUrl = getBaseUrlFromEnv()): string {
   return `${baseUrl}${path}`;
 }
 
-let cypressBackendStub: sinon.SinonStub<any[], any>;
-let cypressAutomationStub: sinon.SinonStub<any[], any>;
+let cypressBackendStub: sinon.SinonStub<any[], any> | undefined = undefined;
+let cypressAutomationStub: sinon.SinonStub<any[], any> | undefined = undefined;
+let fetchStub: sinon.SinonStub<any[], any> | undefined = undefined;
 
 /**
  * Init stubbing requests. Must be called before `stubResponse()`, for example
@@ -38,8 +39,14 @@ let cypressAutomationStub: sinon.SinonStub<any[], any>;
  */
 export function initRequestStub(): void {
   cypressBackendStub = cy.stub(Cypress, "backend").callThrough();
-  cy.stub(window, "fetchStub");
+  fetchStub = cy.stub(window, "fetchStub");
   cypressAutomationStub = cy.stub(Cypress, "automation").callThrough();
+}
+
+export function restoreRequestStubs(): void {
+  cypressBackendStub?.restore();
+  fetchStub?.restore();
+  cypressAutomationStub?.restore();
 }
 
 export function initLoginRequestStub(
@@ -149,7 +156,7 @@ export function stubResponse<T>(
     .callsFake(success);
 
   const s = response.status;
-  if (s != null && s >= 200 && s < 400 ) {
+  if (s != null && s >= 200 && s < 400) {
     window.fetchStub.onCall(callIndex).callsFake(success);
   } else {
     window.fetchStub.onCall(callIndex).callsFake(failure);
@@ -235,7 +242,7 @@ export function expectHttpRequest(expectedOptions: any | any[]): any[] {
       return call;
     });
 
-  return expectCallsWithArgs(requests, all);
+  return expectCallsWithArgs(requests ?? [], all);
 }
 
 /**
@@ -334,21 +341,121 @@ function expectCallsWithArgs(
 
 /**
  * Gets the console props passed as arguments to given Cypress.log spy.
+ * This function handles commands that use logger.set() to update console props
+ * by intercepting the logger creation and spying on the set method.
+ * For commands using logger.set(), it returns the final state after all updates.
+ *
  * @param spy The spy created using cy.spy(Cypress, "log")
  * @param name The name of the custom command to get console props for
- * @returns console props object passed to the spy
+ * @returns console props object with the final state after all logger.set() calls
  */
 export function getConsolePropsForLogSpy(
   spy: sinon.SinonSpy,
   name: string
 ): any {
-  const arg = _.findLast(_.flatten(spy.args), (arg: any) => arg.name === name);
+  // First try to find any stored logger set calls for this command
+  const storedKey = `__${name}_logger_set_spy`;
+  const loggerSetSpy = (globalThis as any)[storedKey];
+
+  if (loggerSetSpy && loggerSetSpy.callCount > 0) {
+    // Look through all calls from most recent to oldest to find one with console props
+    for (let i = loggerSetSpy.callCount - 1; i >= 0; i--) {
+      const call = loggerSetSpy.getCall(i);
+      const args = call?.args[0];
+
+      if (args?.consoleProps) {
+        try {
+          return args.consoleProps();
+        } catch (e) {
+          // Continue to next call if this one fails
+        }
+      }
+    }
+  }
+
+  // Fallback to original implementation for commands that don't use logger.set()
+  const logCalls = spy.getCalls().filter((call: any) => {
+    const arg = call.args && call.args[0];
+    return arg && arg.name === name;
+  });
+
+  if (logCalls.length === 0) return undefined;
+
+  const lastCall = logCalls[logCalls.length - 1];
+  const arg = lastCall.args && lastCall.args[0];
   if (!arg) return undefined;
   if (!_.isFunction(arg.consoleProps)) return undefined;
+
   return arg.consoleProps();
 }
 
+/**
+ * Sets up logger spying for commands that use logger.set() to update console props.
+ * This should be called before the command is executed.
+ *
+ * @param commandName The name of the command to spy on (e.g., "c8yclient")
+ * @returns cleanup function to restore original Cypress.log
+ */
+export function setupLoggerSetSpy(loggerName: string) {
+  const globalKey = `__${loggerName}_logger_set_spy`;
+
+  // Cleanup any existing spy
+  if ((window as any)[globalKey]) {
+    delete (window as any)[globalKey];
+  }
+
+  // Intercept Cypress.log creation
+  const originalLog = Cypress.log;
+  Cypress.log = function (options: any) {
+    const logger = originalLog.call(this, options);
+
+    if (options?.name === loggerName) {
+      const setSpy = cy.spy(logger, "set").log(false);
+      (window as any)[globalKey] = setSpy;
+    }
+
+    return logger;
+  };
+
+  return () => {
+    // Restore original log
+    Cypress.log = originalLog;
+
+    // Cleanup spy
+    if ((window as any)[globalKey]) {
+      delete (window as any)[globalKey];
+    }
+  };
+}
+
+/**
+ * Gets the message passed as arguments to given Cypress.log spy.
+ * This function handles commands that use logger.set() to update messages
+ * by intercepting the logger creation and spying on the set method.
+ * For commands using logger.set(), it returns the final message after all updates.
+ *
+ * @param spy The spy created using cy.spy(Cypress, "log")
+ * @param name The name of the custom command to get message for
+ * @returns message string with the final state after all logger.set() calls
+ */
 export function getMessageForLogSpy(spy: sinon.SinonSpy, name: string): any {
+  // First try to find any stored logger set calls for this command
+  const storedKey = `__${name}_logger_set_spy`;
+  const loggerSetSpy = (globalThis as any)[storedKey];
+
+  if (loggerSetSpy && loggerSetSpy.callCount > 0) {
+    // Look through all calls from most recent to oldest to find one with a message
+    for (let i = loggerSetSpy.callCount - 1; i >= 0; i--) {
+      const call = loggerSetSpy.getCall(i);
+      const args = call?.args[0];
+
+      if (args?.message !== undefined) {
+        return args.message;
+      }
+    }
+  }
+
+  // Fallback to original implementation for commands that don't use logger.set()
   const arg = _.findLast(_.flatten(spy.args), (arg: any) => arg.name === name);
   if (!arg) return undefined;
   return arg.message;

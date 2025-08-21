@@ -13,15 +13,12 @@ import {
   stubResponse,
 } from "../support/testutils";
 
-import { C8yQicktypeSchemaGenerator } from "cumulocity-cypress/contrib/quicktype";
-
 describe("c8ypact fetchclient", () => {
   beforeEach(() => {
     Cypress.env("C8Y_PACT_MODE", undefined);
     Cypress.env("C8Y_TENANT", undefined);
     Cypress.env("C8Y_LOGGED_IN_USER", undefined);
     Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", undefined);
-    Cypress.c8ypact.schemaGenerator = new C8yQicktypeSchemaGenerator();
   });
 
   afterEach(() => {
@@ -208,7 +205,6 @@ describe("c8ypact fetchclient", () => {
             type: "BasicAuth",
           });
           expect(r?.response.body).to.have.property("managedObjects");
-          expect(r?.response.$body).to.not.be.undefined;
         });
       });
     });

@@ -6,10 +6,10 @@ on:
       - main
       - develop
       - merge/*
-      
+
 permissions:
   contents: read
-  
+
 jobs:
   cumulocity-cypress:
     runs-on: ubuntu-latest

@@ -252,6 +252,10 @@ export interface C8yPactResponse<T> {
  */
 export interface C8yPactRecord {
   /**
+   * Unique id of the record. Optional.
+   */
+  id?: C8yPactID;
+  /**
    * Request of the record.
    */
   request: C8yPactRequest;

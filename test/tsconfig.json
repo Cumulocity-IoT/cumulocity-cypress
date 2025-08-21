@@ -7,16 +7,16 @@
     "lib": ["dom", "dom.iterable", "ES2020"],
     "types": ["cypress"],
     "strict": true,
-    "module": "Node16",
-    "skipLibCheck": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "skipLibCheck": false,
     "composite": true,
     "resolveJsonModule": true,
+    "esModuleInterop": true,
     "paths": {
       "cumulocity-cypress/*": ["./../src/*"],
       "cumulocity-cypress": ["./../src"]
     }
   },
-  "references": [
-    { "path": "./../src" }
-  ]
+  "references": [{ "path": "./../src" }]
 }

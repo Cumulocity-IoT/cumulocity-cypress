@@ -1,6 +1,10 @@
 import _ from "lodash";
 
-import { C8yAuthentication, getAuthOptionsFromBasicAuthHeader } from "./auth";
+import {
+  C8yAuthentication,
+  getAuthOptionsFromBasicAuthHeader,
+  getAuthOptionsFromJWT,
+} from "./auth";
 
 import {
   Client,
@@ -19,6 +23,7 @@ import {
 
 import { C8ySchemaMatcher } from "./c8ypact/schema";
 import { C8yBaseUrl } from "./types";
+import { get_i } from "./util";
 
 declare global {
   interface Response {
@@ -35,6 +40,19 @@ declare global {
       method?: string;
       $body?: any;
     }
+  }
+}
+
+/**
+ * C8yClientError is an error class used to throw errors related to the c8yclient command.
+ * It extends the built-in Error class and adds an optional originalError property.
+ */
+export class C8yClientError extends Error {
+  originalError?: Error;
+  constructor(message: string, originalError?: Error) {
+    super(message);
+    this.name = "C8yClientError";
+    this.originalError = originalError;
   }
 }
 
@@ -56,6 +74,8 @@ export type C8yClientOptions = Partial<Cypress.Loggable> &
     record: C8yPactRecord;
     schemaMatcher: C8ySchemaMatcher;
     strictMatching: boolean;
+    /** Custom ID to identify this request in logs. If not provided, a unique ID will be generated. */
+    requestId: string;
   }>;
 
 /**
@@ -76,23 +96,56 @@ export interface C8yClient {
 export interface C8yAuthOptions extends ICredentials {
   // support cy.request properties
   sendImmediately?: boolean;
-  bearer?: (() => string) | string;
   userAlias?: string;
   type?: string;
 }
 
 export type C8yAuthArgs = string | C8yAuthOptions;
 
-interface LogOptions {
-  consoleProps: any;
+export interface C8yClientRequestContextOnRequest {
+  requestId: string;
+  url: string;
+  method: string;
+  headers?: any;
+  body?: any;
+  startTime?: number;
+  options?: any;
+  additionalInfo?: any;
+}
+
+export interface C8yClientRequestContextOnRequestEnd
+  extends C8yClientRequestContextOnRequest {
+  status?: number;
+  error?: any;
+  options?: any;
+  fetchOptions?: any;
+  yielded?: any;
+  additionalInfo?: any;
+  success?: boolean;
+  duration?: number;
+}
+
+export interface C8yClientRequestContext {
+  requestId: string;
+  logger: Cypress.Log;
+  options: C8yClientOptions;
+  startTime: number;
+}
+export interface C8yClientLogOptions {
+  consoleProps?: any;
   loggedInUser?: string;
-  logger?: { end: () => void };
+  requestId?: string;
+  startTime?: number;
+  options?: C8yClientOptions;
+  // Callback functions for Cypress-specific logging
+  onRequestStart?: (requestDetails: C8yClientRequestContextOnRequest) => void;
+  onRequestEnd?: (responseDetails: C8yClientRequestContextOnRequestEnd) => void;
 }
 
 export async function wrapFetchRequest(
   url: RequestInfo | URL,
   fetchOptions?: RequestInit,
-  logOptions?: LogOptions
+  logOptions?: C8yClientLogOptions
 ): Promise<Response> {
   // client.tenant.current() does add content-type header for some reason. probably mistaken accept header.
   // as this is not required, remove it to avoid special handling in pact matching against recordings
@@ -111,27 +164,59 @@ export async function wrapFetchRequest(
     }
   }
 
-  const startTime = Date.now();
+  const startTime = logOptions?.startTime || Date.now();
+  const requestId = logOptions?.requestId;
+
+  // Notify about request start
+  if (logOptions?.onRequestStart && requestId) {
+    const method = fetchOptions?.method || "GET";
+
+    logOptions.onRequestStart({
+      requestId,
+      url: toUrlString(url),
+      method,
+      headers: fetchOptions?.headers,
+      body: fetchOptions?.body,
+      startTime,
+    });
+  }
+
   const fetchFn = _.get(globalThis, "fetchStub") || globalThis.fetch;
   const fetchPromise: Promise<Response> = fetchFn(url, fetchOptions);
-  const duration = Date.now() - startTime;
 
   const options = {
     url,
     fetchOptions,
-    logOptions,
-    duration,
+    logOptions: {
+      ...logOptions,
+      startTime,
+    },
+    duration: 0, // Will be calculated when response arrives
   };
 
   return fetchPromise
     .then(async (response) => {
+      const duration = Date.now() - startTime;
+      options.duration = duration;
+
       const res = await wrapFetchResponse(response, options);
-      if (_.isFunction(logOptions?.logger?.end)) logOptions?.logger?.end();
+
       return Promise.resolve(res);
     })
-    .catch(async (response) => {
-      const res = await wrapFetchResponse(response, options);
-      if (_.isFunction(logOptions?.logger?.end)) logOptions?.logger?.end();
+    .catch(async (error) => {
+      const duration = Date.now() - startTime;
+
+      // Check if this is a network error (TypeError) rather than an HTTP error response
+      if (_.isError(error)) {
+        if (isC8yClientError(error)) throw error;
+        throwC8yClientError(error, url, {
+          ...logOptions,
+          method: fetchOptions?.method || "GET",
+        });
+      }
+
+      // If it's not an Error object, treat it as a response (shouldn't happen in normal cases)
+      const res = await wrapFetchResponse(error, { ...options, duration });
       return Promise.reject(res);
     });
 }
@@ -142,7 +227,7 @@ export async function wrapFetchResponse(
     url?: RequestInfo | URL;
     fetchOptions?: IFetchOptions;
     duration?: number;
-    logOptions?: LogOptions;
+    logOptions?: C8yClientLogOptions;
   } = {}
 ) {
   // only wrap valid responses or new Response() will fail later
@@ -197,12 +282,13 @@ export async function wrapFetchResponse(
   // res.ok = response.ok,
   responseObj.method = fetchOptions?.method || response.method || "GET";
 
-  if (logOptions?.consoleProps) {
-    _.extend(
-      logOptions.consoleProps,
-      updateConsoleProps(responseObj, fetchOptions, logOptions)
-    );
-  }
+  updateConsoleProps(
+    responseObj,
+    fetchOptions,
+    logOptions,
+    options.url,
+    options.duration
+  );
 
   // create a new window.Response for Client. this is required as the body
   // stream can not be read more than once. as we just read it, recreate the response
@@ -229,44 +315,60 @@ export async function wrapFetchResponse(
 function updateConsoleProps(
   responseObj: Partial<Cypress.Response<any>>,
   fetchOptions?: IFetchOptions,
-  logOptions?: LogOptions,
-  url?: RequestInfo | URL
+  logOptions?: C8yClientLogOptions,
+  url?: RequestInfo | URL,
+  duration?: number
 ) {
-  const props: any = {};
+  const authInfo: any = {};
 
-  const cookieAuth =
-    (responseObj.requestHeaders &&
-      responseObj.requestHeaders["X-XSRF-TOKEN"]) ||
-    undefined;
-  const basicAuth =
-    (responseObj.requestHeaders &&
-      responseObj.requestHeaders["Authorization"]) ||
-    undefined;
+  const authorizationHeader = get_i(
+    responseObj,
+    "requestHeaders.authorization"
+  );
 
-  // props["Options"] = options;
-  if (cookieAuth) {
-    const loggedInUser = logOptions?.loggedInUser || "";
-    props["CookieAuth"] = `XSRF-TOKEN ${cookieAuth} (${loggedInUser})`;
-  }
-  if (basicAuth) {
-    const auth = getAuthOptionsFromBasicAuthHeader(basicAuth);
-    if (auth?.user) {
-      props["BasicAuth"] = `${basicAuth} (${auth.user})`;
+  if (authorizationHeader) {
+    const auth = getAuthOptionsFromBasicAuthHeader(authorizationHeader);
+    if (auth?.user && auth?.password) {
+      authInfo["Basicauth"] = `${authorizationHeader} (${auth.user})`;
+    } else {
+      if (authorizationHeader.startsWith("Bearer ")) {
+        try {
+          const jwt = authorizationHeader.replace("Bearer ", "");
+          const authOptions = getAuthOptionsFromJWT(jwt);
+          authInfo["BearerAuth"] = authOptions;
+        } catch {
+          // ignore errors parsing JWT
+        }
+      }
+    }
+  } else {
+    let token = get_i(responseObj, "requestHeaders.cookie.authorization");
+    if (!token) {
+      token = get_i(responseObj, "requestHeaders.X-XSRF-TOKEN");
+    }
+    // props["Options"] = options;
+    if (token) {
+      const loggedInUser = logOptions?.loggedInUser || "";
+      authInfo["CookieAuth"] = `${token} (${loggedInUser})`;
     }
   }
-
-  props["Options"] = fetchOptions;
-  props["Request"] = {
-    responseBody: responseObj.body,
-    responseStatus: responseObj.status,
-    requestHeaders: responseObj.requestHeaders,
-    requestBody: fetchOptions?.body || "",
-    responseHeaders: responseObj.headers || [],
-    requestURL: responseObj.url || url,
-  };
-  props["Yielded"] = responseObj;
-
-  return props;
+  // Call onRequestEnd callback if available
+  if (logOptions?.onRequestEnd && logOptions?.requestId) {
+    logOptions.onRequestEnd({
+      requestId: logOptions.requestId,
+      url: toUrlString(url || responseObj.url || ""),
+      method: fetchOptions?.method || responseObj.method || "GET",
+      status: responseObj.status || 0,
+      headers: responseObj.headers || {},
+      body: responseObj.body,
+      duration: duration || responseObj.duration || 0,
+      success: responseObj.isOkStatusCode || false,
+      fetchOptions,
+      options: logOptions.options as any,
+      yielded: responseObj,
+      additionalInfo: authInfo,
+    });
+  }
 }
 
 /**
@@ -435,4 +537,49 @@ export function isIResult(obj: any): obj is IResult<any> {
  */
 export function isCypressError(error: any): boolean {
   return _.isError(error) && _.get(error, "name") === "CypressError";
+}
+
+/**
+ * Checks if the given object is a C8yClientError.
+ * @param error The object to check.
+ * @returns True if the object is a C8yClientError, false otherwise.
+ */
+export function isC8yClientError(error: any): boolean {
+  return _.isError(error) && _.get(error, "name") === "C8yClientError";
+}
+
+export function throwC8yClientError(
+  error: Error,
+  url: RequestInfo | URL | undefined = undefined,
+  logOptions?: C8yClientLogOptions & { method?: string }
+): never {
+  let errorMessage: string | undefined;
+  if (error instanceof TypeError) {
+    errorMessage = url
+      ? `Network error occurred while making request to ${toUrlString(
+          url || ""
+        )}: ${error.message}`
+      : `Network error occurred while making request: ${error.message}`;
+  } else {
+    errorMessage = `Request failed: ${error.message}`;
+  }
+
+  // Call onRequestEnd if logging options are provided
+  if (logOptions?.onRequestEnd && logOptions?.requestId) {
+    const duration = logOptions.startTime
+      ? Date.now() - logOptions.startTime
+      : 0;
+
+    logOptions.onRequestEnd({
+      requestId: logOptions.requestId,
+      url: toUrlString(url || ""),
+      method: logOptions.method || "GET",
+      duration,
+      success: false,
+      options: logOptions?.options as any,
+      error: errorMessage || error.message || error.toString(),
+    });
+  }
+
+  throw new C8yClientError(errorMessage, error);
 }

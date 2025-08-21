@@ -9,10 +9,14 @@ import {
 import {
   expectC8yClientRequest,
   getConsolePropsForLogSpy,
+  getMessageForLogSpy,
   initRequestStub,
+  restoreRequestStubs,
+  setupLoggerSetSpy,
   stubEnv,
   stubResponse,
   stubResponses,
+  url,
 } from "../support/testutils";
 import {
   defaultClientOptions,
@@ -470,20 +474,150 @@ describe("c8yclient", () => {
       cy.setCookie("XSRF-TOKEN", "fsETfgIBdAnEyOLbADTu22");
       Cypress.env("C8Y_LOGGED_IN_USER", "testuser");
 
-      cy.spy(Cypress, "log").log(false);
+      const logSpy = cy.spy(Cypress, "log").log(false);
+      const cleanup = setupLoggerSetSpy("c8yclient");
 
       cy.getAuth({ user: "admin3", password: "mypassword", tenant: "t12345" })
         .c8yclient<ICurrentTenant>((client) => client.tenant.current())
-        .then((response) => {
-          const spy = Cypress.log as sinon.SinonSpy;
-          const consoleProps = getConsolePropsForLogSpy(spy, "c8yclient");
-          expect(consoleProps.CookieAuth).to.eq(
-            "XSRF-TOKEN fsETfgIBdAnEyOLbADTu22 (testuser)"
-          );
-          expect(consoleProps.BasicAuth).to.eq(
+        .then(() => {
+          const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
+          expect(consoleProps.Basicauth).to.eq(
             "Basic dDEyMzQ1L2FkbWluMzpteXBhc3N3b3Jk (t12345/admin3)"
           );
+
+          cleanup();
         });
+    });
+
+    it("should log successful cookie auth request", () => {
+      Cypress.env("C8Y_TENANT", "t12345");
+      cy.setCookie("XSRF-TOKEN", "test-token");
+
+      const logSpy = cy.spy(Cypress, "log").log(false);
+      const cleanup = setupLoggerSetSpy("c8yclient");
+
+      const customOptions = {
+        timeout: 5000,
+        failOnStatusCode: false,
+        requestId: "test-request-id",
+      };
+      cy.c8yclient<ICurrentTenant>(
+        (client) => client.tenant.current(),
+        customOptions
+      ).then((response) => {
+        const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
+        expect(consoleProps["Request ID"]).to.be.a("string");
+        expect(consoleProps["Request URL"]).to.eq(url("/tenant/currentTenant"));
+        expect(consoleProps["Response Status"]).to.eq(200);
+        expect(consoleProps["Response Headers"]).to.be.an("object");
+        expect(consoleProps["Success"]).to.eq(true);
+        expect(consoleProps["Duration"]).to.be.a("string");
+        expect(consoleProps["Duration"]).to.match(/^\d+ms$/);
+        expect(consoleProps["Options"]).to.deep.equal(customOptions);
+        expect(consoleProps["Fetch Options"]).to.be.an("object");
+        expect(consoleProps["Fetch Options"]).to.have.property("headers");
+        expect(consoleProps["Yielded"]).to.deep.equal(response);
+
+        expect(getMessageForLogSpy(logSpy, "c8yclient")).to.contain(
+          "✓ GET 200 /tenant/currentTenant [test-request-id]"
+        );
+
+        cleanup();
+      });
+    });
+
+    it("should log error details on failed requests", (done) => {
+      restoreRequestStubs();
+
+      Cypress.env("C8Y_TENANT", "t12345");
+      cy.setCookie("XSRF-TOKEN", "test-token");
+
+      // Stub fetch to reject with a network error (TypeError)
+      const networkError = new TypeError("Failed to fetch");
+      const stub = cy
+        .stub(globalThis, "fetchStub" as any)
+        .callsFake(() => Promise.reject(networkError));
+
+      const logSpy = cy.spy(Cypress, "log").log(false);
+      const cleanup = setupLoggerSetSpy("c8yclient");
+
+      cy.once("fail", (err) => {
+        stub.restore();
+
+        expect(err.name).to.eq("C8yClientError");
+
+        const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
+        expect(consoleProps["Error"]).to.contain("Failed to fetch");
+        expect(consoleProps["Error"]).to.contain("Network error");
+        expect(consoleProps["Success"]).to.eq(false);
+        expect(consoleProps["Request ID"]).to.eq("test-request-id");
+        expect(consoleProps["Request Method"]).to.eq("GET");
+        expect(consoleProps["Request URL"]).to.eq(url("/tenant/currentTenant"));
+        expect(consoleProps["Request Headers"]).to.be.an("object");
+        expect(consoleProps["Response Status"]).to.be.undefined;
+        expect(consoleProps["Response Headers"]).to.be.undefined;
+        expect(consoleProps["Response Body"]).to.be.undefined;
+
+        expect(consoleProps["Options"]).to.deep.include({
+          requestId: "test-request-id",
+        });
+
+        expect(getMessageForLogSpy(logSpy, "c8yclient")).to.contain(
+          "✗ GET 0 /tenant/currentTenant [test-request-id]"
+        );
+        cleanup();
+        done();
+      });
+
+      cy.c8yclient<ICurrentTenant>((client) => client.tenant.current(), {
+        requestId: "test-request-id",
+      });
+    });
+
+    it("should update console props during request lifecycle", () => {
+      Cypress.env("C8Y_TENANT", "t12345");
+      cy.setCookie("XSRF-TOKEN", "lifecycle-token");
+
+      const logSpy = cy.spy(Cypress, "log").log(false);
+      const cleanup = setupLoggerSetSpy("c8yclient");
+
+      cy.c8yclient<ICurrentTenant>((client) => client.tenant.current()).then(
+        () => {
+          // Get the stored spy to check all the calls made during the request
+          const storedKey = "__c8yclient_logger_set_spy";
+          const loggerSetSpy = (globalThis as any)[storedKey];
+
+          expect(loggerSetSpy).to.not.be.undefined;
+          expect(loggerSetSpy.callCount).to.be.greaterThan(1);
+
+          // Check that final console props contain both initial and final data
+          const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
+          expect(consoleProps["Request ID"]).to.be.a("string");
+          expect(consoleProps["Response Status"]).to.eq(200);
+          expect(consoleProps.CookieAuth).to.eq("lifecycle-token (testuser)");
+
+          cleanup();
+        }
+      );
+    });
+
+    it("should not log when log option is disabled logging", () => {
+      Cypress.env("C8Y_TENANT", "t12345");
+      cy.setCookie("XSRF-TOKEN", "no-log-token");
+
+      const logSpy = cy.spy(Cypress, "log").log(false);
+
+      cy.c8yclient<ICurrentTenant>((client) => client.tenant.current(), {
+        log: false,
+      }).then(() => {
+        // Should not find any calls to Cypress.log for c8yclient
+        const calls = logSpy.getCalls().filter((call: any) => {
+          const arg = call.args && call.args[0];
+          return arg && arg.name === "c8yclient";
+        });
+
+        expect(calls).to.have.length(0);
+      });
     });
   });
 
@@ -514,7 +648,6 @@ describe("c8yclient", () => {
 
     it("should fail if schema does not match response", (done) => {
       Cypress.once("fail", (err) => {
-        expect(err.message).to.contain("Matching schema failed. Error:");
         expect(err.message).to.contain("data/name must be number");
         done();
       });
@@ -529,6 +662,48 @@ describe("c8yclient", () => {
               },
             },
           },
+        })
+        .then(() => {
+          // @ts-expect-error
+          const spy = Cypress.c8ypact.matcher.schemaMatcher
+            .match as sinon.SinonSpy;
+          expect(spy).to.have.been.calledOnce;
+        });
+    });
+
+    it("should support schema reference", (done) => {
+      const openapi = {
+        openapi: "3.0.0",
+        info: {
+          title: "MySpec",
+          version: "1.0.0",
+        },
+        components: {
+          schemas: {
+            CurrentTenant: {
+              type: "object",
+              properties: {
+                name: {
+                  type: "number",
+                },
+              },
+            },
+          },
+        },
+      };
+
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.contain("data/name must be number");
+        done();
+      });
+
+      const matcher = new C8yAjvSchemaMatcher();
+      matcher.ajv.addSchema(openapi, "MySpec");
+      Cypress.c8ypact.schemaMatcher = matcher;
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          schema: { $ref: "MySpec#/components/schemas/CurrentTenant" },
         })
         .then(() => {
           // @ts-expect-error
@@ -1290,5 +1465,64 @@ describe("c8yclient", () => {
       expect(isCypressError(null)).to.be.false;
       expect(isCypressError({})).to.be.false;
     });
+  });
+});
+
+describe("c8yclient - network error handling", () => {
+  beforeEach(() => {
+    Cypress.env("C8Y_TENANT", "t123456789");
+    Cypress.env("C8Y_USERNAME", "admin");
+    Cypress.env("C8Y_PASSWORD", "mypassword");
+  });
+
+  it("should throw C8yClientError for TypeError (network issues)", (done) => {
+    const networkError = new TypeError("Failed to fetch");
+    cy.stub(window, "fetch").callsFake(() => Promise.reject(networkError));
+
+    cy.once("fail", (err) => {
+      expect(err.name).to.eq("C8yClientError");
+      expect(err.message).to.contain(
+        "Network error occurred while making request"
+      );
+      expect(err.message).to.contain("Failed to fetch");
+      expect((err as C8yClientError).originalError).to.eq(networkError);
+      done();
+    });
+
+    cy.c8yclient<ICurrentTenant>((client) => client.tenant.current());
+  });
+
+  it("should throw C8yClientError for generic Error types", (done) => {
+    const genericError = new Error("Something went wrong");
+    cy.stub(window, "fetch").callsFake(() => Promise.reject(genericError));
+
+    cy.once("fail", (err) => {
+      expect(err.name).to.eq("C8yClientError");
+      expect(err.message).to.contain("Request failed: Something went wrong");
+      expect((err as C8yClientError).originalError).to.eq(genericError);
+      done();
+    });
+
+    cy.c8yclient<ICurrentTenant>((client) => client.tenant.current());
+  });
+
+  it("should preserve original error stack trace for debugging", (done) => {
+    const originalError = new TypeError("Connection refused");
+    originalError.stack =
+      "TypeError: Connection refused\n    at fetch (test.js:1:1)";
+    cy.stub(window, "fetch").callsFake(() => Promise.reject(originalError));
+
+    cy.once("fail", (err) => {
+      expect((err as C8yClientError).originalError).to.deep.eq(originalError);
+      expect((err as C8yClientError).originalError?.stack).to.contain(
+        "Connection refused"
+      );
+      expect((err as C8yClientError).originalError?.stack).to.contain(
+        "test.js:1:1"
+      );
+      done();
+    });
+
+    cy.c8yclient<ICurrentTenant>((client) => client.tenant.current());
   });
 });

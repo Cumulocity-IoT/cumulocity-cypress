@@ -13,6 +13,7 @@ Contribute by raising pull requests. All commands must be documented and, if pos
   - [Load plugin](#load-plugin)
   - [Import commands](#import-commands)
   - [Environment variables](#environment-variables)
+  - [Environment variables from go-c8y-cli](#environment-variables-from-go-c8y-cli)
 - [Additional frameworks](#additional-frameworks)
 - [Concepts](#concepts)
   - [Authentication and credentials](#authentication-and-credentials)
@@ -58,6 +59,8 @@ Date related commands
 - `toDate`
 - `toISODate`
 - `compareDates`
+
+More information on date handling can be found in [Date Handling](./doc/Date%20Handling.md).
   
 Administration related commands
 - `getCurrentTenant` and `getTenantId`
@@ -87,11 +90,6 @@ Add dependency to your package.json and install via npm or yarn.
 
 ```bash
 npm install --save-dev cumulocity-cypress
-```
-or 
-
-```bash
-yarn add -D cumulocity-cypress
 ```
 
 ### Peer dependencies
@@ -180,6 +178,29 @@ before(() => {
     });
   // or just simply call getTenantId() as this sets the tenant id env variable automatically
   cy.getAuth("admin").getTenantId();
+});
+```
+
+### Environment variables from go-c8y-cli 
+
+If you are using [go-c8y-cli](https://goc8ycli.netlify.app) to manage your Cumulocity IoT environments, you can use the `set-session` command to set environment variables for your Cypress tests. This allows you to easily switch between different environments and configurations using `go-c8y-cli` session providers.
+
+The easiest way to pass environment variables to Cypress and cumulocity-cypress automtically, is to use `configureEnvVariables()` in your `cypress.config.ts` file. 
+
+```typescript
+import { defineConfig } from "cypress";
+import { configureC8yPlugin, configureEnvVariables } from "cumulocity-cypress/plugin";
+
+module.exports = defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {
+      configureC8yPlugin(on, config);
+      configureEnvVariables(config);
+
+      // important to return the config object
+      return config;
+    },
+  },
 });
 ```
 

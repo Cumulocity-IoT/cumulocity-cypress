@@ -265,7 +265,7 @@ describe("c8ypact", () => {
     it("validatePactMode should throw for not string value", () => {
       expect(() => {
         validatePactMode({} as any);
-      }).toThrowError(
+      }).toThrow(
         `Unsupported pact mode: "${{}.toString()}". Supported values are: ${Object.values(
           C8yPactModeValues
         ).join(", ")}`
@@ -275,7 +275,7 @@ describe("c8ypact", () => {
     it("validatePactMode should throw for invalid mode", () => {
       expect(() => {
         validatePactMode("invalid");
-      }).toThrowError(
+      }).toThrow(
         `Unsupported pact mode: "invalid". Supported values are: ${Object.values(
           C8yPactModeValues
         ).join(", ")}`

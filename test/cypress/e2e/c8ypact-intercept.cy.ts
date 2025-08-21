@@ -1,8 +1,6 @@
 import { C8yDefaultPact } from "cumulocity-cypress/c8ypact";
 import { stubCypressPactConfig, url } from "../support/testutils";
 
-import { C8yQicktypeSchemaGenerator } from "cumulocity-cypress/contrib/quicktype";
-
 const { $, _, sinon } = Cypress;
 
 describe("c8ypact intercept", () => {
@@ -31,10 +29,6 @@ describe("c8ypact intercept", () => {
     statusCode: 201,
     headers: { "x-test": "test" },
   };
-
-  beforeEach(() => {
-    Cypress.c8ypact.schemaGenerator = new C8yQicktypeSchemaGenerator();
-  });
 
   afterEach(() => {
     // delete recorded pacts after each test
@@ -118,7 +112,6 @@ describe("c8ypact intercept", () => {
             expect(r?.request).to.not.be.undefined;
             expect(r?.request?.url?.startsWith(inventoryPath)).to.be.true;
             expect(r?.response.body).to.have.property("managedObjects");
-            expect(r?.response.$body).to.not.be.undefined;
             expect(r?.modifiedResponse?.body).to.deep.eq(testBody);
           });
         });
@@ -188,7 +181,6 @@ describe("c8ypact intercept", () => {
             expect(r?.request).to.not.be.undefined;
             expect(r?.request?.url?.startsWith(inventoryPath)).to.be.true;
             expect(r?.response.body).to.have.property("managedObjects");
-            expect(r?.response.$body).to.not.be.undefined;
             expect(r?.modifiedResponse?.body).to.deep.eq(testBody);
           });
         });
@@ -218,7 +210,6 @@ describe("c8ypact intercept", () => {
             expect(r?.request).to.not.be.undefined;
             expect(r?.request?.url?.startsWith(inventoryPath)).to.be.true;
             expect(r?.response?.body).to.have.property("managedObjects");
-            expect(r?.response?.$body).to.not.be.undefined;
             expect(r?.modifiedResponse).to.be.undefined;
           });
         });
@@ -253,7 +244,6 @@ describe("c8ypact intercept", () => {
             expect(r?.request).to.not.be.undefined;
             expect(r?.request?.url?.startsWith(inventoryPath)).to.be.true;
             expect(r?.response.body).to.have.property("managedObjects");
-            expect(r?.response.$body).to.not.be.undefined;
             expect(r?.modifiedResponse?.body).to.eq(testResponse.body);
           });
         });
@@ -290,7 +280,6 @@ describe("c8ypact intercept", () => {
             expect(r?.request).to.not.be.undefined;
             expect(r?.request?.url?.startsWith(inventoryPath)).to.be.true;
             expect(r?.response.body).to.have.property("managedObjects");
-            expect(r?.response.$body).to.not.be.undefined;
             expect(r?.modifiedResponse?.body).to.eq(testResponse.body);
           });
         });
@@ -330,7 +319,6 @@ describe("c8ypact intercept", () => {
             expect(r?.request?.url?.startsWith(inventoryPath)).to.be.true;
             expect(r?.response.body).to.have.property("managedObjects");
             expect(r?.response.body).to.not.have.property("test");
-            expect(r?.response.$body).to.not.be.undefined;
             expect(r?.modifiedResponse?.body).to.have.property(
               "managedObjects"
             );
@@ -368,7 +356,6 @@ describe("c8ypact intercept", () => {
             expect(r?.request).to.not.be.undefined;
             expect(r?.request?.url?.startsWith(inventoryPath)).to.be.true;
             expect(r?.response.body).to.have.property("managedObjects");
-            expect(r?.response.$body).to.not.be.undefined;
             expect(r?.modifiedResponse?.body).to.have.property("fixtureTest");
           });
         });

@@ -1,5 +1,5 @@
 import {
-  getAuthOptionsFromEnv,
+  getAuthOptionsFromCypressEnv,
   getXsrfToken,
   normalizedArgumentsWithAuth,
 } from "../utils";
@@ -36,6 +36,10 @@ declare global {
       cy: {
         addCommand: (cmd: any) => void;
       };
+    }
+
+    interface RequestOptions {
+      preferBasicAuth?: boolean;
     }
   }
 
@@ -137,8 +141,7 @@ const requestCommandWrapper = (
     const originalFn = _.isFunction(args[0]) ? args[0] : undefined;
     const $args = originalFn ? args.slice(1) : args;
 
-    const auth = getAuthOptionsFromEnv.apply($args);
-
+    const auth = getAuthOptionsFromCypressEnv.apply($args);
     if (_.isObjectLike($args[0])) {
       _.extend(options, $args[0]);
     } else if ($args.length === 1) {
@@ -157,19 +160,22 @@ const requestCommandWrapper = (
       options.body = $args[2];
     }
 
+    const preferBasicAuth = options.preferBasicAuth ?? false;
+
     const xsrfToken = getXsrfToken();
-    if (xsrfToken) {
+    if (xsrfToken && !preferBasicAuth) {
       options.headers = _.extend(options.headers || {}, {
         "X-XSRF-TOKEN": xsrfToken,
       });
     }
 
-    if (!options.auth && !xsrfToken && auth) {
-      options.auth = _.omit(auth, "tenant");
+    if (preferBasicAuth || (!options.auth && !xsrfToken && auth)) {
+      options.auth = _.pick(options.auth ?? auth, "user", "password");
     }
 
+    const o = _.omit(options, ["preferBasicAuth"]);
     const wrappedArgs: any[] =
-      originalFn && args?.length > 0 ? [args[0], options] : [options];
+      originalFn && args?.length > 0 ? [args[0], o] : [o];
 
     // @ts-expect-error
     return wrappedFn(...wrappedArgs);
