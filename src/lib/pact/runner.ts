@@ -213,7 +213,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           "preferBasicAuth",
           "failOnStatusCode",
           "timeout",
-          "requestId"
+          "requestId",
         ];
         const strictMatching =
           Cypress.config().c8ypact?.strictMatching ??
@@ -224,7 +224,9 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
 
         let requestId = record.id ?? record.options?.requestId;
         if (!requestId) {
-          requestId = `${pact.id ?? pact.info.id ?? 'c8yclnt'}-${_.uniqueId()}`;
+          const prefix =
+            Cypress.env("C8Y_CLIENT_REQUEST_ID_PREFIX") || "c8yclnt-";
+          requestId = pact.id ?? pact.info.id ?? `${prefix}${_.uniqueId()}`;
         }
 
         const failOnStatusCode = (record.response?.status ?? 200) < 400;

@@ -576,7 +576,7 @@ describe("c8yclient", () => {
       );
     });
 
-    it("should not log when log option is disables logging", () => {
+    it("should not log when log option is disabled logging", () => {
       Cypress.env("C8Y_TENANT", "t12345");
       cy.setCookie("XSRF-TOKEN", "no-log-token");
 

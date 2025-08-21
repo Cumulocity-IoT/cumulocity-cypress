@@ -28,6 +28,7 @@ import {
   throwC8yClientError,
   C8yClientLogOptions,
   C8yClientRequestContext,
+  isC8yClientError,
 } from "../../shared/c8yclient";
 import {
   C8yAuthentication,
@@ -196,7 +197,8 @@ function generateRequestId(options?: C8yClientOptions): string {
   if (options?.requestId) {
     return options.requestId;
   }
-  return `c8yclnt-${_.uniqueId()}`;
+  const prefix = Cypress.env("C8Y_CLIENT_REQUEST_ID_PREFIX") || "c8yclnt-";
+  return `${prefix}${_.uniqueId()}`;
 }
 
 function getRequestContext(
@@ -227,8 +229,9 @@ globalThis.fetch = async function (
         ) => {
           if (!currentRequestContext?.logger) return;
           const displayUrl = getDisplayUrl(details.url);
+          const m = details.method ? `${details.method} ` : "";
           currentRequestContext.logger.set({
-            message: `${details.method} ${displayUrl} [${details.requestId}]`,
+            message: `${m}${displayUrl} [${details.requestId}]`,
             consoleProps: () => ({
               "Request ID": details.requestId,
               "Request URL": details.url,
@@ -236,7 +239,7 @@ globalThis.fetch = async function (
               "Request Headers": details.headers,
               "Request Body": details.body,
               "Fetch Options": fetchOptions,
-              ...details.additionalInfo
+              ...details.additionalInfo,
             }),
           });
           requestContexts.set(details.requestId, currentRequestContext);
@@ -249,7 +252,9 @@ globalThis.fetch = async function (
           if (!currentRequestContext?.logger) return;
           const displayUrl = getDisplayUrl(details.url);
           const statusIcon = details.success ? "✓" : "✗";
-          const message = `${statusIcon} ${details.method} ${details.status} ${displayUrl} [${details.requestId}] (${details.duration}ms)`;
+          const m = details.method ? `${details.method} ` : "";
+
+          const message = `${statusIcon} ${m}${details.status ?? 0} ${displayUrl} [${details.requestId}] (${details.duration}ms)`;
 
           currentRequestContext.logger.set({
             message,
@@ -271,7 +276,7 @@ globalThis.fetch = async function (
               "Fetch Options": fetchOptions,
               Options: details.options,
               Yielded: details.yielded,
-              ...details.additionalInfo
+              ...details.additionalInfo,
             }),
           });
 
@@ -577,7 +582,7 @@ function run(
           } catch (error) {
             // Check if this is a network error (TypeError) rather than an HTTP error response
             if (_.isError(error)) {
-              if (error.name === "C8yClientError") throw error;
+              if (isC8yClientError(error)) throw error;
               throwC8yClientError(
                 error,
                 undefined,

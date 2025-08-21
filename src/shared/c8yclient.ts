@@ -102,13 +102,35 @@ export interface C8yAuthOptions extends ICredentials {
 
 export type C8yAuthArgs = string | C8yAuthOptions;
 
+export interface C8yClientRequestContextOnRequest {
+  requestId: string;
+  url: string;
+  method: string;
+  headers?: any;
+  body?: any;
+  startTime?: number;
+  options?: any;
+  additionalInfo?: any;
+}
+
+export interface C8yClientRequestContextOnRequestEnd
+  extends C8yClientRequestContextOnRequest {
+  status?: number;
+  error?: any;
+  options?: any;
+  fetchOptions?: any;
+  yielded?: any;
+  additionalInfo?: any;
+  success?: boolean;
+  duration?: number;
+}
+
 export interface C8yClientRequestContext {
   requestId: string;
   logger: Cypress.Log;
   options: C8yClientOptions;
   startTime: number;
 }
-
 export interface C8yClientLogOptions {
   consoleProps?: any;
   loggedInUser?: string;
@@ -116,31 +138,8 @@ export interface C8yClientLogOptions {
   startTime?: number;
   options?: C8yClientOptions;
   // Callback functions for Cypress-specific logging
-  onRequestStart?: (requestDetails: {
-    requestId: string;
-    url: string;
-    method: string;
-    headers?: any;
-    body?: any;
-    startTime: number;
-    options?: any;
-    additionalInfo?: any;
-  }) => void;
-  onRequestEnd?: (responseDetails: {
-    requestId: string;
-    url: string;
-    method: string;
-    status?: number;
-    headers?: any;
-    body?: any;
-    duration: number;
-    success: boolean;
-    error?: any;
-    options?: any;
-    fetchOptions?: any;
-    yielded?: any;
-    additionalInfo?: any;
-  }) => void;
+  onRequestStart?: (requestDetails: C8yClientRequestContextOnRequest) => void;
+  onRequestEnd?: (responseDetails: C8yClientRequestContextOnRequestEnd) => void;
 }
 
 export async function wrapFetchRequest(
@@ -209,7 +208,7 @@ export async function wrapFetchRequest(
 
       // Check if this is a network error (TypeError) rather than an HTTP error response
       if (_.isError(error)) {
-        if (error.name === "C8yClientError") throw error;
+        if (isC8yClientError(error)) throw error;
         throwC8yClientError(error, url, {
           ...logOptions,
           method: fetchOptions?.method || "GET",
@@ -367,7 +366,7 @@ function updateConsoleProps(
       fetchOptions,
       options: logOptions.options as any,
       yielded: responseObj,
-      additionalInfo: authInfo
+      additionalInfo: authInfo,
     });
   }
 }
@@ -538,6 +537,15 @@ export function isIResult(obj: any): obj is IResult<any> {
  */
 export function isCypressError(error: any): boolean {
   return _.isError(error) && _.get(error, "name") === "CypressError";
+}
+
+/**
+ * Checks if the given object is a C8yClientError.
+ * @param error The object to check.
+ * @returns True if the object is a C8yClientError, false otherwise.
+ */
+export function isC8yClientError(error: any): boolean {
+  return _.isError(error) && _.get(error, "name") === "C8yClientError";
 }
 
 export function throwC8yClientError(
