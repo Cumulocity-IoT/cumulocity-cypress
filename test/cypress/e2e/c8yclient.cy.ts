@@ -9,6 +9,7 @@ import {
 import {
   expectC8yClientRequest,
   getConsolePropsForLogSpy,
+  getMessageForLogSpy,
   initRequestStub,
   restoreRequestStubs,
   setupLoggerSetSpy,
@@ -495,7 +496,11 @@ describe("c8yclient", () => {
       const logSpy = cy.spy(Cypress, "log").log(false);
       const cleanup = setupLoggerSetSpy("c8yclient");
 
-      const customOptions = { timeout: 5000, failOnStatusCode: false };
+      const customOptions = {
+        timeout: 5000,
+        failOnStatusCode: false,
+        requestId: "test-request-id",
+      };
       cy.c8yclient<ICurrentTenant>(
         (client) => client.tenant.current(),
         customOptions
@@ -512,6 +517,10 @@ describe("c8yclient", () => {
         expect(consoleProps["Fetch Options"]).to.be.an("object");
         expect(consoleProps["Fetch Options"]).to.have.property("headers");
         expect(consoleProps["Yielded"]).to.deep.equal(response);
+
+        expect(getMessageForLogSpy(logSpy, "c8yclient")).to.contain(
+          "✓ GET 200 /tenant/currentTenant [test-request-id]"
+        );
 
         cleanup();
       });
@@ -541,12 +550,28 @@ describe("c8yclient", () => {
         expect(consoleProps["Error"]).to.contain("Failed to fetch");
         expect(consoleProps["Error"]).to.contain("Network error");
         expect(consoleProps["Success"]).to.eq(false);
+        expect(consoleProps["Request ID"]).to.eq("test-request-id");
+        expect(consoleProps["Request Method"]).to.eq("GET");
+        expect(consoleProps["Request URL"]).to.eq(url("/tenant/currentTenant"));
+        expect(consoleProps["Request Headers"]).to.be.an("object");
+        expect(consoleProps["Response Status"]).to.be.undefined;
+        expect(consoleProps["Response Headers"]).to.be.undefined;
+        expect(consoleProps["Response Body"]).to.be.undefined;
 
+        expect(consoleProps["Options"]).to.deep.include({
+          requestId: "test-request-id",
+        });
+
+        expect(getMessageForLogSpy(logSpy, "c8yclient")).to.contain(
+          "✗ GET 0 /tenant/currentTenant [test-request-id]"
+        );
         cleanup();
         done();
       });
 
-      cy.c8yclient<ICurrentTenant>((client) => client.tenant.current());
+      cy.c8yclient<ICurrentTenant>((client) => client.tenant.current(), {
+        requestId: "test-request-id",
+      });
     });
 
     it("should update console props during request lifecycle", () => {

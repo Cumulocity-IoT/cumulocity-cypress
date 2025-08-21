@@ -428,7 +428,34 @@ export function setupLoggerSetSpy(loggerName: string) {
   };
 }
 
+/**
+ * Gets the message passed as arguments to given Cypress.log spy.
+ * This function handles commands that use logger.set() to update messages
+ * by intercepting the logger creation and spying on the set method.
+ * For commands using logger.set(), it returns the final message after all updates.
+ *
+ * @param spy The spy created using cy.spy(Cypress, "log")
+ * @param name The name of the custom command to get message for
+ * @returns message string with the final state after all logger.set() calls
+ */
 export function getMessageForLogSpy(spy: sinon.SinonSpy, name: string): any {
+  // First try to find any stored logger set calls for this command
+  const storedKey = `__${name}_logger_set_spy`;
+  const loggerSetSpy = (globalThis as any)[storedKey];
+
+  if (loggerSetSpy && loggerSetSpy.callCount > 0) {
+    // Look through all calls from most recent to oldest to find one with a message
+    for (let i = loggerSetSpy.callCount - 1; i >= 0; i--) {
+      const call = loggerSetSpy.getCall(i);
+      const args = call?.args[0];
+
+      if (args?.message !== undefined) {
+        return args.message;
+      }
+    }
+  }
+
+  // Fallback to original implementation for commands that don't use logger.set()
   const arg = _.findLast(_.flatten(spy.args), (arg: any) => arg.name === name);
   if (!arg) return undefined;
   return arg.message;
