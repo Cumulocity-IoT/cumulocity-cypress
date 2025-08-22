@@ -261,7 +261,9 @@ export class C8yPactHttpController {
                   `stream.not.readable: Stream already consumed for ${req.method} ${req.url}`
                 );
                 if (req.body) {
-                  (req as any).rawBody = JSON.stringify(req.body);
+                  (req as any).rawBody = _.isObjectLike(req.body)
+                    ? safeStringify(req.body)
+                    : req.body;
                 }
               } else {
                 that.logger.warn(`Failed to parse request body: ${err}`);
