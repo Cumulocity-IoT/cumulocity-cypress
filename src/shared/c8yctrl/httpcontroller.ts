@@ -136,10 +136,6 @@ export class C8yPactHttpController {
       );
     }
 
-    // Express 5 compatibility: explicitly add body parsing middleware
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
-
     // register cookie parser
     this.app.use(cookieParser());
 
@@ -260,7 +256,18 @@ export class C8yPactHttpController {
           },
           function (err, chunk) {
             if (err != null) {
-              that.logger.warn(`Failed to parse request body: ${err}`);
+              if (err.type === "stream.not.readable") {
+                that.logger.warn(
+                  `stream.not.readable: Stream already consumed for ${req.method} ${req.url}`
+                );
+                if (req.body) {
+                  (req as any).rawBody = _.isObjectLike(req.body)
+                    ? safeStringify(req.body)
+                    : req.body;
+                }
+              } else {
+                that.logger.warn(`Failed to parse request body: ${err}`);
+              }
             } else {
               const rawBody = Buffer.concat([chunk]).toString("utf8");
               if (rawBody != null) {
@@ -272,6 +279,10 @@ export class C8yPactHttpController {
         );
       }, ignoredPaths)
     );
+
+    // Express 5 compatibility: explicitly add body parsing middleware
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
 
     if (this.baseUrl) {
       this.logger.info(`BaseURL: ${this.baseUrl}`);
