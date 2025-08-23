@@ -192,6 +192,16 @@ declare global {
       record: C8yPactRecord | undefined
     ) => C8yPactRecord | undefined;
     /**
+     * Called before a record is run by C8yPactRunner. By returning `undefined`, the pact is
+     * ignored and not run. Use for custom preprocessing or filtering of records.
+     * @param record The record to use for running the pact.
+     * @returns C8yPactRecord or undefined if the record should be ignored.
+     */
+    runRecord?: (
+      record: C8yPactRecord, 
+      pact?: C8yPact
+    ) => C8yPactRecord | undefined;
+    /**
      * Called before a pact is saved. By returning `undefined`, the pact is ignored and not saved.
      * @param pact The pact to be saved.
      * @returns C8yPact or undefined if the pact should be ignored.
@@ -203,6 +213,7 @@ declare global {
      * @returns C8yPact now used as `Cypress.c8ypact.current`.
      */
     loadPact?: (pact: C8yPact) => void;
+
     /**
      * Called for matching errors from `cy.c8ymatch` for custom error handling. By providing a custom
      * error handler, the default error handling is disabled. To fail tests for matching errors, you
