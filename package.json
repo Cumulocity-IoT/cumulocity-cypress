@@ -161,7 +161,7 @@
     "@types/swagger-ui-express": "^4.1.7",
     "@types/ws": "^8.5.13",
     "copyfiles": "^2.4.1",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.0.0",
     "esbuild": "^0.25.5",
     "esbuild-plugins-node-modules-polyfill": "^1.7.1",
     "eslint": "^9.19.0",
