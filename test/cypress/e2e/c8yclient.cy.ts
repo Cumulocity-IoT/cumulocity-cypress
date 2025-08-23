@@ -481,6 +481,7 @@ describe("c8yclient", () => {
         .c8yclient<ICurrentTenant>((client) => client.tenant.current())
         .then(() => {
           const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
+          expect(consoleProps["Request ID"]).to.be.null;
           expect(consoleProps.Basicauth).to.eq(
             "Basic dDEyMzQ1L2FkbWluMzpteXBhc3N3b3Jk (t12345/admin3)"
           );
@@ -506,7 +507,7 @@ describe("c8yclient", () => {
         customOptions
       ).then((response) => {
         const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
-        expect(consoleProps["Request ID"]).to.be.a("string");
+        expect(consoleProps["Request ID"]).to.equal("test-request-id");
         expect(consoleProps["Request URL"]).to.eq(url("/tenant/currentTenant"));
         expect(consoleProps["Response Status"]).to.eq(200);
         expect(consoleProps["Response Headers"]).to.be.an("object");
@@ -592,7 +593,7 @@ describe("c8yclient", () => {
 
           // Check that final console props contain both initial and final data
           const consoleProps = getConsolePropsForLogSpy(logSpy, "c8yclient");
-          expect(consoleProps["Request ID"]).to.be.a("string");
+          expect(consoleProps["Request ID"]).to.be.null;
           expect(consoleProps["Response Status"]).to.eq(200);
           expect(consoleProps.CookieAuth).to.eq("lifecycle-token (testuser)");
 

@@ -193,18 +193,15 @@ const requestContexts = new Map<string, C8yClientRequestContext>();
 // Store current request context for the active c8yclient command
 let currentRequestContext: C8yClientRequestContext | null = null;
 
-function generateRequestId(options?: C8yClientOptions): string {
-  if (options?.requestId) {
-    return options.requestId;
-  }
+function generateContextId(): string {
   const prefix = Cypress.env("C8Y_CLIENT_REQUEST_ID_PREFIX") || "c8yclnt-";
   return `${prefix}${_.uniqueId()}`;
 }
 
 function getRequestContext(
-  requestId: string
+  contextId: string
 ): C8yClientRequestContext | undefined {
-  return requestContexts.get(requestId);
+  return requestContexts.get(contextId);
 }
 
 _.set(globalThis, "fetchStub", window.fetch);
@@ -212,6 +209,22 @@ globalThis.fetch = async function (
   url: RequestInfo | URL,
   fetchOptions?: RequestInit
 ) {
+  const getMessage = (details: any) => {
+    const m = details.method ? `${details.method} ` : "";
+    let message = `${m}${details.status ?? 0} ${getDisplayUrl(details.url)}`;
+    if (details.options?.requestId) {
+      message += ` [${details.options.requestId}]`;
+    }
+    if (details.duration) {
+      message += ` (${details.duration}ms)`;
+    }
+    if (details.success != null) {
+      const statusIcon = details.success ? "✓" : "✗";
+      message = `${statusIcon} ${message}`;
+    }
+    return message;
+  };
+
   // Use the current request context if available
   const logOptions = currentRequestContext
     ? {
@@ -220,7 +233,7 @@ globalThis.fetch = async function (
         loggedInUser:
           Cypress.env("C8Y_LOGGED_IN_USER") ??
           Cypress.env("C8Y_LOGGED_IN_USER_ALIAS"),
-        requestId: currentRequestContext.requestId,
+        contextId: currentRequestContext.contextId,
         startTime: Date.now(),
         onRequestStart: (
           details: Parameters<
@@ -228,12 +241,11 @@ globalThis.fetch = async function (
           >[0]
         ) => {
           if (!currentRequestContext?.logger) return;
-          const displayUrl = getDisplayUrl(details.url);
-          const m = details.method ? `${details.method} ` : "";
           currentRequestContext.logger.set({
-            message: `${m}${displayUrl} [${details.requestId}]`,
+            message: getMessage(details),
             consoleProps: () => ({
-              "Request ID": details.requestId,
+              "Context ID": details.contextId,
+              "Request ID": details.options?.requestId || null,
               "Request URL": details.url,
               "Request Method": details.method,
               "Request Headers": details.headers,
@@ -242,7 +254,7 @@ globalThis.fetch = async function (
               ...details.additionalInfo,
             }),
           });
-          requestContexts.set(details.requestId, currentRequestContext);
+          requestContexts.set(details.contextId, currentRequestContext);
         },
         onRequestEnd: (
           details: Parameters<
@@ -250,23 +262,11 @@ globalThis.fetch = async function (
           >[0]
         ) => {
           if (!currentRequestContext?.logger) return;
-          const displayUrl = getDisplayUrl(details.url);
-          const statusIcon = details.success ? "✓" : "✗";
-          const m = details.method ? `${details.method} ` : "";
-
-          let message = `${statusIcon} ${m}${
-            details.status ?? 0
-          } ${displayUrl}`;
-          if (details.requestId) {
-            message += ` [${details.requestId}]`;
-          }
-          if (details.duration) {
-            message += ` (${details.duration}ms)`;
-          }
           currentRequestContext.logger.set({
-            message,
+            message: getMessage(details),
             consoleProps: () => ({
-              "Request ID": details.requestId,
+              "Context ID": details.contextId,
+              "Request ID": details.options?.requestId || null,
               "Request URL": details.url,
               "Request Method": details.method,
               "Request Headers": fetchOptions?.headers,
@@ -288,13 +288,13 @@ globalThis.fetch = async function (
           });
 
           currentRequestContext.logger.end();
-          requestContexts.delete(details.requestId);
+          requestContexts.delete(details.contextId);
         },
       }
     : undefined;
 
   if (currentRequestContext != null) {
-    requestContexts.set(currentRequestContext.requestId, currentRequestContext);
+    requestContexts.set(currentRequestContext.contextId, currentRequestContext);
   }
 
   return wrapFetchRequest(url, fetchOptions, logOptions);
@@ -508,16 +508,16 @@ function run(
 
   return cy.then({ timeout: options.timeout }, async () => {
     // Generate request ID and set up logging
-    const requestId = generateRequestId(options);
+    const contextId = generateContextId();
     let logger: Cypress.Log | undefined;
 
     if (options.log !== false) {
       logger = Cypress.log({
         name: "c8yclient",
         autoEnd: false,
-        message: `Preparing request [${requestId}]`,
+        message: `Preparing request [${contextId}]`,
         consoleProps: () => ({
-          "Request ID": requestId,
+          "contextId ID": contextId,
           Options: options,
           "Base URL": baseUrl,
           "Previous Subject": prevSubject,
@@ -528,7 +528,7 @@ function run(
     // Set up the request context for the global fetch override
     if (logger) {
       currentRequestContext = {
-        requestId,
+        contextId,
         logger,
         options,
         startTime: Date.now(),
@@ -593,7 +593,7 @@ function run(
               throwC8yClientError(
                 error,
                 undefined,
-                getRequestContext(requestId)
+                getRequestContext(contextId)
               );
             }
             result = error;

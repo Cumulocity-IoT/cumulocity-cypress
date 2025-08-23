@@ -103,7 +103,7 @@ export interface C8yAuthOptions extends ICredentials {
 export type C8yAuthArgs = string | C8yAuthOptions;
 
 export interface C8yClientRequestContextOnRequest {
-  requestId: string;
+  contextId: string;
   url: string;
   method: string;
   headers?: any;
@@ -126,7 +126,7 @@ export interface C8yClientRequestContextOnRequestEnd
 }
 
 export interface C8yClientRequestContext {
-  requestId: string;
+  contextId: string;
   logger: Cypress.Log;
   options: C8yClientOptions;
   startTime: number;
@@ -134,7 +134,7 @@ export interface C8yClientRequestContext {
 export interface C8yClientLogOptions {
   consoleProps?: any;
   loggedInUser?: string;
-  requestId?: string;
+  contextId?: string;
   startTime?: number;
   options?: C8yClientOptions;
   // Callback functions for Cypress-specific logging
@@ -165,14 +165,14 @@ export async function wrapFetchRequest(
   }
 
   const startTime = logOptions?.startTime || Date.now();
-  const requestId = logOptions?.requestId;
+  const contextId = logOptions?.contextId;
 
   // Notify about request start
-  if (logOptions?.onRequestStart && requestId) {
+  if (logOptions?.onRequestStart && contextId) {
     const method = fetchOptions?.method || "GET";
 
     logOptions.onRequestStart({
-      requestId,
+      contextId,
       url: toUrlString(url),
       method,
       headers: fetchOptions?.headers,
@@ -353,9 +353,9 @@ function updateConsoleProps(
     }
   }
   // Call onRequestEnd callback if available
-  if (logOptions?.onRequestEnd && logOptions?.requestId) {
+  if (logOptions?.onRequestEnd && logOptions?.contextId) {
     logOptions.onRequestEnd({
-      requestId: logOptions.requestId,
+      contextId: logOptions.contextId,
       url: toUrlString(url || responseObj.url || ""),
       method: fetchOptions?.method || responseObj.method || "GET",
       status: responseObj.status || 0,
@@ -565,13 +565,13 @@ export function throwC8yClientError(
   }
 
   // Call onRequestEnd if logging options are provided
-  if (logOptions?.onRequestEnd && logOptions?.requestId) {
+  if (logOptions?.onRequestEnd && logOptions?.contextId) {
     const duration = logOptions.startTime
       ? Date.now() - logOptions.startTime
       : 0;
 
     logOptions.onRequestEnd({
-      requestId: logOptions.requestId,
+      contextId: logOptions.contextId,
       url: toUrlString(url || ""),
       method: logOptions.method || "GET",
       duration,

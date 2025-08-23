@@ -159,20 +159,31 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
     let currentAuth: C8yAuthOptions | undefined = undefined;
 
     const methods = options.methods?.map((m) => m.toLowerCase()) || [];
-    for (const record of pact?.records || []) {
+    for (const preRecord of pact?.records || []) {
+      if (preRecord == null) continue;
+
       if (
-        record.request.method != null &&
+        preRecord.request.method != null &&
         !_.isEmpty(methods) &&
-        !methods.includes(record.request.method.toLowerCase())
+        !methods.includes(preRecord.request.method.toLowerCase())
       ) {
         continue;
       }
 
-      if (record.request.url != null && !_.isEmpty(options.paths)) {
-        const url = record.request.url;
+      if (preRecord.request.url != null && !_.isEmpty(options.paths)) {
+        const url = preRecord.request.url;
         if (!options.paths?.some((p) => url.startsWith(p))) {
           continue;
         }
+      }
+
+      let record: C8yPactRecord | undefined = preRecord;
+      if (_.isFunction(Cypress.c8ypact.on?.runRecord)) {
+        record = Cypress.c8ypact.on.runRecord(preRecord, pact);
+      }
+      if (!record) {
+        cy.log("Skipping request disabled by Cypress.c8ypact.on.runRecord.");
+        continue;
       }
 
       cy.then(() => {
@@ -222,13 +233,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           Cypress.c8ypact.getConfigValue("strictMatching") ??
           true;
 
-        let requestId = record.id ?? record.options?.requestId;
-        if (!requestId) {
-          const prefix =
-            Cypress.env("C8Y_CLIENT_REQUEST_ID_PREFIX") || "c8yclnt-";
-          requestId = pact.id ?? pact.info.id ?? `${prefix}${_.uniqueId()}`;
-        }
-
+        const requestId = record.id ?? record.options?.requestId;
         const failOnStatusCode = (record.response?.status ?? 200) < 400;
         const cOpts: C8yClientOptions = {
           strictMatching,
@@ -293,7 +298,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
         users.forEach((user) => {
           (user ? cy.getAuth(user) : cy.getAuth()).then((auth) => {
             const updatedOpts = _.cloneDeep(cOpts);
-            if (users.length > 1) {
+            if (requestId != null && users.length > 1) {
               updatedOpts.requestId = `${requestId}/${user}`;
             }
             if (user !== "devicebootstrap" && isCookieAuth) {
