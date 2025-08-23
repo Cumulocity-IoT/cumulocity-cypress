@@ -65,8 +65,8 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
     id?: C8yPactID
   ) {
     // Handle object parameter style
-    if (typeof requestOrParams === 'object' && 'request' in requestOrParams && 'response' in requestOrParams) {
-      const params = requestOrParams as C8yDefaultPactRecordInit;
+    if (isC8yDefaultPactRecordInit(requestOrParams)) {
+      const params = requestOrParams;
       this.request = params.request;
       this.response = params.response;
       if (params.options) this.options = params.options;
@@ -230,4 +230,19 @@ export function createPactRecord(
   // only store properties that need to be exposed. do not store password.
   auth = auth ? toPactAuthObject(auth) : auth;
   return C8yDefaultPactRecord.from(response, auth, client, options.id);
+}
+
+
+/**
+ * Type guard to check if an object is C8yDefaultPactRecordInit
+ */
+function isC8yDefaultPactRecordInit(obj: any): obj is C8yDefaultPactRecordInit {
+  return (
+    obj &&
+    typeof obj === 'object' &&
+    'request' in obj &&
+    'response' in obj &&
+    obj.request != null &&
+    obj.response != null
+  );
 }
