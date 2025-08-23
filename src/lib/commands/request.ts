@@ -1,5 +1,5 @@
 import {
-  getAuthOptionsFromCypressEnv,
+  getAuthOptions,
   getXsrfToken,
   normalizedArgumentsWithAuth,
 } from "../utils";
@@ -141,7 +141,6 @@ const requestCommandWrapper = (
     const originalFn = _.isFunction(args[0]) ? args[0] : undefined;
     const $args = originalFn ? args.slice(1) : args;
 
-    const auth = getAuthOptionsFromCypressEnv.apply($args);
     if (_.isObjectLike($args[0])) {
       _.extend(options, $args[0]);
     } else if ($args.length === 1) {
@@ -159,17 +158,23 @@ const requestCommandWrapper = (
       options.url = $args[1];
       options.body = $args[2];
     }
-
+    const auth = getAuthOptions(options.auth) ?? getAuthOptions.apply($args);
     const preferBasicAuth = options.preferBasicAuth ?? false;
 
     const xsrfToken = getXsrfToken();
-    if (xsrfToken && !preferBasicAuth) {
+    const jwtToken = auth?.token;
+
+    if (preferBasicAuth && auth?.user != null && auth?.password != null) {
+      options.auth = _.pick(options.auth ?? auth, "user", "password");
+    } else if (xsrfToken) {
       options.headers = _.extend(options.headers || {}, {
         "X-XSRF-TOKEN": xsrfToken,
       });
-    }
-
-    if (preferBasicAuth || (!options.auth && !xsrfToken && auth)) {
+    } else if (jwtToken) {
+      options.headers = _.extend(options.headers || {}, {
+        Authorization: `Bearer ${jwtToken}`,
+      });
+    } else if (auth?.user != null && auth?.password != null) {
       options.auth = _.pick(options.auth ?? auth, "user", "password");
     }
 
