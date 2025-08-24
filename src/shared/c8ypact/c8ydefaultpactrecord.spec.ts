@@ -2,9 +2,7 @@
 
 import _ from "lodash";
 
-import { C8yDefaultPact } from "./c8ydefaultpact";
-import { isPact } from "./c8ypact";
-import { C8yDefaultPactRecord } from "./c8ydefaultpactrecord";
+import { C8yDefaultPactRecord, C8yDefaultPactRecordInit, createPactRecord } from "./c8ydefaultpactrecord";
 import { C8yBaseUrl } from "../types";
 
 const BASE_URL = "http://localhost:4200";
@@ -51,12 +49,241 @@ describe("c8ydefaultpactrecord", () => {
       );
     });
 
-    it("should create C8yDefaultPactRecord", function () {
+    it("should create C8yDefaultPactRecord with individual parameters", function () {
       expect(record).not.toBeNull();
       expect(record!.request).not.toBeNull();
       expect(record!.response).not.toBeNull();
       expect(record!.auth).not.toBeNull();
       expect(record!.options).not.toBeNull();
+    });
+
+    it("should create C8yDefaultPactRecord with id parameter", function () {
+      const recordWithId = new C8yDefaultPactRecord(
+        {
+          url: "http://localhost:8080/inventory/managedObjects/1?withChildren=false",
+        },
+        {
+          status: 201,
+          isOkStatusCode: true,
+        },
+        {
+          baseUrl: "http://localhost:8080",
+        },
+        { user: "test" },
+        undefined,
+        undefined,
+        "test-id-123"
+      );
+
+      expect(recordWithId).not.toBeNull();
+      expect(recordWithId.id).toBe("test-id-123");
+      expect(recordWithId.request).not.toBeNull();
+      expect(recordWithId.response).not.toBeNull();
+      expect(recordWithId.auth).not.toBeNull();
+      expect(recordWithId.options).not.toBeNull();
+    });
+
+    it("should create C8yDefaultPactRecord with object parameter", function () {
+      const params: C8yDefaultPactRecordInit = {
+        request: {
+          url: "http://localhost:8080/inventory/managedObjects/1?withChildren=false",
+          method: "POST"
+        },
+        response: {
+          status: 201,
+          isOkStatusCode: true,
+        },
+        options: {
+          baseUrl: "http://localhost:8080",
+        },
+        auth: { user: "test" },
+        createdObject: "created-object-123",
+        id: "pact-id-456"
+      };
+
+      record = new C8yDefaultPactRecord(params);
+
+      expect(record).not.toBeNull();
+      expect(record.request).toEqual(params.request);
+      expect(record.response).toEqual(params.response);
+      expect(record.options).toEqual(params.options);
+      expect(record.auth).toEqual(params.auth);
+      expect(record.createdObject).toBe("created-object-123");
+      expect(record.id).toBe("pact-id-456");
+    });
+
+    it("should create C8yDefaultPactRecord with object parameter with optional fields", function () {
+      const params: C8yDefaultPactRecordInit = {
+        request: {
+          url: "http://localhost:8080/inventory/managedObjects/1?withChildren=false",
+        },
+        response: {
+          status: 200,
+          isOkStatusCode: true,
+        }
+        // Only required fields, optional fields undefined
+      };
+
+      record = new C8yDefaultPactRecord(params);
+
+      expect(record).not.toBeNull();
+      expect(record.request).toEqual(params.request);
+      expect(record.response).toEqual(params.response);
+      expect(record.options).toBeUndefined();
+      expect(record.auth).toBeUndefined();
+      expect(record.createdObject).toBeUndefined();
+      expect(record.modifiedResponse).toBeUndefined();
+      expect(record.id).toBeUndefined();
+    });
+
+    it("should handle POST request and auto-set createdObject when using object parameter", function () {
+      const params: C8yDefaultPactRecordInit = {
+        request: {
+          url: "http://localhost:8080/inventory/managedObjects",
+          method: "POST"
+        },
+        response: {
+          status: 201,
+          isOkStatusCode: true,
+          body: { id: "auto-generated-id-789" }
+        }
+      };
+
+      record = new C8yDefaultPactRecord(params);
+
+      expect(record).not.toBeNull();
+      expect(record.createdObject).toBe("auto-generated-id-789");
+    });
+  });
+
+  describe("from method", function () {
+    it("should create record from Cypress.Response with id", function () {
+      const response: Partial<Cypress.Response<any>> = {
+        status: 200,
+        statusText: "OK",
+        headers: { "content-type": "application/json" },
+        body: { name: "test-object" },
+        url: "http://localhost:8080/inventory/managedObjects/1",
+        method: "GET"
+      };
+
+      const record = C8yDefaultPactRecord.from(response, undefined, undefined, "from-id-123");
+
+      expect(record).not.toBeNull();
+      expect(record.id).toBe("from-id-123");
+      expect(record.request.url).toBe(response.url);
+      expect(record.response.status).toBe(response.status);
+    });
+
+    it("should create record from existing C8yPactRecord and preserve id", function () {
+      const existingRecord: C8yDefaultPactRecord = new C8yDefaultPactRecord({
+        request: { url: "http://localhost:8080/test" },
+        response: { status: 200 },
+        id: "existing-id-456"
+      });
+
+      const newRecord = C8yDefaultPactRecord.from(existingRecord);
+
+      expect(newRecord).not.toBeNull();
+      expect(newRecord.id).toBe("existing-id-456");
+      expect(newRecord.request.url).toBe(existingRecord.request.url);
+      expect(newRecord.response.status).toBe(existingRecord.response.status);
+    });
+
+    it("should create record from existing C8yPactRecord and override id", function () {
+      const existingRecord: C8yDefaultPactRecord = new C8yDefaultPactRecord({
+        request: { url: "http://localhost:8080/test" },
+        response: { status: 200 },
+        id: "existing-id-456"
+      });
+
+      const newRecord = C8yDefaultPactRecord.from(existingRecord, undefined, undefined, "new-id-789");
+
+      expect(newRecord).not.toBeNull();
+      expect(newRecord.id).toBe("new-id-789");
+      expect(newRecord.request.url).toBe(existingRecord.request.url);
+      expect(newRecord.response.status).toBe(existingRecord.response.status);
+    });
+
+    it("should create record from Cypress.Response without id", function () {
+      const response: Partial<Cypress.Response<any>> = {
+        status: 404,
+        statusText: "Not Found",
+        headers: { "content-type": "application/json" },
+        body: { error: "Not found" },
+        url: "http://localhost:8080/inventory/managedObjects/999",
+        method: "DELETE"
+      };
+
+      const record = C8yDefaultPactRecord.from(response);
+
+      expect(record).not.toBeNull();
+      expect(record.id).toBeUndefined();
+      expect(record.request.url).toBe(response.url);
+      expect(record.response.status).toBe(response.status);
+    });
+  });
+
+  describe("createPactRecord function", function () {
+    it("should create pact record with id", function () {
+      const response: Partial<Cypress.Response<any>> = {
+        status: 201,
+        statusText: "Created",
+        headers: { "content-type": "application/json" },
+        body: { id: "new-object-123", name: "Test Object" },
+        url: "http://localhost:8080/inventory/managedObjects",
+        method: "POST"
+      };
+
+      const record = createPactRecord(response, undefined, { id: "create-pact-id-456" });
+
+      expect(record).not.toBeNull();
+      expect(record.id).toBe("create-pact-id-456");
+      expect(record.request.url).toBe(response.url);
+      expect(record.response.status).toBe(response.status);
+    });
+
+    it("should create pact record without id", function () {
+      const response: Partial<Cypress.Response<any>> = {
+        status: 200,
+        statusText: "OK",
+        headers: { "content-type": "application/json" },
+        body: { name: "Test Object" },
+        url: "http://localhost:8080/inventory/managedObjects/1",
+        method: "GET"
+      };
+
+      const record = createPactRecord(response);
+
+      expect(record).not.toBeNull();
+      expect(record.id).toBeUndefined();
+      expect(record.request.url).toBe(response.url);
+      expect(record.response.status).toBe(response.status);
+    });
+
+    it("should create pact record with auth options and id", function () {
+      const response: Partial<Cypress.Response<any>> = {
+        status: 200,
+        statusText: "OK",
+        headers: { "content-type": "application/json" },
+        body: { name: "Test Object" },
+        url: "http://localhost:8080/inventory/managedObjects/1",
+        method: "GET"
+      };
+
+      const record = createPactRecord(response, undefined, {
+        loggedInUser: "testuser",
+        loggedInUserAlias: "testalias",
+        authType: "BasicAuth",
+        id: "auth-pact-id-789"
+      });
+
+      expect(record).not.toBeNull();
+      expect(record.id).toBe("auth-pact-id-789");
+      expect(record.auth).toBeDefined();
+      expect(record.auth?.user).toBe("testuser");
+      expect(record.auth?.userAlias).toBe("testalias");
+      expect(record.auth?.type).toBe("BasicAuth");
     });
   });
 

@@ -10,6 +10,7 @@ import {
   C8yPactRecord,
   C8yPactRequest,
   C8yPactResponse,
+  C8yPactID,
   getCreatedObjectId,
   toPactRequest,
   toPactResponse,
@@ -18,10 +19,24 @@ import {
 import _ from "lodash";
 
 /**
+ * Constructor parameters for C8yDefaultPactRecord
+ */
+export interface C8yDefaultPactRecordInit {
+  request: C8yPactRequest;
+  response: C8yPactResponse<any>;
+  options?: C8yClientOptions;
+  auth?: C8yPactAuthObject;
+  createdObject?: string;
+  modifiedResponse?: C8yPactResponse<any>;
+  id?: C8yPactID;
+}
+
+/**
  * Default implementation of C8yPactRecord. Use C8yDefaultPactRecord.from to create
  * a C8yPactRecord from a Cypress.Response object or an C8yPactRecord object.
  */
 export class C8yDefaultPactRecord implements C8yPactRecord {
+  id?: C8yPactID;
   request: C8yPactRequest;
   response: C8yPactResponse<any>;
   options?: C8yClientOptions;
@@ -35,18 +50,43 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
     options?: C8yClientOptions,
     auth?: C8yPactAuthObject,
     createdObject?: string,
-    modifiedResponse?: C8yPactResponse<any>
+    modifiedResponse?: C8yPactResponse<any>,
+    id?: C8yPactID
+  );
+  constructor(params: C8yDefaultPactRecordInit);
+
+  constructor(
+    requestOrParams: C8yPactRequest | C8yDefaultPactRecordInit,
+    response?: C8yPactResponse<any>,
+    options?: C8yClientOptions,
+    auth?: C8yPactAuthObject,
+    createdObject?: string,
+    modifiedResponse?: C8yPactResponse<any>,
+    id?: C8yPactID
   ) {
-    this.request = request;
-    this.response = response;
+    // Handle object parameter style
+    if (isC8yDefaultPactRecordInit(requestOrParams)) {
+      const params = requestOrParams;
+      this.request = params.request;
+      this.response = params.response;
+      if (params.options) this.options = params.options;
+      if (params.auth) this.auth = params.auth;
+      if (params.createdObject) this.createdObject = params.createdObject;
+      if (params.modifiedResponse) this.modifiedResponse = params.modifiedResponse;
+      if (params.id) this.id = params.id;
+    } else {
+      // Handle individual parameter style
+      this.request = requestOrParams as C8yPactRequest;
+      this.response = response!;
+      if (options) this.options = options;
+      if (auth) this.auth = auth;
+      if (createdObject) this.createdObject = createdObject;
+      if (modifiedResponse) this.modifiedResponse = modifiedResponse;
+      if (id) this.id = id;
+    }
 
-    if (options) this.options = options;
-    if (auth) this.auth = auth;
-    if (createdObject) this.createdObject = createdObject;
-    if (modifiedResponse) this.modifiedResponse = modifiedResponse;
-
-    if (request?.method?.toLowerCase() === "post") {
-      const newId = getCreatedObjectId(response);
+    if (this.request?.method?.toLowerCase() === "post") {
+      const newId = getCreatedObjectId(this.response);
       if (newId) {
         this.createdObject = newId;
       }
@@ -56,12 +96,15 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
   /**
    * Creates a C8yPactRecord from a Cypress.Response or an C8yPactRecord object.
    * @param obj The Cypress.Response<any> or C8yPactRecord object.
+   * @param auth The auth information to use.
    * @param client The C8yClient for options and auth information.
+   * @param id The optional ID for the pact record.
    */
   static from(
     obj: Cypress.Response<any> | C8yPactRecord | Partial<Cypress.Response<any>>,
     auth?: C8yAuthOptions,
-    client?: C8yClient
+    client?: C8yClient,
+    id?: C8yPactID
   ): C8yPactRecord {
     // if (obj == null) return obj;
     if ("request" in obj && "response" in obj) {
@@ -71,7 +114,8 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
         _.get(obj, "options") || {},
         _.get(obj, "auth"),
         _.get(obj, "createdObject"),
-        _.get(obj, "modifiedResponse")
+        _.get(obj, "modifiedResponse"),
+        id || _.get(obj, "id")
       );
     }
 
@@ -84,7 +128,10 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
         ? toPactAuthObject(auth)
         : client?._auth
         ? toPactAuthObject(client?._auth)
-        : undefined
+        : undefined,
+      undefined,
+      undefined,
+      id || _.get(obj, "id")
     );
   }
 
@@ -152,6 +199,7 @@ export function createPactRecord(
     loggedInUser?: string;
     loggedInUserAlias?: string;
     authType?: string;
+    id?: C8yPactID;
   } = {}
 ): C8yPactRecord {
   let auth: C8yAuthOptions | undefined = undefined;
@@ -181,5 +229,20 @@ export function createPactRecord(
 
   // only store properties that need to be exposed. do not store password.
   auth = auth ? toPactAuthObject(auth) : auth;
-  return C8yDefaultPactRecord.from(response, auth, client);
+  return C8yDefaultPactRecord.from(response, auth, client, options.id);
+}
+
+
+/**
+ * Type guard to check if an object is C8yDefaultPactRecordInit
+ */
+function isC8yDefaultPactRecordInit(obj: any): obj is C8yDefaultPactRecordInit {
+  return (
+    obj &&
+    typeof obj === 'object' &&
+    'request' in obj &&
+    'response' in obj &&
+    obj.request != null &&
+    obj.response != null
+  );
 }

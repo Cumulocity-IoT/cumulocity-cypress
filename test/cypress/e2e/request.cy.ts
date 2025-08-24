@@ -9,6 +9,9 @@ import {
 const { _, Promise } = Cypress;
 
 describe("request", () => {
+  const testToken =
+    "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3NTU5Nzc0NzUsImV4cCI6MTc4NzUxMzQ3NSwiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsInhzcmZUb2tlbiI6IjIzNG5tMjM0bm0yMzQyMzQiLCJ0ZW4iOiJ0MTIzNDU2NyIsInVzZXIiOiJ0b2tlbnVzZXIiLCJiYXNlVXJsIjoiaHR0cHM6Ly9teXRlc3QuYzh5LmlvIn0.wKGIxJrUnT0NNyd198mfxegV6kncYsNFhGa6MFSSKCE";
+
   beforeEach(() => {
     initRequestStub();
   });
@@ -67,6 +70,75 @@ describe("request", () => {
         expect(request.cookies).to.deep.eq(cookies);
         expect(headers).to.have.property("x-xsrf-token", "1234");
         expect(headers).to.not.have.property("authorization");
+      });
+    });
+
+    it("should use bearer jwt token", () => {
+      stubEnv({ C8Y_TOKEN: testToken });
+      cy.request("/my/test/request").then((response) => {
+        expect(response.status).to.eq(200);
+        const request = response.body.request;
+        expect(request.auth).to.eq(`Bearer ${testToken}`);
+        expect(request.headers).to.have.property(
+          "authorization",
+          `Bearer ${testToken}`
+        );
+      });
+    });
+
+    it("should prefer cookie over bearer auth", () => {
+      cy.setCookie("XSRF-TOKEN", "1234");
+      cy.setCookie("authorization", "abc");
+      stubEnv({ C8Y_TOKEN: testToken });
+
+      cy.request("/my/test/request").then((response) => {
+        expect(response.status).to.eq(200);
+        const request = response.body.request;
+        expect(request.auth).to.be.undefined;
+
+        const headers = response.body.request.headers;
+        const cookies: any = { authorization: "abc", "XSRF-TOKEN": "1234" };
+        expect(request.cookies).to.deep.eq(cookies);
+        expect(headers).to.have.property("x-xsrf-token", "1234");
+        expect(headers).to.not.have.property("authorization");
+      });
+    });
+
+    it("should use cookie auth from cy.login", () => {
+      cy.login({ user: "admin", password: "password" });
+
+      cy.request("/my/test/request").then((response) => {
+        expect(response.status).to.eq(200);
+        const request = response.body.request;
+        expect(request.auth).to.be.undefined;
+
+        const headers = response.body.request.headers;
+        const cookies: any = {
+          authorization: "eyJhbGciOiJ",
+          "XSRF-TOKEN": "pQWAHZQfhLRcDVqVsCjV",
+        };
+        expect(request.cookies).to.deep.eq(cookies);
+        expect(headers).to.have.property(
+          "x-xsrf-token",
+          "pQWAHZQfhLRcDVqVsCjV"
+        );
+        expect(headers).to.not.have.property("authorization");
+      });
+    });
+
+    it("should use auth from options", () => {
+      cy.setCookie("XSRF-TOKEN", "1234");
+      cy.setCookie("authorization", "abc");
+      stubEnv({ C8Y_TOKEN: testToken });
+
+      cy.request({
+        method: "POST",
+        url: "/my/test/request",
+        auth: { user: "abc", password: "xyz" },
+      }).then((response) => {
+        expect(response.status).to.eq(200);
+        const request = response.body.request;
+        expect(request.auth).to.eq(basicAuthorization("abc", "xyz"));
       });
     });
 
@@ -209,6 +281,32 @@ describe("request", () => {
         expect(request.cookies).to.deep.eq({});
         expect(request.body).to.deep.eq({});
         expect(request.headers).to.not.have.property("x-xsrf-token");
+      });
+    });
+
+    it("should prefer basic auth over bearer auth", () => {
+      stubEnv({
+        C8Y_TOKEN: testToken,
+        C8Y_USERNAME: "myadmin",
+        C8Y_PASSWORD: "mypassword",
+      });
+
+      cy.request({
+        method: "POST",
+        url: "/my/test/request",
+        auth,
+        preferBasicAuth: true,
+      }).then((response) => {
+        expect(response.status).to.eq(200);
+        const request = response.body.request;
+        expect(request.url).to.eq("/my/test/request");
+        expect(request.auth).to.eq(basicAuthorization("myadmin", "mypassword"));
+        // expect(request.cookies).to.deep.eq({});
+        expect(request.headers).to.not.have.property("x-xsrf-token");
+        expect(request.headers).to.have.property(
+          "authorization",
+          basicAuthorization("myadmin", "mypassword")
+        );
       });
     });
   });
