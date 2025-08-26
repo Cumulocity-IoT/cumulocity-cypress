@@ -45,9 +45,9 @@ app.all("/*splat", (req, res) => {
 });
 
 const PORT = 8080;
-app.listen(PORT, '0.0.0.0', (error?: Error) => {
+app.listen(PORT, (error?: Error) => {
   if (error) {
-    console.error('Test server failed to start:', error);
+    console.error("Test server failed to start:", error);
     process.exit(1);
   } else {
     console.log(`Cypress test backend running on http://localhost:${PORT}`);

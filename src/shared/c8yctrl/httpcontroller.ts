@@ -308,7 +308,7 @@ export class C8yPactHttpController {
 
     // Express 5 compatible app.listen with error handling
     return new Promise<void>((resolve, reject) => {
-      this.server = this.app.listen(this.port, "0.0.0.0", (error?: Error) => {
+      this.server = this.app.listen(this.port, (error?: Error) => {
         if (error) {
           this.logger.error("Server failed to start:", error);
           reject(error);
