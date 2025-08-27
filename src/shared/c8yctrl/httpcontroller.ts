@@ -60,7 +60,7 @@ export class C8yPactHttpController {
   currentPact?: C8yDefaultPact;
 
   readonly port: number;
-  readonly hostname: string;
+  readonly hostname?: string;
 
   protected _baseUrl?: C8yBaseUrl;
   protected _staticRoot?: string;
@@ -88,7 +88,7 @@ export class C8yPactHttpController {
     this.options = options;
     this.adapter = options.adapter;
     this.port = options.port || 3000;
-    this.hostname = options.hostname || "localhost";
+    this.hostname = options.hostname;
     this._isStrictMocking = options.strictMocking || true;
 
     this.resourcePath = options.resourcePath || "/c8yctrl";
@@ -308,7 +308,11 @@ export class C8yPactHttpController {
 
     // Express 5 compatible app.listen with error handling
     return new Promise<void>((resolve, reject) => {
-      this.server = this.app.listen(this.port, (error?: Error) => {
+      const listenArgs: any[] = [this.port];
+      if (this.hostname != null) {
+        listenArgs.push(this.hostname);
+      }
+      listenArgs.push((error?: Error) => {
         if (error) {
           this.logger.error("Server failed to start:", error);
           reject(error);
@@ -319,6 +323,7 @@ export class C8yPactHttpController {
           resolve();
         }
       });
+      this.server = this.app.listen(...listenArgs);
     });
   }
 
