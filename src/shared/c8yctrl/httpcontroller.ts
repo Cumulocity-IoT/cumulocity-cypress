@@ -309,7 +309,7 @@ export class C8yPactHttpController {
     // Express 5 compatible app.listen with error handling
     return new Promise<void>((resolve, reject) => {
       const listenArgs: any[] = [this.port];
-      if (this.hostname != null && !_.isEmpty(this.hostname)) {
+      if (this.hostname != null) {
         listenArgs.push(this.hostname);
       }
       listenArgs.push((error?: Error) => {
