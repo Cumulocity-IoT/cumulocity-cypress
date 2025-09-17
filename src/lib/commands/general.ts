@@ -175,7 +175,10 @@ Cypress.Commands.add("disableCookieBanner", () => {
     },
     (req) => {
       req.continue((res) => {
-        res.body.cookieBanner = undefined;
+        // in case of e.g. a 404 on the public options, do not try to modify the body
+        if (res.statusCode == 200 && typeof res.body === "object") {
+          res.body.cookieBanner = undefined;
+        }
         res.send();
       });
     }
