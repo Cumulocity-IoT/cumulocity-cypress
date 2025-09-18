@@ -9,6 +9,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+app.get(
+  "/apps/public/public-options@app-error/options.json",
+  (req, res) => {
+    res
+      .status(404)
+      .send(
+        "<html><head><title>404 Not Found</title></head><body><center><h1>404 Not Found</h1></center><hr></body></html>"
+      );
+  }
+);
+
 app.use(
   express.static("./test/cypress/app", {
     etag: false,
