@@ -127,6 +127,39 @@ describe("general", () => {
         })
         .wait("@interception");
     });
+
+    it("disableCookieBanner should ignore errors returned by the server", () => {
+      cy.disableCookieBanner()
+        .as("interception")
+        .then(() => {
+          return cy.then(() => {
+            // do not return jQuery promise directly, because it would fail the test on error
+            return new Promise<{ status: number; responseText?: string }>(
+              (resolve) => {
+                $.get({
+                  url: url(
+                    `/apps/public/public-options@app-error/options.json`
+                  ),
+                })
+                  .done((data, textStatus, xhr) => {
+                    resolve({ status: xhr.status, responseText: data });
+                  })
+                  .fail((xhr) => {
+                    resolve({
+                      status: xhr.status,
+                      responseText: xhr.responseText,
+                    });
+                  });
+              }
+            );
+          });
+        })
+        .then((response) => {
+          expect(response.status).to.eq(404);
+          expect(response.responseText).to.contain("404 Not Found");
+        })
+        .wait("@interception");
+    });
   });
 
   context("setLanguage", () => {
