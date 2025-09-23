@@ -1191,7 +1191,7 @@ describe("c8ypact", () => {
 
         Cypress.once("fail", (err) => {
           expect(err.message).to.contain(
-            "non-existing-pact-id not found. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore."
+            `Invalid pact or no records found in pact with id 'non-existing-pact-id'. Check pact file for errors. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore.`
           );
           done();
         });
@@ -1199,7 +1199,37 @@ describe("c8ypact", () => {
         cy.c8yclient<IManagedObject>([
           (c) => c.inventory.detail(1, { withChildren: false }),
           (c) => c.inventory.detail(1, { withChildren: false }),
-        ]).then((response) => {
+        ]).then(() => {
+          expect(Cypress.c8ypact.current).to.be.null;
+        });
+      }
+    );
+
+    it(
+      "should fail for missing pact record with index - failOnMissingPacts enabled",
+      { c8ypact: { id: "non-existing-pact-id" }, auth: "admin" },
+      function (done) {
+        stubEnv({ C8Y_PACT_MODE: "apply" });
+        Cypress.env("C8Y_TENANT", "t1234");
+
+        Cypress.c8ypact.config.failOnMissingPacts = true;
+        Cypress.c8ypact.current = new C8yDefaultPact(
+          [{ request: { url: "test" } } as any],
+          {} as any,
+          "test"
+        );
+
+        Cypress.once("fail", (err) => {
+          expect(err.message).to.contain(
+            "Record with index 1 not found in pact with id 'non-existing-pact-id'. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore."
+          );
+          done();
+        });
+
+        cy.c8yclient<IManagedObject>([
+          (c) => c.inventory.detail(1, { withChildren: false }),
+          (c) => c.inventory.detail(1, { withChildren: false }),
+        ]).then(() => {
           expect(Cypress.c8ypact.current).to.be.null;
         });
       }
@@ -1388,7 +1418,7 @@ describe("c8ypact", () => {
       Cypress.c8ypact.preprocessor = new C8yCypressEnvPreprocessor({
         ignore: ["request.headers", "response.isOkStatusCode"],
       });
-      
+
       const matcher = new C8yAjvSchemaMatcher();
       matcher.ajv.addSchema(openapi, "MySpec");
       Cypress.c8ypact.schemaMatcher = matcher;
