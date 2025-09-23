@@ -160,6 +160,10 @@ export class C8yDefaultPact implements C8yPact {
     return this.records[this.recordIndex++];
   }
 
+  currentRecordIndex(): number {
+    return this.recordIndex;
+  }
+
   nextRecordMatchingRequest(
     request: Partial<Request> | { url: string; method: string },
     baseUrl?: C8yBaseUrl
