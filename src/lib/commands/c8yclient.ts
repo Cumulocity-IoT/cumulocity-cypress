@@ -559,9 +559,22 @@ function run(
               Cypress.c8ypact.getConfigValue("failOnMissingPacts", true) &&
               !ignore
             ) {
-              throwError(
-                `${Cypress.c8ypact.getCurrentTestId()} not found. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore.`
-              );
+              if (
+                Cypress.c8ypact.current == null ||
+                _.isEmpty(Cypress.c8ypact.current?.records)
+              ) {
+                throwError(
+                  `Invalid pact or no records found in pact with id '${Cypress.c8ypact.getCurrentTestId()}'. Check pact file for errors. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore.`
+                );
+              } else {
+                const current: any = Cypress.c8ypact.current;
+                const index = _.isFunction(current?.currentRecordIndex)
+                  ? current?.currentRecordIndex() ?? 0
+                  : 0;
+                throwError(
+                  `Record with index ${index} not found in pact with id '${Cypress.c8ypact.getCurrentTestId()}'. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore.`
+                );
+              }
             }
           }
         }
