@@ -17,6 +17,28 @@ import {
   IResult,
   IResultList,
   BearerAuth,
+  IManagedObject,
+  IUser,
+  IApplication,
+  IAlarm,
+  IEvent,
+  Paging,
+  IApplicationVersion,
+  IAuditRecord,
+  IOperation,
+  IOperationBulk,
+  IDeviceRegistration,
+  IExternalIdentity,
+  IManagedObjectBinary,
+  IMeasurement,
+  ITenant,
+  ITenantOption,
+  ITenantLoginOption,
+  IUserReference,
+  IUserGroup,
+  IRole,
+  IRoleReference,
+  IIdentified,
 } from "@c8y/client";
 
 import {
@@ -108,7 +130,7 @@ declare global {
       c8yclient<T = any, R = any>(
         serviceFn: C8yClientServiceListFn<R, T>,
         options?: C8yClientOptions
-      ): Chainable<Response<T[]>>;
+      ): Chainable<Response<C8yCollectionResponse<T>>>;
 
       c8yclient(): Chainable<Client>;
 
@@ -133,7 +155,7 @@ declare global {
       c8yclientf<T = any, R = any>(
         serviceFn: C8yClientServiceListFn<R, T>,
         options?: C8yClientOptions
-      ): Chainable<Response<T[]>>;
+      ): Chainable<Response<C8yCollectionResponse<T>>>;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -171,6 +193,62 @@ declare global {
     originalError?: Error;
     constructor(message: string, originalError?: Error);
   }
+
+  type C8yCollectionResponse<T> = T extends IAlarm
+    ? { alarms: T[] } & CollectionMetadata<T>
+    : T extends IManagedObject
+    ? { managedObjects: T[] } & CollectionMetadata<T>
+    : T extends IEvent
+    ? { events: T[] } & CollectionMetadata<T>
+    : T extends IOperation
+    ? { operations: T[] } & CollectionMetadata<T>
+    : T extends IMeasurement
+    ? { measurements: T[] } & CollectionMetadata<T>
+    : T extends IAuditRecord
+    ? { auditRecords: T[] } & CollectionMetadata<T>
+    : T extends IDeviceRegistration
+    ? { newDeviceRequests: T[] } & CollectionMetadata<T>
+    : T extends IExternalIdentity
+    ? { externalIds: T[] } & CollectionMetadata<T>
+    : T extends IOperationBulk
+    ? { bulkOperations: T[] } & CollectionMetadata<T>
+    : T extends IManagedObjectBinary
+    ? { managedObjects: T[] } & CollectionMetadata<T>
+    : T extends IApplicationVersion
+    ? { versions: T[] } & CollectionMetadata<T>
+    : T extends IRoleReference
+    ? { references: T[] } & CollectionMetadata<T>
+    : T extends ITenantLoginOption
+    ? { loginOptions: T[] } & CollectionMetadata<T>
+    : T extends ITenantOption
+    ? { options: T[] } & CollectionMetadata<T>
+    : T extends IUserReference
+    ? { references: T[] } & CollectionMetadata<T>
+    : T extends IUserGroup
+    ? { groups: T[] } & CollectionMetadata<T>
+    : // UNION TYPE FALLBACK - For interfaces with only optionals or custom fragments
+    T extends IUser | IRole | IApplication | ITenant | IIdentified
+    ? CustomFragmentsInterfaceResponse<T>
+    : never;
+
+  type CollectionMetadata<T> = {
+    statistics?: Paging<T>;
+    self?: string;
+    next?: string;
+    prev?: string;
+  };
+
+  // Union type for interfaces with custom fragments - all possible properties available
+  // there is no better way to make type inference work for interfaces with only optionals
+  // or having custom fragments defined as [key: string]: any
+  type CustomFragmentsInterfaceResponse<T> = {
+    // Common collection properties that could contain the data
+    applications?: T[];
+    roles?: T[];
+    tenants?: T[];
+    users?: T[];
+    // ...
+  } & CollectionMetadata<T>;
 }
 
 export const defaultClientOptions = () => {
