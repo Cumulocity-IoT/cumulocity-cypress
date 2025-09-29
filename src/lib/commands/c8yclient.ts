@@ -303,7 +303,10 @@ globalThis.fetch = async function (
               .catch((error) => {
                 // Log error but don't fail the request
                 if (Cypress.c8ypact.debugLog) {
-                  console.warn("Failed to save pact in fetch override:", error);
+                  console.warn(
+                    `Failed to save pact in fetch override for URL: ${details.url}, Context ID: ${details.contextId}:`,
+                    error
+                  );
                 }
               });
           }
