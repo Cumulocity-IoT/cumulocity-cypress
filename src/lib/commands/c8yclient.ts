@@ -226,7 +226,7 @@ globalThis.fetch = async function (
   };
 
   // Use the current request context if available
-  const logOptions = currentRequestContext
+  const ctx = currentRequestContext
     ? {
         ...currentRequestContext,
         consoleProps: {},
@@ -290,25 +290,11 @@ globalThis.fetch = async function (
             currentRequestContext.logger.end();
             requestContexts.delete(details.contextId);
           }
-
-          // Save pact for every request if recording is enabled (fire and forget)
-          // This works regardless of whether logging is enabled or not
-          if (
-            currentRequestContext?.savePact &&
-            !currentRequestContext?.ignorePact &&
-            details.yielded
-          ) {
-            Cypress.c8ypact
-              .savePact(details.yielded, currentRequestContext.client)
-              .catch((error) => {
-                // Log error but don't fail the request
-                if (Cypress.c8ypact.debugLog) {
-                  console.warn(
-                    `Failed to save pact in fetch override for URL: ${details.url}, Context ID: ${details.contextId}:`,
-                    error
-                  );
-                }
-              });
+          if (details.yielded && currentRequestContext != null) {
+            currentRequestContext.requests = [
+              ...(currentRequestContext.requests ?? []),
+              details.yielded,
+            ];
           }
         },
       }
@@ -318,7 +304,7 @@ globalThis.fetch = async function (
     requestContexts.set(currentRequestContext.contextId, currentRequestContext);
   }
 
-  return wrapFetchRequest(url, fetchOptions, logOptions);
+  return wrapFetchRequest(url, fetchOptions, ctx);
 };
 
 const c8yclientFn = (...args: any[]) => {
@@ -636,6 +622,16 @@ function run(
           const cypressResponse = toCypressResponse(result);
           if (cypressResponse) {
             cypressResponse.$body = options.schema;
+            if (savePact) {
+              if (_.isArray(currentRequestContext?.requests)) {
+                // the last request is cypressResponse, only store other requests first
+                currentRequestContext.requests.pop();
+                currentRequestContext.requests.forEach(async (req) => {
+                  await Cypress.c8ypact.savePact(req, client);
+                });
+              }
+              await Cypress.c8ypact.savePact(cypressResponse, client);
+            }
             if (isErrorResponse(cypressResponse)) {
               throw cypressResponse;
             }
