@@ -226,7 +226,7 @@ globalThis.fetch = async function (
   };
 
   // Use the current request context if available
-  const logOptions = currentRequestContext
+  const ctx = currentRequestContext
     ? {
         ...currentRequestContext,
         consoleProps: {},
@@ -261,34 +261,41 @@ globalThis.fetch = async function (
             NonNullable<C8yClientLogOptions["onRequestEnd"]>
           >[0]
         ) => {
-          if (!currentRequestContext?.logger) return;
-          currentRequestContext.logger.set({
-            message: getMessage(details),
-            consoleProps: () => ({
-              "Context ID": details.contextId,
-              "Request ID": details.options?.requestId || null,
-              "Request URL": details.url,
-              "Request Method": details.method,
-              "Request Headers": fetchOptions?.headers,
-              "Request Body": fetchOptions?.body,
-              ...(details.error
-                ? { Error: details.error }
-                : {
-                    "Response Status": details.status ?? 0,
-                    "Response Headers": details.headers ?? {},
-                    "Response Body": details.body ?? null,
-                  }),
-              Duration: `${details.duration}ms`,
-              Success: details?.success,
-              "Fetch Options": fetchOptions,
-              Options: details.options,
-              Yielded: details.yielded,
-              ...details.additionalInfo,
-            }),
-          });
-
-          currentRequestContext.logger.end();
-          requestContexts.delete(details.contextId);
+          // Update logger if available
+          if (currentRequestContext?.logger) {
+            currentRequestContext.logger.set({
+              message: getMessage(details),
+              consoleProps: () => ({
+                "Context ID": details.contextId,
+                "Request ID": details.options?.requestId || null,
+                "Request URL": details.url,
+                "Request Method": details.method,
+                "Request Headers": fetchOptions?.headers,
+                "Request Body": fetchOptions?.body,
+                ...(details.error
+                  ? { Error: details.error }
+                  : {
+                      "Response Status": details.status ?? 0,
+                      "Response Headers": details.headers ?? {},
+                      "Response Body": details.body ?? null,
+                    }),
+                Duration: `${details.duration}ms`,
+                Success: details?.success,
+                "Fetch Options": fetchOptions,
+                Options: details.options,
+                Yielded: details.yielded,
+                ...details.additionalInfo,
+              }),
+            });
+            currentRequestContext.logger.end();
+            requestContexts.delete(details.contextId);
+          }
+          if (details.yielded && currentRequestContext != null) {
+            currentRequestContext.requests = [
+              ...(currentRequestContext.requests ?? []),
+              details.yielded,
+            ];
+          }
         },
       }
     : undefined;
@@ -297,7 +304,7 @@ globalThis.fetch = async function (
     requestContexts.set(currentRequestContext.contextId, currentRequestContext);
   }
 
-  return wrapFetchRequest(url, fetchOptions, logOptions);
+  return wrapFetchRequest(url, fetchOptions, ctx);
 };
 
 const c8yclientFn = (...args: any[]) => {
@@ -525,19 +532,20 @@ function run(
       });
     }
 
-    // Set up the request context for the global fetch override
-    if (logger) {
-      currentRequestContext = {
-        contextId,
-        logger,
-        options,
-        startTime: Date.now(),
-      };
-    }
-
     const enabled = Cypress.c8ypact.isEnabled();
     const ignore = options?.ignorePact === true || false;
     const savePact = !ignore && Cypress.c8ypact.isRecordingEnabled();
+
+    // Set up the request context for the global fetch override (always, even when logging is disabled)
+    currentRequestContext = {
+      contextId,
+      logger,
+      options,
+      startTime: Date.now(),
+      client,
+      savePact,
+      ignorePact: ignore,
+    };
 
     const matchPact = (response: any, schema: any) => {
       if (schema) {
@@ -615,6 +623,13 @@ function run(
           if (cypressResponse) {
             cypressResponse.$body = options.schema;
             if (savePact) {
+              if (_.isArray(currentRequestContext?.requests)) {
+                // the last request is cypressResponse, only store other requests first
+                currentRequestContext.requests.pop();
+                currentRequestContext.requests.forEach(async (req) => {
+                  await Cypress.c8ypact.savePact(req, client);
+                });
+              }
               await Cypress.c8ypact.savePact(cypressResponse, client);
             }
             if (isErrorResponse(cypressResponse)) {

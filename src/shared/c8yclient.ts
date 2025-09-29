@@ -127,9 +127,14 @@ export interface C8yClientRequestContextOnRequestEnd
 
 export interface C8yClientRequestContext {
   contextId: string;
-  logger: Cypress.Log;
+  logger?: Cypress.Log;
   options: C8yClientOptions;
   startTime: number;
+  requests?: Cypress.Response<any>[];
+  // Pact context
+  client?: C8yClient;
+  savePact: boolean;
+  ignorePact: boolean;
 }
 export interface C8yClientLogOptions {
   consoleProps?: any;

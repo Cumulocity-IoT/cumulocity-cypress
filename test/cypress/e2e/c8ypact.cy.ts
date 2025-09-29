@@ -914,6 +914,7 @@ describe("c8ypact", () => {
           const spy = Cypress.c8ypact.savePact as sinon.SinonSpy;
           expect(spy).to.have.been.calledOnce;
           expect(spy.getCall(0).args[0].$body).to.deep.eq(schema);
+          expect(response.$body).to.deep.eq(schema);
         })
         .then(() => {
           Cypress.c8ypact.loadCurrent().then((pact) => {
