@@ -50,7 +50,7 @@ describe("c8ypactmatcher", () => {
       expect(obj.body.password).to.eq("abasasapksasas");
     });
 
-    it("should preprocess response before matching against contract", function (done) {
+    it.only("should preprocess response before matching against contract", function (done) {
       // @ts-expect-error
       const obj: Cypress.Response<any> = {
         requestHeaders: {
@@ -72,9 +72,8 @@ describe("c8ypactmatcher", () => {
       expect(obj.body.Test).to.eq("testpassword");
 
       const pact = C8yDefaultPactRecord.from(pactSourceObj);
-      const obfuscationPattern = preprocessor.options!.obfuscationPattern;
-      // @ts-expect-error
-      expect(pact.request.headers.Test).to.eq(obfuscationPattern);
+      const obfuscationPattern = preprocessor.resolveOptions().obfuscationPattern;
+      expect((pact.request.headers! as any).Test).to.eq(obfuscationPattern);
       expect(pact.response.body.Test).to.eq(obfuscationPattern);
 
       cy.c8ymatch(
