@@ -371,7 +371,7 @@ describe("c8ydefaultpact", () => {
         id: "testid",
         baseUrl: BASE_URL,
         requestMatching: {
-          ignoreUrlParameters: ["dateFrom", "dateTo", "_"],
+          ignoreUrlParameters: ["dateFrom", "dateTo", "_", "nocache"],
         },
       });
       pact.records[0].request.url = url(url1);

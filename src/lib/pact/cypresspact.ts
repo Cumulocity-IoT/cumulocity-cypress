@@ -267,7 +267,7 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
       strictMatching: false,
       strictMocking: true,
       requestMatching: {
-        ignoreUrlParameters: ["dateFrom", "dateTo", "_"],
+        ignoreUrlParameters: ["dateFrom", "dateTo", "_", "nocache"],
         baseUrl: getBaseUrlFromEnv(),
       },
     },
