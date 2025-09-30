@@ -1486,6 +1486,7 @@ describe("c8ypact", () => {
   context("C8yCypressEnvPreprocessor", function () {
     beforeEach(() => {
       Cypress.env("C8Y_PACT_MODE", "recording");
+      Cypress.c8ypact.config.preprocessor = {};
     });
 
     const cypressResponse: Partial<Cypress.Response<any>> = {
@@ -1715,6 +1716,11 @@ describe("c8ypact", () => {
     it("should not add preprocessed properties and store options in info", function () {
       cy.setCookie("XSRF-TOKEN", "fsETfgIBdAnEyOLbADTu22");
       Cypress.env("C8Y_TENANT", "t1234");
+      Cypress.c8ypact.config.preprocessor = {
+        obfuscationPattern: "asdasd",
+        obfuscate: ["body.password"],
+        ignore: ["requestHeaders.date"],
+      };
 
       stubResponses([
         new window.Response(JSON.stringify({ test: "test" }), {
@@ -1732,8 +1738,14 @@ describe("c8ypact", () => {
           expect(record).to.not.be.null;
           expect(_.has(record, "request.headers.Authorization")).to.be.false;
           expect(record?.response.body.password).to.be.undefined;
+          expect(pact?.info.preprocessor).to.deep.eq({
+            obfuscationPattern: "asdasd",
+            obfuscate: ["body.password"],
+            ignore: ["requestHeaders.date"],
+            ignoreCase: true,
+          });
           expect(pact?.info.preprocessor).to.deep.eq(
-            Cypress.c8ypact.preprocessor!.options
+            (Cypress.c8ypact.preprocessor! as any).resolveOptions()
           );
         });
       });
@@ -1753,6 +1765,191 @@ describe("c8ypact", () => {
       });
       expect(obj.body.password).to.eq("test");
       expect(obj.requestHeaders?.UseXBasic).to.be.undefined;
+    });
+
+    it("should allow overriding preprocessor options with config options", function () {
+      const obj = _.cloneDeep(cypressResponse);
+      Cypress.c8ypact.config.preprocessor = {
+        obfuscationPattern: "test",
+        obfuscate: ["body.password"],
+        ignore: ["requestHeaders.UseXBasic"],
+      };
+
+      const preprocessor = new C8yCypressEnvPreprocessor();
+      expect((preprocessor as any).resolveOptions()).to.deep.eq({
+        obfuscationPattern: "test",
+        obfuscate: ["body.password"],
+        ignore: ["requestHeaders.UseXBasic"],
+        ignoreCase: true,
+      });
+    });
+
+    it("should use config options when no env variables are set", function () {
+      const obj = _.cloneDeep(cypressResponse);
+      Cypress.c8ypact.config.preprocessor = {
+        obfuscationPattern: "config-pattern",
+        obfuscate: ["body.password"],
+        ignore: ["requestHeaders.UseXBasic"],
+      };
+      const preprocessor = new C8yCypressEnvPreprocessor();
+
+      expect(preprocessor.resolveOptions()).to.deep.eq({
+        obfuscationPattern: "config-pattern",
+        obfuscate: ["body.password"],
+        ignore: ["requestHeaders.UseXBasic"],
+        ignoreCase: true,
+      });
+
+      preprocessor.apply(obj);
+      expect(obj.body.password).to.eq("config-pattern");
+      expect(obj.requestHeaders?.UseXBasic).to.be.undefined;
+      expect(obj.requestHeaders?.Authorization).to.eq("asdasdasdasd"); // not obfuscated
+    });
+
+    it("should prioritize env variables over config options", function () {
+      stubEnv({
+        C8Y_PACT_PREPROCESSOR_OBFUSCATE: "requestHeaders.Authorization",
+        C8Y_PACT_PREPROCESSOR_PATTERN: "env-pattern",
+      });
+
+      Cypress.c8ypact.config.preprocessor = {
+        obfuscationPattern: "config-pattern",
+        obfuscate: ["body.password"],
+        ignore: ["requestHeaders.UseXBasic"],
+      };
+
+      const obj = _.cloneDeep(cypressResponse);
+      const preprocessor = new C8yCypressEnvPreprocessor();
+
+      expect(preprocessor.resolveOptions()).to.deep.eq({
+        obfuscationPattern: "env-pattern",
+        obfuscate: ["requestHeaders.Authorization"],
+        ignore: ["requestHeaders.UseXBasic"], // from config, no env override
+        ignoreCase: true,
+      });
+
+      preprocessor.apply(obj);
+      expect(obj.requestHeaders?.Authorization).to.eq("env-pattern");
+      expect(obj.body.password).to.eq("abasasapksasas"); // not obfuscated
+      expect(obj.requestHeaders?.UseXBasic).to.be.undefined;
+    });
+
+    it("should prioritize apply options over all other configurations", function () {
+      Cypress.c8ypact.config.preprocessor = {
+        obfuscationPattern: "config-pattern",
+        obfuscate: ["body.password"],
+        ignore: ["requestHeaders.UseXBasic"],
+      };
+
+      const obj = _.cloneDeep(cypressResponse);
+      const preprocessor = new C8yCypressEnvPreprocessor({
+        obfuscationPattern: "<constructor>",
+        obfuscate: ["requestHeaders.Authorization"],
+        ignore: ["body.status"],
+      });
+
+      preprocessor.apply(obj, {
+        obfuscationPattern: "apply-pattern",
+        obfuscate: ["body.password", "requestHeaders.accept"],
+        ignore: ["requestHeaders.date"],
+      });
+
+      expect(obj.body.password).to.eq("apply-pattern");
+      expect(obj.requestHeaders?.accept).to.eq("apply-pattern");
+      expect(obj.requestHeaders?.Authorization).to.eq("asdasdasdasd"); // env still applies for non-overridden
+      expect(obj.requestHeaders?.date).to.be.undefined;
+      expect(obj.requestHeaders?.UseXBasic).to.eq("true"); // not ignored by apply options
+    });
+
+    it("should use constructor options when no higher priority options are set", function () {
+      const obj = _.cloneDeep(cypressResponse);
+      const preprocessor = new C8yCypressEnvPreprocessor({
+        obfuscationPattern: "<constructor>",
+        obfuscate: ["requestHeaders.Authorization"],
+        ignore: ["body.creationTime"],
+      });
+
+      expect(preprocessor.resolveOptions()).to.deep.eq({
+        obfuscationPattern: "<constructor>",
+        obfuscate: ["requestHeaders.Authorization"],
+        ignore: ["body.creationTime"],
+        ignoreCase: true,
+      });
+
+      preprocessor.apply(obj);
+      expect(obj.requestHeaders?.Authorization).to.eq("<constructor>");
+      expect(obj.body.creationTime).to.be.undefined;
+      expect(obj.body.password).to.eq("abasasapksasas"); // not obfuscated
+    });
+
+    it("should merge partial configurations correctly", function () {
+      stubEnv({
+        C8Y_PACT_PREPROCESSOR_PATTERN: "env-pattern",
+      });
+      // No obfuscate or ignore env variables set
+
+      Cypress.c8ypact.config.preprocessor = {
+        obfuscate: ["body.password"],
+        // No obfuscationPattern in config
+      };
+
+      const obj = _.cloneDeep(cypressResponse);
+      const preprocessor = new C8yCypressEnvPreprocessor({
+        ignore: ["requestHeaders.UseXBasic"],
+        ignoreCase: false, // different from default
+      });
+
+      expect(preprocessor.resolveOptions()).to.deep.eq({
+        obfuscate: ["body.password"],
+        obfuscationPattern: "env-pattern",
+        ignore: ["requestHeaders.UseXBasic"],
+        ignoreCase: false, // different from default
+      });
+
+      preprocessor.apply(obj);
+      expect(obj.body.password).to.eq("env-pattern");
+      expect(obj.requestHeaders?.UseXBasic).to.be.undefined;
+      expect(obj.requestHeaders?.Authorization).to.eq("asdasdasdasd"); // not obfuscated
+    });
+
+    it("should handle empty config and env gracefully", function () {
+      // Clear any existing config
+      delete Cypress.c8ypact.config.preprocessor;
+
+      const obj = _.cloneDeep(cypressResponse);
+      const preprocessor = new C8yCypressEnvPreprocessor({
+        obfuscate: ["requestHeaders.Authorization"],
+        ignore: ["body.creationTime"],
+      });
+
+      expect(preprocessor.resolveOptions()).to.deep.eq({
+        obfuscationPattern:
+          C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+        obfuscate: ["requestHeaders.Authorization"],
+        ignore: ["body.creationTime"],
+        ignoreCase: true, // env default
+      });
+    });
+
+    it("should handle undefined config properties correctly", function () {
+      Cypress.c8ypact.config.preprocessor = {
+        obfuscationPattern: undefined,
+        obfuscate: undefined,
+        ignore: ["requestHeaders.UseXBasic"],
+      } as any;
+
+      const obj = _.cloneDeep(cypressResponse);
+      const preprocessor = new C8yCypressEnvPreprocessor({
+        obfuscationPattern: "<constructor>",
+        obfuscate: ["requestHeaders.Authorization"],
+        ignore: ["body.creationTime"],
+      });
+
+      preprocessor.apply(obj);
+      expect(obj.requestHeaders?.Authorization).to.eq("<constructor>");
+      expect(obj.body.creationTime).to.be.undefined;
+      expect(obj.requestHeaders?.UseXBasic).to.not.be.undefined;
+      expect(obj.body.password).to.eq("abasasapksasas"); // not obfuscated
     });
   });
 });

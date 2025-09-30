@@ -112,7 +112,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
   protected reservedKeys = ["id", "pact", "info", "records"];
 
   constructor(options?: C8yPactPreprocessorOptions) {
-    this.options = this.resolveOptions(options);
+    this.options = options;
   }
 
   apply(
