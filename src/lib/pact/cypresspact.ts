@@ -198,7 +198,7 @@ declare global {
      * @returns C8yPactRecord or undefined if the record should be ignored.
      */
     runRecord?: (
-      record: C8yPactRecord, 
+      record: C8yPactRecord,
       pact?: C8yPact
     ) => C8yPactRecord | undefined;
     /**
@@ -431,7 +431,9 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
       const pactBaseUrl = pact?.info?.baseUrl;
       if (
         baseUrl == null ||
-        (pactBaseUrl != null && baseUrl === Cypress.config().baseUrl)
+        (pactBaseUrl != null &&
+          baseUrl === Cypress.config().baseUrl &&
+          Cypress.c8ypact.config.strictMocking === true)
       ) {
         Cypress.env("C8Y_BASEURL", pactBaseUrl);
         consoleProps.baseUrl = getBaseUrlFromEnv();
