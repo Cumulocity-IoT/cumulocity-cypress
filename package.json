@@ -126,7 +126,7 @@
     "http-proxy-middleware": "^3.0.3",
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
-    "odiff-bin": "^3.1.2",
+    "odiff-bin": "^4.0.2",
     "raw-body": "^3.0.0",
     "semver": "^7.6.3",
     "set-cookie-parser": "^2.6.0",
