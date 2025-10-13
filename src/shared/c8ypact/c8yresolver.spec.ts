@@ -445,7 +445,7 @@ describe("resolvePact", () => {
             request: { method: "GET", path: "/item" },
             response: {
               status: 200,
-              "$body": { $ref: "#/definitions/dataDef" },
+              $body: { $ref: "#/definitions/dataDef" },
             },
           },
         ],
@@ -457,18 +457,70 @@ describe("resolvePact", () => {
         $ref: "#/definitions/dataDef",
       });
     });
+
+    it("should not resolve $refs in jsonSchema properties", async () => {
+      const jsonSchema = {
+        title: "cyAssetDefinition-1",
+        description: "Test asset definition for cypress tests 1",
+        additionalProperties: false,
+        $schema: "http://json-schema.org/draft-07/schema#",
+        type: "object",
+        definitions: {
+          c8y_ExternalId: {
+            description:
+              "Represents an external identifier that can be used to reference an asset or device in external systems. This identifier provides a way to map entities between Cumulocity IoT and other platforms or databases.",
+            readOnly: true,
+            title: "External ID",
+            type: "string",
+          },
+        },
+        properties: {
+          c8y_ExternalId: {
+            $ref: "#/definitions/c8y_ExternalId",
+          },
+        },
+        required: [],
+      };
+
+      const doc = {
+        definitions: {
+          dataDef: { value: "test data" },
+        },
+        records: [
+          {
+            request: { method: "GET", path: "/item" },
+            response: {
+              status: 200,
+              jsonSchema,
+            },
+          },
+        ],
+        id: "pact123",
+        info: { version: "1.0" },
+      };
+
+      expect(() => resolveRefs(doc)).not.toThrow();
+      const resolved = await resolveRefs(doc);
+      expect(resolved?.records[0].response.jsonSchema).toEqual(jsonSchema);
+    });
   });
 
   describe("external file $refs", () => {
-    beforeEach(() => { // This is the new beforeEach block, replacing the old one
+    beforeEach(() => {
+      // This is the new beforeEach block, replacing the old one
       jest.spyOn(process, "cwd").mockReturnValue(CWD);
 
       vol.fromNestedJSON({
-        [CWD]: { // /home/user
-          "file-in-cwd.json": JSON.stringify({ "cwdItem": "item from cwd" }),
-          test: { // /home/user/test
-            "file-in-test.json": JSON.stringify({ "testItem": "item from test folder" }),
-            fixtures: { // /home/user/test/fixtures
+        [CWD]: {
+          // /home/user
+          "file-in-cwd.json": JSON.stringify({ cwdItem: "item from cwd" }),
+          test: {
+            // /home/user/test
+            "file-in-test.json": JSON.stringify({
+              testItem: "item from test folder",
+            }),
+            fixtures: {
+              // /home/user/test/fixtures
               "externalDef.json": JSON.stringify({
                 simpleExternal: {
                   message: "Hello from external file!",
@@ -493,13 +545,17 @@ describe("resolvePact", () => {
               }),
             },
           },
-          anotherBase: { // /home/user/anotherBase
-             subfolder: { // /home/user/anotherBase/subfolder
-                "anotherExternalDef.json": JSON.stringify({
-                    anotherSimple: { message: "Hello from another base subfolder!"}
-                })
-             }
-          }
+          anotherBase: {
+            // /home/user/anotherBase
+            subfolder: {
+              // /home/user/anotherBase/subfolder
+              "anotherExternalDef.json": JSON.stringify({
+                anotherSimple: {
+                  message: "Hello from another base subfolder!",
+                },
+              }),
+            },
+          },
         },
       });
     });
@@ -681,16 +737,22 @@ describe("resolvePact", () => {
             request: { method: "GET", path: "/bf-relative" },
             response: {
               status: 200,
-              body: { $ref: "subfolder/anotherExternalDef.json#/anotherSimple" },
+              body: {
+                $ref: "subfolder/anotherExternalDef.json#/anotherSimple",
+              },
             },
           },
         ],
         id: "bf-relative-pact",
         info: defaultPactInfo,
       };
-      const expectedFilePath = path.join(specificBaseFolder, "subfolder", "anotherExternalDef.json");
+      const expectedFilePath = path.join(
+        specificBaseFolder,
+        "subfolder",
+        "anotherExternalDef.json"
+      );
       expect(fs.existsSync(expectedFilePath)).toBe(true);
-      
+
       const resolved = await resolveRefs(doc, specificBaseFolder);
       expect(resolved.records[0].response.body.message).toBe(
         "Hello from another base subfolder!"
@@ -700,7 +762,7 @@ describe("resolvePact", () => {
     });
 
     it("should use absolute $ref path even if baseFolder is provided", async () => {
-      const specificBaseFolder = path.join(CWD, "anotherBase"); 
+      const specificBaseFolder = path.join(CWD, "anotherBase");
       const absoluteRefPath = path.join(CWD, "test/fixtures/externalDef.json");
       const doc = {
         records: [
@@ -742,23 +804,26 @@ describe("resolvePact", () => {
       };
       expect(fs.existsSync(absoluteRefPath)).toBe(true);
 
-      const resolved = await resolveRefs(doc); 
+      const resolved = await resolveRefs(doc);
       expect(resolved.records[0].response.body.message).toBe(
         "Hello from external file!"
       );
       expect(resolved.id).toBe("no-bf-abs-os-pact");
       expect(resolved.info).toEqual(defaultPactInfo);
     });
-    
+
     it("should resolve relative $ref going up and down from baseFolder", async () => {
-      const specificBaseFolder = path.join(CWD, "test/fixtures"); 
+      const specificBaseFolder = path.join(CWD, "test/fixtures");
       const docWithoutFragment = {
         records: [
           {
-            request: { method: "GET", path: "/bf-relative-up-down-no-fragment" },
+            request: {
+              method: "GET",
+              path: "/bf-relative-up-down-no-fragment",
+            },
             response: {
               status: 200,
-              body: { $ref: "../file-in-test.json" }, 
+              body: { $ref: "../file-in-test.json" },
             },
           },
         ],
@@ -767,10 +832,13 @@ describe("resolvePact", () => {
       };
       const expectedFilePath = path.join(CWD, "test", "file-in-test.json");
       expect(fs.existsSync(expectedFilePath)).toBe(true);
-      
-      const resolvedNoFragment = await resolveRefs(docWithoutFragment, specificBaseFolder);
+
+      const resolvedNoFragment = await resolveRefs(
+        docWithoutFragment,
+        specificBaseFolder
+      );
       expect(resolvedNoFragment.records[0].response.body).toEqual({
-        testItem: "item from test folder"
+        testItem: "item from test folder",
       });
 
       const docWithFragment = {
@@ -779,15 +847,18 @@ describe("resolvePact", () => {
             request: { method: "GET", path: "/bf-relative-up-down" },
             response: {
               status: 200,
-              body: { $ref: "../file-in-test.json#/testItem" }, 
+              body: { $ref: "../file-in-test.json#/testItem" },
             },
           },
         ],
         id: "bf-relative-up-down-pact",
         info: defaultPactInfo,
       };
-      
-      const resolvedWithFragment = await resolveRefs(docWithFragment, specificBaseFolder);
+
+      const resolvedWithFragment = await resolveRefs(
+        docWithFragment,
+        specificBaseFolder
+      );
       expect(resolvedWithFragment.records[0].response.body).toBe(
         "item from test folder"
       );
