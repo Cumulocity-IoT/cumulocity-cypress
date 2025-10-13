@@ -258,6 +258,7 @@ export async function resolveRefs(
           }
 
           if (
+            currentSegment === "jsonSchema" ||
             currentSegment.startsWith("$") ||
             currentSegment.startsWith("%24")
           ) {
