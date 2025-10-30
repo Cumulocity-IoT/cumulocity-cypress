@@ -7,5 +7,6 @@ import "./login";
 import "./c8yclient";
 import "./administration";
 import "./highlight";
+import "./cookieBanner";
 
 export * from "./highlight";
