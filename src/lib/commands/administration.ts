@@ -390,9 +390,11 @@ Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
       }
       if (applications && !_.isEmpty(applications)) {
         consoleProps.applications = applications;
+        
+        const allApps: any[] = [];
         cy.wrap(applications, { log: false }).each((appName) => {
-          cy.wrap(auth, { log: false }).c8yclient(
-            [
+          cy.wrap(auth, { log: false })
+            .c8yclient(
               (c) =>
                 c.core.fetch("/application/applicationsByName/" + appName, {
                   headers: {
@@ -400,35 +402,59 @@ Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
                       "application/vnd.com.nsn.cumulocity.applicationcollection+json",
                   },
                 }),
-              (c, applicationResponse) => {
-                const applications =
-                  applicationResponse?.body?.applications ||
-                  applicationResponse?.body;
-                if (!applications || !_.isArrayLike(applications)) {
-                  throwError(
-                    `Application ${appName} not found. No or empty response.`
-                  );
+              clientOptions
+            )
+            .then((applicationResponse) => {
+              const applications =
+                applicationResponse?.body?.applications ||
+                applicationResponse?.body;
+              if (!applications || !_.isArrayLike(applications)) {
+                throwError(
+                  `Application ${appName} not found. No or empty response.`
+                );
+              }
+              const apps = applications.map((a: any) => {
+                if (_.isString(a)) {
+                  return {
+                    type: "HOSTED",
+                    id: a,
+                  };
+                } else if (_.isObjectLike(a) && a.id) {
+                  return _.pick(_.defaults(a, { type: "HOSTED" }), [
+                    "id",
+                    "type",
+                  ]);
                 }
-                const apps = applications.map((a: any) => {
-                  if (_.isString(a)) {
-                    return {
-                      type: "HOSTED",
-                      id: a,
-                    };
-                  } else if (_.isObjectLike(a) && a.id) {
-                    return _.pick(_.defaults(a, { type: "HOSTED" }), [
-                      "id",
-                      "type",
-                    ]);
-                  }
-                  return undefined;
-                });
-                return c.user.update({ id: userId, applications: apps });
-              },
-            ],
-            clientOptions
-          );
+                return undefined;
+              });
+              allApps.push(...apps.filter((a: any) => a !== undefined));
+            });
         });
+        
+        cy.wrap(auth, { log: false }).c8yclient(
+          [
+            (c) => {
+              if (!userId) {
+                throwError("User ID is missing.");
+              }
+              return c.user.detail(userId);
+            },
+            (c, userDetailResponse) => {
+              const existingApps = userDetailResponse?.body?.applications || [];
+              
+              // Merge with existing applications, avoiding duplicates by id
+              const mergedApps = [...existingApps];
+              for (const app of allApps) {
+                if (!mergedApps.find((existing: any) => existing.id === app.id)) {
+                  mergedApps.push(app);
+                }
+              }
+              
+              return c.user.update({ id: userId, applications: mergedApps });
+            },
+          ],
+          clientOptions
+        );
       }
       logger.end();
       return cy.wrap(userResponse);
