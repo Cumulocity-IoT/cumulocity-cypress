@@ -368,67 +368,132 @@ Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
       consoleProps.userId = userId;
       if (roles && !_.isEmpty(roles)) {
         consoleProps.roles = roles;
+        const roleResponses: any[] = [];
         cy.wrap(roles, { log: false }).each((role) => {
-          cy.wrap(auth, { log: false }).c8yclient(
-            [
-              (c) =>
-                c.core.fetch("/user/" + c.core.tenant + "/groupByName/" + role),
-              (c, groupResponse) => {
-                const childId = userResponse?.body?.self;
-                const groupId = groupResponse?.body?.id;
-                if (!childId || !groupId) {
-                  throwError(
-                    `Failed to add user ${childId} to group ${childId}.`
-                  );
-                }
-                return c.userGroup.addUserToGroup(groupId, childId);
-              },
-            ],
-            clientOptions
-          );
+          cy.wrap(auth, { log: false })
+            .c8yclient(
+              [
+                (c) =>
+                  c.core.fetch(
+                    "/user/" + c.core.tenant + "/groupByName/" + role
+                  ),
+                (c, groupResponse) => {
+                  const childId = userResponse?.body?.self;
+                  const groupId = groupResponse?.body?.id;
+                  if (!childId || !groupId) {
+                    throwError(
+                      `Failed to add user ${childId} to group ${childId}.`
+                    );
+                  }
+                  return c.userGroup.addUserToGroup(groupId, childId);
+                },
+              ],
+              clientOptions
+            )
+            .then((response) => {
+              roleResponses.push({ role, response });
+              consoleProps.roleResponses = roleResponses;
+            });
         });
       }
       if (applications && !_.isEmpty(applications)) {
         consoleProps.applications = applications;
-        cy.wrap(applications, { log: false }).each((appName) => {
-          cy.wrap(auth, { log: false }).c8yclient(
-            [
-              (c) =>
-                c.core.fetch("/application/applicationsByName/" + appName, {
-                  headers: {
-                    accept:
-                      "application/vnd.com.nsn.cumulocity.applicationcollection+json",
-                  },
-                }),
-              (c, applicationResponse) => {
-                const applications =
-                  applicationResponse?.body?.applications ||
-                  applicationResponse?.body;
-                if (!applications || !_.isArrayLike(applications)) {
-                  throwError(
-                    `Application ${appName} not found. No or empty response.`
-                  );
-                }
-                const apps = applications.map((a: any) => {
-                  if (_.isString(a)) {
-                    return {
-                      type: "HOSTED",
-                      id: a,
-                    };
-                  } else if (_.isObjectLike(a) && a.id) {
-                    return _.pick(_.defaults(a, { type: "HOSTED" }), [
-                      "id",
-                      "type",
-                    ]);
+
+        const allApps: any[] = [];
+        const appResponses: any[] = [];
+        cy.wrap(applications, { log: false }).each(
+          (app: string | IApplication) => {
+            if (_.isString(app)) {
+              cy.wrap(auth, { log: false })
+                .c8yclient<IApplication>(
+                  (c) =>
+                    c.core.fetch("/application/applicationsByName/" + app, {
+                      headers: {
+                        accept:
+                          "application/vnd.com.nsn.cumulocity.applicationcollection+json",
+                      },
+                    }),
+                  clientOptions
+                )
+                .then((applicationResponse) => {
+                  appResponses.push({ app, response: applicationResponse });
+                  consoleProps.appResponses = appResponses;
+
+                  const applications =
+                    applicationResponse?.body?.applications ||
+                    applicationResponse?.body;
+                  if (!applications || !_.isArrayLike(applications)) {
+                    throwError(
+                      `Application ${app} not found. No or empty response.`
+                    );
                   }
-                  return undefined;
+                  const apps = applications.map((a: any) => {
+                    if (_.isString(a)) {
+                      return {
+                        type: "HOSTED",
+                        id: a,
+                      };
+                    } else if (_.isObjectLike(a) && a.id) {
+                      return _.pick(_.defaults(a, { type: "HOSTED" }), [
+                        "id",
+                        "type",
+                      ]);
+                    }
+                    return undefined;
+                  });
+                  allApps.push(...apps.filter((a: any) => a !== undefined));
                 });
-                return c.user.update({ id: userId, applications: apps });
+            } else if (_.isObjectLike(app) && (app as IApplication).id) {
+              const appToAdd = _.pick(_.defaults(app, { type: "HOSTED" }), [
+                "id",
+                "type",
+              ]);
+              if (appToAdd != null && appToAdd.id != null) {
+                allApps.push(appToAdd);
+              } else {
+                throwError(
+                  `Invalid application object. Expected IApplication object with id. Received object null or id null.`
+                );
+              }
+            } else {
+              throwError(
+                `Invalid application format. Expected string (name) or IApplication object with id.`
+              );
+            }
+          }
+        );
+
+        cy.wrap(auth, { log: false })
+          .c8yclient(
+            [
+              (c) => {
+                if (!userId) {
+                  throwError("User ID is missing.");
+                }
+                return c.user.detail(userId);
+              },
+              (c, userDetailResponse) => {
+                const existingApps =
+                  userDetailResponse?.body?.applications || [];
+
+                // Merge with existing applications, avoiding duplicates by id
+                const mergedApps = [...existingApps];
+                for (const app of allApps) {
+                  if (
+                    !mergedApps.find((existing: any) => existing.id === app.id)
+                  ) {
+                    mergedApps.push(app);
+                  }
+                }
+
+                return c.user.update({ id: userId, applications: mergedApps });
               },
             ],
             clientOptions
-          );
-        });
+          )
+          .then((updateResponse) => {
+            consoleProps.updateResponse = updateResponse;
+          });
       }
       logger.end();
       return cy.wrap(userResponse);
