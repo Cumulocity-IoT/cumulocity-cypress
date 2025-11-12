@@ -345,6 +345,35 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.body.linkedSeries[0]).not.toHaveProperty("fragment");
       expect(response!.body.linkedSeries[0].series).toBe("Total");
     });
+
+    it("should remove array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.c8y_LinkedSeries"],
+        ignoreCase: true,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.c8y_LinkedSeries = [
+        { fragment: "Test_Fragment0", series: "Total" },
+        { fragment: "Test_Fragment0", series: "Total" },
+        { fragment: "Test_Fragment0", series: "Total" }
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.c8y_LinkedSeries).toBeUndefined();
+    });
+
+    it("should remove empty array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.c8y_LinkedSeries"],
+        ignoreCase: true,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.c8y_LinkedSeries = [];
+      preprocessor.apply(response!);
+
+      expect(response!.body.c8y_LinkedSeries).toBeUndefined();
+    });
+
   });
 
   describe("cookie", () => {
