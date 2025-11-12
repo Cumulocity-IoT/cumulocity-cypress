@@ -354,12 +354,10 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
         const target = _.get(currentObj, currentKey);
 
         if (restKeys.length === 0) {
-          // Obfuscate the key regardless of whether it's an array or not
           if (_.get(currentObj, currentKey) != null) {
             _.set(currentObj, currentKey, p);
           }
         } else if (_.isArray(target)) {
-          // If the current key points to an array, process each element
           target.forEach((item) => processKeyPath(item, restKeys));
         } else {
           processKeyPath(target, restKeys);
