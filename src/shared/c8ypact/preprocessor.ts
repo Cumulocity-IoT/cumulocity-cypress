@@ -262,11 +262,12 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
           toSensitiveObjectKeyPath(currentObj, _currentKey) ?? _currentKey;
         const target = _.get(currentObj, currentKey);
 
-        if (_.isArray(target)) {
+        if (restKeys.length === 0) {
+          // Remove the key regardless of whether it's an array or not
+          _.unset(currentObj, currentKey);
+        } else if (_.isArray(target)) {
           // If the current key points to an array, process each element
           target.forEach((item) => processKeyPath(item, restKeys));
-        } else if (restKeys.length === 0) {
-          _.unset(currentObj, currentKey);
         } else {
           processKeyPath(target, restKeys);
         }
@@ -352,13 +353,12 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
           toSensitiveObjectKeyPath(currentObj, _currentKey) ?? _currentKey;
         const target = _.get(currentObj, currentKey);
 
-        if (_.isArray(target)) {
-          // If the current key points to an array, process each element
-          target.forEach((item) => processKeyPath(item, restKeys));
-        } else if (restKeys.length === 0) {
+        if (restKeys.length === 0) {
           if (_.get(currentObj, currentKey) != null) {
             _.set(currentObj, currentKey, p);
           }
+        } else if (_.isArray(target)) {
+          target.forEach((item) => processKeyPath(item, restKeys));
         } else {
           processKeyPath(target, restKeys);
         }
