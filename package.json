@@ -108,7 +108,7 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^14.0.2",
     "@types/node": "^24.0.0",
-    "@cypress/grep": "^4.1.0",
+    "@cypress/grep": "^5.0.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
     "chokidar": "^4.0.1",
