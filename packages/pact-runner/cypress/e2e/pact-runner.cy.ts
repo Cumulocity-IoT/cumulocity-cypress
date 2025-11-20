@@ -5,8 +5,7 @@ import {
 } from "cumulocity-cypress/c8ypact";
 import { C8yAjvJson6SchemaMatcher } from "cumulocity-cypress/contrib";
 
-// @ts-expect-error
-import registerCypressGrep from "@cypress/grep";
+import { register as registerCypressGrep } from "@cypress/grep";
 registerCypressGrep();
 
 const { _ } = Cypress;
