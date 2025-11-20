@@ -4,7 +4,7 @@
   "scripts": {
     "clean": "rimraf dist/ && rimraf .yalc && rimraf yalc.lock",
     "clean:dist": "rimraf dist/",
-    "package": "npm install && npm run clean:dist && tsc -b -v tsconfig.build.json",
+    "package": "npm install && npm run clean:dist && tsc -b -v tsconfig.json",
     "package:latest": "npm install cumulocity-cypress@latest && npm run package",
     "package:dev": "npx yalc add cumulocity-cypress && npm run package",
     "cypress": "cypress run --config-file cypress.config.ts --spec cypress/e2e/pact-runner.cy.ts",
@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@angular/common": "^19.2.0",
+    "@cypress/grep": "^5.0.0",
     "@c8y/client": "^1022.9.6",
     "cumulocity-cypress": "latest",
     "cypress": "^14.1.0"
