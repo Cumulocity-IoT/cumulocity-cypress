@@ -1,5 +1,6 @@
 import _ from "lodash";
 import { inspect } from "util";
+import os from "node:os";
 
 import express, { Express, RequestHandler } from "express";
 
@@ -306,7 +307,7 @@ export class C8yPactHttpController {
 
     this.registerC8yctrlInterface();
 
-    // Express 5 compatible app.listen with error handling
+    // Express 5 compatible app. listen with error handling
     return new Promise<void>((resolve, reject) => {
       const listenArgs: any[] = [this.port];
       if (this.hostname != null) {
@@ -317,9 +318,28 @@ export class C8yPactHttpController {
           this.logger.error("Server failed to start:", error);
           reject(error);
         } else {
-          this.logger.info(
-            `Started: ${this.hostname}:${this.port} (mode: ${this.mode})`
-          );
+          const addr = this.server?.address();
+          if (addr && typeof addr === "object") {
+            const host = this.hostname ?? addr.address;
+            if (addr.address === "::" || addr.address === "0.0.0.0") {
+              const displayHost = addr.address; // Keep the actual bind address
+
+              const interfaces = os.networkInterfaces();
+              const externalIPv4 = Object.values(interfaces)
+                .flat()
+                .filter((iface) => iface && iface.family === "IPv4");
+
+              this.logger.info(`Listening on all interfaces`);
+              this.logger.info(`  ${displayHost}:${addr.port}`);
+              for (const addrv4 of externalIPv4) {
+                if (!addrv4?.address || addrv4.address === displayHost)
+                  continue;
+                this.logger.info(`  http://${addrv4.address}:${addr.port}`);
+              }
+            } else {
+              this.logger.info(`Listening on http://${host}:${addr.port}`);
+            }
+          }
           resolve();
         }
       });
@@ -729,7 +749,7 @@ export class C8yPactHttpController {
     const replaceProperties = ["self", "next", "initRequest"];
     if (replaceProperties.includes(key) && value.startsWith("http")) {
       // replace url host with localhost
-      const newHost = `http://${this.hostname}:${this.port}`;
+      const newHost = `http://${this.hostname ?? "localhost"}:${this.port}`;
       value = value.replace(/https?:\/\/[^/]+/, newHost);
     }
     return value;
