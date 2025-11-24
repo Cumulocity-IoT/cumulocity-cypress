@@ -39,6 +39,11 @@ export interface C8yHighlightOptions {
    * @default false
    */
   multiple?: boolean;
+  /**
+   * If true, the highlight styles are applied to a detached <div> element instead of the target element. This is done automatically for elements with rounded corners or disabled elements to avoid visual issues. Use detached:true to force detached highlights.
+   * @default false
+   */
+  detached?: boolean;
 }
 
 /**

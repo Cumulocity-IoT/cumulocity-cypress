@@ -825,6 +825,11 @@
                                     "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
                                     "type": "boolean"
                                 },
+                                "detached": {
+                                    "default": false,
+                                    "description": "If true, the highlight styles are applied to a detached <div> element instead of the target element. This is done automatically for elements with rounded corners or disabled elements to avoid visual issues. Use detached:true to force detached highlights.",
+                                    "type": "boolean"
+                                },
                                 "height": {
                                     "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                     "type": "number"
@@ -939,6 +944,11 @@
                                 "data-cy": {
                                     "type": "string"
                                 },
+                                "detached": {
+                                    "default": false,
+                                    "description": "If true, the highlight styles are applied to a detached <div> element instead of the target element. This is done automatically for elements with rounded corners or disabled elements to avoid visual issues. Use detached:true to force detached highlights.",
+                                    "type": "boolean"
+                                },
                                 "height": {
                                     "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                     "type": "number"
@@ -981,6 +991,11 @@
                                 "clear": {
                                     "default": false,
                                     "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "detached": {
+                                    "default": false,
+                                    "description": "If true, the highlight styles are applied to a detached <div> element instead of the target element. This is done automatically for elements with rounded corners or disabled elements to avoid visual issues. Use detached:true to force detached highlights.",
                                     "type": "boolean"
                                 },
                                 "height": {
@@ -1047,6 +1062,11 @@
                                 "clear": {
                                     "default": false,
                                     "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                    "type": "boolean"
+                                },
+                                "detached": {
+                                    "default": false,
+                                    "description": "If true, the highlight styles are applied to a detached <div> element instead of the target element. This is done automatically for elements with rounded corners or disabled elements to avoid visual issues. Use detached:true to force detached highlights.",
                                     "type": "boolean"
                                 },
                                 "height": {
@@ -1120,6 +1140,11 @@
                                             "clear": {
                                                 "default": false,
                                                 "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                                "type": "boolean"
+                                            },
+                                            "detached": {
+                                                "default": false,
+                                                "description": "If true, the highlight styles are applied to a detached <div> element instead of the target element. This is done automatically for elements with rounded corners or disabled elements to avoid visual issues. Use detached:true to force detached highlights.",
                                                 "type": "boolean"
                                             },
                                             "height": {
@@ -1236,6 +1261,11 @@
                                             "data-cy": {
                                                 "type": "string"
                                             },
+                                            "detached": {
+                                                "default": false,
+                                                "description": "If true, the highlight styles are applied to a detached <div> element instead of the target element. This is done automatically for elements with rounded corners or disabled elements to avoid visual issues. Use detached:true to force detached highlights.",
+                                                "type": "boolean"
+                                            },
                                             "height": {
                                                 "description": "Overwrite the height of the highlighted element. If smaller than 1, the value is used as percentage of the element height.",
                                                 "type": "number"
@@ -1278,6 +1308,11 @@
                                             "clear": {
                                                 "default": false,
                                                 "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                                "type": "boolean"
+                                            },
+                                            "detached": {
+                                                "default": false,
+                                                "description": "If true, the highlight styles are applied to a detached <div> element instead of the target element. This is done automatically for elements with rounded corners or disabled elements to avoid visual issues. Use detached:true to force detached highlights.",
                                                 "type": "boolean"
                                             },
                                             "height": {
@@ -1344,6 +1379,11 @@
                                             "clear": {
                                                 "default": false,
                                                 "description": "If true, existing highlights will be cleared before highlighting. The default is false.",
+                                                "type": "boolean"
+                                            },
+                                            "detached": {
+                                                "default": false,
+                                                "description": "If true, the highlight styles are applied to a detached <div> element instead of the target element. This is done automatically for elements with rounded corners or disabled elements to avoid visual issues. Use detached:true to force detached highlights.",
                                                 "type": "boolean"
                                             },
                                             "height": {

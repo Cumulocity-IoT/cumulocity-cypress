@@ -155,6 +155,7 @@ Cypress.Commands.add(
 
     const needsSizeConstraints =
       options?.width != null || options?.height != null;
+    const isDetached = options?.detached === true;
 
     // we need to wait for the element to transition and animate into final
     // position before we can calculate the absolute highlight area
@@ -167,7 +168,9 @@ Cypress.Commands.add(
         // multiple elements are the same as disabled anyway
         const isDisabled =
           $element.length === 1 ? isElementDisabled($element) : false;
-        if ($element.length > 1 || needsSizeConstraints || isDisabled) {
+        const isRoundedBorders = hasRoundedCorners($element);
+        
+        if ($element.length > 1 || needsSizeConstraints || isDisabled || isRoundedBorders || isDetached) {
           applyMultiStyle($element, options?.width, options?.height);
         } else {
           applyElementStyle($element);
@@ -386,4 +389,14 @@ function isElementDisabled($element: JQuery<HTMLElement>): boolean {
     $element.hasClass("disabled") ||
     $element.css("pointer-events") === "none"
   );
+}
+
+function hasRoundedCorners($element: JQuery<HTMLElement>): boolean {
+  const corners = [
+    $element.css("border-top-left-radius"),
+    $element.css("border-top-right-radius"),
+    $element.css("border-bottom-right-radius"),
+    $element.css("border-bottom-left-radius"),
+  ];
+  return corners.some((r) => parseFloat(r) > 0);
 }

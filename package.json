@@ -108,7 +108,7 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^14.0.2",
     "@types/node": "^24.0.0",
-    "@cypress/grep": "^4.1.0",
+    "@cypress/grep": "^5.0.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
     "chokidar": "^4.0.1",
@@ -140,7 +140,7 @@
   },
   "devDependencies": {
     "@bahmutov/cypress-esbuild-preprocessor": "^2.2.5",
-    "@rollup/plugin-commonjs": "^28.0.2",
+    "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@semantic-release/changelog": "^6.0.3",
@@ -173,7 +173,7 @@
     "rollup": "^4.34.8",
     "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-shebang-bin": "^0.1.0",
-    "semantic-release": "^24.2.2",
+    "semantic-release": "^25.0.2",
     "start-server-and-test": "^2.0.0",
     "ts-jest": "^29.1.2",
     "tsx": "^4.19.3",

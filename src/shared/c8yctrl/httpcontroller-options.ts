@@ -59,9 +59,11 @@ export interface C8yPactHttpControllerOptions {
    */
   auth?: C8yAuthOptions;
   /**
-   * Hostname or interface to listen on. Default is to listen on all interfaces.
-   * @example "localhost"
-   * @example "0.0.0.0"
+   * Hostname or interface to listen on. Default is to listen on all interfaces. 
+   * @example "localhost" might listen on IPv6 only depending on the system
+   * @example "127.0.0.1" for IPv4 localhost only
+   * @example "0.0.0.0" for all IPv4 interfaces
+   * @example "::" for all IPv6 interfaces
    */
   hostname?: string;
   /**

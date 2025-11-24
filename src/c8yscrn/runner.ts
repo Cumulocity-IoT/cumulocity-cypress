@@ -315,8 +315,8 @@ export class C8yScreenshotRunner {
     const visitSelector =
       visitObject?.selector ??
       this.g("visitWaitSelector") ??
-      "c8y-drawer-outlet c8y-app-icon .c8y-icon";
-    debug(`Visiting ${url} Selector: ${visitSelector}`);
+      undefined;
+    debug(`Visiting ${url} selector: ${visitSelector}`);
     const visitTimeout = visitObject?.timeout;
 
     cy.visitAndWaitForSelector(
