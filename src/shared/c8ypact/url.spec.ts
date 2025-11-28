@@ -8,6 +8,7 @@ import {
   removeBaseUrlFromString,
   tenantUrl,
   updateURLs,
+  urlForBaseUrl,
   validateBaseUrl,
 } from "./url";
 
@@ -89,6 +90,24 @@ describe("url", () => {
     const x: any = undefined,
       y: any = "https://example.com";
     expect(() => validateBaseUrl(x || y)).not.toThrow();
+  });
+
+  it("urlFromStrings", () => {
+    expect(urlForBaseUrl("http://example.com", undefined)).toEqual(
+      "http://example.com"
+    );
+    expect(urlForBaseUrl("http://example.com", "/my/path")).toEqual(
+      "http://example.com/my/path"
+    );
+    expect(urlForBaseUrl("http://example.com/", "my/path")).toEqual(
+      "http://example.com/my/path"
+    );
+    expect(urlForBaseUrl("http://example.com/base/", "/my/path")).toEqual(
+      "http://example.com/my/path"
+    );
+    expect(
+      urlForBaseUrl("http://example.com/base/", "/my/path?bac=123")
+    ).toEqual("http://example.com/my/path?bac=123");
   });
 
   describe("updateURLs", () => {
@@ -290,9 +309,7 @@ describe("url", () => {
       const result = normalizeBaseUrl(
         "subdomain.example.com:8080/path?query=value#fragment"
       );
-      expect(result).toBe(
-        "https://subdomain.example.com:8080"
-      );
+      expect(result).toBe("https://subdomain.example.com:8080");
     });
 
     it("should handle localhost URLs", () => {
