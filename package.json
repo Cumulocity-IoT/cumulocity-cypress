@@ -139,6 +139,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@angular/common": "^19.2.16",
     "@bahmutov/cypress-esbuild-preprocessor": "^2.2.5",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-json": "^6.1.0",
