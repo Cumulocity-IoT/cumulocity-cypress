@@ -15,7 +15,27 @@ export function relativeURL(url: URL | string): string | undefined {
   }
 }
 
-export function removeBaseUrlFromString(url: string, baseUrl?: C8yBaseUrl): string {
+export function urlForBaseUrl(
+  baseUrl: string,
+  relativeOrAbsoluteUrl?: string
+): string | undefined {
+  if (relativeOrAbsoluteUrl) {
+    try {
+      const url = new URL(relativeOrAbsoluteUrl, baseUrl);
+      return url.toString();
+    } catch {
+      // no-op
+    }
+  } else {
+    return baseUrl;
+  }
+  return relativeOrAbsoluteUrl;
+}
+
+export function removeBaseUrlFromString(
+  url: string,
+  baseUrl?: C8yBaseUrl
+): string {
   if (!url || !baseUrl) {
     return url;
   }

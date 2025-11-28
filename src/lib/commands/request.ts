@@ -1,5 +1,10 @@
 import {
+  isAbsoluteURL,
+  urlForBaseUrl,
+} from "cumulocity-cypress/shared/c8ypact/url";
+import {
   getAuthOptions,
+  getBaseUrlFromEnv,
   getXsrfToken,
   normalizedArgumentsWithAuth,
 } from "../utils";
@@ -166,7 +171,8 @@ const requestCommandWrapper = (
 
     if (preferBasicAuth && auth?.user != null && auth?.password != null) {
       options.auth = _.pick(options.auth ?? auth, "user", "password");
-    } else if (xsrfToken) {
+    } else if (xsrfToken && !(jwtToken && Cypress.testingType === "component")) {
+      // prefer jwt token for component testing
       options.headers = _.extend(options.headers || {}, {
         "X-XSRF-TOKEN": xsrfToken,
       });
@@ -176,6 +182,15 @@ const requestCommandWrapper = (
       });
     } else if (auth?.user != null && auth?.password != null) {
       options.auth = _.pick(options.auth ?? auth, "user", "password");
+    }
+
+    if (Cypress.testingType === "component" && options.url != null) {
+      if (!isAbsoluteURL(options.url)) {
+        const baseUrl = getBaseUrlFromEnv();
+        if (baseUrl) {
+          options.url = urlForBaseUrl(baseUrl, options.url);
+        }
+      }
     }
 
     const o = _.omit(options, ["preferBasicAuth"]);
