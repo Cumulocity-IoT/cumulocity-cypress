@@ -171,13 +171,14 @@ const requestCommandWrapper = (
 
     if (preferBasicAuth && auth?.user != null && auth?.password != null) {
       options.auth = _.pick(options.auth ?? auth, "user", "password");
+    } else if (xsrfToken && !(jwtToken && Cypress.testingType === "component")) {
+      // prefer jwt token for component testing
+      options.headers = _.extend(options.headers || {}, {
+        "X-XSRF-TOKEN": xsrfToken,
+      });
     } else if (jwtToken) {
       options.headers = _.extend(options.headers || {}, {
         Authorization: `Bearer ${jwtToken}`,
-      });
-    } else if (xsrfToken) {
-      options.headers = _.extend(options.headers || {}, {
-        "X-XSRF-TOKEN": xsrfToken,
       });
     } else if (auth?.user != null && auth?.password != null) {
       options.auth = _.pick(options.auth ?? auth, "user", "password");
