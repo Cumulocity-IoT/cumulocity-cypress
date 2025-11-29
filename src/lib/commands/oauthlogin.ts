@@ -62,24 +62,25 @@ Cypress.Commands.add(
     ).then((a) => {
       consoleProps.auth = a;
       consoleProps.baseUrl = baseUrl;
+      consoleProps.token = a.token || null;
+      consoleProps.xsrfToken = a.xsrfToken || null;
 
       Cypress.env("C8Y_LOGGED_IN_USER", auth.user);
       Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", auth.userAlias);
 
-      if (a.token) {
-        consoleProps.token = a.token;
+      if (a.token && a.xsrfToken && Cypress.testingType !== "component") {
+        // must be upper case so CookieAuth does use it
         cy.setCookie("Authorization", a.token, {
           log: Cypress.c8ypact.debugLog,
         });
-      }
-      if (a.xsrfToken) {
-        consoleProps.xsrfToken = a.xsrfToken;
         // must be upper case so CookieAuth does use it
         cy.setCookie("XSRF-TOKEN", a.xsrfToken, {
           log: Cypress.c8ypact.debugLog,
         });
       }
       logger.end();
+
+      return cy.wrap(a, { log: false });
     });
   }
 );
