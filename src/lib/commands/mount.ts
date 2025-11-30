@@ -61,8 +61,8 @@ Cypress.Commands.add(
       throw error;
     }
 
-    const isRecordingEnabled = Cypress.c8ypact.isRecordingEnabled();
-    consoleProps.isRecordingEnabled = isRecordingEnabled;
+    const requiresLogin = Cypress.c8ypact.isRecordingEnabled() || Cypress.c8ypact.mode() === "forward"
+    consoleProps.isRecordingEnabled = requiresLogin;
     const strictMocking =
       Cypress.c8ypact?.getConfigValue("strictMocking") === true;
 
@@ -91,7 +91,7 @@ Cypress.Commands.add(
     const getAuthOptions = () => {
       if (
         auth != null &&
-        (isRecordingEnabled === true || strictMocking === false) &&
+        (requiresLogin === true || strictMocking === false) &&
         (auth.token == null || auth.xsrfToken == null)
       ) {
         return cy.oauthLogin(auth);

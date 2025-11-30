@@ -452,7 +452,7 @@ const c8yclientFn = (...args: any[]) => {
   let auth: C8yAuthentication | undefined = cookieAuth;
   if (options.preferBasicAuth === true && basicAuth) {
     auth = basicAuth;
-  } else if (bearerAuth && !cookieAuth) {
+  } else if (bearerAuth && (!cookieAuth || Cypress.testingType === "component")) {
     auth = bearerAuth;
   } else {
     auth = cookieAuth ?? bearerAuth ?? basicAuth;

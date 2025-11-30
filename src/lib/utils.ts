@@ -1,10 +1,17 @@
 /// <reference types="cypress" />
 
-import { BasicAuth, CookieAuth, IAuthentication } from "@c8y/client";
+import {
+  BasicAuth,
+  BearerAuth,
+  BearerAuthFromSessionStorage,
+  CookieAuth,
+  IAuthentication,
+} from "@c8y/client";
 import {
   authWithTenant,
   C8yAuthOptions,
   getAuthOptionsFromEnv,
+  getAuthOptionsFromJWT,
   isAuthOptions,
 } from "../shared/auth";
 import { C8yClient } from "../shared/c8yclient";
@@ -111,8 +118,13 @@ export function getAuthOptionsFromCypressEnv() {
 
   // check auth options from test case annotation
   // configured via it("...", {auth: {...}}, ...)
-  const auth = getAuthOptionsFromArgs(Cypress.config().auth);
+  let auth = getAuthOptionsFromArgs(Cypress.config().auth);
   if (isAuthOptions(auth)) {
+    return auth;
+  }
+
+  auth = getAuthOptionsFromSessionStorage();
+  if (auth) {
     return auth;
   }
 
@@ -155,6 +167,14 @@ export function userAliasFromArgs(...args: any[]): string | undefined {
 
 function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
   // do not call getAuthOptionsFromEnv() in here!
+  const commonFields = [
+    "password",
+    "tenant",
+    "userAlias",
+    "type",
+    "token",
+    "xsrfToken",
+  ];
 
   // getAuthOptions("admin")
   // return envs admin_username | admin, admin_password
@@ -175,7 +195,7 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
     if (isAuthOptions(args[0])) {
       return authWithTenant(
         Cypress.env(),
-        _.pick(args[0], ["user", "password", "tenant", "userAlias", "type"])
+        _.pick(args[0], ["user", ...commonFields])
       );
     }
 
@@ -186,23 +206,17 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
       const password = Cypress.env(`${args[0].userAlias}_password`);
       if (user && password) {
         return authWithTenant(Cypress.env(), {
+          ..._.pick(args[0], commonFields),
           user,
           password,
-          userAlias: args[0].userAlias,
-          ...(args[0].type && { type: args[0].type }),
         });
       }
     }
     // getAuthOptions({user: "abc", password: "abc"}, ...)
     if (args[0].username && args[0].password) {
-      const auth = _.pick(args[0], [
-        "username",
-        "password",
-        "tenantId",
-        "userAlias",
-      ]);
+      const auth = _.pick(args[0], ["username", "tenantId", ...commonFields]);
       delete Object.assign(auth, { user: auth.username })["username"];
-      if (auth.tenantId) {
+      if (auth.tenantId && !auth.tenant) {
         delete Object.assign(auth, { tenant: auth.tenantId })["tenantId"];
       }
       return authWithTenant(Cypress.env(), auth);
@@ -210,25 +224,21 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
 
     // from IUser: getAuthOptions({userName: "abc", password: "abc"}, ...)
     if (args[0].userName && args[0].password) {
-      const auth = _.pick(args[0], [
-        "userName",
-        "password",
-        "tenantId",
-        "userAlias",
-      ]);
+      const auth = _.pick(args[0], ["userName", "tenantId", ...commonFields]);
       delete Object.assign(auth, { user: auth.userName })["userName"];
+      if (auth.tenantId && !auth.tenant) {
+        delete Object.assign(auth, { tenant: auth.tenantId })["tenantId"];
+      }
       return authWithTenant(Cypress.env(), auth);
     }
 
     // from IUser: getAuthOptions({userName: "abc", password: "abc"}, ...)
     if (args[0].userName && args[0].password) {
-      const auth = _.pick(args[0], [
-        "userName",
-        "password",
-        "tenantId",
-        "userAlias",
-      ]);
+      const auth = _.pick(args[0], ["userName", "tenantId", ...commonFields]);
       delete Object.assign(auth, { user: auth.userName })["userName"];
+      if (auth.tenantId && !auth.tenant) {
+        delete Object.assign(auth, { tenant: auth.tenantId })["tenantId"];
+      }
       return authWithTenant(Cypress.env(), auth);
     }
   }
@@ -266,16 +276,35 @@ export function getC8yClientAuthentication(
   }
 
   if (!result) {
-    const cookieAuth = new CookieAuth();
-    const token = get_i(cookieAuth.getFetchOptions({}), "headers.X-XSRF-TOKEN");
-    if (token?.trim() && !_.isEmpty(token.trim())) {
-      result = cookieAuth;
-    } else if (authOptions) {
+    const xsrfToken = getXsrfToken();
+    const jwtToken = authOptions?.token;
+    if (xsrfToken && !_.isEmpty(xsrfToken.trim())) {
+      result = new CookieAuth();
+    } else if (jwtToken && !_.isEmpty(jwtToken.trim())) {
+      result = new BearerAuth(jwtToken);
+    } else {
       result = new BasicAuth(authOptions);
     }
   }
 
   return result;
+}
+
+// check session storage for Bearer token
+// used by c8y/client login service
+export function getAuthOptionsFromSessionStorage(): C8yAuthOptions | undefined {
+  const win = cy.state("window");
+  const token = win.sessionStorage.getItem(
+    BearerAuthFromSessionStorage.sessionStorageKey
+  );
+  if (token != null && !_.isEmpty(token)) {
+    const a = getAuthOptionsFromJWT(token);
+    if (a && isAuthOptions(a)) {
+      a.type = "BearerAuth";
+      return a;
+    }
+  }
+  return undefined;
 }
 
 export function persistAuth(auth: C8yAuthOptions) {
@@ -350,7 +379,9 @@ export function throwError(message: string): never {
   } else if (newErr.stack) {
     // Fallback: remove frames that reference this helper
     const lines = newErr.stack.split("\n");
-    newErr.stack = lines.filter((l) => !/\s+at\s+throwError\s*\(/.test(l)).join("\n");
+    newErr.stack = lines
+      .filter((l) => !/\s+at\s+throwError\s*\(/.test(l))
+      .join("\n");
   }
   throw newErr;
 }

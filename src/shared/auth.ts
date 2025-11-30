@@ -106,7 +106,7 @@ export function isPactAuthObject(obj: any): obj is C8yPactAuthObject {
   return (
     _.isObjectLike(obj) &&
     "user" in obj &&
-    ("userAlias" in obj || "type" in obj) &&
+    ("userAlias" in obj || "type" in obj || "token" in obj) &&
     Object.keys(obj).every((key) =>
       (C8yPactAuthObjectKeys as string[]).includes(key)
     )
@@ -141,15 +141,6 @@ export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
   }
 
   // check first environment variables
-  const user = env[`C8Y_USERNAME`] ?? env[`C8Y_USER`];
-  const password = env[`C8Y_PASSWORD`];
-  if (!_.isEmpty(user) && !_.isEmpty(password)) {
-    return authWithTenant(env, {
-      user,
-      password,
-    });
-  }
-
   const jwtToken = env["C8Y_TOKEN"];
   try {
     const authFromToken = getAuthOptionsFromJWT(jwtToken);
@@ -159,6 +150,15 @@ export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
   } catch {
     // ignore errors from extractTokensFromJWT
     // this is expected if the token is not a valid JWT
+  }
+
+  const user = env[`C8Y_USERNAME`] ?? env[`C8Y_USER`];
+  const password = env[`C8Y_PASSWORD`];
+  if (!_.isEmpty(user) && !_.isEmpty(password)) {
+    return authWithTenant(env, {
+      user,
+      password,
+    });
   }
 
   return undefined;

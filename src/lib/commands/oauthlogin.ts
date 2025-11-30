@@ -1,5 +1,6 @@
 import { getAuthOptions, getBaseUrlFromEnv } from "../utils";
 import { C8yAuthOptions } from "../../shared/auth";
+import { BearerAuthFromSessionStorage } from "@c8y/client";
 
 declare global {
   namespace Cypress {
@@ -77,6 +78,13 @@ Cypress.Commands.add(
         cy.setCookie("XSRF-TOKEN", a.xsrfToken, {
           log: Cypress.c8ypact.debugLog,
         });
+      } else {
+        if (a.token) {
+          sessionStorage.setItem(
+            BearerAuthFromSessionStorage.sessionStorageKey,
+            a.token
+          );
+        }
       }
       logger.end();
 
