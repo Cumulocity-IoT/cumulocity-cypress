@@ -1,4 +1,7 @@
-import { IDeviceCredentials } from "@c8y/client";
+import {
+  BearerAuthFromSessionStorage,
+  IDeviceCredentials,
+} from "@c8y/client";
 import {
   url as _url,
   getConsolePropsForLogSpy,
@@ -8,6 +11,9 @@ import {
 const { _, $ } = Cypress;
 
 describe("auth", () => {
+  const testToken =
+    "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3NTU5Nzc0NzUsImV4cCI6MTc4NzUxMzQ3NSwiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsInhzcmZUb2tlbiI6IjIzNG5tMjM0bm0yMzQyMzQiLCJ0ZW4iOiJ0MTIzNDU2NyIsInVzZXIiOiJ0b2tlbnVzZXIiLCJiYXNlVXJsIjoiaHR0cHM6Ly9teXRlc3QuYzh5LmlvIn0.wKGIxJrUnT0NNyd198mfxegV6kncYsNFhGa6MFSSKCE";
+
   context("getAuth", () => {
     beforeEach(() => {
       Cypress.env("myauthuser_password", "myadminpassword");
@@ -195,7 +201,7 @@ describe("auth", () => {
     it("should throw for userAlias without auth options and with auth in env", (done) => {
       stubEnv({
         C8Y_USERNAME: "xyz",
-        C8Y_PASSWORD: "xyz"
+        C8Y_PASSWORD: "xyz",
       });
 
       Cypress.once("fail", (err) => {
@@ -207,7 +213,6 @@ describe("auth", () => {
 
       cy.getAuth("xyz");
     });
-
 
     it("should log auth and auth env variables", () => {
       stubEnv({
@@ -240,6 +245,21 @@ describe("auth", () => {
           // from environment / defined in beforeEach
           myauthuser_password: "myadminpassword",
         });
+      });
+    });
+
+    it("should use bearer token session storage", () => {
+      sessionStorage.setItem(
+        BearerAuthFromSessionStorage.sessionStorageKey,
+        testToken
+      );
+      cy.getAuth().then((result) => {
+        console.log(result);
+        expect(result?.user).to.eq("jrocket@example.com");
+        expect(result?.password).to.be.undefined;
+        expect(result?.tenant).to.eq("t1234567");
+        expect(result?.token).to.eq(testToken);
+        expect(result?.type).to.eq("BearerAuth");
       });
     });
   });
@@ -350,7 +370,7 @@ describe("auth", () => {
     it("should throw for userAlias without auth options and with auth in env", (done) => {
       stubEnv({
         C8Y_USERNAME: "xyz",
-        C8Y_PASSWORD: "xyz"
+        C8Y_PASSWORD: "xyz",
       });
 
       Cypress.once("fail", (err) => {
@@ -359,10 +379,10 @@ describe("auth", () => {
         );
         done();
       });
-      
+
       cy.getAuth("xyz");
     });
-    
+
     it("should not throw for undefined object", () => {
       cy.useAuth(undefined as any);
     });
