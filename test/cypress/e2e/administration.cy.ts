@@ -591,9 +591,13 @@ describe("administration", () => {
 
     it("should not fail for CookieAuth", function () {
       cy.setCookie("XSRF-TOKEN", "123");
-      cy.setCookie("authorization", "213412")
+      cy.setCookie("authorization", "213412");
 
-      stubEnv({ C8Y_USERNAME: "admin", C8Y_PASSWORD: "mypassword", C8Y_TENANT: "t1234"});
+      stubEnv({
+        C8Y_USERNAME: "admin",
+        C8Y_PASSWORD: "mypassword",
+        C8Y_TENANT: "t1234",
+      });
       cy.getTenantId().then((id) => {
         expect(id).to.eq("t1234");
         expect(window.fetchStub.callCount).to.equal(0);

@@ -52,9 +52,10 @@ describe("auth", () => {
       expect(isAuthOptions({ token: "test" })).toBe(true);
       expect(isAuthOptions({ token: "test", userAlias: "admin" })).toBe(true);
       expect(isAuthOptions({ token: "test", type: "CookieAuth" })).toBe(true);
+      expect(isAuthOptions({ token: "test", user: "admin" })).toBe(true);
       expect(
         isAuthOptions({ token: "test", type: "CookieAuth", user: "admin" })
-      );
+      ).toBe(true);
     });
   });
 

@@ -41,6 +41,8 @@ export class C8yPactFetchClient extends FetchClient {
       authOptions = getAuthOptions(auth);
     } else if (isAuthOptions(auth)) {
       authOptions = auth;
+    } else if (isAuthOptions(options.auth)) {
+      authOptions = options.auth;
     }
 
     if (!url) {
