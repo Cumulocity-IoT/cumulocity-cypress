@@ -19,6 +19,8 @@ import winston from "winston";
 import { C8yAuthOptions } from "../auth";
 import { C8yBaseUrl, C8yTenant } from "../types";
 
+import { Options as HttpProxyMiddlewareOptions } from "http-proxy-middleware";
+
 type LogFormat =
   | "json"
   | "simple"
@@ -163,6 +165,10 @@ export interface C8yPactHttpControllerOptions {
    * Callbacks for hooking into the controller lifecycle.
    */
   on: C8yPactHttpControllerCallbackOptions;
+  /**
+   * Options to pass to the underlying http-proxy.
+   */
+  proxyOptions?: Omit<HttpProxyMiddlewareOptions, "on" | "plugins" | "ejectPlugins">;
 }
 
 export interface C8yPactHttpControllerCallbackOptions {
