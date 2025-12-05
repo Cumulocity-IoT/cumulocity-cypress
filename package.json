@@ -106,7 +106,7 @@
     }
   },
   "dependencies": {
-    "@apidevtools/json-schema-ref-parser": "^14.0.2",
+    "@apidevtools/json-schema-ref-parser": "^15.1.3",
     "@types/node": "^24.0.0",
     "@cypress/grep": "^5.0.0",
     "ajv": "^8.12.0",
