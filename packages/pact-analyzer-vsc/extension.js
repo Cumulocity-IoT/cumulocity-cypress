@@ -116,7 +116,7 @@ async function analyzePactDocument(document, context, panelState) {
         panel.webview,
         context.extensionUri
       );
-      panel.reveal(vscode.ViewColumn.Two);
+      panel.reveal(vscode.ViewColumn.Two, true);
       panelState.currentDocument = document;
     } else {
       // Create new panel
