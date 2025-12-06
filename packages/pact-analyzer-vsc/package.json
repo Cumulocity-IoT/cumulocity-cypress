@@ -1,0 +1,51 @@
+{
+  "name": "c8y-pact-analyzer",
+  "displayName": "C8yPact Analyzer",
+  "description": "A C8yPact file viewer for VS Code",
+  "version": "0.1.5",
+  "publisher": "cumulocity",
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:json"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "c8yPactAnalyzer.analyze",
+        "title": "C8yPact: Analyze File"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceExtname == .json",
+          "command": "c8yPactAnalyzer.analyze",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "node ./test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.x",
+    "eslint": "^8.x",
+    "typescript": "^5.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Cumulocity-IoT/cumulocity-cypress.git"
+  },
+  "license": "MIT"
+}
