@@ -7,6 +7,7 @@ const {
   getStatusClass,
   getAuthInfo,
   isValidPactFile,
+  getHeaderValue,
 } = require("./shared/utils");
 
 /**
@@ -309,12 +310,10 @@ function findJsonPath(text, recordIndex, path) {
   // Now search for the specific path within the record
   const pathParts = path.split(".");
   let currentLine = recordStart;
-  let currentDepth = 0;
 
   for (let partIndex = 0; partIndex < pathParts.length; partIndex++) {
     const part = pathParts[partIndex];
     let found = false;
-    let searchDepth = partIndex;
 
     for (let i = currentLine; i <= recordEnd; i++) {
       const line = lines[i];
@@ -402,46 +401,22 @@ function getWebviewContent(pactData, webview, extensionUri) {
         </header>
         <section class="info-section">
             <div class="info-row">
-                <div class="info-item full-width">
-                    <label>Base URL:</label>
-                    <span>${escapeHtml(info.baseUrl || "N/A")}</span>
-                </div>
+                ${createInfoItem("Base URL", info.baseUrl || "N/A", "full-width")}
             </div>
             <div class="info-row">
-                <div class="info-item">
-                    <label>Tenant:</label>
-                    <span>${escapeHtml(info.tenant || "N/A")}</span>
-                </div>
-                <div class="info-item">
-                    <label>System Version:</label>
-                    <span>${escapeHtml(info.version?.system || "N/A")}</span>
-                </div>
-                <div class="info-item">
-                    <label>C8yPact Version:</label>
-                    <span>${escapeHtml(info.version?.c8ypact || "N/A")}</span>
-                </div>
+                ${createInfoItem("Tenant", info.tenant || "N/A")}
+                ${createInfoItem("System Version", info.version?.system || "N/A")}
+                ${createInfoItem("C8yPact Version", info.version?.c8ypact || "N/A")}
             </div>
         </section>
 
         <section class="stats-section">
             <h2>Statistics</h2>
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">${stats.totalRequests}</div>
-                    <div class="stat-label">Total Requests</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${stats.endpoints.size}</div>
-                    <div class="stat-label">Unique Endpoints</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${stats.methods.size}</div>
-                    <div class="stat-label">HTTP Methods</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${stats.statusCodes.size}</div>
-                    <div class="stat-label">Status Codes</div>
-                </div>
+                ${createStatCard(stats.totalRequests, "Total Requests")}
+                ${createStatCard(stats.endpoints.size, "Unique Endpoints")}
+                ${createStatCard(stats.methods.size, "HTTP Methods")}
+                ${createStatCard(stats.statusCodes.size, "Status Codes")}
             </div>
         </section>
 
@@ -576,6 +551,8 @@ function generateRecordsHTML(records, expandUserAliases = false) {
     const status = record.response?.status || "N/A";
     const statusClass = getStatusClass(status);
 
+    const authInfo = getAuthInfo(record);
+
     // Get user aliases
     const userAliases = record.auth?.userAlias;
     const hasUserAliases =
@@ -586,6 +563,10 @@ function generateRecordsHTML(records, expandUserAliases = false) {
       : userAliases
       ? [userAliases]
       : null;
+    const authType =
+      record.auth?.type ||
+      authInfo?.display ||
+      (hasUserAliases ? "user-alias" : "Default");
 
     const shouldExpand =
       expandUserAliases && aliasArray && aliasArray.length > 1;
@@ -629,9 +610,8 @@ function generateRecordsHTML(records, expandUserAliases = false) {
           ? aliasArray.join(",")
           : "";
       if (hasUserAliases && aliasArray && aliasArray.length > 0) {
-        authDisplay = aliasArray[0];
+        authDisplay = authType || "Default";
       } else {
-        const authInfo = getAuthInfo(record);
         authDisplay = authInfo.user
           ? `${authInfo.display} (${authInfo.user})`
           : authInfo.display;
@@ -665,13 +645,54 @@ function generateRecordsHTML(records, expandUserAliases = false) {
 }
 
 /**
- * Get content type from headers
- * @param {Object} headers
+ * Create a detail item HTML element
+ * @param {string} label
+ * @param {string|null|undefined} contentOrValue - HTML content string (if starts with <span), value to escape and wrap, or null/undefined to skip
  * @returns {string}
  */
-function getContentType(headers) {
-  if (!headers) return "N/A";
-  return headers["content-type"] || headers["Content-Type"] || "N/A";
+function createDetailItem(label, contentOrValue) {
+  if (!contentOrValue) {
+    return "";
+  }
+
+  let content = contentOrValue;
+
+  // If content doesn't start with <span, treat it as simple text to escape and wrap
+  if (!content.startsWith("<span")) {
+    content = `<span class="detail-value">${escapeHtml(content)}</span>`;
+  }
+
+  return `<div class="detail-item">
+    <label>${escapeHtml(label)}</label>
+    ${content}
+  </div>`;
+}
+
+/**
+ * Create an info item HTML element
+ * @param {string} label
+ * @param {string} value - Value to display
+ * @param {string} className - Optional CSS class for the info-item
+ * @returns {string}
+ */
+function createInfoItem(label, value, className = '') {
+  return `<div class="info-item${className ? ' ' + className : ''}">
+    <label>${escapeHtml(label)}:</label>
+    <span>${escapeHtml(value)}</span>
+  </div>`;
+}
+
+/**
+ * Create a stat card HTML element
+ * @param {string|number} value - The stat value to display
+ * @param {string} label - The stat label
+ * @returns {string}
+ */
+function createStatCard(value, label) {
+  return `<div class="stat-card">
+    <div class="stat-value">${escapeHtml(String(value))}</div>
+    <div class="stat-label">${escapeHtml(label)}</div>
+  </div>`;
 }
 
 /**
@@ -682,128 +703,106 @@ function getContentType(headers) {
  */
 function generateRecordDetails(record, index) {
   const authInfo = getAuthInfo(record);
-  const requestContentType = getContentType(record.request?.headers);
-  const responseContentType = getContentType(record.response?.headers);
+  const requestContentType = getHeaderValue(
+    record.request?.headers,
+    "content-type"
+  );
+  const requestAcceptType = getHeaderValue(record.request?.headers, "accept");
+  const responseContentType = getHeaderValue(
+    record.response?.headers,
+    "content-type"
+  );
 
   // Check if there are multiple userAlias values
   const userAliases = record.auth?.userAlias;
   const hasMultipleUsers = Array.isArray(userAliases) && userAliases.length > 1;
+
+  const requestDetails = [
+    createDetailItem("Method", record.request?.method || "N/A"),
+    createDetailItem("URL", record.request?.url || "N/A"),
+    createDetailItem(
+      "User Aliases",
+      hasMultipleUsers
+        ? `<span class="detail-value user-aliases">${userAliases
+            .map(
+              (userAlias) =>
+                `<span class="user-alias-badge">${escapeHtml(userAlias)}</span>`
+            )
+            .join(" ")}</span>`
+        : null
+    ),
+    createDetailItem(
+      "Authentication",
+      authInfo && authInfo.value
+        ? `<span class="detail-value">${escapeHtml(authInfo.value)}${
+            authInfo.user ? ` (${escapeHtml(authInfo.user)})` : ""
+          }</span>`
+        : null
+    ),
+    createDetailItem("Content-Type", requestContentType),
+    createDetailItem("Accept", requestAcceptType),
+    createDetailItem(
+      "Headers",
+      record.request?.headers
+        ? `<span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'request.headers')">View in source →</span></span>`
+        : null
+    ),
+    createDetailItem(
+      "Body",
+      record.request?.body
+        ? `<span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'request.body')">View in source →</span></span>`
+        : null
+    ),
+  ].join("");
+
+  const responseDetails = [
+    createDetailItem(
+      "Status",
+      `<span class="detail-value ${getStatusClass(
+        record.response?.status
+      )}">${escapeHtml(String(record.response?.status || "N/A"))}${
+        record.response?.statusText
+          ? ` ${escapeHtml(record.response.statusText)}`
+          : ""
+      }</span>`
+    ),
+    createDetailItem(
+      "Duration",
+      record.response?.duration
+        ? `<span class="detail-value">${record.response.duration}ms</span>`
+        : null
+    ),
+    createDetailItem("Content-Type", responseContentType),
+    createDetailItem(
+      "Headers",
+      record.response?.headers
+        ? `<span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'response.headers')">View in source →</span></span>`
+        : null
+    ),
+    createDetailItem(
+      "Body",
+      record.response?.body
+        ? `<span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'response.body')">View in source →</span></span>`
+        : null
+    ),
+  ].join("");
+  const createdObjectDetails = createDetailItem(
+    "Object ID",
+    record.createdObject
+  );
 
   return `
         <div class="details-container">
             <div class="details-section">
                 <h3>Request</h3>
                 <div class="details-content">
-                    <div class="detail-item">
-                        <label>Method</label>
-                        <span class="detail-value">${escapeHtml(
-                          record.request?.method || "N/A"
-                        )}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>URL</label>
-                        <span class="detail-value">${escapeHtml(
-                          record.request?.url || "N/A"
-                        )}</span>
-                    </div>
-                    ${
-                      hasMultipleUsers
-                        ? `
-                    <div class="detail-item">
-                        <label>User Aliases</label>
-                        <span class="detail-value user-aliases">${userAliases
-                          .map(
-                            (userAlias) =>
-                              `<span class="user-alias-badge">${escapeHtml(
-                                userAlias
-                              )}</span>`
-                          )
-                          .join(" ")}</span>
-                    </div>`
-                        : ""
-                    }
-                    <div class="detail-item">
-                        <label>Authentication</label>
-                        <span class="detail-value">${escapeHtml(
-                          authInfo.display
-                        )}${
-    authInfo.user ? ` (${escapeHtml(authInfo.user)})` : ""
-  }</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Content-Type</label>
-                        <span class="detail-value">${escapeHtml(
-                          requestContentType
-                        )}</span>
-                    </div>
-                    ${
-                      record.request?.headers
-                        ? `
-                    <div class="detail-item">
-                        <label>Headers</label>
-                        <span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'request.headers')">View in source →</span></span>
-                    </div>`
-                        : ""
-                    }
-                    ${
-                      record.request?.body
-                        ? `
-                    <div class="detail-item">
-                        <label>Body</label>
-                        <span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'request.body')">View in source →</span></span>
-                    </div>`
-                        : ""
-                    }
+                    ${requestDetails}
                 </div>
             </div>
             <div class="details-section">
                 <h3>Response</h3>
                 <div class="details-content">
-                    <div class="detail-item">
-                        <label>Status</label>
-                        <span class="detail-value ${getStatusClass(
-                          record.response?.status
-                        )}">${escapeHtml(
-    String(record.response?.status || "N/A")
-  )}${
-    record.response?.statusText
-      ? ` ${escapeHtml(record.response.statusText)}`
-      : ""
-  }</span>
-                    </div>
-                    ${
-                      record.response?.duration
-                        ? `
-                    <div class="detail-item">
-                        <label>Duration</label>
-                        <span class="detail-value">${record.response.duration}ms</span>
-                    </div>`
-                        : ""
-                    }
-                    <div class="detail-item">
-                        <label>Content-Type</label>
-                        <span class="detail-value">${escapeHtml(
-                          responseContentType
-                        )}</span>
-                    </div>
-                    ${
-                      record.response?.headers
-                        ? `
-                    <div class="detail-item">
-                        <label>Headers</label>
-                        <span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'response.headers')">View in source →</span></span>
-                    </div>`
-                        : ""
-                    }
-                    ${
-                      record.response?.body
-                        ? `
-                    <div class="detail-item">
-                        <label>Body</label>
-                        <span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'response.body')">View in source →</span></span>
-                    </div>`
-                        : ""
-                    }
+                    ${responseDetails}
                 </div>
             </div>
             ${
@@ -812,12 +811,7 @@ function generateRecordDetails(record, index) {
             <div class="details-section">
                 <h3>Created Object</h3>
                 <div class="details-content">
-                    <div class="detail-item">
-                        <label>Object ID</label>
-                        <span class="detail-value">${escapeHtml(
-                          record.createdObject
-                        )}</span>
-                    </div>
+                    ${createdObjectDetails}
                 </div>
             </div>`
                 : ""

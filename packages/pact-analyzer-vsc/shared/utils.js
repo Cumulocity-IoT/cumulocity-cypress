@@ -66,34 +66,34 @@ function getAuthInfo(record) {
 
   if (authHeader) {
     if (authHeader.startsWith("Bearer ")) {
-      return { type: "Bearer", display: "Bearer Token", user: "" };
+      return { type: "Bearer", display: "Bearer Token", user: "", value: authHeader };
     }
     if (authHeader.startsWith("Basic ")) {
-      return { type: "Basic", display: "Basic Auth", user: "" };
+      return { type: "Basic", display: "Basic Auth", user: "", value: authHeader };
     }
   }
 
   if (headers.cookie || headers.Cookie) {
-    return { type: "Cookie", display: "Cookie", user: "" };
+    return { type: "Cookie", display: "Cookie", user: "", value: headers.cookie || headers.Cookie };
   }
 
   const auth = record.auth;
   if (auth) {
     if (auth.token) {
       const user = auth.userAlias || auth.user || "";
-      return { type: "Bearer", display: "Bearer Token", user: user };
+      return { type: "Bearer", display: "Bearer Token", user: user, value: auth.token };
     }
     if (auth.user && auth.password) {
       const user = auth.userAlias || auth.user || "";
-      return { type: "Basic", display: "Basic Auth", user: user };
+      return { type: "Basic", display: "Basic Auth", user: user, value: auth.password };
     }
     if (auth.cookies) {
       const user = auth.userAlias || auth.user || "";
-      return { type: "Cookie", display: "Cookie", user: user };
+      return { type: "Cookie", display: "Cookie", user: user, value: auth.cookies };
     }
   }
 
-  return { type: "None", display: "Default", user: "" };
+  return { type: "None", display: "Default", user: "", value: null };
 }
 
 /**
@@ -112,6 +112,11 @@ function isValidPactFile(data) {
   );
 }
 
+function getHeaderValue(headers, key) {
+  if (!headers) return null;
+  return headers[key] || headers[key.toLowerCase()];
+}
+
 /**
  * Export functions for both CommonJS and ES modules
  */
@@ -123,6 +128,7 @@ if (typeof module !== "undefined" && module.exports) {
     getStatusClass,
     getAuthInfo,
     isValidPactFile,
+    getHeaderValue,
   };
 } else if (typeof window !== "undefined") {
   // Browser environment
@@ -132,5 +138,6 @@ if (typeof module !== "undefined" && module.exports) {
     getStatusClass,
     getAuthInfo,
     isValidPactFile,
+    getHeaderValue,
   };
 }
