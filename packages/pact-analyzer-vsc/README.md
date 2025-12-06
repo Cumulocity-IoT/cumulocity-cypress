@@ -65,7 +65,7 @@ The extension recognizes C8yPact files with the following structure:
 
 This extension contributes the following command:
 
-- `c8yPactAnalyzer.analyze`: Analyze the currently open C8y Pact file
+- `c8yPactAnalyzer.analyze`: Analyze the currently open C8yPact file
 
 ## Known Issues
 

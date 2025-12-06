@@ -74,16 +74,28 @@ h3 {
   border-radius: 6px;
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 15px;
+.info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  min-width: 200px;
+  flex: 1;
+}
+
+.info-item.full-width {
+  flex: 1 1 100%;
+  min-width: unset;
 }
 
 .info-item label {
@@ -96,6 +108,7 @@ h3 {
 .info-item span {
   font-size: 14px;
   font-family: monospace;
+  word-break: break-all;
 }
 
 /* Statistics Section */

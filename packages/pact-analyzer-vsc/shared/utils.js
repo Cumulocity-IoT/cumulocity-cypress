@@ -97,7 +97,7 @@ function getAuthInfo(record) {
 }
 
 /**
- * Check if the data is a valid C8y Pact file
+ * Check if the data is a valid C8yPact file
  * @param {any} data
  * @returns {boolean}
  */

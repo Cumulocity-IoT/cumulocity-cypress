@@ -13,7 +13,7 @@ const {
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-  console.log("C8y Pact Analyzer is now active");
+  console.log("C8ysPact Analyzer is now active");
 
   // Store a single shared panel - use object so reference persists
   const panelState = {
@@ -97,10 +97,10 @@ async function analyzePactDocument(document, context, panelState) {
       return;
     }
 
-    // Validate if it's a C8y Pact file
+    // Validate if it's a C8yPact file
     if (!isValidPactFile(pactData)) {
       vscode.window.showWarningMessage(
-        "This does not appear to be a valid C8y Pact file"
+        "This does not appear to be a valid C8yPact file"
       );
       return;
     }
@@ -388,7 +388,7 @@ function getWebviewContent(pactData, webview, extensionUri) {
       webview.cspSource
     } 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';">
     <link href="${styleUri}" rel="stylesheet">
-    <title>C8y Pact Analyzer</title>
+    <title>C8yPact Analyzer</title>
 </head>
 <body>
     <div class="container">
@@ -401,11 +401,13 @@ function getWebviewContent(pactData, webview, extensionUri) {
             </div>
         </header>
         <section class="info-section">
-            <div class="info-grid">
-                <div class="info-item">
+            <div class="info-row">
+                <div class="info-item full-width">
                     <label>Base URL:</label>
                     <span>${escapeHtml(info.baseUrl || "N/A")}</span>
                 </div>
+            </div>
+            <div class="info-row">
                 <div class="info-item">
                     <label>Tenant:</label>
                     <span>${escapeHtml(info.tenant || "N/A")}</span>
@@ -415,7 +417,7 @@ function getWebviewContent(pactData, webview, extensionUri) {
                     <span>${escapeHtml(info.version?.system || "N/A")}</span>
                 </div>
                 <div class="info-item">
-                    <label>C8y Pact Version:</label>
+                    <label>C8yPact Version:</label>
                     <span>${escapeHtml(info.version?.c8ypact || "N/A")}</span>
                 </div>
             </div>
