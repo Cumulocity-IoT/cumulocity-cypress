@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
+const { escapeHtml, truncateUrl, getStatusClass, getAuthInfo, isValidPactFile } = require('./shared/utils');
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -147,20 +148,6 @@ async function analyzePactDocument(document, context, panelState) {
     } catch (error) {
         vscode.window.showErrorMessage('Error analyzing pact file: ' + error.message);
     }
-}
-
-/**
- * Check if the data is a valid C8y Pact file
- * @param {any} data 
- * @returns {boolean}
- */
-function isValidPactFile(data) {
-    return data && 
-           typeof data === 'object' &&
-           'info' in data &&
-           'records' in data &&
-           Array.isArray(data.records) &&
-           'id' in data;
 }
 
 /**
@@ -345,6 +332,7 @@ async function exportRecord(record) {
  */
 function getWebviewContent(pactData, webview, extensionUri) {
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'style.css'));
+    const utilsUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'shared', 'utils.js'));
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'script.js'));
 
     const info = pactData.info || {};
@@ -452,179 +440,8 @@ function getWebviewContent(pactData, webview, extensionUri) {
         // Store record details HTML
         const recordDetailsMap = new Map();
         ${records.map((record, index) => `recordDetailsMap.set(${index}, \`${generateRecordDetails(record, index).replace(/`/g, '\\`')}\`);`).join('\n        ')}
-        
-        // Helper functions
-        function escapeHtml(text) {
-            if (typeof text !== 'string') return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        function truncateUrl(url, maxLength = 80) {
-            if (!url || url.length <= maxLength) return url;
-            return url.substring(0, maxLength - 3) + '...';
-        }
-        
-        function getStatusClass(status) {
-            if (status >= 200 && status < 300) return 'status-success';
-            if (status >= 300 && status < 400) return 'status-redirect';
-            if (status >= 400 && status < 500) return 'status-client-error';
-            if (status >= 500) return 'status-server-error';
-            return '';
-        }
-        
-        function getAuthInfo(record) {
-            const headers = record.request?.headers || {};
-            const authHeader = headers.authorization || headers.Authorization;
-            
-            if (authHeader) {
-                if (authHeader.startsWith('Bearer ')) {
-                    return { type: 'Bearer', display: 'Bearer Token', user: '' };
-                }
-                if (authHeader.startsWith('Basic ')) {
-                    return { type: 'Basic', display: 'Basic Auth', user: '' };
-                }
-            }
-            
-            if (headers.cookie || headers.Cookie) {
-                return { type: 'Cookie', display: 'Cookie', user: '' };
-            }
-            
-            const auth = record.auth;
-            if (auth) {
-                if (auth.token) {
-                    const user = auth.userAlias || auth.user || '';
-                    return { type: 'Bearer', display: 'Bearer Token', user: user };
-                }
-                if (auth.user && auth.password) {
-                    const user = auth.userAlias || auth.user || '';
-                    return { type: 'Basic', display: 'Basic Auth', user: user };
-                }
-                if (auth.cookies) {
-                    const user = auth.userAlias || auth.user || '';
-                    return { type: 'Cookie', display: 'Cookie', user: user };
-                }
-            }
-            
-            return { type: 'None', display: 'Default', user: '' };
-        }
-        
-        // Global function to generate records HTML
-        function generateRecordsHTMLClient(records, expandUserAliases) {
-            const rows = [];
-            let displayIndex = 1;
-            
-            records.forEach((record, index) => {
-                const method = record.request?.method || 'UNKNOWN';
-                const url = record.request?.url || 'N/A';
-                const status = record.response?.status || 'N/A';
-                const statusClass = getStatusClass(status);
-                
-                // Get user aliases
-                const userAliases = record.auth?.userAlias;
-                const hasUserAliases = userAliases && (Array.isArray(userAliases) ? userAliases.length > 0 : true);
-                const aliasArray = Array.isArray(userAliases) ? userAliases : (userAliases ? [userAliases] : null);
-                
-                const shouldExpand = expandUserAliases && aliasArray && aliasArray.length > 1;
-                
-                if (shouldExpand) {
-                    aliasArray.forEach((alias, aliasIndex) => {
-                        rows.push(\`
-                            <div class="record-item" data-index="\${index}" data-method="\${method}" data-status="\${status}" data-useralias="\${escapeHtml(alias)}">
-                                <div class="record-header" onclick="toggleRecord(\${index})">
-                                    <span class="index-number">\${displayIndex++}</span>
-                                    <span class="method method-\${method.toLowerCase()}">\${method}</span>
-                                    <span class="url" title="\${escapeHtml(url)}">\${escapeHtml(truncateUrl(url))}</span>
-                                    <span class="status \${statusClass}">\${status}</span>
-                                    <span class="auth-info user-alias-display">\${escapeHtml(alias)}</span>
-                                    <span class="toggle-icon">\u25bc</span>
-                                </div>
-                                \${aliasIndex === 0 ? \`
-                                <div class="record-details" id="record-\${index}" style="display: none;">
-                                    \${recordDetailsMap.get(index) || ''}
-                                </div>
-                                \` : ''}
-                            </div>
-                        \`);
-                    });
-                } else {
-                    // Standard display - prefer userAlias if available
-                    let authDisplay;
-                    const userAliasAttr = (hasUserAliases && aliasArray && aliasArray.length > 0) ? aliasArray.join(',') : '';
-                    if (hasUserAliases && aliasArray && aliasArray.length > 0) {
-                        authDisplay = aliasArray[0];
-                    } else {
-                        const authInfo = getAuthInfo(record);
-                        authDisplay = authInfo.user ? \`\${authInfo.display} (\${authInfo.user})\` : authInfo.display;
-                    }
-                    
-                    rows.push(\`
-                        <div class="record-item" data-index="\${index}" data-method="\${method}" data-status="\${status}" data-useralias="\${escapeHtml(userAliasAttr)}">
-                            <div class="record-header" onclick="toggleRecord(\${index})">
-                                <span class="index-number">\${displayIndex++}</span>
-                                <span class="method method-\${method.toLowerCase()}">\${method}</span>
-                                <span class="url" title="\${escapeHtml(url)}">\${escapeHtml(truncateUrl(url))}</span>
-                                <span class="status \${statusClass}">\${status}</span>
-                                <span class="auth-info \${hasUserAliases ? 'user-alias-display' : ''}">\${escapeHtml(authDisplay)}</span>
-                                <span class="toggle-icon">\u25bc</span>
-                            </div>
-                            <div class="record-details" id="record-\${index}" style="display: none;">
-                                \${recordDetailsMap.get(index) || ''}
-                            </div>
-                        </div>
-                    \`);
-                }
-            });
-            
-            return rows.join('');
-        }
-        
-        // Global function to toggle sections
-        function toggleSection(sectionId) {
-            const section = document.getElementById(sectionId);
-            const button = event?.target?.closest('.toggle-btn');
-            
-            if (!section) return;
-
-            const isExpanded = section.classList.contains('expanded');
-            
-            if (isExpanded) {
-                section.classList.remove('expanded');
-                if (button) button.classList.remove('expanded');
-            } else {
-                section.classList.add('expanded');
-                if (button) button.classList.add('expanded');
-            }
-        }
-        
-        // Global function to toggle records
-        function toggleRecord(index) {
-            const recordItem = document.querySelector(\`.record-item[data-index="\${index}"]\`);
-            const details = document.getElementById(\`record-\${index}\`);
-
-            if (!recordItem || !details) return;
-
-            const isExpanded = recordItem.classList.contains('expanded');
-
-            if (isExpanded) {
-                recordItem.classList.remove('expanded');
-                details.style.display = 'none';
-            } else {
-                recordItem.classList.add('expanded');
-                details.style.display = 'block';
-            }
-        }
-        
-        // Global function to navigate to source
-        function navigateToSource(recordIndex, path) {
-            vscode.postMessage({
-                command: 'navigateToSource',
-                recordIndex: recordIndex,
-                path: path
-            });
-        }
     </script>
+    <script src="${utilsUri}"></script>
     <script src="${scriptUri}"></script>
 </body>
 </html>`;
@@ -755,48 +572,6 @@ function generateRecordsHTML(records, expandUserAliases = false) {
 }
 
 /**
- * Get authentication type and details from record
- * @param {Object} record 
- * @returns {Object} { type: string, display: string, user: string }
- */
-function getAuthInfo(record) {
-    // First check request headers for auth
-    const headers = record.request?.headers || {};
-    const authHeader = headers.authorization || headers.Authorization;
-    
-    if (authHeader) {
-        if (authHeader.startsWith('Bearer ')) {
-            return { type: 'Bearer', display: 'Bearer Token', user: '' };
-        }
-        if (authHeader.startsWith('Basic ')) {
-            return { type: 'Basic', display: 'Basic Auth', user: '' };
-        }
-    }
-    
-    if (headers.cookie || headers.Cookie) {
-        return { type: 'Cookie', display: 'Cookie', user: '' };
-    }
-    
-    // Fall back to record.auth if no header auth found
-    const auth = record.auth;
-    if (auth) {
-        if (auth.token) {
-            return { type: 'Bearer', display: 'Bearer Token', user: auth.user || '' };
-        }
-        if (auth.user && auth.password) {
-            const user = auth.userAlias || auth.user;
-            return { type: 'Basic', display: 'Basic Auth', user: user };
-        }
-        if (auth.cookies) {
-            const user = auth.userAlias || auth.user || '';
-            return { type: 'Cookie', display: 'Cookie', user: user };
-        }
-    }
-    
-    return { type: 'None', display: 'Default', user: '' };
-}
-
-/**
  * Get content type from headers
  * @param {Object} headers 
  * @returns {string}
@@ -899,46 +674,6 @@ function generateRecordDetails(record, index) {
             </div>` : ''}
         </div>
     `;
-}
-
-/**
- * Get CSS class for status code
- * @param {number} status 
- * @returns {string}
- */
-function getStatusClass(status) {
-    if (status >= 200 && status < 300) return 'status-success';
-    if (status >= 300 && status < 400) return 'status-redirect';
-    if (status >= 400 && status < 500) return 'status-client-error';
-    if (status >= 500) return 'status-server-error';
-    return '';
-}
-
-/**
- * Truncate URL for display
- * @param {string} url 
- * @returns {string}
- */
-function truncateUrl(url) {
-    if (!url) return 'N/A';
-    return url.length > 80 ? url.substring(0, 77) + '...' : url;
-}
-
-/**
- * Escape HTML special characters
- * @param {string} text 
- * @returns {string}
- */
-function escapeHtml(text) {
-    if (text === null || text === undefined) return '';
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
 function deactivate() {}

@@ -209,3 +209,108 @@ document.addEventListener('keydown', function(e) {
         collapseAll();
     }
 });
+
+// Global function to generate records HTML
+function generateRecordsHTMLClient(records, expandUserAliases) {
+    const rows = [];
+    let displayIndex = 1;
+    
+    records.forEach((record, index) => {
+        const method = record.request?.method || 'UNKNOWN';
+        const url = record.request?.url || 'N/A';
+        const status = record.response?.status || 'N/A';
+        const statusClass = window.PactUtils.getStatusClass(status);
+        
+        // Get user aliases
+        const userAliases = record.auth?.userAlias;
+        const hasUserAliases = userAliases && (Array.isArray(userAliases) ? userAliases.length > 0 : true);
+        const aliasArray = Array.isArray(userAliases) ? userAliases : (userAliases ? [userAliases] : null);
+        
+        const shouldExpand = expandUserAliases && aliasArray && aliasArray.length > 1;
+        
+        if (shouldExpand) {
+            aliasArray.forEach((alias, aliasIndex) => {
+                rows.push('<div class="record-item" data-index="' + index + '" data-method="' + method + '" data-status="' + status + '" data-useralias="' + window.PactUtils.escapeHtml(alias) + '">' +
+                    '<div class="record-header" onclick="toggleRecord(' + index + ')">' +
+                        '<span class="index-number">' + displayIndex++ + '</span>' +
+                        '<span class="method method-' + method.toLowerCase() + '">' + method + '</span>' +
+                        '<span class="url" title="' + window.PactUtils.escapeHtml(url) + '">' + window.PactUtils.escapeHtml(window.PactUtils.truncateUrl(url)) + '</span>' +
+                        '<span class="status ' + statusClass + '">' + status + '</span>' +
+                        '<span class="auth-info user-alias-display">' + window.PactUtils.escapeHtml(alias) + '</span>' +
+                        '<span class="toggle-icon">▼</span>' +
+                    '</div>' +
+                    (aliasIndex === 0 ? '<div class="record-details" id="record-' + index + '" style="display: none;">' + (recordDetailsMap.get(index) || '') + '</div>' : '') +
+                '</div>');
+            });
+        } else {
+            // Standard display - prefer userAlias if available
+            let authDisplay;
+            const userAliasAttr = (hasUserAliases && aliasArray && aliasArray.length > 0) ? aliasArray.join(',') : '';
+            if (hasUserAliases && aliasArray && aliasArray.length > 0) {
+                authDisplay = aliasArray[0];
+            } else {
+                const authInfo = window.PactUtils.getAuthInfo(record);
+                authDisplay = authInfo.user ? authInfo.display + ' (' + authInfo.user + ')' : authInfo.display;
+            }
+            
+            rows.push('<div class="record-item" data-index="' + index + '" data-method="' + method + '" data-status="' + status + '" data-useralias="' + window.PactUtils.escapeHtml(userAliasAttr) + '">' +
+                '<div class="record-header" onclick="toggleRecord(' + index + ')">' +
+                    '<span class="index-number">' + displayIndex++ + '</span>' +
+                    '<span class="method method-' + method.toLowerCase() + '">' + method + '</span>' +
+                    '<span class="url" title="' + window.PactUtils.escapeHtml(url) + '">' + window.PactUtils.escapeHtml(window.PactUtils.truncateUrl(url)) + '</span>' +
+                    '<span class="status ' + statusClass + '">' + status + '</span>' +
+                    '<span class="auth-info ' + (hasUserAliases ? 'user-alias-display' : '') + '">' + window.PactUtils.escapeHtml(authDisplay) + '</span>' +
+                    '<span class="toggle-icon">▼</span>' +
+                '</div>' +
+                '<div class="record-details" id="record-' + index + '" style="display: none;">' + (recordDetailsMap.get(index) || '') + '</div>' +
+            '</div>');
+        }
+    });
+    
+    return rows.join('');
+}
+
+// Global function to toggle sections
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    const button = event?.target?.closest('.toggle-btn');
+    
+    if (!section) return;
+
+    const isExpanded = section.classList.contains('expanded');
+    
+    if (isExpanded) {
+        section.classList.remove('expanded');
+        if (button) button.classList.remove('expanded');
+    } else {
+        section.classList.add('expanded');
+        if (button) button.classList.add('expanded');
+    }
+}
+
+// Global function to toggle records
+function toggleRecord(index) {
+    const recordItem = document.querySelector('.record-item[data-index="' + index + '"]');
+    const details = document.getElementById('record-' + index);
+
+    if (!recordItem || !details) return;
+
+    const isExpanded = recordItem.classList.contains('expanded');
+
+    if (isExpanded) {
+        recordItem.classList.remove('expanded');
+        details.style.display = 'none';
+    } else {
+        recordItem.classList.add('expanded');
+        details.style.display = 'block';
+    }
+}
+
+// Global function to navigate to source
+function navigateToSource(recordIndex, path) {
+    vscode.postMessage({
+        command: 'navigateToSource',
+        recordIndex: recordIndex,
+        path: path
+    });
+}
