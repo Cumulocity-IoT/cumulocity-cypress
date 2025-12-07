@@ -51,7 +51,7 @@ function truncateUrl(url: string, maxLength: number = 80): string {
  * Get CSS class for HTTP status code
  */
 function getStatusClass(status: string | number): string {
-  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
+  const statusNum = typeof status === "string" ? parseInt(status, 10) : status;
 
   if (statusNum >= 200 && statusNum < 300) return "status-success";
   if (statusNum >= 300 && statusNum < 400) return "status-redirect";
@@ -105,19 +105,5 @@ function getAuthInfo(record: C8yPactRecord): AuthInfo {
   return { type: "None", display: "Default", user: "", value: null };
 }
 
-/**
- * Get header value case-insensitively
- */
-function getHeaderValue(headers: Record<string, string> | undefined, key: string): string | null {
-  if (!headers) return null;
-  return headers[key] || headers[key.toLowerCase()];
-}
-
 // ES Module exports
-export {
-  escapeHtml,
-  truncateUrl,
-  getStatusClass,
-  getAuthInfo,
-  getHeaderValue,
-};
+export { escapeHtml, truncateUrl, getStatusClass, getAuthInfo };
