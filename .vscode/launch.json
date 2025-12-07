@@ -15,7 +15,7 @@
         "<node_internals>/**",
         "${workspaceFolder}/node_modules/**"
       ],
-      "cwd": "${workspaceFolder}/src/c8yctrl",
+      "cwd": "${workspaceFolder}/src/c8yctrl"
     },
     {
       "name": "Launch c8yscrn",
@@ -37,6 +37,19 @@
       "sourceMaps": true,
       "skipFiles": ["cypress_runner.js"],
       "urlFilter": "http://localhost*"
+    },
+    {
+      "name": "Run C8yPact Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/pact-analyzer-vsc"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/packages/pact-analyzer-vsc/out/extension.js"
+      ],
+      "sourceMaps": true,
+      "preLaunchTask": "build-extension"
     }
   ]
 }

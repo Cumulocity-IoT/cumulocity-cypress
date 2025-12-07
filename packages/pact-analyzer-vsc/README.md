@@ -70,3 +70,36 @@ This extension contributes the following command:
 ## Known Issues
 
 - Files larger than 5MB may have limited support due to VS Code API constraints
+
+## Development
+
+### Setup
+
+This extension uses source files directly from the parent `cumulocity-cypress` project via relative imports.
+
+```bash
+npm install
+```
+
+### Build & Debug
+
+**For Development/Debugging:**
+- Press `F5` in VS Code to launch the extension in debug mode
+- The extension uses TypeScript source files directly (no build needed)
+- Uses relative imports: `../../../src/shared/...`
+
+The extension is built once before launching (no errors, clean build) to launch the debugger.
+Run `npm run build:extension -- --watch` in a terminal if you want watch mode during development.
+
+**For Packaging:**
+```bash
+npm run build        # Bundle with esbuild
+npm run package      # Bundle + minify for production
+```
+
+### Architecture
+
+- **Source**: Direct imports from `../../../src/shared/c8ypact`
+- **Bundler**: esbuild bundles everything into `out/extension.js`
+- **No copying**: Source files stay in the main project
+- **Simple**: One command to build, works for debugging and packaging

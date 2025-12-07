@@ -1,0 +1,49 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-extension",
+      "type": "shell",
+      "command": "npm run build",
+      "options": {
+        "cwd": "${workspaceFolder}/packages/pact-analyzer-vsc"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "watch-extension",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build:extension", "--", "--watch"],
+      "options": {
+        "cwd": "${workspaceFolder}/packages/pact-analyzer-vsc"
+      },
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "pattern": [
+            {
+              "regexp": ".",
+              "file": 1,
+              "location": 2,
+              "message": 3
+            }
+          ],
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "^\\[watch\\]",
+            "endsPattern": "^\\[watch\\] build finished"
+          }
+        }
+      ],
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared"
+      }
+    }
+  ]
+}

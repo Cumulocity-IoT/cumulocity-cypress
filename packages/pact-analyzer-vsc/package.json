@@ -3,7 +3,11 @@
   "displayName": "C8yPact Analyzer",
   "description": "A C8yPact file viewer for VS Code",
   "version": "0.1.5",
-  "publisher": "cumulocity",
+  "author": "thomas.winkler@cumulocity.com",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Cumulocity-IoT/cumulocity-cypress/issues"
+  },
   "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.85.0"
@@ -14,7 +18,7 @@
   "activationEvents": [
     "onLanguage:json"
   ],
-  "main": "./extension.js",
+  "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
@@ -33,19 +37,25 @@
     }
   },
   "scripts": {
-    "lint": "eslint .",
-    "pretest": "npm run lint",
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run build",
+    "watch": "concurrently \"npm run build:extension -- --watch\" \"npm run build:webview -- --watch\"",
+    "package": "npm run build:extension -- --minify && npm run build:webview -- --minify",
+    "build": "npm run build:extension && npm run build:webview",
+    "build:extension": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "build:webview": "esbuild ./media/script.ts --bundle --outfile=out/webview.js --format=iife --platform=browser --sourcemap",
+    "clean": "rm -rf out",
     "test": "node ./test/runTest.js"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
     "@types/node": "^20.x",
-    "eslint": "^8.x",
+    "@types/vscode": "^1.85.0",
+    "concurrently": "^9.2.1",
+    "esbuild": "^0.19.0",
     "typescript": "^5.3.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/Cumulocity-IoT/cumulocity-cypress.git"
-  },
-  "license": "MIT"
+  }
 }

@@ -1,66 +1,96 @@
-const vscode = require("vscode");
-const fs = require("fs");
-const path = require("path");
-const {
-  escapeHtml,
-  truncateUrl,
-  getStatusClass,
-  getAuthInfo,
-  isValidPactFile,
-  getHeaderValue,
-} = require("./shared/utils");
+import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
+import { escapeHtml, truncateUrl, getStatusClass, getAuthInfo } from "./utils";
 
-/**
- * @param {vscode.ExtensionContext} context
- */
-function activate(context) {
-  console.log("C8ysPact Analyzer is now active");
+import { C8yPact, isPact } from "../../../src/shared/c8ypact";
+import type { C8yPactRecord } from "../../../src/shared/c8ypact";
+import { get_i } from "../../../src/shared/util";
+import { C8yDefaultPact } from "../../../src/shared/c8ypact/c8ydefaultpact";
+
+interface PanelState {
+  panel: vscode.WebviewPanel | null;
+  currentDocument: vscode.TextDocument | null;
+  isDisposed: boolean;
+}
+
+interface Stats {
+  methods: Set<string>;
+  statusCodes: Set<number>;
+  userAliases: Set<string>;
+  endpoints: Set<string>;
+  totalRequests: number;
+}
+
+export function activate(context: vscode.ExtensionContext): void {
+  console.log("C8yPact Analyzer is now active");
 
   // Store a single shared panel - use object so reference persists
-  const panelState = {
+  const panelState: PanelState = {
     panel: null,
     currentDocument: null,
+    isDisposed: true,
   };
 
-  let disposable = vscode.commands.registerCommand(
+  const disposable = vscode.commands.registerCommand(
     "c8yPactAnalyzer.analyze",
     async function () {
-      const editor = vscode.window.activeTextEditor;
+      try {
+        console.log("Command 'c8yPactAnalyzer.analyze' invoked");
+        const editor = vscode.window.activeTextEditor;
 
-      if (!editor) {
-        vscode.window.showErrorMessage("No active editor found");
-        return;
+        if (!editor) {
+          vscode.window.showErrorMessage("No active editor found");
+          return;
+        }
+
+        const document = editor.document;
+        console.log("Analyzing document:", document.uri.fsPath);
+        await analyzePactDocument(document, context, panelState);
+      } catch (error) {
+        console.error("Error in c8yPactAnalyzer.analyze command:", error);
+        vscode.window.showErrorMessage(
+          `Command failed: ${(error as Error).message}`
+        );
       }
-
-      const document = editor.document;
-      analyzePactDocument(document, context, panelState);
     }
   );
 
   // Auto-update analyzer when switching between files, but only if panel is already open
   const autoAnalyzeDisposable = vscode.window.onDidChangeActiveTextEditor(
     (editor) => {
+      console.log("Active text editor changed:", editor?.document?.fileName);
       // Only auto-update if there's already a panel open
-      if (!panelState.panel || panelState.panel._isDisposed === true) {
+      if (!panelState.panel || panelState.isDisposed) {
+        console.log("No panel open or panel disposed, skipping auto-analyze");
         return;
       }
 
       if (editor && editor.document.languageId === "json") {
         const document = editor.document;
         const filePath = document.uri.fsPath;
+        console.log("Checking JSON file:", filePath);
 
         if (filePath.endsWith(".json")) {
           try {
             const fileContent = fs.readFileSync(filePath, "utf8");
-            const pactData = JSON.parse(fileContent);
-
-            if (isValidPactFile(pactData)) {
+            console.log("File content length:", fileContent.length);
+            const p = C8yDefaultPact.from(fileContent);
+            if (isPact(p)) {
+              console.log("Valid pact found, analyzing...");
               analyzePactDocument(document, context, panelState);
+            } else {
+              console.log("Not a valid pact file");
             }
           } catch (error) {
+            console.log("Error reading/parsing file:", error);
             // Silently fail for non-pact or invalid JSON files
           }
+        } else {
+          console.log("File doesn't end with .json");
         }
+      } else {
+        console.log("No editor or not JSON language");
       }
     }
   );
@@ -71,11 +101,13 @@ function activate(context) {
 
 /**
  * Analyze a pact document
- * @param {vscode.TextDocument} document
- * @param {vscode.ExtensionContext} context
- * @param {Object} panelState - Object containing panel and currentDocument
  */
-async function analyzePactDocument(document, context, panelState) {
+async function analyzePactDocument(
+  document: vscode.TextDocument,
+  context: vscode.ExtensionContext,
+  panelState: PanelState
+): Promise<void> {
+  console.log("analyzePactDocument called for:", document.uri.fsPath);
   const filePath = document.uri.fsPath;
 
   // Check if file is JSON
@@ -85,23 +117,24 @@ async function analyzePactDocument(document, context, panelState) {
   }
 
   try {
-    // Read the file content
-    const fileContent = fs.readFileSync(filePath, "utf8");
-    let pactData;
-
+    let pact: C8yPact;
     try {
-      pactData = JSON.parse(fileContent);
-    } catch (parseError) {
+      console.log("Reading file:", filePath);
+      // Read the file content
+      const fileContent = fs.readFileSync(filePath, "utf8");
+      console.log("File content length:", fileContent.length);
+      pact = C8yDefaultPact.from(fileContent);
+      console.log("Pact parsed, checking if valid...");
+      if (!isPact(pact)) {
+        throw new Error("Not a valid C8yPact document.");
+      }
+      console.log("Valid pact found with", pact.records?.length || 0, "records");
+    } catch (e) {
+      console.error("Error parsing pact:", e);
       vscode.window.showErrorMessage(
-        "Invalid JSON file: " + parseError.message
-      );
-      return;
-    }
-
-    // Validate if it's a C8yPact file
-    if (!isValidPactFile(pactData)) {
-      vscode.window.showWarningMessage(
-        "This does not appear to be a valid C8yPact file"
+        `This does not appear to be a valid C8yPact file. ${
+          (e as Error).message
+        }`
       );
       return;
     }
@@ -109,11 +142,11 @@ async function analyzePactDocument(document, context, panelState) {
     let panel = panelState.panel;
 
     // Check if we already have a panel and it's still visible
-    if (panel && panel._isDisposed !== true) {
+    if (panel && !panelState.isDisposed) {
       // Reuse existing panel - just update content and title
       panel.title = `Pact Analyzer: ${path.basename(filePath)}`;
       panel.webview.html = getWebviewContent(
-        pactData,
+        pact,
         panel.webview,
         context.extensionUri
       );
@@ -123,7 +156,7 @@ async function analyzePactDocument(document, context, panelState) {
       // Create new panel
       panel = vscode.window.createWebviewPanel(
         "c8yPactAnalyzer",
-        `Pact Analyzer: ${path.basename(filePath)}`,
+        `C8yPact Analyzer: ${path.basename(filePath)}`,
         vscode.ViewColumn.Beside,
         {
           enableScripts: true,
@@ -135,21 +168,23 @@ async function analyzePactDocument(document, context, panelState) {
       panel.onDidDispose(() => {
         panelState.panel = null;
         panelState.currentDocument = null;
+        panelState.isDisposed = true;
       });
 
       // Set the webview content
       panel.webview.html = getWebviewContent(
-        pactData,
+        pact,
         panel.webview,
         context.extensionUri
       );
 
       panelState.panel = panel;
       panelState.currentDocument = document;
+      panelState.isDisposed = false;
 
       // Handle messages from the webview
       panel.webview.onDidReceiveMessage(
-        (message) => {
+        (message: any) => {
           switch (message.command) {
             case "copyToClipboard":
               vscode.env.clipboard.writeText(message.text);
@@ -161,7 +196,7 @@ async function analyzePactDocument(document, context, panelState) {
             case "navigateToSource":
               // Use the current document from panelState
               navigateToSourceInFile(
-                panelState.currentDocument,
+                panelState.currentDocument!,
                 message.recordIndex,
                 message.path
               );
@@ -174,25 +209,26 @@ async function analyzePactDocument(document, context, panelState) {
     }
   } catch (error) {
     vscode.window.showErrorMessage(
-      "Error analyzing pact file: " + error.message
+      `Error analyzing pact file: ${(error as Error).message}`
     );
   }
 }
 
 /**
  * Navigate to a specific location in the source JSON file
- * @param {vscode.TextDocument} document
- * @param {number} recordIndex
- * @param {string} path
  */
-async function navigateToSourceInFile(document, recordIndex, path) {
+async function navigateToSourceInFile(
+  document: vscode.TextDocument,
+  recordIndex: number,
+  path: string
+): Promise<void> {
   try {
     const text = document.getText();
     const position = findJsonPath(text, recordIndex, path);
 
     if (position) {
       // Find if document is already open in an editor
-      let editor = vscode.window.visibleTextEditors.find(
+      const editor = vscode.window.visibleTextEditors.find(
         (e) => e.document.uri.toString() === document.uri.toString()
       );
 
@@ -218,19 +254,19 @@ async function navigateToSourceInFile(document, recordIndex, path) {
     }
   } catch (error) {
     vscode.window.showErrorMessage(
-      "Error navigating to source: " + error.message
+      `Error navigating to source: ${(error as Error).message}`
     );
   }
 }
 
 /**
  * Find the position of a specific path within a record in the JSON file
- * @param {string} text
- * @param {number} recordIndex
- * @param {string} path
- * @returns {vscode.Position | null}
  */
-function findJsonPath(text, recordIndex, path) {
+function findJsonPath(
+  text: string,
+  recordIndex: number,
+  path: string
+): vscode.Position | null {
   const lines = text.split("\n");
 
   // First, find the "records" array
@@ -337,9 +373,8 @@ function findJsonPath(text, recordIndex, path) {
 
 /**
  * Export a record to a separate file
- * @param {any} record
  */
-async function exportRecord(record) {
+async function exportRecord(record: C8yPactRecord): Promise<void> {
   const fileName = `pact-record-${record.id || Date.now()}.json`;
   const uri = await vscode.window.showSaveDialog({
     defaultUri: vscode.Uri.file(fileName),
@@ -356,20 +391,17 @@ async function exportRecord(record) {
 
 /**
  * Generate the HTML content for the webview
- * @param {any} pactData
- * @param {vscode.Webview} webview
- * @param {vscode.Uri} extensionUri
- * @returns {string}
  */
-function getWebviewContent(pactData, webview, extensionUri) {
+function getWebviewContent(
+  pactData: C8yPact,
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri
+): string {
   const styleUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "media", "style.css")
   );
-  const utilsUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "shared", "utils.js")
-  );
   const scriptUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "media", "script.js")
+    vscode.Uri.joinPath(extensionUri, "out", "webview.js")
   );
 
   const info = pactData.info || {};
@@ -383,9 +415,7 @@ function getWebviewContent(pactData, webview, extensionUri) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${
-      webview.cspSource
-    } 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource};">
     <link href="${styleUri}" rel="stylesheet">
     <title>C8yPact Analyzer</title>
 </head>
@@ -401,12 +431,22 @@ function getWebviewContent(pactData, webview, extensionUri) {
         </header>
         <section class="info-section">
             <div class="info-row">
-                ${createInfoItem("Base URL", info.baseUrl || "N/A", "full-width")}
+                ${createInfoItem(
+                  "Base URL",
+                  info.baseUrl || "N/A",
+                  "full-width"
+                )}
             </div>
             <div class="info-row">
                 ${createInfoItem("Tenant", info.tenant || "N/A")}
-                ${createInfoItem("System Version", info.version?.system || "N/A")}
-                ${createInfoItem("C8yPact Version", info.version?.c8ypact || "N/A")}
+                ${createInfoItem(
+                  "System Version",
+                  info.version?.system || "N/A"
+                )}
+                ${createInfoItem(
+                  "C8yPact Version",
+                  info.version?.c8ypact || "N/A"
+                )}
             </div>
         </section>
 
@@ -465,38 +505,37 @@ function getWebviewContent(pactData, webview, extensionUri) {
         </section>
     </div>
 
-    <script>
-        const vscode = acquireVsCodeApi();
-        const pactData = ${JSON.stringify(pactData)};
-        
-        // Store record details HTML
-        const recordDetailsMap = new Map();
-        ${records
-          .map(
-            (record, index) =>
-              `recordDetailsMap.set(${index}, \`${generateRecordDetails(
-                record,
-                index
-              ).replace(/`/g, "\\`")}\`);`
-          )
-          .join("\n        ")}
+    <!-- Embed data as non-executable JSON to comply with CSP -->
+    <script type="application/json" id="pactData">
+      ${JSON.stringify(pactData)}
     </script>
-    <script src="${utilsUri}"></script>
-    <script src="${scriptUri}"></script>
+    <script type="application/json" id="recordDetailsMap">
+      ${JSON.stringify(Array.from(generateRecordDetailsMap(records).entries()))}
+    </script>
+    <script src="${scriptUri}?v=${Date.now()}"></script>
 </body>
 </html>`;
 }
 
 /**
- * Calculate statistics from records
- * @param {Array} records
- * @returns {Object}
+ * Generate record details map for pre-rendering
  */
-function calculateStats(records) {
-  const methods = new Set();
-  const statusCodes = new Set();
-  const userAliases = new Set();
-  const endpoints = new Set();
+function generateRecordDetailsMap(records: C8yPactRecord[]): Map<number, string> {
+  const detailsMap = new Map<number, string>();
+  records.forEach((record, index) => {
+    detailsMap.set(index, generateRecordDetails(record, index));
+  });
+  return detailsMap;
+}
+
+/**
+ * Calculate statistics from records
+ */
+function calculateStats(records: C8yPactRecord[]): Stats {
+  const methods = new Set<string>();
+  const statusCodes = new Set<number>();
+  const userAliases = new Set<string>();
+  const endpoints = new Set<string>();
   let totalRequests = 0;
 
   records.forEach((record) => {
@@ -537,12 +576,12 @@ function calculateStats(records) {
 
 /**
  * Generate HTML for records list
- * @param {Array} records
- * @param {boolean} expandUserAliases - If true, expand records with multiple userAlias
- * @returns {string}
  */
-function generateRecordsHTML(records, expandUserAliases = false) {
-  const rows = [];
+function generateRecordsHTML(
+  records: C8yPactRecord[],
+  expandUserAliases = false
+): string {
+  const rows: string[] = [];
   let displayIndex = 1;
 
   records.forEach((record, index) => {
@@ -569,16 +608,16 @@ function generateRecordsHTML(records, expandUserAliases = false) {
       (hasUserAliases ? "user-alias" : "Default");
 
     const shouldExpand =
-      expandUserAliases && aliasArray && aliasArray.length > 1;
+      expandUserAliases && aliasArray && aliasArray.length > 0;
 
     if (shouldExpand) {
       // Create a row for each userAlias
-      aliasArray.forEach((alias, aliasIndex) => {
+      aliasArray!.forEach((alias, aliasIndex) => {
         rows.push(`
                     <div class="record-item" data-index="${index}" data-method="${method}" data-status="${status}" data-useralias="${escapeHtml(
           alias
         )}">
-                        <div class="record-header" onclick="toggleRecord(${index})">
+                        <div class="record-header toggle-record" data-index="${index}">
                             <span class="index-number">${displayIndex++}</span>
                             <span class="method method-${method.toLowerCase()}">${method}</span>
                             <span class="url" title="${escapeHtml(
@@ -604,7 +643,7 @@ function generateRecordsHTML(records, expandUserAliases = false) {
       });
     } else {
       // Standard display - prefer userAlias if available
-      let authDisplay;
+      let authDisplay: string;
       const userAliasAttr =
         hasUserAliases && aliasArray && aliasArray.length > 0
           ? aliasArray.join(",")
@@ -621,7 +660,7 @@ function generateRecordsHTML(records, expandUserAliases = false) {
                 <div class="record-item" data-index="${index}" data-method="${method}" data-status="${status}" data-useralias="${escapeHtml(
         userAliasAttr
       )}">
-                    <div class="record-header" onclick="toggleRecord(${index})">
+                    <div class="record-header toggle-record" data-index="${index}">
                         <span class="index-number">${displayIndex++}</span>
                         <span class="method method-${method.toLowerCase()}">${method}</span>
                         <span class="url" title="${escapeHtml(
@@ -646,11 +685,11 @@ function generateRecordsHTML(records, expandUserAliases = false) {
 
 /**
  * Create a detail item HTML element
- * @param {string} label
- * @param {string|null|undefined} contentOrValue - HTML content string (if starts with <span), value to escape and wrap, or null/undefined to skip
- * @returns {string}
  */
-function createDetailItem(label, contentOrValue) {
+function createDetailItem(
+  label: string,
+  contentOrValue: string | null | undefined
+): string {
   if (!contentOrValue) {
     return "";
   }
@@ -670,13 +709,9 @@ function createDetailItem(label, contentOrValue) {
 
 /**
  * Create an info item HTML element
- * @param {string} label
- * @param {string} value - Value to display
- * @param {string} className - Optional CSS class for the info-item
- * @returns {string}
  */
-function createInfoItem(label, value, className = '') {
-  return `<div class="info-item${className ? ' ' + className : ''}">
+function createInfoItem(label: string, value: string, className = ""): string {
+  return `<div class="info-item${className ? " " + className : ""}">
     <label>${escapeHtml(label)}:</label>
     <span>${escapeHtml(value)}</span>
   </div>`;
@@ -684,11 +719,8 @@ function createInfoItem(label, value, className = '') {
 
 /**
  * Create a stat card HTML element
- * @param {string|number} value - The stat value to display
- * @param {string} label - The stat label
- * @returns {string}
  */
-function createStatCard(value, label) {
+function createStatCard(value: string | number, label: string): string {
   return `<div class="stat-card">
     <div class="stat-value">${escapeHtml(String(value))}</div>
     <div class="stat-label">${escapeHtml(label)}</div>
@@ -697,21 +729,12 @@ function createStatCard(value, label) {
 
 /**
  * Generate detailed view for a record
- * @param {Object} record
- * @param {number} index
- * @returns {string}
  */
-function generateRecordDetails(record, index) {
+function generateRecordDetails(record: C8yPactRecord, index: number): string {
   const authInfo = getAuthInfo(record);
-  const requestContentType = getHeaderValue(
-    record.request?.headers,
-    "content-type"
-  );
-  const requestAcceptType = getHeaderValue(record.request?.headers, "accept");
-  const responseContentType = getHeaderValue(
-    record.response?.headers,
-    "content-type"
-  );
+  const requestContentType = get_i(record.request?.headers, "content-type");
+  const requestAcceptType = get_i(record.request?.headers, "accept");
+  const responseContentType = get_i(record.response?.headers, "content-type");
 
   // Check if there are multiple userAlias values
   const userAliases = record.auth?.userAlias;
@@ -744,13 +767,13 @@ function generateRecordDetails(record, index) {
     createDetailItem(
       "Headers",
       record.request?.headers
-        ? `<span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'request.headers')">View in source →</span></span>`
+        ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="request.headers">View in source →</span></span>`
         : null
     ),
     createDetailItem(
       "Body",
       record.request?.body
-        ? `<span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'request.body')">View in source →</span></span>`
+        ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="request.body">View in source →</span></span>`
         : null
     ),
   ].join("");
@@ -759,7 +782,7 @@ function generateRecordDetails(record, index) {
     createDetailItem(
       "Status",
       `<span class="detail-value ${getStatusClass(
-        record.response?.status
+        record.response?.status || "N/A"
       )}">${escapeHtml(String(record.response?.status || "N/A"))}${
         record.response?.statusText
           ? ` ${escapeHtml(record.response.statusText)}`
@@ -776,13 +799,13 @@ function generateRecordDetails(record, index) {
     createDetailItem(
       "Headers",
       record.response?.headers
-        ? `<span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'response.headers')">View in source →</span></span>`
+        ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="response.headers">View in source →</span></span>`
         : null
     ),
     createDetailItem(
       "Body",
       record.response?.body
-        ? `<span class="detail-value"><span class="source-link" onclick="navigateToSource(${index}, 'response.body')">View in source →</span></span>`
+        ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="response.body">View in source →</span></span>`
         : null
     ),
   ].join("");
@@ -820,9 +843,4 @@ function generateRecordDetails(record, index) {
     `;
 }
 
-function deactivate() {}
-
-module.exports = {
-  activate,
-  deactivate,
-};
+export function deactivate(): void {}
