@@ -42,6 +42,13 @@ export default {
       },
     ],
     [
+      "@semantic-release/exec",
+      {
+        prepareCmd: "cd packages/pact-analyzer-vsc && npm run build:vsix",
+        publishCmd: "echo 'VSIX built successfully'",
+      },
+    ],
+    [
       "@semantic-release/npm",
       {
         npmPublish: true,
@@ -52,7 +59,10 @@ export default {
     [
       "@semantic-release/github",
       {
-        assets: [{ path: "*.tgz", label: "Package (.tgz)" }],
+        assets: [
+          { path: "*.tgz", label: "Package (.tgz)" },
+          { path: "packages/pact-analyzer-vsc/*.vsix", label: "C8yPact Analyzer VS Code Extension (.vsix)" }
+        ],
       },
     ],
     // [
