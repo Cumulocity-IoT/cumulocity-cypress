@@ -1,13 +1,19 @@
 // Shared utility functions for both server and client environments
 
 import type { C8yPactRecord } from "../../../src/shared/c8ypact";
+import { get_i } from "../../../src/shared/util";
+import {
+  C8yAuthOptions,
+  getAuthOptionsFromBasicAuthHeader,
+  getAuthOptionsFromJWT,
+} from "../../../src/shared/auth";
 
 // Type definitions
-interface AuthInfo {
+interface AuthDetails {
   type: string;
   display: string;
-  user: string;
-  value: string | null;
+  userAlias?: string;
+  options: C8yAuthOptions | undefined;
 }
 
 /**
@@ -63,47 +69,71 @@ function getStatusClass(status: string | number): string {
 /**
  * Get authentication information from a record
  */
-function getAuthInfo(record: C8yPactRecord): AuthInfo {
+function getAuthDetails(record: C8yPactRecord): AuthDetails | undefined{
   const headers: any = record.request?.headers || {};
-  const authHeader = headers.authorization || headers.Authorization;
+  const authHeader = get_i(headers, "authorization");
 
   if (authHeader) {
-    if (authHeader.startsWith("Bearer ")) {
-      return { type: "Bearer", display: "Bearer Token", user: "", value: authHeader };
+    if (
+      authHeader.startsWith("Bearer ") ||
+      record.auth?.type === "BearerAuth"
+    ) {
+      const options = getAuthOptionsFromJWT(authHeader);
+      if (!options.user) {
+        options.user = record.auth?.user;
+      }
+      return {
+        type: "BearerAuth",
+        display: "Bearer",
+        userAlias: record.auth?.userAlias,
+        options,
+      };
     }
-    if (authHeader.startsWith("Basic ")) {
-      return { type: "Basic", display: "Basic Auth", user: "", value: authHeader };
+
+    if (
+      authHeader.startsWith("Basic ") ||
+      get_i(headers, "usexbasic") ||
+      record.auth?.type === "BasicAuth"
+    ) {
+      const options = getAuthOptionsFromBasicAuthHeader(authHeader) ?? {
+        user: record.auth?.user || "",
+      };
+      if (!options.user && record.auth?.user != null) {
+        options.user = record.auth?.user;
+      }
+      return {
+        type: "BasicAuth",
+        display: "Basic",
+        userAlias: record.auth?.userAlias,
+        options,
+      };
     }
   }
 
-  if (headers.cookie || headers.Cookie) {
-    return { type: "Cookie", display: "Cookie", user: "", value: headers.cookie || headers.Cookie };
+  if (get_i(headers, "cookie") || record.auth?.type === "CookieAuth") {
+    return {
+      type: "CookieAuth",
+      display: "Cookie",
+      options: {
+        user: record.auth?.user || "",
+        userAlias: record.auth?.userAlias,
+      },
+    };
   }
 
-  // const auth = record.auth;
-  // if (auth) {
-  //   if (auth.token) {
-  //     const user = Array.isArray(auth.userAlias)
-  //       ? auth.userAlias[0] || ""
-  //       : auth.userAlias || auth.user || "";
-  //     return { type: "Bearer", display: "Bearer Token", user: user, value: auth.token };
-  //   }
-  //   if (auth.user && auth.password) {
-  //     const user = Array.isArray(auth.userAlias)
-  //       ? auth.userAlias[0] || ""
-  //       : auth.userAlias || auth.user || "";
-  //     return { type: "Basic", display: "Basic Auth", user: user, value: auth.password };
-  //   }
-  //   if (auth.cookies) {
-  //     const user = Array.isArray(auth.userAlias)
-  //       ? auth.userAlias[0] || ""
-  //       : auth.userAlias || auth.user || "";
-  //     return { type: "Cookie", display: "Cookie", user: user, value: auth.cookies };
-  //   }
-  // }
+  if (record.auth) {
+    return {
+      type: record.auth.type || "Default",
+      display: record.auth.type || "Default",
+      userAlias: record.auth.userAlias,
+      options: {
+        user: record.auth.user || "",
+        userAlias: record.auth.userAlias,
+      },
+    };
+  }
 
-  return { type: "None", display: "Default", user: "", value: null };
+  return { type: "None", display: "Default", options: undefined };
 }
 
-// ES Module exports
-export { escapeHtml, truncateUrl, getStatusClass, getAuthInfo };
+export { escapeHtml, truncateUrl, getStatusClass, getAuthDetails };

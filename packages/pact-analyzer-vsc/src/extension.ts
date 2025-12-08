@@ -1,11 +1,16 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { escapeHtml, truncateUrl, getStatusClass, getAuthInfo } from "./utils";
+import {
+  escapeHtml,
+  truncateUrl,
+  getStatusClass,
+  getAuthDetails,
+} from "./utils";
 
 import { C8yPact, isPact } from "../../../src/shared/c8ypact";
 import type { C8yPactRecord } from "../../../src/shared/c8ypact";
-import { get_i } from "../../../src/shared/util";
+import { get_i, to_array } from "../../../src/shared/util";
 import { C8yDefaultPact } from "../../../src/shared/c8ypact/c8ydefaultpact";
 
 interface PanelState {
@@ -128,7 +133,11 @@ async function analyzePactDocument(
       if (!isPact(pact)) {
         throw new Error("Not a valid C8yPact document.");
       }
-      console.log("Valid pact found with", pact.records?.length || 0, "records");
+      console.log(
+        "Valid pact found with",
+        pact.records?.length || 0,
+        "records"
+      );
     } catch (e) {
       console.error("Error parsing pact:", e);
       vscode.window.showErrorMessage(
@@ -415,7 +424,9 @@ function getWebviewContent(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource};">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${
+      webview.cspSource
+    } 'unsafe-inline'; script-src ${webview.cspSource};">
     <link href="${styleUri}" rel="stylesheet">
     <title>C8yPact Analyzer</title>
 </head>
@@ -520,7 +531,9 @@ function getWebviewContent(
 /**
  * Generate record details map for pre-rendering
  */
-function generateRecordDetailsMap(records: C8yPactRecord[]): Map<number, string> {
+function generateRecordDetailsMap(
+  records: C8yPactRecord[]
+): Map<number, string> {
   const detailsMap = new Map<number, string>();
   records.forEach((record, index) => {
     detailsMap.set(index, generateRecordDetails(record, index));
@@ -590,33 +603,20 @@ function generateRecordsHTML(
     const status = record.response?.status || "N/A";
     const statusClass = getStatusClass(status);
 
-    const authInfo = getAuthInfo(record);
+    let userAliases: string[] | undefined = undefined;
+    const authInfo = getAuthDetails(record);
+    if (authInfo) {
+      userAliases = expandUserAliases
+        ? to_array(authInfo.userAlias)
+        : [authInfo.type];
+    }
+    if (!userAliases || userAliases.length === 0) {
+      userAliases = ["Default"];
+    }
 
-    // Get user aliases
-    const userAliases = record.auth?.userAlias;
-    const hasUserAliases =
-      userAliases &&
-      (Array.isArray(userAliases) ? userAliases.length > 0 : true);
-    const aliasArray = Array.isArray(userAliases)
-      ? userAliases
-      : userAliases
-      ? [userAliases]
-      : null;
-    const authType =
-      record.auth?.type ||
-      authInfo?.display ||
-      (hasUserAliases ? "user-alias" : "Default");
-
-    const shouldExpand =
-      expandUserAliases && aliasArray && aliasArray.length > 0;
-
-    if (shouldExpand) {
-      // Create a row for each userAlias
-      aliasArray!.forEach((alias, aliasIndex) => {
-        rows.push(`
-                    <div class="record-item" data-index="${index}" data-method="${method}" data-status="${status}" data-useralias="${escapeHtml(
-          alias
-        )}">
+    userAliases?.forEach((alias, aliasIndex) => {
+      const escapedAlias = escapeHtml(alias);
+      const row = `<div class="record-item" data-index="${index}" data-method="${method}" data-status="${status}" data-useralias="${escapedAlias}">
                         <div class="record-header toggle-record" data-index="${index}">
                             <span class="index-number">${displayIndex++}</span>
                             <span class="method method-${method.toLowerCase()}">${method}</span>
@@ -624,9 +624,7 @@ function generateRecordsHTML(
                               url
                             )}">${escapeHtml(truncateUrl(url))}</span>
                             <span class="status ${statusClass}">${status}</span>
-                            <span class="auth-info user-alias-display">${escapeHtml(
-                              alias
-                            )}</span>
+                            <span class="auth-info user-alias-display">${escapedAlias}</span>
                             <span class="toggle-icon">▼</span>
                         </div>
                         ${
@@ -639,45 +637,9 @@ function generateRecordsHTML(
                             : ""
                         }
                     </div>
-                `);
-      });
-    } else {
-      // Standard display - prefer userAlias if available
-      let authDisplay: string;
-      const userAliasAttr =
-        hasUserAliases && aliasArray && aliasArray.length > 0
-          ? aliasArray.join(",")
-          : "";
-      if (hasUserAliases && aliasArray && aliasArray.length > 0) {
-        authDisplay = authType || "Default";
-      } else {
-        authDisplay = authInfo.user
-          ? `${authInfo.display} (${authInfo.user})`
-          : authInfo.display;
-      }
-
-      rows.push(`
-                <div class="record-item" data-index="${index}" data-method="${method}" data-status="${status}" data-useralias="${escapeHtml(
-        userAliasAttr
-      )}">
-                    <div class="record-header toggle-record" data-index="${index}">
-                        <span class="index-number">${displayIndex++}</span>
-                        <span class="method method-${method.toLowerCase()}">${method}</span>
-                        <span class="url" title="${escapeHtml(
-                          url
-                        )}">${escapeHtml(truncateUrl(url))}</span>
-                        <span class="status ${statusClass}">${status}</span>
-                        <span class="auth-info ${
-                          hasUserAliases ? "user-alias-display" : ""
-                        }">${escapeHtml(authDisplay)}</span>
-                        <span class="toggle-icon">▼</span>
-                    </div>
-                    <div class="record-details" id="record-${index}" style="display: none;">
-                        ${generateRecordDetails(record, index)}
-                    </div>
-                </div>
-            `);
-    }
+                `;
+      rows.push(row);
+    });
   });
 
   return rows.join("");
@@ -731,7 +693,7 @@ function createStatCard(value: string | number, label: string): string {
  * Generate detailed view for a record
  */
 function generateRecordDetails(record: C8yPactRecord, index: number): string {
-  const authInfo = getAuthInfo(record);
+  const authInfo = getAuthDetails(record);
   const requestContentType = get_i(record.request?.headers, "content-type");
   const requestAcceptType = get_i(record.request?.headers, "accept");
   const responseContentType = get_i(record.response?.headers, "content-type");
@@ -740,26 +702,19 @@ function generateRecordDetails(record: C8yPactRecord, index: number): string {
   const userAliases = record.auth?.userAlias;
   const hasMultipleUsers = Array.isArray(userAliases) && userAliases.length > 1;
 
+  const user = authInfo?.options?.tenant
+    ? authInfo.options?.tenant + "/" + (authInfo.options?.user ?? "-")
+    : "-";
+
   const requestDetails = [
     createDetailItem("Method", record.request?.method || "N/A"),
     createDetailItem("URL", record.request?.url || "N/A"),
     createDetailItem(
-      "User Aliases",
-      hasMultipleUsers
-        ? `<span class="detail-value user-aliases">${userAliases
-            .map(
-              (userAlias) =>
-                `<span class="user-alias-badge">${escapeHtml(userAlias)}</span>`
-            )
-            .join(" ")}</span>`
-        : null
-    ),
-    createDetailItem(
       "Authentication",
-      authInfo && authInfo.value
-        ? `<span class="detail-value">${escapeHtml(authInfo.value)}${
-            authInfo.user ? ` (${escapeHtml(authInfo.user)})` : ""
-          }</span>`
+      user
+        ? `<span class="detail-value">${escapeHtml(
+            authInfo?.display ?? "Unknown"
+          )} ${escapeHtml(user)}</span>`
         : null
     ),
     createDetailItem("Content-Type", requestContentType),
@@ -774,6 +729,17 @@ function generateRecordDetails(record: C8yPactRecord, index: number): string {
       "Body",
       record.request?.body
         ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="request.body">View in source →</span></span>`
+        : null
+    ),
+    createDetailItem(
+      "User Aliases",
+      hasMultipleUsers
+        ? `<span class="detail-value user-aliases">${userAliases
+            .map(
+              (userAlias) =>
+                `<span class="user-alias-badge">${escapeHtml(userAlias)}</span>`
+            )
+            .join(" ")}</span>`
         : null
     ),
   ].join("");

@@ -9,7 +9,12 @@ declare global {
 }
 
 // Import shared utilities
-import { escapeHtml, truncateUrl, getStatusClass, getAuthInfo } from '../src/utils';
+import {
+  escapeHtml,
+  truncateUrl,
+  getStatusClass,
+  getAuthDetails,
+} from "../src/utils";
 
 // Access global variables from window since esbuild wraps in IIFE
 const pactData = () => window.pactData;
@@ -23,7 +28,7 @@ const PactUtils = {
   escapeHtml,
   truncateUrl,
   getStatusClass,
-  getAuthInfo
+  getAuthDetails,
 };
 
 // Make PactUtils available globally for backward compatibility
@@ -329,7 +334,7 @@ function generateRecordsHTMLClient(
         `);
       });
     } else {
-      let authDisplay;
+      let authDisplay = "Default";
       const userAliasAttr =
         hasUserAliases && aliasArray && aliasArray.length > 0
           ? aliasArray.join(",")
@@ -337,10 +342,15 @@ function generateRecordsHTMLClient(
       if (hasUserAliases && aliasArray && aliasArray.length > 0) {
         authDisplay = aliasArray[0];
       } else {
-        const authInfo = PactUtils.getAuthInfo(record);
-        authDisplay = authInfo.user
-          ? authInfo.display + " (" + authInfo.user + ")"
-          : authInfo.display;
+        const authInfo = PactUtils.getAuthDetails(record);
+        if (authInfo) {
+          authDisplay = authInfo.options?.user
+            ? authInfo.display +
+              " (" +
+              (authInfo.options?.user ?? "unknown") +
+              ")"
+            : authInfo.display;
+        }
       }
       rows.push(`
         <div class="record-item" data-index="${index}" data-method="${method}" data-status="${status}" data-useralias="${PactUtils.escapeHtml(
