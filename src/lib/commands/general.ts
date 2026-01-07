@@ -1,6 +1,6 @@
 const { _ } = Cypress;
 
-export {};
+export { };
 
 declare global {
   namespace Cypress {
@@ -15,19 +15,58 @@ declare global {
       /**
        * Visits a given page and waits for a selector to become visible.
        *
-       * @example
-       * cy.visitAndWaitToFinishLoading('/');
-       * cy.visitAndWaitToFinishLoading('/', 'en', '[data-cy=myelement]');
+       * Supports two signatures:
+       * 1. Positional parameters for simple cases
+       * 2. Options object for advanced configuration with shell and remotes support
        *
-       * @param {string} url - the page to be visited
-       * @param {string} selector - the selector to wait  to become visible. Defaults to `c8y-navigator-outlet c8y-app-icon`.
-       * @param {number} timeout - the timeout in milliseconds to wait for the selector to become visible. Defaults to `60000`.
+       * @example
+       * // Simple usage with defaults
+       * cy.visitAndWaitForSelector('/apps/cockpit');
+       * 
+       * // With positional parameters
+       * cy.visitAndWaitForSelector('/', 'en', '[data-cy=myelement]', 10000);
+       *
+       * // With options object
+       * cy.visitAndWaitForSelector('/apps/cockpit', {
+       *   language: 'en',
+       *   selector: '#navigator',
+       *   timeout: 30000,
+       *   shell: 'cockpit',
+       *   remotes: '{"my-plugin":["myPluginViewProviders"]}'
+       * });
+       *
+       * @param {string} url - The page to be visited
+       * @param {C8yLanguage} language - The language to set. Defaults to 'en'
+       * @param {string} selector - The selector to wait to become visible. Defaults to `c8y-drawer-outlet c8y-app-icon .c8y-icon, c8y-navigator-outlet c8y-app-icon`
+       * @param {number} timeout - The timeout in milliseconds to wait for the selector to become visible. Defaults to `pageLoadTimeout` or `60000`
        */
       visitAndWaitForSelector(
         url: string,
         language?: C8yLanguage,
         selector?: string,
         timeout?: number
+      ): Chainable<void>;
+
+      /**
+       * Visits a given page and waits for a selector to become visible (options signature).
+       *
+       * @param {string} url - The page to be visited
+       * @param {object} options - Configuration options
+       * @param {C8yLanguage} options.language - The language to set. Defaults to 'en'
+       * @param {string} options.selector - The selector to wait to become visible
+       * @param {number} options.timeout - The timeout in milliseconds
+       * @param {string} options.shell - The shell application to target (overrides C8Y_SHELL_TARGET env)
+       * @param {string} options.remotes - Comma-separated list of remote plugins to load (overrides C8Y_SHELL_EXTENSION env)
+       */
+      visitAndWaitForSelector(
+        url: string,
+        options: {
+          language?: C8yLanguage;
+          selector?: string;
+          timeout?: number;
+          shell?: string;
+          remotes?: string;
+        }
       ): Chainable<void>;
 
       /**
@@ -53,24 +92,77 @@ declare global {
 Cypress.Commands.add(
   "visitAndWaitForSelector",
   (
-    url,
-    language = "en",
-    selector = "c8y-drawer-outlet c8y-app-icon .c8y-icon, c8y-navigator-outlet c8y-app-icon",
-    timeout = Cypress.config().pageLoadTimeout || 60000
+    url: string,
+    languageOrOptions?: C8yLanguage | {
+      language?: C8yLanguage;
+      selector?: string;
+      timeout?: number;
+      shell?: string;
+      remotes?: string;
+    },
+    selectorValue?: string,
+    timeoutValue?: number
   ) => {
+    const DEFAULT_LANGUAGE: C8yLanguage = "en";
+    const DEFAULT_SELECTOR = "c8y-drawer-outlet c8y-app-icon .c8y-icon, c8y-navigator-outlet c8y-app-icon";
+    const DEFAULT_TIMEOUT = Cypress.config().pageLoadTimeout || 60000;
+
+    const isOptionsObject = (
+      value: unknown
+    ): value is { language?: C8yLanguage; selector?: string; timeout?: number; shell?: string; remotes?: string } => {
+      return typeof value === 'object' && value !== null;
+    };
+
+    let language: C8yLanguage;
+    let selector: string;
+    let timeout: number;
+    let shell: string | undefined;
+    let remotes: string | undefined;
+
+    if (isOptionsObject(languageOrOptions)) {
+      language = languageOrOptions.language ?? DEFAULT_LANGUAGE;
+      selector = languageOrOptions.selector ?? DEFAULT_SELECTOR;
+      timeout = languageOrOptions.timeout ?? DEFAULT_TIMEOUT;
+      shell = languageOrOptions.shell;
+      remotes = languageOrOptions.remotes;
+    } else {
+      language = languageOrOptions ?? DEFAULT_LANGUAGE;
+      selector = selectorValue ?? DEFAULT_SELECTOR;
+      timeout = timeoutValue ?? DEFAULT_TIMEOUT;
+      shell = undefined;
+      remotes = undefined;
+    }
+
+    // Build the final URL with shell target if provided
+    const shellTarget = shell ?? Cypress.env('C8Y_SHELL_TARGET');
+    if (shellTarget) {
+      url = `/apps/${shellTarget}/index.html#/${url}`;
+    }
+
+    // Log command execution details
     const consoleProps = {
       url,
       language,
       selector,
       timeout,
+      shell: shellTarget,
+      remotes: remotes ?? Cypress.env('C8Y_SHELL_EXTENSION'),
     };
     Cypress.log({
       name: "visitAndWaitForSelector",
       message: url,
       consoleProps: () => consoleProps,
     });
+
     cy.setLanguage(language);
-    cy.visit(url);
+
+    const shellExtensions = remotes ?? Cypress.env('C8Y_SHELL_EXTENSION');
+    if (shellExtensions) {
+      cy.visit(url, { qs: { remotes: shellExtensions } });
+    } else {
+      cy.visit(url);
+    }
+
     cy.get(selector, { timeout }).should("be.visible");
   }
 );
