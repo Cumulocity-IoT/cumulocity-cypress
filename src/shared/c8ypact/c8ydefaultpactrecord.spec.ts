@@ -355,6 +355,11 @@ describe("c8ydefaultpactrecord", () => {
       record!.request.headers = { Authorization: "Basic abcde" };
       expect(record!.authType()).toBe("BasicAuth");
     });
+
+    it("should return BearerAuth for Bearer Authorization header", function () {
+      record!.request.headers = { Authorization: "Bearer abcde" };
+      expect(record!.authType()).toBe("BearerAuth");
+    });
   });
 
   describe("date", function () {

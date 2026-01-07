@@ -6,6 +6,7 @@ import {
   toPactAuthObject,
 } from "../auth";
 import { C8yClient, C8yClientOptions } from "../c8yclient";
+import { get_i } from "../util";
 import {
   C8yPactRecord,
   C8yPactRequest,
@@ -72,7 +73,8 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
       if (params.options) this.options = params.options;
       if (params.auth) this.auth = params.auth;
       if (params.createdObject) this.createdObject = params.createdObject;
-      if (params.modifiedResponse) this.modifiedResponse = params.modifiedResponse;
+      if (params.modifiedResponse)
+        this.modifiedResponse = params.modifiedResponse;
       if (params.id) this.id = params.id;
     } else {
       // Handle individual parameter style
@@ -177,16 +179,35 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
       .includes(key?.toLowerCase());
   }
 
+  getRequestHeader(key: string): string | undefined {
+    const foundKey = Object.keys(this.request.headers ?? {}).find(
+      (k) => k.toLowerCase() === key?.toLowerCase()
+    );
+    if (foundKey) {
+      return this.request.headers
+        ? (this.request.headers as any)[foundKey]
+        : undefined;
+    }
+    return undefined;
+  }
+
   authType() {
-    const type = this.auth?.type;
-    if (type === "BasicAuth" || type === "CookieAuth") {
+    const type = get_i(this.auth, "type");
+    const knownTypes = ["BasicAuth", "BearerAuth", "CookieAuth"];
+    if (type && knownTypes.includes(type)) {
       return type;
     }
     if (this.hasRequestHeader("x-xsrf-token")) {
       return "CookieAuth";
     }
-    if (this.hasRequestHeader("authorization")) {
-      return "BasicAuth";
+    const authHeader = this.getRequestHeader("authorization");
+    if (authHeader) {
+      if (authHeader.startsWith("Bearer ")) {
+        return "BearerAuth";
+      }
+      if (authHeader.startsWith("Basic ")) {
+        return "BasicAuth";
+      }
     }
     return undefined;
   }
@@ -232,16 +253,15 @@ export function createPactRecord(
   return C8yDefaultPactRecord.from(response, auth, client, options.id);
 }
 
-
 /**
  * Type guard to check if an object is C8yDefaultPactRecordInit
  */
 function isC8yDefaultPactRecordInit(obj: any): obj is C8yDefaultPactRecordInit {
   return (
     obj &&
-    typeof obj === 'object' &&
-    'request' in obj &&
-    'response' in obj &&
+    typeof obj === "object" &&
+    "request" in obj &&
+    "response" in obj &&
     obj.request != null &&
     obj.response != null
   );

@@ -608,7 +608,7 @@ function generateRecordsHTML(
     if (authInfo) {
       userAliases = expandUserAliases
         ? to_array(authInfo.userAlias)
-        : [authInfo.type];
+        : to_array(authInfo.display ?? "Default");
     }
     if (!userAliases || userAliases.length === 0) {
       userAliases = ["Default"];
@@ -669,6 +669,39 @@ function createDetailItem(
   </div>`;
 }
 
+function createAuthItem(record: C8yPactRecord): string {
+  const authInfo = getAuthDetails(record);
+  const userAliases = record.auth?.userAlias;
+  const hasMultipleUsers = Array.isArray(userAliases) && userAliases.length > 0;
+
+  const user = authInfo?.tenant
+    ? authInfo.tenant + "/" + (authInfo?.user ?? "-")
+    : authInfo?.user;
+
+  if ((!authInfo && !record.auth) || (!user && !userAliases)) {
+    return createDetailItem(
+      "Authentication",
+      `<span class="detail-value"><i>No authorization details.</i></span>`
+    );
+  }
+
+  return createDetailItem(
+    "Authentication",
+    `<span class="detail-value">${
+      authInfo?.display
+        ? escapeHtml(authInfo.display)
+        : `<i>No authorization details.</i>`
+    } ${user ? escapeHtml(user) : ""}</span>` +
+      (hasMultipleUsers
+        ? `<span class="detail-value user-aliases">${userAliases
+            .map(
+              (userAlias) =>
+                `<span class="user-alias-badge">${escapeHtml(userAlias)}</span>`
+            )
+            .join(" ")}</span>`
+        : null)
+  );
+}
 /**
  * Create an info item HTML element
  */
@@ -693,30 +726,14 @@ function createStatCard(value: string | number, label: string): string {
  * Generate detailed view for a record
  */
 function generateRecordDetails(record: C8yPactRecord, index: number): string {
-  const authInfo = getAuthDetails(record);
   const requestContentType = get_i(record.request?.headers, "content-type");
   const requestAcceptType = get_i(record.request?.headers, "accept");
   const responseContentType = get_i(record.response?.headers, "content-type");
 
-  // Check if there are multiple userAlias values
-  const userAliases = record.auth?.userAlias;
-  const hasMultipleUsers = Array.isArray(userAliases) && userAliases.length > 1;
-
-  const user = authInfo?.options?.tenant
-    ? authInfo.options?.tenant + "/" + (authInfo.options?.user ?? "-")
-    : "-";
-
   const requestDetails = [
     createDetailItem("Method", record.request?.method || "N/A"),
     createDetailItem("URL", record.request?.url || "N/A"),
-    createDetailItem(
-      "Authentication",
-      user
-        ? `<span class="detail-value">${escapeHtml(
-            authInfo?.display ?? "Unknown"
-          )} ${escapeHtml(user)}</span>`
-        : null
-    ),
+    createAuthItem(record),
     createDetailItem("Content-Type", requestContentType),
     createDetailItem("Accept", requestAcceptType),
     createDetailItem(
@@ -729,17 +746,6 @@ function generateRecordDetails(record: C8yPactRecord, index: number): string {
       "Body",
       record.request?.body
         ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="request.body">View in source →</span></span>`
-        : null
-    ),
-    createDetailItem(
-      "User Aliases",
-      hasMultipleUsers
-        ? `<span class="detail-value user-aliases">${userAliases
-            .map(
-              (userAlias) =>
-                `<span class="user-alias-badge">${escapeHtml(userAlias)}</span>`
-            )
-            .join(" ")}</span>`
         : null
     ),
   ].join("");

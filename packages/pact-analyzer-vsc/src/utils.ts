@@ -9,11 +9,8 @@ import {
 } from "../../../src/shared/auth";
 
 // Type definitions
-interface AuthDetails {
-  type: string;
-  display: string;
-  userAlias?: string;
-  options: C8yAuthOptions | undefined;
+interface AuthDetails extends C8yAuthOptions {
+  display?: string;
 }
 
 /**
@@ -69,71 +66,40 @@ function getStatusClass(status: string | number): string {
 /**
  * Get authentication information from a record
  */
-function getAuthDetails(record: C8yPactRecord): AuthDetails | undefined{
+function getAuthDetails(record: C8yPactRecord): AuthDetails | undefined {
   const headers: any = record.request?.headers || {};
   const authHeader = get_i(headers, "authorization");
+  const type = record.authType();
+  const display = type?.replace("Auth", "");
 
-  if (authHeader) {
-    if (
-      authHeader.startsWith("Bearer ") ||
-      record.auth?.type === "BearerAuth"
-    ) {
-      const options = getAuthOptionsFromJWT(authHeader);
-      if (!options.user) {
-        options.user = record.auth?.user;
-      }
-      return {
-        type: "BearerAuth",
-        display: "Bearer",
-        userAlias: record.auth?.userAlias,
-        options,
-      };
-    }
-
-    if (
-      authHeader.startsWith("Basic ") ||
-      get_i(headers, "usexbasic") ||
-      record.auth?.type === "BasicAuth"
-    ) {
-      const options = getAuthOptionsFromBasicAuthHeader(authHeader) ?? {
-        user: record.auth?.user || "",
-      };
-      if (!options.user && record.auth?.user != null) {
-        options.user = record.auth?.user;
-      }
-      return {
-        type: "BasicAuth",
-        display: "Basic",
-        userAlias: record.auth?.userAlias,
-        options,
-      };
-    }
+  if (type === "BearerAuth") {
+    const auth = getAuthOptionsFromJWT(authHeader);
+    return {
+      type,
+      ...(display && { display }),
+      ...auth,
+    };
   }
 
-  if (get_i(headers, "cookie") || record.auth?.type === "CookieAuth") {
+  if (type === "BasicAuth") {
+    const auth: C8yAuthOptions =
+      getAuthOptionsFromBasicAuthHeader(authHeader) ?? record.auth ?? {};
     return {
-      type: "CookieAuth",
-      display: "Cookie",
-      options: {
-        user: record.auth?.user || "",
-        userAlias: record.auth?.userAlias,
-      },
+      type,
+      display,
+      ...auth,
     };
   }
 
   if (record.auth) {
     return {
-      type: record.auth.type || "Default",
-      display: record.auth.type || "Default",
-      userAlias: record.auth.userAlias,
-      options: {
-        user: record.auth.user || "",
-        userAlias: record.auth.userAlias,
-      },
+      type,
+      display,
+      ...record.auth,
     };
   }
 
-  return { type: "None", display: "Default", options: undefined };
+  return undefined;
 }
 
 export { escapeHtml, truncateUrl, getStatusClass, getAuthDetails };
