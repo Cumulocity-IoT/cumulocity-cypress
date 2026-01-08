@@ -1,6 +1,8 @@
 const { _ } = Cypress;
 
-export { };
+import { to_boolean } from "../../shared/util";
+
+export {};
 
 declare global {
   namespace Cypress {
@@ -85,7 +87,7 @@ declare global {
 
 export type C8yRemotesObject = {
   [pluginName: string]: string[];
-}
+};
 
 /**
  * Options for `visitAndWaitForSelector` command.
@@ -124,24 +126,31 @@ Cypress.Commands.add(
     const options = isOptionsObject(languageOrOptions)
       ? languageOrOptions
       : {
-        language: languageOrOptions,
-        selector: selectorValue,
-        timeout: timeoutValue,
-      };
+          language: languageOrOptions,
+          selector: selectorValue,
+          timeout: timeoutValue,
+        };
 
     const language = options.language ?? DEFAULT_LANGUAGE;
     const selector = options.selector ?? C8yVisitDefaultWaitSelector;
     const timeout = options.timeout ?? DEFAULT_TIMEOUT;
 
-    let remotes = options.remotes ?? Cypress.env("C8Y_SHELL_EXTENSION");
+    let remotes =
+      options.remotes ??
+      Cypress.env("C8Y_SHELL_REMOTES") ??
+      Cypress.env("C8Y_SHELL_EXTENSION");
     if (remotes && typeof remotes === "object") {
       remotes = JSON.stringify(remotes);
     }
+
     const shell =
       options.shell ??
       Cypress.env("C8Y_SHELL_TARGET") ??
       Cypress.env("C8Y_SHELL_NAME");
-    const forceUrlRemotes = options.forceUrlRemotes ?? false;
+
+    const forceUrlRemotes =
+      options.forceUrlRemotes ??
+      to_boolean(Cypress.env("C8Y_SHELL_REMOTES_FORCE"), false);
 
     // Build the final URL with shell target if provided
     if (shell) {
@@ -156,7 +165,7 @@ Cypress.Commands.add(
       timeout,
       shell,
       remotes,
-      forceUrlRemotes
+      forceUrlRemotes,
     };
     Cypress.log({
       name: "visitAndWaitForSelector",
