@@ -1,6 +1,6 @@
 const { _ } = Cypress;
 
-export {};
+export { };
 
 declare global {
   namespace Cypress {
@@ -57,6 +57,7 @@ declare global {
        * @param {number} options.timeout - The timeout in milliseconds
        * @param {string} options.shell - The shell application to target (overrides C8Y_SHELL_TARGET env)
        * @param {string} options.remotes - Comma-separated list of remote plugins to load (overrides C8Y_SHELL_EXTENSION env)
+       * @param {boolean} options.forceUrlRemotes - Force to only load local remotes from the URL query string. Defaults to false
        */
       visitAndWaitForSelector(
         url: string,
@@ -95,6 +96,7 @@ export type C8yVisitOptions = {
   timeout?: number;
   shell?: string;
   remotes?: string | C8yRemotesObject;
+  forceUrlRemotes?: boolean;
 };
 
 /**
@@ -122,15 +124,15 @@ Cypress.Commands.add(
     const options = isOptionsObject(languageOrOptions)
       ? languageOrOptions
       : {
-          language: languageOrOptions,
-          selector: selectorValue,
-          timeout: timeoutValue,
-        };
+        language: languageOrOptions,
+        selector: selectorValue,
+        timeout: timeoutValue,
+      };
 
     const language = options.language ?? DEFAULT_LANGUAGE;
     const selector = options.selector ?? C8yVisitDefaultWaitSelector;
     const timeout = options.timeout ?? DEFAULT_TIMEOUT;
-    
+
     let remotes = options.remotes ?? Cypress.env("C8Y_SHELL_EXTENSION");
     if (remotes && typeof remotes === "object") {
       remotes = JSON.stringify(remotes);
@@ -139,6 +141,7 @@ Cypress.Commands.add(
       options.shell ??
       Cypress.env("C8Y_SHELL_TARGET") ??
       Cypress.env("C8Y_SHELL_NAME");
+    const forceUrlRemotes = options.forceUrlRemotes ?? false;
 
     // Build the final URL with shell target if provided
     if (shell) {
@@ -153,6 +156,7 @@ Cypress.Commands.add(
       timeout,
       shell,
       remotes,
+      forceUrlRemotes
     };
     Cypress.log({
       name: "visitAndWaitForSelector",
@@ -162,7 +166,7 @@ Cypress.Commands.add(
 
     cy.setLanguage(language);
 
-    cy.visit(url, remotes ? { qs: { remotes } } : undefined);
+    cy.visit(url, remotes ? { qs: { remotes, forceUrlRemotes } } : undefined);
 
     cy.get(selector, { timeout }).should("be.visible");
   }
