@@ -82,6 +82,10 @@ declare global {
   export type C8yLanguage = "de" | "en";
 }
 
+export type C8yRemotesObject = {
+  [pluginName: string]: string[];
+}
+
 /**
  * Options for `visitAndWaitForSelector` command.
  */
@@ -90,7 +94,7 @@ export type C8yVisitOptions = {
   selector?: string;
   timeout?: number;
   shell?: string;
-  remotes?: string;
+  remotes?: string | C8yRemotesObject;
 };
 
 /**
@@ -112,7 +116,7 @@ Cypress.Commands.add(
     const DEFAULT_TIMEOUT = Cypress.config().pageLoadTimeout || 60000;
 
     const isOptionsObject = (value: unknown): value is C8yVisitOptions => {
-      return typeof value === "object" && value !== null;
+      return typeof value === "object" && value != null;
     };
 
     const options = isOptionsObject(languageOrOptions)
@@ -126,7 +130,11 @@ Cypress.Commands.add(
     const language = options.language ?? DEFAULT_LANGUAGE;
     const selector = options.selector ?? C8yVisitDefaultWaitSelector;
     const timeout = options.timeout ?? DEFAULT_TIMEOUT;
-    const remotes = options.remotes ?? Cypress.env("C8Y_SHELL_EXTENSION");
+    
+    let remotes = options.remotes ?? Cypress.env("C8Y_SHELL_EXTENSION");
+    if (remotes && typeof remotes === "object") {
+      remotes = JSON.stringify(remotes);
+    }
     const shell =
       options.shell ??
       Cypress.env("C8Y_SHELL_TARGET") ??

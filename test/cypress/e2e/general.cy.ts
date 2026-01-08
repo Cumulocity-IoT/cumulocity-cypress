@@ -237,6 +237,17 @@ describe("general", () => {
       });
     });
 
+    it("should call cy.visit with remotes object when remotes option provided", () => {
+      const visitStub = cy.stub(cy, "visit").resolves();
+      const remotes = { "my-plugin": ["myPluginViewProviders"] };
+
+      cy.visitAndWaitForSelector("/test-url", {
+        remotes: remotes,
+      }).then(() => {
+        expect(visitStub).to.be.calledWith("/test-url", { qs: { remotes: JSON.stringify(remotes) } });
+      });
+    });
+
     it("should call cy.visit with remotes from C8Y_SHELL_EXTENSION env when not in options", () => {
       const visitStub = cy.stub(cy, "visit").resolves();
       const envRemotes = '{"env-plugin":["envViewProviders"]}';
