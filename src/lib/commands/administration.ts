@@ -97,7 +97,7 @@ declare global {
               username: DeleteUserInput,
               c8yoptions?: C8yClientOptions & DeleteUserOptions
             ]
-      ): Chainable<null>;
+      ): Chainable<C8yAuthOptions>;
 
       /**
        * Creates a global role in Cumulocity with specified permissions.
@@ -406,7 +406,7 @@ Cypress.Commands.add("deleteUser", { prevSubject: "optional" }, (...args) => {
     )
     .then(() => {
       logger.end();
-      return cy.wrap(null);
+      return cy.wrap<C8yAuthOptions>(auth, { log: false });
     });
 });
 

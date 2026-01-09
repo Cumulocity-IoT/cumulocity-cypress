@@ -47,17 +47,14 @@ describe("administration", () => {
 
     // Helper to create user list response
     const createUserListResponse = (users: any[]) =>
-      new window.Response(
-        JSON.stringify({ users }),
-        {
-          status: 200,
-          statusText: "OK",
-          headers: {
-            "content-type":
-              "application/vnd.com.nsn.cumulocity.usercollection+json",
-          },
-        }
-      );
+      new window.Response(JSON.stringify({ users }), {
+        status: 200,
+        statusText: "OK",
+        headers: {
+          "content-type":
+            "application/vnd.com.nsn.cumulocity.usercollection+json",
+        },
+      });
 
     // Helper to create delete success response
     const createDeleteResponse = (status = 204) =>
@@ -68,7 +65,12 @@ describe("administration", () => {
       });
 
     // Helper to create a user object
-    const createUser = (id: string, userName: string, displayName?: string, email?: string) => ({
+    const createUser = (
+      id: string,
+      userName: string,
+      displayName?: string,
+      email?: string
+    ) => ({
       id,
       userName,
       ...(displayName && { displayName }),
@@ -76,8 +78,10 @@ describe("administration", () => {
     });
 
     // Common response factories
-    const singleUserResponse = (user = createUser("test", "test", "wewe")) =>
-      [createUserListResponse([user]), createDeleteResponse()];
+    const singleUserResponse = (user = createUser("test", "test", "wewe")) => [
+      createUserListResponse([user]),
+      createDeleteResponse(),
+    ];
 
     const emptyUserResponse = () => [createUserListResponse([])];
 
@@ -87,7 +91,7 @@ describe("administration", () => {
         cy.getAuth(auth)
           .deleteUser({ displayName: "wewe" } as any)
           .then((response) => {
-            expect(response).to.be.null;
+            expect(response).to.deep.equal(auth);
             expectC8yClientRequest([
               {
                 url: url(`/user/t12345678/users?pageSize=2000`),
@@ -118,7 +122,7 @@ describe("administration", () => {
             displayName: "does-not-match",
           })
           .then((response) => {
-            expect(response).to.be.null;
+            expect(response).to.deep.equal(auth);
             expectC8yClientRequest([
               {
                 url: url(`/user/t12345678/users?pageSize=2000`),
@@ -144,7 +148,7 @@ describe("administration", () => {
             displayName: "does-not-match",
           })
           .then((response) => {
-            expect(response).to.be.null;
+            expect(response).to.deep.equal(auth);
             expectC8yClientRequest([
               {
                 url: url(`/user/t12345678/users/myid`),
@@ -204,7 +208,7 @@ describe("administration", () => {
       cy.setCookie("XSRF-TOKEN", "123").then(() => {
         cy.deleteUser({ userName: "test", displayName: "wewe" }).then(
           (response) => {
-            expect(response).to.be.null;
+            expect(response).to.be.undefined;
             expectC8yClientRequest({
               url: `${Cypress.config().baseUrl}/user/t12345678/users/test`,
               auth: undefined,
@@ -218,15 +222,12 @@ describe("administration", () => {
 
     it("should delete user by username string", function () {
       const user = createUser("user123", "testuser", "Test User");
-      stubResponses([
-        createUserListResponse([user]),
-        createDeleteResponse(),
-      ]);
+      stubResponses([createUserListResponse([user]), createDeleteResponse()]);
 
       cy.getAuth(auth)
         .deleteUser("testuser")
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
@@ -245,15 +246,12 @@ describe("administration", () => {
 
     it("should delete user by username string (case insensitive)", function () {
       const user = createUser("user456", "TestUser", "Test User");
-      stubResponses([
-        createUserListResponse([user]),
-        createDeleteResponse(),
-      ]);
+      stubResponses([createUserListResponse([user]), createDeleteResponse()]);
 
       cy.getAuth(auth)
         .deleteUser("testuser")
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
@@ -286,7 +284,7 @@ describe("administration", () => {
       cy.getAuth(auth)
         .deleteUser(["testuser1", "testuser2", "testuser3"])
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
@@ -316,10 +314,7 @@ describe("administration", () => {
     });
 
     it("should delete multiple users by IUser array", function () {
-      stubResponses([
-        createDeleteResponse(),
-        createDeleteResponse(),
-      ]);
+      stubResponses([createDeleteResponse(), createDeleteResponse()]);
 
       cy.getAuth(auth)
         .deleteUser([
@@ -327,7 +322,7 @@ describe("administration", () => {
           { id: "user2", userName: "testuser2" } as IUser,
         ])
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users/user1`),
@@ -360,7 +355,7 @@ describe("administration", () => {
       cy.getAuth(auth)
         .deleteUser((user) => user.userName?.startsWith("admin"))
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
@@ -384,16 +379,18 @@ describe("administration", () => {
     });
 
     it("should match user by email", function () {
-      const user = createUser("user1", "testuser", "Test User", "test@example.com");
-      stubResponses([
-        createUserListResponse([user]),
-        createDeleteResponse(),
-      ]);
+      const user = createUser(
+        "user1",
+        "testuser",
+        "Test User",
+        "test@example.com"
+      );
+      stubResponses([createUserListResponse([user]), createDeleteResponse()]);
 
       cy.getAuth(auth)
         .deleteUser({ email: "test@example.com" } as any)
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
@@ -411,16 +408,18 @@ describe("administration", () => {
     });
 
     it("should match user by email (case insensitive)", function () {
-      const user = createUser("user1", "testuser", "Test User", "Test@Example.COM");
-      stubResponses([
-        createUserListResponse([user]),
-        createDeleteResponse(),
-      ]);
+      const user = createUser(
+        "user1",
+        "testuser",
+        "Test User",
+        "Test@Example.COM"
+      );
+      stubResponses([createUserListResponse([user]), createDeleteResponse()]);
 
       cy.getAuth(auth)
         .deleteUser({ email: "test@example.com" } as any)
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
@@ -441,16 +440,16 @@ describe("administration", () => {
       const selfUrl = `${
         Cypress.config().baseUrl
       }/user/t12345678/users/testuser`;
-      const user = { ...createUser("user1", "testuser", "Test User"), self: selfUrl };
-      stubResponses([
-        createUserListResponse([user]),
-        createDeleteResponse(),
-      ]);
+      const user = {
+        ...createUser("user1", "testuser", "Test User"),
+        self: selfUrl,
+      };
+      stubResponses([createUserListResponse([user]), createDeleteResponse()]);
 
       cy.getAuth(auth)
         .deleteUser({ self: selfUrl } as any)
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
@@ -472,10 +471,7 @@ describe("administration", () => {
         createUser("user1", "testuser", "Test User", "test@example.com"),
         createUser("user2", "otheruser", "Other User", "test@example.com"),
       ];
-      stubResponses([
-        createUserListResponse(users),
-        createDeleteResponse(),
-      ]);
+      stubResponses([createUserListResponse(users), createDeleteResponse()]);
 
       cy.getAuth(auth)
         .deleteUser({
@@ -483,7 +479,7 @@ describe("administration", () => {
           displayName: "Test User",
         } as any)
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
@@ -519,7 +515,7 @@ describe("administration", () => {
           { displayName: "Test User 2" } as any,
         ])
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
@@ -554,7 +550,7 @@ describe("administration", () => {
       cy.getAuth(auth)
         .deleteUser("nonexistentuser")
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest({
             url: url(`/user/t12345678/users?pageSize=2000`),
             auth,
@@ -604,15 +600,12 @@ describe("administration", () => {
 
     it("should skip non-existent users in array and continue deleting others", function () {
       const user = createUser("user1", "testuser1", "Test User 1");
-      stubResponses([
-        createUserListResponse([user]),
-        createDeleteResponse(),
-      ]);
+      stubResponses([createUserListResponse([user]), createDeleteResponse()]);
 
       cy.getAuth(auth)
         .deleteUser(["testuser1", "nonexistent", "alsonotfound"])
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
@@ -639,7 +632,7 @@ describe("administration", () => {
       cy.getAuth(auth)
         .deleteUser("testuser")
         .then((response) => {
-          expect(response).to.be.null;
+          expect(response).to.deep.equal(auth);
           expectC8yClientRequest([
             {
               url: url(`/user/t12345678/users?pageSize=2000`),
