@@ -2,7 +2,7 @@ const { _ } = Cypress;
 
 import { to_boolean } from "../../shared/util";
 
-export {};
+export { };
 
 declare global {
   namespace Cypress {
@@ -57,9 +57,9 @@ declare global {
        * @param {C8yLanguage} options.language - The language to set. Defaults to 'en'
        * @param {string} options.selector - The selector to wait to become visible
        * @param {number} options.timeout - The timeout in milliseconds
-       * @param {string} options.shell - The shell application to target (overrides C8Y_SHELL_TARGET env)
-       * @param {string} options.remotes - Comma-separated list of remote plugins to load (overrides C8Y_SHELL_EXTENSION env)
-       * @param {boolean} options.forceUrlRemotes - Force to only load local remotes from the URL query string. Defaults to false
+       * @param {string} options.shell - The shell application to target (overrides C8Y_SHELL_TARGET env or C8Y_SHELL_NAME env)
+       * @param {string} options.remotes - Map/Object of remote plugins to load (overrides C8Y_SHELL_EXTENSION env or C8Y_SHELL_REMOTES env). Can be a JSON string or an object. Example: `{"plugin-name":["viewProvider1","viewProvider2"]}`
+       * @param {boolean} options.forceUrlRemotes - Force to only load local remotes from the URL query string (overrides C8Y_SHELL_REMOTES_FORCE env). Defaults to false
        */
       visitAndWaitForSelector(
         url: string,
@@ -126,10 +126,10 @@ Cypress.Commands.add(
     const options = isOptionsObject(languageOrOptions)
       ? languageOrOptions
       : {
-          language: languageOrOptions,
-          selector: selectorValue,
-          timeout: timeoutValue,
-        };
+        language: languageOrOptions,
+        selector: selectorValue,
+        timeout: timeoutValue,
+      };
 
     const language = options.language ?? DEFAULT_LANGUAGE;
     const selector = options.selector ?? C8yVisitDefaultWaitSelector;
