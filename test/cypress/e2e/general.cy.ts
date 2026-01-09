@@ -233,7 +233,7 @@ describe("general", () => {
       cy.visitAndWaitForSelector("/test-url", {
         remotes: remotes,
       }).then(() => {
-        expect(visitStub).to.be.calledWith("/test-url", { qs: { remotes, forceUrlRemotes: false } });
+        expect(visitStub).to.be.calledWith("/test-url", { qs: { remotes } });
       });
     });
 
@@ -244,7 +244,9 @@ describe("general", () => {
       cy.visitAndWaitForSelector("/test-url", {
         remotes: remotes,
       }).then(() => {
-        expect(visitStub).to.be.calledWith("/test-url", { qs: { remotes: JSON.stringify(remotes), forceUrlRemotes: false } });
+        expect(visitStub).to.be.calledWith("/test-url", {
+          qs: { remotes: JSON.stringify(remotes) },
+        });
       });
     });
 
@@ -255,7 +257,7 @@ describe("general", () => {
 
       cy.visitAndWaitForSelector("/test-url").then(() => {
         expect(visitStub).to.be.calledWith("/test-url", {
-          qs: { remotes: envRemotes, forceUrlRemotes: false },
+          qs: { remotes: envRemotes },
         });
       });
     });
@@ -270,7 +272,7 @@ describe("general", () => {
         remotes: optionRemotes,
       }).then(() => {
         expect(visitStub).to.be.calledWith("/test-url", {
-          qs: { remotes: optionRemotes, forceUrlRemotes: false },
+          qs: { remotes: optionRemotes },
         });
       });
     });
@@ -289,12 +291,29 @@ describe("general", () => {
       });
     });
 
-    it("should build URL with remotes and forceUrlRemotes option set to false if not provided", () => {
+    it("should build URL with remotes and forceUrlRemotes option are set as env variables", () => {
+      const visitStub = cy.stub(cy, "visit").resolves();
+      stubEnv({
+        C8Y_SHELL_REMOTES: '{"my-plugin":["myPluginViewProviders"]}',
+        C8Y_SHELL_REMOTES_FORCE: "true",
+      });
+      cy.visitAndWaitForSelector("/test-url").then(() => {
+        expect(visitStub).to.be.calledWith("/test-url", {
+          qs: {
+            remotes: '{"my-plugin":["myPluginViewProviders"]}',
+            forceUrlRemotes: true,
+          },
+        });
+      });
+    });
+
+    it("should build URL with remotes and forceUrlRemotes option set to false if false", () => {
       const visitStub = cy.stub(cy, "visit").resolves();
       const remotes = '{"my-plugin":["myPluginViewProviders"]}';
 
       cy.visitAndWaitForSelector("/test-url", {
         remotes: remotes,
+        forceUrlRemotes: false,
       }).then(() => {
         expect(visitStub).to.be.calledWith("/test-url", {
           qs: { remotes, forceUrlRemotes: false },
@@ -362,7 +381,7 @@ describe("general", () => {
         remotes: remotes,
       }).then(() => {
         expect(visitStub).to.be.calledWith("/apps/cockpit/index.html#/home", {
-          qs: { remotes, forceUrlRemotes: false },
+          qs: { remotes },
         });
       });
     });
@@ -379,7 +398,7 @@ describe("general", () => {
         remotes: remotes,
       }).then(() => {
         expect(visitStub).to.be.calledWith("/apps/cockpit/index.html#/home", {
-          qs: { remotes, forceUrlRemotes: false },
+          qs: { remotes },
         });
         expect(
           getMessageForLogSpy(logSpy, "visitAndWaitForSelector")

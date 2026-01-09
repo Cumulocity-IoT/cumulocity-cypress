@@ -2,7 +2,7 @@ const { _ } = Cypress;
 
 import { to_boolean } from "../../shared/util";
 
-export { };
+export {};
 
 declare global {
   namespace Cypress {
@@ -58,7 +58,7 @@ declare global {
        * @param {string} options.selector - The selector to wait to become visible
        * @param {number} options.timeout - The timeout in milliseconds
        * @param {string} options.shell - The shell application to target (overrides C8Y_SHELL_TARGET env or C8Y_SHELL_NAME env)
-       * @param {string} options.remotes - Map/Object of remote plugins to load (overrides C8Y_SHELL_EXTENSION env or C8Y_SHELL_REMOTES env). Can be a JSON string or an object. Example: `{"plugin-name":["viewProvider1","viewProvider2"]}`
+       * @param {string | C8yRemotesObject} options.remotes - Map/Object of remote plugins to load (overrides C8Y_SHELL_EXTENSION env or C8Y_SHELL_REMOTES env). Can be a JSON string or an object. Example: `{"plugin-name":["viewProvider1","viewProvider2"]}`
        * @param {boolean} options.forceUrlRemotes - Force to only load local remotes from the URL query string (overrides C8Y_SHELL_REMOTES_FORCE env). Defaults to false
        */
       visitAndWaitForSelector(
@@ -126,10 +126,10 @@ Cypress.Commands.add(
     const options = isOptionsObject(languageOrOptions)
       ? languageOrOptions
       : {
-        language: languageOrOptions,
-        selector: selectorValue,
-        timeout: timeoutValue,
-      };
+          language: languageOrOptions,
+          selector: selectorValue,
+          timeout: timeoutValue,
+        };
 
     const language = options.language ?? DEFAULT_LANGUAGE;
     const selector = options.selector ?? C8yVisitDefaultWaitSelector;
@@ -148,9 +148,11 @@ Cypress.Commands.add(
       Cypress.env("C8Y_SHELL_TARGET") ??
       Cypress.env("C8Y_SHELL_NAME");
 
-    const forceUrlRemotes =
-      options.forceUrlRemotes ??
-      to_boolean(Cypress.env("C8Y_SHELL_REMOTES_FORCE"), false);
+    let forceUrlRemotes =
+      options.forceUrlRemotes ?? Cypress.env("C8Y_SHELL_REMOTES_FORCE");
+    if (forceUrlRemotes != null && typeof forceUrlRemotes !== "boolean") {
+      forceUrlRemotes = to_boolean(forceUrlRemotes, false);
+    }
 
     // Build the final URL with shell target if provided
     if (shell) {
@@ -175,7 +177,16 @@ Cypress.Commands.add(
 
     cy.setLanguage(language);
 
-    cy.visit(url, remotes ? { qs: { remotes, forceUrlRemotes } } : undefined);
+    const qs: Partial<Cypress.VisitOptions> | undefined =
+      remotes || forceUrlRemotes
+        ? {
+            qs: {
+              ...(remotes != null && { remotes }),
+              ...(forceUrlRemotes != null && { forceUrlRemotes }),
+            },
+          }
+        : undefined;
+    cy.visit(url, qs);
 
     cy.get(selector, { timeout }).should("be.visible");
   }
