@@ -120,6 +120,11 @@ declare global {
         options?: C8yClientOptions
       ): Chainable<Response<T>>;
 
+      c8yclient<T = any, R = null>(
+        serviceFn: C8yClientServiceFn<R, T> | C8yClientServiceFn<R, any>[],
+        options?: C8yClientOptions
+      ): Chainable<T>;
+
       c8yclient<T = any, R = any>(
         serviceFn:
           | C8yClientServiceArrayFn<R, T>
@@ -131,6 +136,11 @@ declare global {
         serviceFn: C8yClientServiceListFn<R, T>,
         options?: C8yClientOptions
       ): Chainable<Response<C8yCollectionResponse<T>>>;
+
+      c8yclient<T = any, R = any>(
+        serviceFn: C8yClientServicePromiseArrayFn<R, T>,
+        options?: C8yClientOptions
+      ): Chainable<Response<T>[]>;
 
       c8yclient(): Chainable<Client>;
 
@@ -167,7 +177,12 @@ declare global {
     }
   }
 
-  type C8yClientIResult<T> = IResult<T> | IResult<null> | IFetchResponse;
+  type C8yClientIResult<T> =
+    | IResult<T>
+    | IResult<null>
+    | IFetchResponse
+    | null
+    | void;
 
   type C8yClientServiceFn<R, T> = (
     client: Client,
@@ -179,6 +194,11 @@ declare global {
     previousResponse: Cypress.Response<R>
   ) => Promise<C8yClientIResult<T>>[];
 
+  type C8yClientServicePromiseArrayFn<R, T> = (
+    client: Client,
+    previousResponse: Cypress.Response<R>
+  ) => Promise<C8yClientIResult<T>[]>;
+
   type C8yClientServiceListFn<R, T> = (
     client: Client,
     previousResponse: Cypress.Response<R>
@@ -187,7 +207,9 @@ declare global {
   type C8yClientFnArg<R = any, T = any> =
     | C8yClientServiceFn<R, T>
     | C8yClientServiceArrayFn<R, T>[]
-    | C8yClientServiceListFn<R, T>;
+    | C8yClientServiceListFn<R, T>
+    | C8yClientServicePromiseArrayFn<R, T>
+    | C8yClientServicePromiseArrayFn<R, T>;
 
   class C8yClientError extends Error {
     originalError?: Error;
@@ -452,7 +474,10 @@ const c8yclientFn = (...args: any[]) => {
   let auth: C8yAuthentication | undefined = cookieAuth;
   if (options.preferBasicAuth === true && basicAuth) {
     auth = basicAuth;
-  } else if (bearerAuth && (!cookieAuth || Cypress.testingType === "component")) {
+  } else if (
+    bearerAuth &&
+    (!cookieAuth || Cypress.testingType === "component")
+  ) {
     auth = bearerAuth;
   } else {
     auth = cookieAuth ?? bearerAuth ?? basicAuth;
@@ -724,6 +749,7 @@ function run(
         }
 
         if (_.isArray(resultPromise)) {
+          // Array of promises: C8yClientServiceArrayFn
           let toReject = false;
           const result: any[] = [];
           for (const task of resultPromise) {
@@ -740,8 +766,53 @@ function run(
             resolve(result);
           }
         } else {
+          // Single promise or Promise of array
           try {
-            resolve(await preprocessedResponse(resultPromise));
+            const awaitedResult = await resultPromise;
+            // Check if result is an array (Promise of array: C8yClientServicePromiseArrayFn)
+            if (_.isArray(awaitedResult)) {
+              // Promise of array: C8yClientServicePromiseArrayFn
+              // The array items are already results, not promises
+              const result: any[] = [];
+              let toReject = false;
+              for (const item of awaitedResult) {
+                if (item == null) {
+                  result.push(item);
+                } else {
+                  const cypressResponse = toCypressResponse(item);
+                  if (cypressResponse) {
+                    cypressResponse.$body = options.schema;
+                    if (savePact) {
+                      if (_.isArray(currentRequestContext?.requests)) {
+                        currentRequestContext.requests.pop();
+                        currentRequestContext.requests.forEach(async (req) => {
+                          await Cypress.c8ypact.savePact(req, client);
+                        });
+                      }
+                      await Cypress.c8ypact.savePact(cypressResponse, client);
+                    }
+                    if (isErrorResponse(cypressResponse)) {
+                      result.push(cypressResponse);
+                      toReject = true;
+                    } else {
+                      result.push(cypressResponse);
+                    }
+                  } else {
+                    result.push(item);
+                  }
+                }
+              }
+              if (toReject) {
+                reject(result);
+              } else {
+                resolve(result);
+              }
+            } else {
+              // Single result: C8yClientServiceFn or C8yClientServiceListFn
+              resolve(
+                await preprocessedResponse(Promise.resolve(awaitedResult))
+              );
+            }
           } catch (err) {
             reject(err);
           }

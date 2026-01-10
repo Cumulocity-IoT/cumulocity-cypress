@@ -1,9 +1,10 @@
-import { IUserGroup } from "@c8y/client";
+import { IUser, IUserGroup } from "@c8y/client";
 import {
   expectC8yClientRequest,
   initRequestStub,
   stubEnv,
   stubResponses,
+  url,
 } from "../support/testutils";
 import { C8yDefaultPact } from "cumulocity-cypress/c8ypact";
 const { _, sinon } = Cypress;
@@ -38,52 +39,135 @@ describe("administration", () => {
   });
 
   context("deleteUser", () => {
-    it("should delete user from user options", function () {
-      stubResponses([
-        new window.Response(null, {
-          status: 204,
+    const auth = {
+      user: "admin",
+      password: "mypassword",
+      tenant: "t12345678",
+    };
+
+    // Helper to create user list response
+    const createUserListResponse = (users: any[]) =>
+      new window.Response(
+        JSON.stringify({ users }),
+        {
+          status: 200,
           statusText: "OK",
-          headers: { "content-type": "application/json" },
-        }),
-      ]);
+          headers: {
+            "content-type":
+              "application/vnd.com.nsn.cumulocity.usercollection+json",
+          },
+        }
+      );
+
+    // Helper to create delete success response
+    const createDeleteResponse = (status = 204) =>
+      new window.Response(null, {
+        status,
+        statusText: status === 204 ? "OK" : "Not Found",
+        headers: { "content-type": "application/json" },
+      });
+
+    // Helper to create a user object
+    const createUser = (id: string, userName: string, displayName?: string, email?: string) => ({
+      id,
+      userName,
+      ...(displayName && { displayName }),
+      ...(email && { email }),
+    });
+
+    // Common response factories
+    const singleUserResponse = (user = createUser("test", "test", "wewe")) =>
+      [createUserListResponse([user]), createDeleteResponse()];
+
+    const emptyUserResponse = () => [createUserListResponse([])];
+
+    it("should delete user from IUser object", function () {
+      stubResponses(singleUserResponse());
       cy.setCookie("XSRF-TOKEN", "123").then(() => {
-        cy.getAuth({
-          user: "admin",
-          password: "mypassword",
-          tenant: "t12345678",
-        })
-          .deleteUser({ userName: "test", displayName: "wewe" })
+        cy.getAuth(auth)
+          .deleteUser({ displayName: "wewe" } as any)
           .then((response) => {
-            expect(response.status).to.eq(204);
-            expectC8yClientRequest({
-              url: `${Cypress.config().baseUrl}/user/t12345678/users/test`,
-              auth: {
-                user: "admin",
-                password: "mypassword",
-                tenant: "t12345678",
+            expect(response).to.be.null;
+            expectC8yClientRequest([
+              {
+                url: url(`/user/t12345678/users?pageSize=2000`),
+                auth,
+                headers: {
+                  UseXBasic: true,
+                  "X-XSRF-TOKEN": "123",
+                  accept: "application/json",
+                },
               },
-              headers: { UseXBasic: true, "X-XSRF-TOKEN": "123" },
-              method: "DELETE",
-            });
+              {
+                url: url(`/user/t12345678/users/test`),
+                auth,
+                headers: { UseXBasic: true, "X-XSRF-TOKEN": "123" },
+                method: "DELETE",
+              },
+            ]);
+          });
+      });
+    });
+
+    it("should not delete user from not matching IUser object", function () {
+      stubResponses(singleUserResponse());
+      cy.setCookie("XSRF-TOKEN", "123").then(() => {
+        cy.getAuth(auth)
+          .deleteUser({
+            userName: undefined as any,
+            displayName: "does-not-match",
+          })
+          .then((response) => {
+            expect(response).to.be.null;
+            expectC8yClientRequest([
+              {
+                url: url(`/user/t12345678/users?pageSize=2000`),
+                auth,
+                headers: {
+                  UseXBasic: true,
+                  "X-XSRF-TOKEN": "123",
+                  accept: "application/json",
+                },
+              },
+            ]);
+          });
+      });
+    });
+
+    it("should not load all users when id is provided", function () {
+      stubResponses([createDeleteResponse()]);
+      cy.setCookie("XSRF-TOKEN", "123").then(() => {
+        cy.getAuth(auth)
+          .deleteUser({
+            userName: "test",
+            id: "myid",
+            displayName: "does-not-match",
+          })
+          .then((response) => {
+            expect(response).to.be.null;
+            expectC8yClientRequest([
+              {
+                url: url(`/user/t12345678/users/myid`),
+                auth,
+                headers: { UseXBasic: true, "X-XSRF-TOKEN": "123" },
+                method: "DELETE",
+              },
+            ]);
           });
       });
     });
 
     it("should pass client options to c8yclient", function () {
-      stubResponses([
-        new window.Response(null, {
-          status: 404,
-          statusText: "OK",
-          headers: { "content-type": "application/json" },
-        }),
-      ]);
-      cy.getAuth({ user: "admin", password: "mypassword", tenant: "t12345678" })
+      stubResponses([createDeleteResponse(404)]);
+      cy.getAuth(auth)
         .deleteUser(
-          { userName: "test", displayName: "wewe" },
-          { baseUrl: "https://abc.def.com", failOnStatusCode: true }
+          { id: "test", userName: "test", displayName: "wewe" },
+          {
+            baseUrl: "https://abc.def.com",
+            failOnStatusCode: true,
+          }
         )
         .then((response) => {
-          expect(response.status).to.eq(404);
           expectC8yClientRequest({
             url: `https://abc.def.com/user/t12345678/users/test`,
             auth: {
@@ -102,22 +186,16 @@ describe("administration", () => {
 
       Cypress.once("fail", (err) => {
         expect(err.message).to.contain(
-          "Missing argument. deleteUser() requires IUser object"
+          "IUser object must have at least one identifying property (id, userName, displayName, self, or email)."
         );
         done();
       });
 
-      cy.deleteUser({ user: "test" } as any);
+      cy.getAuth(auth).deleteUser({ user: "test" } as any);
     });
 
     it("should not overwrite cookie auth with auth from env", () => {
-      stubResponses([
-        new window.Response(null, {
-          status: 204,
-          statusText: "OK",
-          headers: { "content-type": "application/json" },
-        }),
-      ]);
+      stubResponses([createDeleteResponse()]);
       stubEnv({
         C8Y_USERNAME: "admin",
         C8Y_PASSWORD: "mypassword",
@@ -126,7 +204,7 @@ describe("administration", () => {
       cy.setCookie("XSRF-TOKEN", "123").then(() => {
         cy.deleteUser({ userName: "test", displayName: "wewe" }).then(
           (response) => {
-            expect(response.status).to.eq(204);
+            expect(response).to.be.null;
             expectC8yClientRequest({
               url: `${Cypress.config().baseUrl}/user/t12345678/users/test`,
               auth: undefined,
@@ -136,6 +214,446 @@ describe("administration", () => {
           }
         );
       });
+    });
+
+    it("should delete user by username string", function () {
+      const user = createUser("user123", "testuser", "Test User");
+      stubResponses([
+        createUserListResponse([user]),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser("testuser")
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user123`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should delete user by username string (case insensitive)", function () {
+      const user = createUser("user456", "TestUser", "Test User");
+      stubResponses([
+        createUserListResponse([user]),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser("testuser")
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user456`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should delete multiple users by username array", function () {
+      const users = [
+        createUser("user1", "testuser1", "Test User 1"),
+        createUser("user2", "testuser2", "Test User 2"),
+        createUser("user3", "testuser3", "Test User 3"),
+      ];
+      stubResponses([
+        createUserListResponse(users),
+        createDeleteResponse(),
+        createDeleteResponse(),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser(["testuser1", "testuser2", "testuser3"])
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+            {
+              url: url(`/user/t12345678/users/user2`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+            {
+              url: url(`/user/t12345678/users/user3`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should delete multiple users by IUser array", function () {
+      stubResponses([
+        createDeleteResponse(),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser([
+          { id: "user1", userName: "testuser1" } as IUser,
+          { id: "user2", userName: "testuser2" } as IUser,
+        ])
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users/user1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+            {
+              url: url(`/user/t12345678/users/user2`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should delete users by filter function", function () {
+      const users = [
+        createUser("user1", "admin1", undefined, "admin1@example.com"),
+        createUser("user2", "testuser", undefined, "test@example.com"),
+        createUser("user3", "admin2", undefined, "admin2@example.com"),
+      ];
+      stubResponses([
+        createUserListResponse(users),
+        createDeleteResponse(),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser((user) => user.userName?.startsWith("admin"))
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+            {
+              url: url(`/user/t12345678/users/user3`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should match user by email", function () {
+      const user = createUser("user1", "testuser", "Test User", "test@example.com");
+      stubResponses([
+        createUserListResponse([user]),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser({ email: "test@example.com" } as any)
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should match user by email (case insensitive)", function () {
+      const user = createUser("user1", "testuser", "Test User", "Test@Example.COM");
+      stubResponses([
+        createUserListResponse([user]),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser({ email: "test@example.com" } as any)
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should match user by self URL", function () {
+      const selfUrl = `${
+        Cypress.config().baseUrl
+      }/user/t12345678/users/testuser`;
+      const user = { ...createUser("user1", "testuser", "Test User"), self: selfUrl };
+      stubResponses([
+        createUserListResponse([user]),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser({ self: selfUrl } as any)
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should match user by multiple properties", function () {
+      const users = [
+        createUser("user1", "testuser", "Test User", "test@example.com"),
+        createUser("user2", "otheruser", "Other User", "test@example.com"),
+      ];
+      stubResponses([
+        createUserListResponse(users),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser({
+          email: "test@example.com",
+          displayName: "Test User",
+        } as any)
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should handle mixed array of strings and IUser objects", function () {
+      const users = [
+        createUser("user1", "testuser1", "Test User 1"),
+        createUser("user2", "testuser2", "Test User 2"),
+      ];
+      stubResponses([
+        createUserListResponse(users),
+        createDeleteResponse(),
+        createDeleteResponse(),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser([
+          "testuser1",
+          { id: "user3", userName: "testuser3" },
+          { displayName: "Test User 2" } as any,
+        ])
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+            {
+              url: url(`/user/t12345678/users/user3`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+            {
+              url: url(`/user/t12345678/users/user2`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should not fail when user not found with ignoreNotFound=true (default)", function () {
+      stubResponses(emptyUserResponse());
+
+      cy.getAuth(auth)
+        .deleteUser("nonexistentuser")
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest({
+            url: url(`/user/t12345678/users?pageSize=2000`),
+            auth,
+            headers: { UseXBasic: true, accept: "application/json" },
+          });
+        });
+    });
+
+    it("should throw error when user not found with ignoreNotFound=false", function (done) {
+      stubResponses(emptyUserResponse());
+
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.contain(
+          "User with username 'nonexistentuser' not found."
+        );
+        done();
+      });
+
+      cy.getAuth(auth)
+        .deleteUser("nonexistentuser", { ignoreNotFound: false })
+        .then(() => {
+          // Should not reach here
+          done(new Error("Should have thrown an error"));
+        });
+    });
+
+    it("should throw error when IUser not found with ignoreNotFound=false", function (done) {
+      const user = createUser("user1", "testuser", "Test User");
+      stubResponses([createUserListResponse([user])]);
+
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.contain(
+          "User with identifier 'nonexistent@example.com' not found."
+        );
+        done();
+      });
+
+      cy.getAuth(auth)
+        .deleteUser({ email: "nonexistent@example.com" } as any, {
+          ignoreNotFound: false,
+        })
+        .then(() => {
+          // Should not reach here
+          done(new Error("Should have thrown an error"));
+        });
+    });
+
+    it("should skip non-existent users in array and continue deleting others", function () {
+      const user = createUser("user1", "testuser1", "Test User 1");
+      stubResponses([
+        createUserListResponse([user]),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser(["testuser1", "nonexistent", "alsonotfound"])
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should handle 404 response gracefully during deletion", function () {
+      const user = createUser("user1", "testuser", "Test User");
+      stubResponses([
+        createUserListResponse([user]),
+        createDeleteResponse(404),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteUser("testuser")
+        .then((response) => {
+          expect(response).to.be.null;
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/users?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/users/user1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
     });
   });
 
