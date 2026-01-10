@@ -111,7 +111,7 @@
     "@cypress/grep": "^5.0.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
-    "chokidar": "^4.0.1",
+    "chokidar": "^5.0.0",
     "cookie": "^1.0.2",
     "cookie-parser": "^1.4.6",
     "cosmiconfig": "^9.0.0",
