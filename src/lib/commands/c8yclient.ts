@@ -120,11 +120,6 @@ declare global {
         options?: C8yClientOptions
       ): Chainable<Response<T>>;
 
-      c8yclient<T = any, R = null>(
-        serviceFn: C8yClientServiceFn<R, T> | C8yClientServiceFn<R, any>[],
-        options?: C8yClientOptions
-      ): Chainable<T>;
-
       c8yclient<T = any, R = any>(
         serviceFn:
           | C8yClientServiceArrayFn<R, T>
@@ -136,11 +131,6 @@ declare global {
         serviceFn: C8yClientServiceListFn<R, T>,
         options?: C8yClientOptions
       ): Chainable<Response<C8yCollectionResponse<T>>>;
-
-      c8yclient<T = any, R = any>(
-        serviceFn: C8yClientServicePromiseArrayFn<R, T>,
-        options?: C8yClientOptions
-      ): Chainable<Response<T>[]>;
 
       c8yclient(): Chainable<Client>;
 
@@ -768,51 +758,7 @@ function run(
         } else {
           // Single promise or Promise of array
           try {
-            const awaitedResult = await resultPromise;
-            // Check if result is an array (Promise of array: C8yClientServicePromiseArrayFn)
-            if (_.isArray(awaitedResult)) {
-              // Promise of array: C8yClientServicePromiseArrayFn
-              // The array items are already results, not promises
-              const result: any[] = [];
-              let toReject = false;
-              for (const item of awaitedResult) {
-                if (item == null) {
-                  result.push(item);
-                } else {
-                  const cypressResponse = toCypressResponse(item);
-                  if (cypressResponse) {
-                    cypressResponse.$body = options.schema;
-                    if (savePact) {
-                      if (_.isArray(currentRequestContext?.requests)) {
-                        currentRequestContext.requests.pop();
-                        currentRequestContext.requests.forEach(async (req) => {
-                          await Cypress.c8ypact.savePact(req, client);
-                        });
-                      }
-                      await Cypress.c8ypact.savePact(cypressResponse, client);
-                    }
-                    if (isErrorResponse(cypressResponse)) {
-                      result.push(cypressResponse);
-                      toReject = true;
-                    } else {
-                      result.push(cypressResponse);
-                    }
-                  } else {
-                    result.push(item);
-                  }
-                }
-              }
-              if (toReject) {
-                reject(result);
-              } else {
-                resolve(result);
-              }
-            } else {
-              // Single result: C8yClientServiceFn or C8yClientServiceListFn
-              resolve(
-                await preprocessedResponse(Promise.resolve(awaitedResult))
-              );
-            }
+            resolve(await preprocessedResponse(resultPromise));
           } catch (err) {
             reject(err);
           }
