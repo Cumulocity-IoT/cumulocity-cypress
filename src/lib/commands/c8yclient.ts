@@ -184,11 +184,6 @@ declare global {
     previousResponse: Cypress.Response<R>
   ) => Promise<C8yClientIResult<T>>[];
 
-  type C8yClientServicePromiseArrayFn<R, T> = (
-    client: Client,
-    previousResponse: Cypress.Response<R>
-  ) => Promise<C8yClientIResult<T>[]>;
-
   type C8yClientServiceListFn<R, T> = (
     client: Client,
     previousResponse: Cypress.Response<R>
@@ -197,9 +192,7 @@ declare global {
   type C8yClientFnArg<R = any, T = any> =
     | C8yClientServiceFn<R, T>
     | C8yClientServiceArrayFn<R, T>[]
-    | C8yClientServiceListFn<R, T>
-    | C8yClientServicePromiseArrayFn<R, T>
-    | C8yClientServicePromiseArrayFn<R, T>;
+    | C8yClientServiceListFn<R, T>;
 
   class C8yClientError extends Error {
     originalError?: Error;
