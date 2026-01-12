@@ -20,7 +20,9 @@ import {
   createGlobalRole,
   createUser,
   deleteGlobalRoles,
+  DeleteOptions,
   deleteUser,
+  DeleteUserInput,
 } from "../../shared/c8yclient/";
 
 const { _ } = Cypress;
@@ -46,9 +48,9 @@ declare global {
        * });
        *
        * @param {C8yAuthOptions} authOptions the C8yAuthOptions authentication options including username and password
-       * @param {IUser} userOptions the user options defining the user to be created
+       * @param {string | IUser} userOptions the user name or IUser options defining the user to be created
        * @param {string[]} roles the roles to be assigned to the user
-       * @param {string[] | IApplication[]} applications the name of applications to subscribe the user to
+       * @param {string[] | IApplication[]} applications the name of applications or IApplication objects to subscribe the user to
        * @param {C8yClientOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
        *
        * @returns {[C8yAuthOptions, string]} the auth options and id of the user created for chaining
@@ -57,13 +59,13 @@ declare global {
         ...args:
           | [
               authOptions: C8yAuthOptions,
-              userOptions: IUser,
+              userOptions: string | IUser,
               roles?: string[],
               applications?: string[] | IApplication[],
               c8yoptions?: C8yClientOptions
             ]
           | [
-              userOptions: IUser,
+              userOptions: string | IUser,
               roles?: string[],
               applications?: string[] | IApplication[],
               c8yoptions?: C8yClientOptions
@@ -78,24 +80,30 @@ declare global {
        * authentication.
        *
        * @example
-       * cy.deleteUser("newuser");
+       * cy.deleteUser("myuser");
+       * cy.deleteUser(["myuser1", "myuser2"]);
+       * cy.deleteUser({ userName: "myuser", displayName: "My User" });
+       * cy.deleteUser((user) => user.email === "myuser@example.com");
+       *
+       * cy.getAuth("admin").deleteUser("myuser");
        *
        * @param {C8yAuthOptions} authOptions the C8yAuthOptions authentication options including username and password
-       * @param {string} username the name of the user to be deleted
-       * @param {C8yClientOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
+       * @param {DeleteUserInput} username the id or username as string, an IUser object, or a predicate function to identify the user(s) to be deleted
+       * @param {C8yClientOptions & DeleteUserOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
+       * @param {boolean} c8yoptions.ignoreNotFound whether to ignore not found users (default: true)
        *
-       * @returns {C8yAuthOptions} the auth options for chaining
+       * @returns {C8yAuthOptions} the authentication options for chaining to allow further commands
        */
       deleteUser(
         ...args:
           | [
               username: DeleteUserInput,
-              c8yoptions?: C8yClientOptions & DeleteUserOptions
+              c8yoptions?: C8yClientOptions & DeleteOptions
             ]
           | [
               authOptions: C8yAuthOptions,
               username: DeleteUserInput,
-              c8yoptions?: C8yClientOptions & DeleteUserOptions
+              c8yoptions?: C8yClientOptions & DeleteOptions
             ]
       ): Chainable<C8yAuthOptions>;
 
@@ -153,17 +161,18 @@ declare global {
        *
        * @param {C8yAuthOptions} authOptions - Authentication options including username and password
        * @param {string[]} roleNames - Array of role names to delete
-       * @param {C8yClientOptions} c8yoptions - Options passed to cy.c8yclient
+       * @param {C8yClientOptions & DeleteOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
+       * @param {boolean} c8yoptions.ignoreNotFound whether to ignore not found global roles (default: true)
        *
        * @returns {Chainable<C8yAuthOptions>} The auth options for chaining
        */
       deleteGlobalRoles(
         ...args:
-          | [roleNames: string[], c8yoptions?: C8yClientOptions]
+          | [roleNames: string[], c8yoptions?: C8yClientOptions & DeleteOptions]
           | [
               authOptions: C8yAuthOptions,
               roleNames: string[],
-              c8yoptions?: C8yClientOptions
+              c8yoptions?: C8yClientOptions & DeleteOptions
             ]
       ): Chainable<C8yAuthOptions>;
 
@@ -340,9 +349,6 @@ declare global {
       ): Chainable<IDeviceCredentials>;
     }
   }
-
-  type DeleteUserInput = Parameters<typeof deleteUser>[1];
-  type DeleteUserOptions = Parameters<typeof deleteUser>[2];
 }
 
 Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
@@ -504,11 +510,12 @@ Cypress.Commands.add(
     const $args = normalizedC8yclientArguments(args);
     const [auth, roleNames, clientOptions] = $args;
 
+    const options = { ...clientOptions, ...{ failOnStatusCode: false } };
     const consoleProps: any = {
       args: args || null,
       auth: auth || null,
       roleNames: roleNames || null,
-      clientOptions: clientOptions || null,
+      clientOptions: options || null,
     };
 
     const logger = Cypress.log({
@@ -524,7 +531,15 @@ Cypress.Commands.add(
 
     return cy
       .wrap(auth, { log: false })
-      .c8yclient((c) => deleteGlobalRoles(c, roleNames), clientOptions)
+      .c8yclient(
+        (c) =>
+          deleteGlobalRoles(
+            c,
+            roleNames,
+            _.pick(options, ["ignoreNotFound"])
+          ),
+        options
+      )
       .then(() => {
         logger.end();
         return cy.wrap<C8yAuthOptions>(auth, { log: false });

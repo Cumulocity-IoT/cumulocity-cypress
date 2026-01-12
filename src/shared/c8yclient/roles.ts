@@ -1,21 +1,22 @@
 import { Client, IResult, IUserGroup } from "@c8y/client";
 import { to_array } from "../util";
 import { expectSuccessfulDelete, maxPageSize } from "./helper";
+import { DeleteOptions } from "./user";
 
 /**
  * Creates a global role (user group) with the specified permissions.
- * 
+ *
  * Global roles are user groups that define a set of permissions. This function:
  * 1. Creates a new user group with the specified name
  * 2. Assigns the specified role permissions to the group
- * 
+ *
  * @param client - The Cumulocity client instance
  * @param roleOptions - Role name as string, or object with name and optional description
  * @param roles - Array of role IDs or names to assign to this global role (e.g., ['ROLE_USER_MANAGEMENT', 'ROLE_INVENTORY_READ'])
  * @returns Promise resolving to the created user group result
- * 
+ *
  * @throws Error if role creation fails or if any of the specified roles cannot be found
- * 
+ *
  * @example
  * const roleResult = await createGlobalRole(
  *   client,
@@ -77,19 +78,19 @@ export async function createGlobalRole(
 
 /**
  * Deletes one or more global roles (user groups) by name.
- * 
+ *
  * @param client - The Cumulocity client instance
  * @param roleNames - Single role name or array of role names to delete
  * @param options - Optional configuration
  * @param options.ignoreNotFound - If true (default), ignores 404 errors when role is not found
  * @returns Promise that resolves when all roles are deleted
- * 
+ *
  * @throws Error if role names are missing or if deletion fails (unless ignoreNotFound is true)
- * 
+ *
  * @example
  * // Delete single role
  * await deleteGlobalRoles(client, 'CustomRole');
- * 
+ *
  * @example
  * // Delete multiple roles
  * await deleteGlobalRoles(client, ['Role1', 'Role2', 'Role3']);
@@ -97,7 +98,7 @@ export async function createGlobalRole(
 export async function deleteGlobalRoles(
   client: Client,
   roleNames: string | string[],
-  options?: { ignoreNotFound?: boolean }
+  options?: DeleteOptions
 ) {
   const roleNamesArray = to_array(roleNames) ?? [];
   if (!roleNamesArray || roleNamesArray.length === 0) {
@@ -113,7 +114,13 @@ export async function deleteGlobalRoles(
   }
 
   for (const group of groups) {
-    if (group.name && roleNames.includes(group.name) && group.id) {
+    if (
+      group.name &&
+      roleNamesArray.some(
+        (name) => name.toLowerCase() === group.name?.toLowerCase()
+      ) &&
+      group.id
+    ) {
       try {
         const response = await client.userGroup.delete(group.id);
         expectSuccessfulDelete(response.res?.status || 204);

@@ -650,6 +650,230 @@ describe("administration", () => {
     });
   });
 
+  context("deleteGlobalRoles", () => {
+    const auth = {
+      user: "admin",
+      password: "mypassword",
+      tenant: "t12345678",
+    };
+
+    // Helper to create user group list response
+    const createGroupListResponse = (groups: any[]) =>
+      new window.Response(JSON.stringify({ groups }), {
+        status: 200,
+        statusText: "OK",
+        headers: {
+          "content-type":
+            "application/vnd.com.nsn.cumulocity.usergroupcollection+json",
+        },
+      });
+
+    // Helper to create delete success response
+    const createDeleteResponse = (status = 204) =>
+      new window.Response(null, {
+        status,
+        statusText: status === 204 ? "OK" : "Not Found",
+        headers: { "content-type": "application/json" },
+      });
+
+    // Helper to create a role/group object
+    const createRole = (id: number, name: string, description?: string) => ({
+      id,
+      name,
+      ...(description && { description }),
+    });
+
+    const emptyGroupResponse = () => [createGroupListResponse([])];
+
+    it("should delete single global role by name", function () {
+      const role = createRole(1, "CustomRole", "Custom Role");
+      stubResponses([createGroupListResponse([role]), createDeleteResponse()]);
+
+      cy.getAuth(auth)
+        .deleteGlobalRoles(["CustomRole"])
+        .then((response) => {
+          expect(response).to.deep.equal(auth);
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/groups?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/groups/1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should delete multiple global roles by name array", function () {
+      const roles = [
+        createRole(1, "Role1", "First Role"),
+        createRole(2, "Role2", "Second Role"),
+        createRole(3, "Role3", "Third Role"),
+      ];
+      stubResponses([
+        createGroupListResponse(roles),
+        createDeleteResponse(),
+        createDeleteResponse(),
+        createDeleteResponse(),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteGlobalRoles(["Role1", "Role2", "Role3"])
+        .then((response) => {
+          expect(response).to.deep.equal(auth);
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/groups?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/groups/1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+            {
+              url: url(`/user/t12345678/groups/2`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+            {
+              url: url(`/user/t12345678/groups/3`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should match roles case-insensitively", function () {
+      const role = createRole(1, "CustomRole");
+      stubResponses([createGroupListResponse([role]), createDeleteResponse()]);
+
+      cy.getAuth(auth)
+        .deleteGlobalRoles(["customrole"])
+        .then((response) => {
+          expect(response).to.deep.equal(auth);
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/groups?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/groups/1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should pass client options to c8yclient", function () {
+      const role = createRole(1, "TestRole");
+      stubResponses([
+        createGroupListResponse([role]),
+        createDeleteResponse(404),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteGlobalRoles(["TestRole"], {
+          baseUrl: "https://abc.def.com",
+          failOnStatusCode: false,
+        })
+        .then(() => {
+          expectC8yClientRequest([
+            {
+              url: `https://abc.def.com/user/t12345678/groups?pageSize=2000`,
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: `https://abc.def.com/user/t12345678/groups/1`,
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should not fail when role not found with ignoreNotFound=true (default)", function () {
+      stubResponses(emptyGroupResponse());
+
+      cy.getAuth(auth)
+        .deleteGlobalRoles(["NonExistentRole"])
+        .then((response) => {
+          expect(response).to.deep.equal(auth);
+          expectC8yClientRequest({
+            url: url(`/user/t12345678/groups?pageSize=2000`),
+            auth,
+            headers: { UseXBasic: true, accept: "application/json" },
+          });
+        });
+    });
+
+    it("should skip non-existent roles and delete existing ones", function () {
+      const role = createRole(1, "ExistingRole");
+      stubResponses([createGroupListResponse([role]), createDeleteResponse()]);
+
+      cy.getAuth(auth)
+        .deleteGlobalRoles(["ExistingRole", "NonExistent1", "NonExistent2"])
+        .then((response) => {
+          expect(response).to.deep.equal(auth);
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/groups?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/groups/1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+
+    it("should handle 404 response gracefully during deletion", function () {
+      const role = createRole(1, "TestRole");
+      stubResponses([
+        createGroupListResponse([role]),
+        createDeleteResponse(404),
+      ]);
+
+      cy.getAuth(auth)
+        .deleteGlobalRoles(["TestRole"])
+        .then((response) => {
+          expect(response).to.deep.equal(auth);
+          expectC8yClientRequest([
+            {
+              url: url(`/user/t12345678/groups?pageSize=2000`),
+              auth,
+              headers: { UseXBasic: true, accept: "application/json" },
+            },
+            {
+              url: url(`/user/t12345678/groups/1`),
+              auth,
+              headers: { UseXBasic: true },
+              method: "DELETE",
+            },
+          ]);
+        });
+    });
+  });
+
   context("clearUserRoles", () => {
     const groups = {
       references: [

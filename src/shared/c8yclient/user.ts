@@ -4,6 +4,26 @@ import { wrapFetchResponse } from "../c8yclient";
 import { expectSuccessfulDelete, maxPageSize } from "./helper";
 
 /**
+ * Options for delete operations.
+ */
+export type DeleteOptions = {
+  /**
+   * If true, ignores 404 Not Found errors when deleting.
+   */
+  ignoreNotFound?: boolean;
+};
+
+/**
+ * Input types for deleteUser function.
+ */
+export type DeleteUserInput =
+  | string
+  | IUser
+  | string[]
+  | IUser[]
+  | ((filter: IUser) => boolean);
+
+/**
  * Creates a user with the specified global roles and optionally assigns applications.
  *
  * This function:
@@ -127,13 +147,6 @@ function isIdentifiedObject(user: IUser): boolean {
   );
 }
 
-type DeleteUserInput =
-  | string
-  | IUser
-  | string[]
-  | IUser[]
-  | ((filter: IUser) => boolean);
-
 function needsAllUsersFetch(users: DeleteUserInput): boolean {
   const userArray = to_array(users) ?? [];
   return (
@@ -186,8 +199,8 @@ function needsAllUsersFetch(users: DeleteUserInput): boolean {
  */
 export async function deleteUser(
   client: Client,
-  user: string | IUser | string[] | IUser[] | ((filter: IUser) => boolean),
-  options?: { ignoreNotFound?: boolean }
+  user: DeleteUserInput,
+  options?: DeleteOptions
 ): Promise<void> {
   if (!user) {
     throw new Error(
@@ -205,7 +218,9 @@ export async function deleteUser(
         pageSize: maxPageSize,
       });
     } catch (error) {
-      throw new Error(`Failed to fetch list of users for list of usernames or filter function: ${error}`);
+      throw new Error(
+        `Failed to fetch list of users for list of usernames or filter function: ${error}`
+      );
     }
   }
 
@@ -217,11 +232,12 @@ export async function deleteUser(
     allUsers = userArray.reduce((acc: IUser[], u) => {
       if (typeof u === "string") {
         const lowerU = u.toLowerCase();
-        const foundUser = allUsersResponse?.data.find(
-          (userItem) =>
-            userItem.userName?.toLowerCase() === lowerU ||
-            userItem.id?.toLowerCase() === lowerU
-        ) ?? false;
+        const foundUser =
+          allUsersResponse?.data.find(
+            (userItem) =>
+              userItem.userName?.toLowerCase() === lowerU ||
+              userItem.id?.toLowerCase() === lowerU
+          ) ?? false;
         if (!foundUser) {
           if (ignoreNotFound) {
             return acc;

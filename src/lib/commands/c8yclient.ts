@@ -732,7 +732,6 @@ function run(
         }
 
         if (_.isArray(resultPromise)) {
-          // Array of promises: C8yClientServiceArrayFn
           let toReject = false;
           const result: any[] = [];
           for (const task of resultPromise) {
@@ -749,7 +748,6 @@ function run(
             resolve(result);
           }
         } else {
-          // Single promise or Promise of array
           try {
             resolve(await preprocessedResponse(resultPromise));
           } catch (err) {
