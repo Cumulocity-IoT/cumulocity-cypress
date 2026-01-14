@@ -12,7 +12,7 @@ import { DeleteOptions } from "./user";
  *
  * @param client - The Cumulocity client instance
  * @param roleOptions - Role name as string, or object with name and optional description
- * @param roles - Array of role IDs or names to assign to this global role (e.g., ['ROLE_USER_MANAGEMENT', 'ROLE_INVENTORY_READ'])
+ * @param permissions - Array of permission (role) IDs or names to assign to this global role (e.g., ['ROLE_USER_MANAGEMENT', 'ROLE_INVENTORY_READ'])
  * @returns Promise resolving to the created user group result
  *
  * @throws Error if role creation fails or if any of the specified roles cannot be found
@@ -27,7 +27,7 @@ import { DeleteOptions } from "./user";
 export async function createGlobalRole(
   client: Client,
   roleOptions: string | { name: string; description?: string },
-  roles: string[]
+  permissions: string[]
 ): Promise<IResult<IUserGroup>> {
   const roleConfig =
     typeof roleOptions === "string" ? { name: roleOptions } : roleOptions;
@@ -58,10 +58,10 @@ export async function createGlobalRole(
 
   // Find matching roles
   const matches = listRoles.filter(
-    (r) => roles?.find((item) => item === r.id || item === r.name) != null
+    (r) => permissions?.find((item) => item === r.id || item === r.name) != null
   );
 
-  if (matches.length < roles.length) {
+  if (matches.length < permissions.length) {
     throw new Error(
       `Failed to assign one of provided userRoles to ${roleConfig.name}. User role not found.`
     );
