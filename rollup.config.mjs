@@ -10,6 +10,31 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export default [
+    {
+    input: "dist/index.js",
+    output: [
+      {
+        name: "c8y",
+        file: "dist/index.js",
+        format: "commonjs",
+        sourcemap: true,
+      },
+    ],
+    plugins: [
+      resolve({
+        resolveOnly: ["./src/**"],
+      }),
+      commonjs(),
+      json(),
+    ],
+  },
+  {
+    input: "dist/index.d.ts",
+    output: [
+      { file: "dist/index.d.ts", format: "es", sourcemap: false },
+    ],
+    plugins: [dts()],
+  },
   {
     input: "dist/plugin/index.js",
     output: [

@@ -29,3 +29,5 @@ export {
   C8yClient,
   C8yClientOptions,
 } from "./shared/c8yclient";
+
+export * from "./shared/c8yclient/index";
