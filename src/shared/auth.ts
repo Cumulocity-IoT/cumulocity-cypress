@@ -9,7 +9,7 @@ import {
   IAuthentication,
   ICredentials,
 } from "@c8y/client";
-import { normalizeBaseUrl } from "./c8ypact/url";
+import { normalizeBaseUrl } from "./url";
 import { get_i } from "./util";
 import { C8yClient } from "./c8yclient";
 

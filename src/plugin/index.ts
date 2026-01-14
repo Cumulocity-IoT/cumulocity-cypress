@@ -24,7 +24,7 @@ import {
 } from "../shared/c8ypact/c8ypact";
 import { C8yAuthOptions, getAuthOptionsFromJWT } from "../shared/auth";
 import { oauthLogin } from "../shared/oauthlogin";
-import { normalizeBaseUrl, validateBaseUrl } from "../shared/c8ypact/url";
+import { normalizeBaseUrl, validateBaseUrl } from "../shared/url";
 import { getPackageVersion } from "../shared/util-node";
 
 import {

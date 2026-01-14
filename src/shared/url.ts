@@ -1,5 +1,5 @@
-import { C8yBaseUrl, C8yTenant } from "../types";
-import { C8yPactRecord } from "./c8ypact";
+import { C8yBaseUrl, C8yTenant } from "./types";
+import { C8yPactRecord } from "./c8ypact/c8ypact";
 import _ from "lodash";
 
 export function isURL(obj: any): obj is URL {
@@ -186,4 +186,23 @@ export function normalizeBaseUrl(url: string | undefined): string | undefined {
   }
 
   return normalizedUrl;
+}
+
+/**
+ * Converts the given URL to a string.
+ * @param url The URL or RequestInfo to convert.
+ * @returns The URL as a string.
+ */
+export function toUrlString(url: RequestInfo | URL): string {
+  if (_.isString(url)) {
+    return url;
+  } else if (url instanceof URL) {
+    return url.toString();
+  } else if (url instanceof Request) {
+    return url.url;
+  } else {
+    throw new Error(
+      `Type for URL not supported. Expected URL, string or Request, but found $'{typeof url}}'.`
+    );
+  }
 }

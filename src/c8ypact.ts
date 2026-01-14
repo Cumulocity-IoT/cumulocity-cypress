@@ -9,7 +9,7 @@ export * from "./lib/pact/cypresspreprocessor";
 
 export * from "./shared/c8ypact";
 export * from "./shared/auth";
-export * from "./shared/c8ypact/url";
+export * from "./shared/url";
 export * from "./shared/versioning";
 
 export { registerDefaultLocales, registerLocale } from "./lib/locale/locale";

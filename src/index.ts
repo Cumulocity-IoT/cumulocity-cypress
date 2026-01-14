@@ -11,7 +11,7 @@ export {
   normalizeBaseUrl,
   tenantUrl,
   removeBaseUrlFromString,
-} from "./shared/c8ypact/url";
+} from "./shared/url";
 
 export {
   get_i,
