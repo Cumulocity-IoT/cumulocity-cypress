@@ -33,7 +33,7 @@ const { _ } = Cypress;
 
 import { FetchClient, IAuthentication } from "@c8y/client";
 import { C8yPactFetchClient } from "./fetchclient";
-import { validateBaseUrl } from "../../shared/c8ypact/url";
+import { validateBaseUrl } from "../../shared/url";
 import { C8yCypressEnvPreprocessor } from "./cypresspreprocessor";
 import { C8yBaseUrl } from "../../shared/types";
 import { to_boolean } from "../../shared/util";

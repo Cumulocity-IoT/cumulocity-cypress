@@ -3,11 +3,12 @@ import $RefParser, {
   JSONParserErrorGroup,
 } from "@apidevtools/json-schema-ref-parser";
 import * as path from "path";
-import { pathToFileURL } from "url";
+import { pathToFileURL, fileURLToPath } from "url";
+import * as fs from "fs";
 
 import lodash1 from "lodash";
 import * as lodash2 from "lodash";
-import { C8yPact, C8yPactObjectKeys } from "./c8ypact";
+import { C8yPact, C8yPactObjectKeys } from "../shared/c8ypact/c8ypact";
 const _ = lodash1 || lodash2;
 
 interface RefParameterizationInfo {
@@ -209,7 +210,8 @@ function replacePlaceholdersInCopy(
 
 export async function resolveRefs(
   doc: C8yPact,
-  baseFolder?: string // Optional base folder for resolving relative file paths
+  baseFolder?: string, // Optional base folder for resolving relative file paths
+  parserOptions?: any // Optional custom options for $RefParser
 ): Promise<C8yPact | null> {
   if (doc == null || typeof doc !== "object") {
     return doc;
@@ -232,7 +234,7 @@ export async function resolveRefs(
   );
 
   // 2. Dereference using the standard mechanism with the preprocessed document
-  const dereferencedDoc = await $RefParser.dereference(docForProcessing, {
+  const defaultOptions: any = {
     dereference: {
       circular: "ignore",
       excludedPathMatcher: (jsonPointerPath: string) => {
@@ -269,7 +271,26 @@ export async function resolveRefs(
       },
     },
     continueOnError: true,
-  });
+    resolve: {
+      file: {
+        order: 1,
+        canRead: /^file:/i,
+        read: async (file: any) => {
+          // Convert file:// URL to path and read using the current fs (which may be mocked)
+          const filePath = fileURLToPath(file.url);
+          return fs.readFileSync(filePath, "utf8");
+        },
+      },
+    },
+  };
+
+  // Merge custom options with defaults
+  const mergedOptions = _.merge({}, defaultOptions, parserOptions);
+
+  const dereferencedDoc = await $RefParser.dereference(
+    docForProcessing,
+    mergedOptions
+  );
 
   // 3. Post-Dereferencing Replacement
   const finalDoc = dereferencedDoc;
