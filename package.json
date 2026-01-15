@@ -144,7 +144,6 @@
   },
   "devDependencies": {
     "@angular/common": "^19.2.16",
-    "@bahmutov/cypress-esbuild-preprocessor": "^2.2.5",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
@@ -169,8 +168,6 @@
     "@types/ws": "^8.5.13",
     "copyfiles": "^2.4.1",
     "cross-env": "^10.0.0",
-    "esbuild": "^0.25.5",
-    "esbuild-plugins-node-modules-polyfill": "^1.7.1",
     "eslint": "^9.19.0",
     "eslint-plugin-cypress": "^5.1.0",
     "eslint-plugin-import": "^2.31.0",
