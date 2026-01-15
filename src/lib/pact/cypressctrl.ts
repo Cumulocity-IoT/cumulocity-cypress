@@ -1,4 +1,4 @@
-import { isAbsoluteURL, normalizeUrl } from "../../shared/c8ypact/url";
+import { isAbsoluteURL, normalizeUrl } from "../../shared/url";
 import {
   C8yDefaultPact,
   C8yPact,

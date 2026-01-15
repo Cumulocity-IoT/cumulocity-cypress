@@ -71,6 +71,10 @@
       "types": "./c8yctrl/index.d.ts",
       "default": "./c8yctrl/index.js"
     },
+    "./c8yclient": {
+      "types": "./shared/c8yclient/index.d.ts",
+      "default": "./shared/c8yclient/index.js"
+    },
     "./contrib": {
       "types": "./contrib/index.d.ts",
       "default": "./contrib/index.js"

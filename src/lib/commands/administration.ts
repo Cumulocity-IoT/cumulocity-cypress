@@ -10,11 +10,20 @@ import {
   ICurrentTenant,
   IDeviceCredentials,
   IUserGroup,
-  IRole,
 } from "@c8y/client";
 import { C8yAuthOptions } from "../../shared/auth";
 import { C8yClientOptions } from "../../shared/c8yclient";
 import { toSemverVersion } from "../../shared/versioning";
+import {
+  assignUserRoles,
+  clearUserRoles,
+  createGlobalRole,
+  createUser,
+  deleteGlobalRoles,
+  DeleteOptions,
+  deleteUser,
+  DeleteUserInput,
+} from "../../shared/c8yclient/";
 
 const { _ } = Cypress;
 
@@ -39,9 +48,9 @@ declare global {
        * });
        *
        * @param {C8yAuthOptions} authOptions the C8yAuthOptions authentication options including username and password
-       * @param {IUser} userOptions the user options defining the user to be created
+       * @param {string | IUser} userOptions the user name or IUser options defining the user to be created
        * @param {string[]} roles the roles to be assigned to the user
-       * @param {string[] | IApplication[]} applications the name of applications to subscribe the user to
+       * @param {string[] | IApplication[]} applications the name of applications or IApplication objects to subscribe the user to
        * @param {C8yClientOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
        *
        * @returns {[C8yAuthOptions, string]} the auth options and id of the user created for chaining
@@ -50,13 +59,13 @@ declare global {
         ...args:
           | [
               authOptions: C8yAuthOptions,
-              userOptions: IUser,
+              userOptions: string | IUser,
               roles?: string[],
               applications?: string[] | IApplication[],
               c8yoptions?: C8yClientOptions
             ]
           | [
-              userOptions: IUser,
+              userOptions: string | IUser,
               roles?: string[],
               applications?: string[] | IApplication[],
               c8yoptions?: C8yClientOptions
@@ -71,23 +80,32 @@ declare global {
        * authentication.
        *
        * @example
-       * cy.deleteUser("newuser");
+       * cy.deleteUser("myuser");
+       * cy.deleteUser(["myuser1", "myuser2"]);
+       * cy.deleteUser({ userName: "myuser", displayName: "My User" });
+       * cy.deleteUser((user) => user.email === "myuser@example.com");
+       *
+       * cy.getAuth("admin").deleteUser("myuser");
        *
        * @param {C8yAuthOptions} authOptions the C8yAuthOptions authentication options including username and password
-       * @param {string} username the name of the user to be deleted
-       * @param {C8yClientOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
+       * @param {DeleteUserInput} username the id or username as string, an IUser object, or a predicate function to identify the user(s) to be deleted
+       * @param {C8yClientOptions & DeleteUserOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
+       * @param {boolean} c8yoptions.ignoreNotFound whether to ignore not found users (default: true)
        *
-       * @returns {C8yAuthOptions} the auth options for chaining
+       * @returns {C8yAuthOptions} the authentication options for chaining to allow further commands
        */
       deleteUser(
         ...args:
-          | [username: string | IUser, c8yoptions?: C8yClientOptions]
+          | [
+              username: DeleteUserInput,
+              c8yoptions?: C8yClientOptions & DeleteOptions
+            ]
           | [
               authOptions: C8yAuthOptions,
-              username: string | IUser,
-              c8yoptions?: C8yClientOptions
+              username: DeleteUserInput,
+              c8yoptions?: C8yClientOptions & DeleteOptions
             ]
-      ): Chainable<Cypress.Response<null>>;
+      ): Chainable<C8yAuthOptions>;
 
       /**
        * Creates a global role in Cumulocity with specified permissions.
@@ -127,7 +145,7 @@ declare global {
               roles: string[],
               c8yoptions?: C8yClientOptions
             ]
-      ): Chainable<IUserGroup>;
+      ): Chainable<Cypress.Response<IUserGroup>>;
 
       /**
        * Deletes global roles from Cumulocity by name.
@@ -143,17 +161,18 @@ declare global {
        *
        * @param {C8yAuthOptions} authOptions - Authentication options including username and password
        * @param {string[]} roleNames - Array of role names to delete
-       * @param {C8yClientOptions} c8yoptions - Options passed to cy.c8yclient
+       * @param {C8yClientOptions & DeleteOptions} c8yoptions the C8yClientOptions options passed to cy.c8yclient
+       * @param {boolean} c8yoptions.ignoreNotFound whether to ignore not found global roles (default: true)
        *
        * @returns {Chainable<C8yAuthOptions>} The auth options for chaining
        */
       deleteGlobalRoles(
         ...args:
-          | [roleNames: string[], c8yoptions?: C8yClientOptions]
+          | [roleNames: string[], c8yoptions?: C8yClientOptions & DeleteOptions]
           | [
               authOptions: C8yAuthOptions,
               roleNames: string[],
-              c8yoptions?: C8yClientOptions
+              c8yoptions?: C8yClientOptions & DeleteOptions
             ]
       ): Chainable<C8yAuthOptions>;
 
@@ -362,142 +381,10 @@ Cypress.Commands.add("createUser", { prevSubject: "optional" }, (...args) => {
   // note auth might be undefined which means c8yclient will choose auth.
   return cy
     .wrap(auth, { log: false })
-    .c8yclient((c) => c.user.create(userOptions), clientOptions)
-    .then((userResponse) => {
-      const userId = userResponse.body.id;
-      consoleProps.userId = userId;
-      if (roles && !_.isEmpty(roles)) {
-        consoleProps.roles = roles;
-        const roleResponses: any[] = [];
-        cy.wrap(roles, { log: false }).each((role) => {
-          cy.wrap(auth, { log: false })
-            .c8yclient(
-              [
-                (c) =>
-                  c.core.fetch(
-                    "/user/" + c.core.tenant + "/groupByName/" + role
-                  ),
-                (c, groupResponse) => {
-                  const childId = userResponse?.body?.self;
-                  const groupId = groupResponse?.body?.id;
-                  if (!childId || !groupId) {
-                    throwError(
-                      `Failed to add user ${childId} to group ${childId}.`
-                    );
-                  }
-                  return c.userGroup.addUserToGroup(groupId, childId);
-                },
-              ],
-              clientOptions
-            )
-            .then((response) => {
-              roleResponses.push({ role, response });
-              consoleProps.roleResponses = roleResponses;
-            });
-        });
-      }
-      if (applications && !_.isEmpty(applications)) {
-        consoleProps.applications = applications;
-
-        const allApps: any[] = [];
-        const appResponses: any[] = [];
-        cy.wrap(applications, { log: false }).each(
-          (app: string | IApplication) => {
-            if (_.isString(app)) {
-              cy.wrap(auth, { log: false })
-                .c8yclient<IApplication>(
-                  (c) =>
-                    c.core.fetch("/application/applicationsByName/" + app, {
-                      headers: {
-                        accept:
-                          "application/vnd.com.nsn.cumulocity.applicationcollection+json",
-                      },
-                    }),
-                  clientOptions
-                )
-                .then((applicationResponse) => {
-                  appResponses.push({ app, response: applicationResponse });
-                  consoleProps.appResponses = appResponses;
-
-                  const applications =
-                    applicationResponse?.body?.applications ||
-                    applicationResponse?.body;
-                  if (!applications || !_.isArrayLike(applications)) {
-                    throwError(
-                      `Application ${app} not found. No or empty response.`
-                    );
-                  }
-                  const apps = applications.map((a: any) => {
-                    if (_.isString(a)) {
-                      return {
-                        type: "HOSTED",
-                        id: a,
-                      };
-                    } else if (_.isObjectLike(a) && a.id) {
-                      return _.pick(_.defaults(a, { type: "HOSTED" }), [
-                        "id",
-                        "type",
-                      ]);
-                    }
-                    return undefined;
-                  });
-                  allApps.push(...apps.filter((a: any) => a !== undefined));
-                });
-            } else if (_.isObjectLike(app) && (app as IApplication).id) {
-              const appToAdd = _.pick(_.defaults(app, { type: "HOSTED" }), [
-                "id",
-                "type",
-              ]);
-              if (appToAdd != null && appToAdd.id != null) {
-                allApps.push(appToAdd);
-              } else {
-                throwError(
-                  `Invalid application object. Expected IApplication object with id. Received object null or id null.`
-                );
-              }
-            } else {
-              throwError(
-                `Invalid application format. Expected string (name) or IApplication object with id.`
-              );
-            }
-          }
-        );
-
-        cy.wrap(auth, { log: false })
-          .c8yclient(
-            [
-              (c) => {
-                if (!userId) {
-                  throwError("User ID is missing.");
-                }
-                return c.user.detail(userId);
-              },
-              (c, userDetailResponse) => {
-                const existingApps =
-                  userDetailResponse?.body?.applications || [];
-
-                // Merge with existing applications, avoiding duplicates by id
-                const mergedApps = [...existingApps];
-                for (const app of allApps) {
-                  if (
-                    !mergedApps.find((existing: any) => existing.id === app.id)
-                  ) {
-                    mergedApps.push(app);
-                  }
-                }
-
-                return c.user.update({ id: userId, applications: mergedApps });
-              },
-            ],
-            clientOptions
-          )
-          .then((updateResponse) => {
-            consoleProps.updateResponse = updateResponse;
-          });
-      }
-      logger.end();
-      return cy.wrap(userResponse);
-    });
+    .c8yclient(
+      (c) => createUser(c, userOptions, roles, applications),
+      clientOptions
+    );
 });
 
 Cypress.Commands.add("deleteUser", { prevSubject: "optional" }, (...args) => {
@@ -505,12 +392,10 @@ Cypress.Commands.add("deleteUser", { prevSubject: "optional" }, (...args) => {
   const [auth, user, clientOptions] = $args;
 
   const options = { ...clientOptions, ...{ failOnStatusCode: false } };
-  const username = _.isObjectLike(user) ? user.userName : user;
   const consoleProps = {
     auth: auth || null,
     clientOptions: options || null,
     user: user || null,
-    username: username || null,
   };
 
   const logger = Cypress.log({
@@ -519,20 +404,15 @@ Cypress.Commands.add("deleteUser", { prevSubject: "optional" }, (...args) => {
     consoleProps: () => consoleProps,
   });
 
-  if (!username || !_.isString(username)) {
-    logger.end();
-    throwError(
-      "Missing argument. deleteUser() requires IUser object with userName or username string argument."
-    );
-  }
-
   return cy
     .wrap(auth, { log: false })
-    .c8yclient((c) => c.user.delete(username), options)
-    .then((deleteResponse) => {
+    .c8yclient(
+      (c) => deleteUser(c, user, _.pick(options, ["ignoreNotFound"])),
+      options
+    )
+    .then(() => {
       logger.end();
-      expect(deleteResponse.status).to.be.oneOf([204, 404]);
-      return cy.wrap(deleteResponse);
+      return cy.wrap<C8yAuthOptions>(auth, { log: false });
     });
 });
 
@@ -570,25 +450,8 @@ Cypress.Commands.add(
 
     return cy
       .wrap(auth, { log: false })
-      .c8yclient((client) => client.user.detail(userIdentifier), options)
-      .then((response) => {
-        const assignedRoles: any = response.body.groups.references;
-        consoleProps.assignedRoles = assignedRoles || null;
-
-        if (!assignedRoles || assignedRoles.length === 0) {
-          return cy.wrap<C8yAuthOptions>(auth, { log: false });
-        }
-
-        cy.wrap(assignedRoles, { log: false }).each((assingedRole: any) => {
-          cy.wrap(auth, { log: false }).c8yclient(
-            (client) =>
-              client.userGroup.removeUserFromGroup(
-                assingedRole.group.id,
-                userIdentifier
-              ),
-            options
-          );
-        });
+      .c8yclient((client) => clearUserRoles(client, userIdentifier), options)
+      .then(() => {
         logger.end();
         return cy.wrap<C8yAuthOptions>(auth, { log: false });
       });
@@ -629,67 +492,13 @@ Cypress.Commands.add(
 
     return cy
       .wrap(auth, { log: false })
-      .c8yclient(
-        (client) => client.userGroup.create(roleOptions),
+      .c8yclient<IUserGroup, null>(
+        (client) => createGlobalRole(client, roleOptions, rolesToAssign || []),
         clientOptions
       )
-      .then((createResponse) => {
-        const userGroup = createResponse.body;
-        consoleProps.role = userGroup;
-
-        const userGroupId = userGroup.id;
-        if (!userGroupId) {
-          logger.end();
-          throwError("Failed to create global role. UserGroup id is missing.");
-        }
-
-        return cy
-          .wrap(auth, { log: false })
-          .c8yclient(
-            (client) =>
-              client.userRole.list({ pageSize: 2000, withTotalPages: false }),
-            clientOptions
-          )
-          .then((listResponse: Cypress.Response<any>) => {
-            const listRoles: IRole[] | undefined = listResponse.body.roles;
-            consoleProps.existingRoles = listRoles || null;
-            const matches: IRole[] = [];
-            if (!listRoles || listRoles.length === 0) {
-              logger.end();
-              throwError("Failed to load roles. No roles found.");
-            }
-
-            for (const r of listRoles) {
-              if (
-                rolesToAssign?.find(
-                  (item: string) => item === r.id || item === r.name
-                ) != null
-              ) {
-                matches.push(r);
-              }
-            }
-
-            if (matches.length < rolesToAssign.length) {
-              logger.end();
-              throwError(
-                `Failed to assign one of provided userRoles to ${roleOptions.name}. User role not found.`
-              );
-            }
-
-            cy.wrap(auth, { log: false }).c8yclient(
-              (c) =>
-                matches
-                  ?.filter((item) => item.self != null)
-                  .map((match) =>
-                    c.userGroup.addRoleToGroup(userGroupId, match.self!)
-                  ),
-              clientOptions
-            );
-          })
-          .then(() => {
-            logger.end();
-            return cy.wrap(userGroup);
-          });
+      .then((response) => {
+        logger.end();
+        return cy.wrap(response);
       });
   }
 );
@@ -701,11 +510,12 @@ Cypress.Commands.add(
     const $args = normalizedC8yclientArguments(args);
     const [auth, roleNames, clientOptions] = $args;
 
+    const options = { ...clientOptions, ...{ failOnStatusCode: false } };
     const consoleProps: any = {
       args: args || null,
       auth: auth || null,
       roleNames: roleNames || null,
-      clientOptions: clientOptions || null,
+      clientOptions: options || null,
     };
 
     const logger = Cypress.log({
@@ -721,29 +531,18 @@ Cypress.Commands.add(
 
     return cy
       .wrap(auth, { log: false })
-      .c8yclient((c) => c.userGroup.list({ pageSize: 2000 }), clientOptions)
-      .then((listResponse: Cypress.Response<any>) => {
-        const groups: IUserGroup[] = listResponse.body.groups;
-        if (!groups || groups.length === 0) {
-          logger.end();
-          throwError("Failed to load userGroups. No groups found.");
-        }
-        return cy
-          .wrap(auth, { log: false })
-          .c8yclient(
-            (c) =>
-              groups
-                .filter((g) => roleNames.includes(g.name) && g.id != null)
-                .map((g) => c.userGroup.delete(g.id!)),
-            { ...clientOptions, ...{ failOnStatusCode: false } }
-          )
-          .then((response) => {
-            for (const res of response) {
-              expect(res.status).to.be.oneOf([204, 404]);
-            }
-            logger.end();
-            return cy.wrap<C8yAuthOptions>(auth, { log: false });
-          });
+      .c8yclient(
+        (c) =>
+          deleteGlobalRoles(
+            c,
+            roleNames,
+            _.pick(options, ["ignoreNotFound"])
+          ),
+        options
+      )
+      .then(() => {
+        logger.end();
+        return cy.wrap<C8yAuthOptions>(auth, { log: false });
       });
   }
 );
@@ -790,30 +589,11 @@ Cypress.Commands.add(
 
     return cy
       .wrap(auth, { log: false })
-      .c8yclient((client) => client.user.detail(userIdentifier), options)
-      .then((response) => {
-        cy.wrap(roles, { log: false }).each((role) => {
-          cy.wrap(auth, { log: false }).c8yclient(
-            [
-              (client) =>
-                client.core.fetch(
-                  `/user/${client.core.tenant}/groupByName/${role}`
-                ),
-              (client, groupResponse) => {
-                const childId = response?.body?.self;
-                const groupId = groupResponse?.body?.id;
-                if (childId == null || !groupId) {
-                  logger.end();
-                  throwError(
-                    `Failed to add user ${childId} to group ${childId}.`
-                  );
-                }
-                return client.userGroup.addUserToGroup(groupId, childId);
-              },
-            ],
-            options
-          );
-        });
+      .c8yclient(
+        (client) => assignUserRoles(client, userIdentifier, roles),
+        options
+      )
+      .then(() => {
         logger.end();
         return cy.wrap<C8yAuthOptions>(auth, { log: false });
       });

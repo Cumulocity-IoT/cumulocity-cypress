@@ -1,7 +1,7 @@
 import {
   isAbsoluteURL,
   urlForBaseUrl,
-} from "cumulocity-cypress/shared/c8ypact/url";
+} from "cumulocity-cypress/shared/url";
 import {
   getAuthOptions,
   getBaseUrlFromEnv,

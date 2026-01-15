@@ -167,7 +167,12 @@ declare global {
     }
   }
 
-  type C8yClientIResult<T> = IResult<T> | IResult<null> | IFetchResponse;
+  type C8yClientIResult<T> =
+    | IResult<T>
+    | IResult<null>
+    | IFetchResponse
+    | null
+    | void;
 
   type C8yClientServiceFn<R, T> = (
     client: Client,
@@ -452,7 +457,10 @@ const c8yclientFn = (...args: any[]) => {
   let auth: C8yAuthentication | undefined = cookieAuth;
   if (options.preferBasicAuth === true && basicAuth) {
     auth = basicAuth;
-  } else if (bearerAuth && (!cookieAuth || Cypress.testingType === "component")) {
+  } else if (
+    bearerAuth &&
+    (!cookieAuth || Cypress.testingType === "component")
+  ) {
     auth = bearerAuth;
   } else {
     auth = cookieAuth ?? bearerAuth ?? basicAuth;
