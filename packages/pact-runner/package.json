@@ -29,7 +29,7 @@
     "url": "git+https://github.com/Cumulocity-IoT/cumulocity-cypress/issues"
   },
   "dependencies": {
-    "@angular/common": "^19.2.16",
+    "@angular/common": "^19.2.18",
     "@cypress/grep": "^5.0.0",
     "@c8y/client": "^1022.9.6",
     "cumulocity-cypress": "^1.2.3",

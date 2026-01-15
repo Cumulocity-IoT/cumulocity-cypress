@@ -6,6 +6,8 @@ import { ClientRequest, IncomingMessage, ServerResponse } from "http";
 import * as setCookieParser from "set-cookie-parser";
 import * as libCookie from "cookie";
 
+import { Options as HttpProxyMiddlewareOptions } from "http-proxy-middleware";
+
 import {
   createProxyMiddleware,
   responseInterceptor,
@@ -29,25 +31,35 @@ export function createMiddleware(
     logger?: winston.Logger;
     ignoredPaths?: string[];
     errorHandler?: RequestHandler;
+    proxyOptions?: Omit<
+      HttpProxyMiddlewareOptions,
+      "on" | "plugins" | "ejectPlugins"
+    >;
   } = {}
 ): RequestHandler {
   const ignoredPaths = options.ignoredPaths || ["/c8yctrl"];
-  return wrapPathIgnoreHandler(
-    createProxyMiddleware({
-      target: options.baseUrl || c8yctrl.baseUrl,
-      changeOrigin: true,
-      cookieDomainRewrite: "",
-      selfHandleResponse: true,
-      logger: options.logger || c8yctrl.logger,
-      followRedirects: false,
+  const middlewareOptions: HttpProxyMiddlewareOptions = {
+    target: options.baseUrl || c8yctrl.baseUrl,
+    changeOrigin: true,
+    cookieDomainRewrite: "",
+    selfHandleResponse: true,
+    logger: options.logger || c8yctrl.logger,
+    followRedirects: false,
 
-      on: {
-        proxyReq: createRequestHandler(c8yctrl, options.auth),
-        proxyRes: responseInterceptor(
-          createResponseInterceptor(c8yctrl, options.errorHandler)
-        ),
-      },
-    }),
+    ...(options?.proxyOptions || {}),
+
+    on: {
+      // @ts-expect-error - Type mismatch in http-proxy-middleware types
+      proxyReq: createRequestHandler(c8yctrl, options.auth),
+      // @ts-expect-error - Type mismatch in http-proxy-middleware types
+      proxyRes: responseInterceptor(
+        createResponseInterceptor(c8yctrl, options.errorHandler)
+      ),
+    },
+  };
+
+  return wrapPathIgnoreHandler(
+    createProxyMiddleware(middlewareOptions),
     ignoredPaths
   );
 }
