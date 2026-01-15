@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { C8yClient } from "../c8yclient";
-import { isURL, removeBaseUrlFromRequestUrl } from "./url";
+import { isURL, removeBaseUrlFromRequestUrl } from "../url";
 import { toPactAuthObject } from "../auth";
 import {
   C8yPact,

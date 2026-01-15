@@ -11,7 +11,7 @@ import {
 } from "../lib/screenshots/types";
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import { C8yBaseUrl } from "../shared/types";
-import { normalizeBaseUrl } from "../shared/c8ypact/url";
+import { normalizeBaseUrl } from "../shared/url";
 
 export function readYamlFile(filePath: string): any {
   const fileContent = fs.readFileSync(filePath, "utf-8");

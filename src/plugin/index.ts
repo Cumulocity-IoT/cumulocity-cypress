@@ -24,7 +24,7 @@ import {
 } from "../shared/c8ypact/c8ypact";
 import { C8yAuthOptions, getAuthOptionsFromJWT } from "../shared/auth";
 import { oauthLogin } from "../shared/oauthlogin";
-import { normalizeBaseUrl, validateBaseUrl } from "../shared/c8ypact/url";
+import { normalizeBaseUrl, validateBaseUrl } from "../shared/url";
 import { getPackageVersion } from "../shared/util-node";
 
 import {
@@ -37,7 +37,7 @@ import { C8yBaseUrl } from "../shared/types";
 import {
   logJSONParserErrorGroup,
   resolveRefs,
-} from "../shared/c8ypact/c8yresolver";
+} from "./c8yresolver";
 import { JSONParserErrorGroup } from "@apidevtools/json-schema-ref-parser";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };

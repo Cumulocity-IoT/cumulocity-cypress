@@ -1,5 +1,7 @@
 const { _ } = Cypress;
 
+import { to_boolean } from "../../shared/util";
+
 export {};
 
 declare global {
@@ -15,19 +17,53 @@ declare global {
       /**
        * Visits a given page and waits for a selector to become visible.
        *
-       * @example
-       * cy.visitAndWaitToFinishLoading('/');
-       * cy.visitAndWaitToFinishLoading('/', 'en', '[data-cy=myelement]');
+       * Supports two signatures:
+       * 1. Positional parameters for simple cases
+       * 2. Options object for advanced configuration with shell and remotes support
        *
-       * @param {string} url - the page to be visited
-       * @param {string} selector - the selector to wait  to become visible. Defaults to `c8y-navigator-outlet c8y-app-icon`.
-       * @param {number} timeout - the timeout in milliseconds to wait for the selector to become visible. Defaults to `60000`.
+       * @example
+       * // Simple usage with defaults
+       * cy.visitAndWaitForSelector('/apps/cockpit');
+       *
+       * // With positional parameters
+       * cy.visitAndWaitForSelector('/', 'en', '[data-cy=myelement]', 10000);
+       *
+       * // With options object
+       * cy.visitAndWaitForSelector('/apps/cockpit', {
+       *   language: 'en',
+       *   selector: '#navigator',
+       *   timeout: 30000,
+       *   shell: 'cockpit',
+       *   remotes: '{"my-plugin":["myPluginViewProviders"]}'
+       * });
+       *
+       * @param {string} url - The page to be visited
+       * @param {C8yLanguage} language - The language to set. Defaults to 'en'
+       * @param {string} selector - The selector to wait to become visible. Defaults to `c8y-drawer-outlet c8y-app-icon .c8y-icon, c8y-navigator-outlet c8y-app-icon`
+       * @param {number} timeout - The timeout in milliseconds to wait for the selector to become visible. Defaults to `pageLoadTimeout` or `60000`
        */
       visitAndWaitForSelector(
         url: string,
         language?: C8yLanguage,
         selector?: string,
         timeout?: number
+      ): Chainable<void>;
+
+      /**
+       * Visits a given page and waits for a selector to become visible (options signature).
+       *
+       * @param {string} url - The page to be visited
+       * @param {C8yVisitOptions} options - Configuration options
+       * @param {C8yLanguage} options.language - The language to set. Defaults to 'en'
+       * @param {string} options.selector - The selector to wait to become visible
+       * @param {number} options.timeout - The timeout in milliseconds
+       * @param {string} options.shell - The shell application to target (overrides C8Y_SHELL_TARGET env or C8Y_SHELL_NAME env)
+       * @param {string | C8yRemotesObject} options.remotes - Map/Object of remote plugins to load (overrides C8Y_SHELL_EXTENSION env or C8Y_SHELL_REMOTES env). Can be a JSON string or an object. Example: `{"plugin-name":["viewProvider1","viewProvider2"]}`
+       * @param {boolean} options.forceUrlRemotes - Force to only load local remotes from the URL query string (overrides C8Y_SHELL_REMOTES_FORCE env). Defaults to false
+       */
+      visitAndWaitForSelector(
+        url: string,
+        options: C8yVisitOptions
       ): Chainable<void>;
 
       /**
@@ -46,31 +82,112 @@ declare global {
       disableGainsight(): Chainable<void>;
     }
   }
-
   export type C8yLanguage = "de" | "en";
 }
+
+export type C8yRemotesObject = {
+  [pluginName: string]: string[];
+};
+
+/**
+ * Options for `visitAndWaitForSelector` command.
+ */
+export type C8yVisitOptions = {
+  language?: C8yLanguage;
+  selector?: string;
+  timeout?: number;
+  shell?: string;
+  remotes?: string | C8yRemotesObject;
+  forceUrlRemotes?: boolean;
+};
+
+/**
+ * Default selector to wait for when visiting a page. This selector works for different
+ * Cumulocity versions.
+ */
+export const C8yVisitDefaultWaitSelector =
+  "c8y-drawer-outlet c8y-app-icon .c8y-icon, c8y-navigator-outlet c8y-app-icon";
 
 Cypress.Commands.add(
   "visitAndWaitForSelector",
   (
-    url,
-    language = "en",
-    selector = "c8y-drawer-outlet c8y-app-icon .c8y-icon, c8y-navigator-outlet c8y-app-icon",
-    timeout = Cypress.config().pageLoadTimeout || 60000
+    url: string,
+    languageOrOptions?: C8yLanguage | C8yVisitOptions,
+    selectorValue?: string,
+    timeoutValue?: number
   ) => {
+    const DEFAULT_LANGUAGE: C8yLanguage = "en";
+    const DEFAULT_TIMEOUT = Cypress.config().pageLoadTimeout || 60000;
+
+    const isOptionsObject = (value: unknown): value is C8yVisitOptions => {
+      return typeof value === "object" && value != null;
+    };
+
+    const options = isOptionsObject(languageOrOptions)
+      ? languageOrOptions
+      : {
+          language: languageOrOptions,
+          selector: selectorValue,
+          timeout: timeoutValue,
+        };
+
+    const language = options.language ?? DEFAULT_LANGUAGE;
+    const selector = options.selector ?? C8yVisitDefaultWaitSelector;
+    const timeout = options.timeout ?? DEFAULT_TIMEOUT;
+
+    let remotes =
+      options.remotes ??
+      Cypress.env("C8Y_SHELL_REMOTES") ??
+      Cypress.env("C8Y_SHELL_EXTENSION");
+    if (remotes && typeof remotes === "object") {
+      remotes = JSON.stringify(remotes);
+    }
+
+    const shell =
+      options.shell ??
+      Cypress.env("C8Y_SHELL_TARGET") ??
+      Cypress.env("C8Y_SHELL_NAME");
+
+    let forceUrlRemotes =
+      options.forceUrlRemotes ?? Cypress.env("C8Y_SHELL_REMOTES_FORCE");
+    if (forceUrlRemotes != null && typeof forceUrlRemotes !== "boolean") {
+      forceUrlRemotes = to_boolean(forceUrlRemotes, false);
+    }
+
+    // Build the final URL with shell target if provided
+    if (shell) {
+      url = `/apps/${shell}/index.html#/${url}`;
+    }
+
+    // Log command execution details
     const consoleProps = {
       url,
       language,
       selector,
       timeout,
+      shell,
+      remotes,
+      forceUrlRemotes,
     };
     Cypress.log({
       name: "visitAndWaitForSelector",
-      message: url,
+      message: url + (remotes ? ` ${remotes}` : ""),
       consoleProps: () => consoleProps,
     });
+
     cy.setLanguage(language);
-    cy.visit(url);
+
+    const qs: Partial<Cypress.VisitOptions> | undefined =
+      remotes || forceUrlRemotes
+        ? {
+            qs: {
+              ...(remotes != null && { remotes }),
+              ...(forceUrlRemotes != null && { forceUrlRemotes }),
+            },
+          }
+        : undefined;
+    cy.visit(url, qs);
+
     cy.get(selector, { timeout }).should("be.visible");
   }
 );

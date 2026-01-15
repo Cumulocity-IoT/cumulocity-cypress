@@ -18,7 +18,7 @@ import { C8yClient } from "../shared/c8yclient";
 import { getEnvVar } from "../shared/c8ypact/c8ypact";
 import { toSemverVersion } from "../shared/versioning";
 import { get_i } from "../shared/util";
-import { normalizeBaseUrl } from "../shared/c8ypact/url";
+import { normalizeBaseUrl } from "../shared/url";
 
 const { _ } = Cypress;
 
