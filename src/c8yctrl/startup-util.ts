@@ -29,7 +29,7 @@ import { RequestHandler } from "express";
 import { safeStringify } from "../shared/util";
 import { getAuthOptionsFromEnv } from "../shared/auth";
 import { getPackageVersion } from "../shared/util-node";
-import { normalizeBaseUrl } from "../shared/c8ypact/url";
+import { normalizeBaseUrl } from "../shared/url";
 
 import debug from "debug";
 const log = debug("c8y:ctrl:startup");

@@ -9,7 +9,7 @@ import { C8yPactPreprocessorOptions } from "./preprocessor";
 import { C8yClientOptions } from "../c8yclient";
 import { C8yPactAuthObject } from "../auth";
 import { C8yBaseUrl, C8yTenant } from "../types";
-import { isAbsoluteURL } from "./url";
+import { isAbsoluteURL } from "../url";
 import { get_i } from "../util";
 
 export const C8yPactModeValues = [

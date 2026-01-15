@@ -24,6 +24,7 @@ import {
 import { C8ySchemaMatcher } from "./c8ypact/schema";
 import { C8yBaseUrl } from "./types";
 import { get_i } from "./util";
+import { toUrlString } from "./url";
 
 declare global {
   interface Response {
@@ -373,25 +374,6 @@ function updateConsoleProps(
       yielded: responseObj,
       additionalInfo: authInfo,
     });
-  }
-}
-
-/**
- * Converts the given URL to a string.
- * @param url The URL or RequestInfo to convert.
- * @returns The URL as a string.
- */
-export function toUrlString(url: RequestInfo | URL): string {
-  if (_.isString(url)) {
-    return url;
-  } else if (url instanceof URL) {
-    return url.toString();
-  } else if (url instanceof Request) {
-    return url.url;
-  } else {
-    throw new Error(
-      `Type for URL not supported. Expected URL, string or Request, but found $'{typeof url}}'.`
-    );
   }
 }
 
