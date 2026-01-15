@@ -9,7 +9,11 @@ export default {
             tsconfig: "<rootDir>/tsconfig.spec.json",
           },
         ],
+        "^.+\\.jsx?$": "@swc/jest",
       },
+      transformIgnorePatterns: [
+        "node_modules/(?!(@apidevtools|@jsdevtools)/)",
+      ],
       testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$",
       moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
       moduleNameMapper: {

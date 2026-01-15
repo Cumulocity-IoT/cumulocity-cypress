@@ -37,7 +37,7 @@ import { C8yBaseUrl } from "../shared/types";
 import {
   logJSONParserErrorGroup,
   resolveRefs,
-} from "../shared/c8ypact/c8yresolver";
+} from "./c8yresolver";
 import { JSONParserErrorGroup } from "@apidevtools/json-schema-ref-parser";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
