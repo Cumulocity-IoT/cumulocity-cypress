@@ -12,6 +12,23 @@ import { vol } from "memfs";
 jest.spyOn(process, "cwd").mockReturnValue("/home/user/test");
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 jest.mock("fs", () => require("memfs").fs);
+// mock chokidar and ws to avoid esm related issues with upgrade to 5.0.0
+// https://github.com/Cumulocity-IoT/cumulocity-cypress/pull/663
+jest.mock("chokidar", () => ({
+  watch: jest.fn(() => ({
+    on: jest.fn(),
+    close: jest.fn(),
+  })),
+}));
+jest.mock("ws", () => ({
+  __esModule: true,
+  default: {
+    Server: jest.fn(() => ({
+      on: jest.fn(),
+      close: jest.fn(),
+    })),
+  },
+}));
 
 describe("plugin", () => {
   describe("configurePlugin ", () => {
