@@ -7,7 +7,7 @@ export default tseslint.config(
   tseslint.configs.recommended,
   pluginCypress.configs.recommended,
   {
-    ignores: ["**/dist/", "test/", "**/cypress/*.js", "**/*.spec.*", ".github/", "**/.yalc/"],
+    ignores: ["**/dist/", "test/", "**/cypress/*.js", "**/*.spec.*", ".github/", "**/.yalc/", "**/out/"],
   },
   {
     rules: {
