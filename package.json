@@ -143,7 +143,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@angular/common": "^19.2.16",
+    "@angular/common": "^21.1.2",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
