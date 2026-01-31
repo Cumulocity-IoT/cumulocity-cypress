@@ -167,8 +167,8 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
 
     const keyPath = (k?: string | (string | number)[]) => {
       if (_.isArray(k)) {
-        const p = k.map((p) => p.toString());
-        return p.join(" > ");
+        const segments = k.map((segment) => segment.toString());
+        return segments.join(" > ");
       }
       return `${[...parents, ...(k ? [k] : [])].join(" > ")}`;
     };
