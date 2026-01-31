@@ -202,9 +202,8 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
       const sortedPact = ignorePrimitiveArrayOrder
         ? [...pact].sort()
         : [...pact];
-      const maxLength = Math.max(sortedValue.length, sortedPact.length);
 
-      for (let i = 0; i < maxLength; i++) {
+      for (let i = 0; i < sortedValue.length; i++) {
         if (
           i >= sortedValue.length ||
           i >= sortedPact.length ||
