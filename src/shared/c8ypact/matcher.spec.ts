@@ -203,9 +203,9 @@ describe("matcher", () => {
         expect.objectContaining({
           name: "C8yPactMatchError",
           message: expect.stringContaining(
-            `Pact validation failed! Schema for \"response > body\" does not match (data/age must be number).`
+            `Pact validation failed! Schema for \"response > body\" does not match (data/age must be number).`,
           ),
-        })
+        }),
       );
     });
 
@@ -229,7 +229,7 @@ describe("matcher", () => {
         matcher.match(obj, pact, {
           strictMatching: true,
           matchSchemaAndObject: false,
-        })
+        }),
       ).toBeTruthy();
 
       // object matching failure
@@ -237,7 +237,7 @@ describe("matcher", () => {
         matcher.match(obj, pact, {
           strictMatching: true,
           matchSchemaAndObject: true,
-        })
+        }),
       ).toThrow(`Values for "response > body > age" do not match.`);
     });
 
@@ -261,15 +261,797 @@ describe("matcher", () => {
       expect(() =>
         matcher.match(obj, pact, {
           strictMatching: true,
-        })
+        }),
       ).toThrow(
         expect.objectContaining({
           name: "C8yPactMatchError",
           message: expect.stringContaining(
-            `Values for "response > body > age" do not match.`
+            `Values for "response > body > age" do not match.`,
           ),
-        })
+        }),
       );
+    });
+  });
+
+  describe("array matching", () => {
+    describe("primitive arrays", () => {
+      it("should match arrays with same primitive values regardless of order", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { tags: [1, 2, 3] },
+          },
+        };
+        const pact = {
+          response: {
+            body: { tags: [3, 1, 2] },
+          },
+        };
+
+        // With ignorePrimitiveArrayOrder: true (default)
+        expect(
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+        ).toBeTruthy();
+
+        // With ignorePrimitiveArrayOrder: false
+        expect(() =>
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+        ).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > tags" have mismatches at indices',
+            ),
+          }),
+        );
+      });
+
+      it("should match arrays of strings", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { tags: ["red", "green", "blue"] },
+          },
+        };
+        const pact = {
+          response: {
+            body: { tags: ["blue", "red", "green"] },
+          },
+        };
+
+        // With ignorePrimitiveArrayOrder: true (default)
+        expect(
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+        ).toBeTruthy();
+
+        // With ignorePrimitiveArrayOrder: false
+        expect(() =>
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+        ).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > tags" have mismatches at indices',
+            ),
+          }),
+        );
+      });
+
+      it("should match arrays of mixed primitives", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { values: [1, "two", 3, true] },
+          },
+        };
+        const pact = {
+          response: {
+            body: { values: [true, 3, "two", 1] },
+          },
+        };
+
+        // With ignorePrimitiveArrayOrder: true (default)
+        expect(
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+        ).toBeTruthy();
+
+        // With ignorePrimitiveArrayOrder: false
+        expect(() =>
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+        ).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > values" have mismatches at indices',
+            ),
+          }),
+        );
+      });
+
+      it("should fail when arrays have different primitive values", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { tags: [1, 2, 3] },
+          },
+        };
+        const pact = {
+          response: {
+            body: { tags: [1, 2, 4] },
+          },
+        };
+
+        // With ignorePrimitiveArrayOrder: true (default)
+        expect(() =>
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+        ).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > tags" have mismatches at indices "2".',
+            ),
+          }),
+        );
+
+        // With ignorePrimitiveArrayOrder: false
+        expect(() =>
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+        ).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > tags" have mismatches at indices "2".',
+            ),
+          }),
+        );
+      });
+
+      it("should fail when primitive arrays have different lengths", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { tags: [1, 2, 3] },
+          },
+        };
+        const pact = {
+          response: {
+            body: { tags: [1, 2] },
+          },
+        };
+
+        expect(() => matcher.match(obj, pact)).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > tags" have different lengths.',
+            ),
+          }),
+        );
+      });
+
+      it("should match empty arrays", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { tags: [] } as any,
+          },
+        };
+        const pact = {
+          response: {
+            body: { tags: [] } as any,
+          },
+        };
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+    });
+    describe("root objects", () => {
+      it("should match empty objects at root", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {};
+        const pact = {};
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+
+      it("should match empty arrays at root", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = [] as any;
+        const pact = [] as any;
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+
+      it("should match arrays as root objects", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = [
+          {
+            response: {
+              body: { tags: [] } as any,
+            },
+          },
+        ];
+        const pact = [] as any;
+
+        expect(() => matcher.match(obj, pact)).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays at "root" have different lengths.',
+            ),
+          }),
+        );
+      });
+
+      it("should match arrays as root array and object", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { tags: [] } as any,
+          },
+        };
+        const pact = [] as any;
+
+        expect(() => matcher.match(obj, pact)).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Type mismatch at \"root\". Expected array but got object.',
+            ),
+          }),
+        );
+      });
+
+      it("should fail when root types differ - string vs object", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = "hello";
+        const pact = {};
+
+        expect(() => matcher.match(obj, pact)).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining("Expected 2 objects"),
+          }),
+        );
+      });
+
+      it("should fail when root types differ - number vs object", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {};
+        const pact = 123;
+
+        expect(() => matcher.match(obj, pact)).toThrow();
+      });
+
+      it("should fail when comparing numbers at root", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = 123;
+        const pact = 456;
+
+        expect(() => matcher.match(obj, pact)).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining("Expected 2 objects"),
+          }),
+        );
+      });
+
+      it("should fail when comparing booleans at root", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = true;
+        const pact = false;
+
+        expect(() => matcher.match(obj, pact)).toThrow();
+      });
+
+      it("should handle null at root", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = null as any;
+        const pact = null as any;
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+
+      it("should fail when one root is null", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = null as any;
+        const pact = {} as any;
+
+        expect(() => matcher.match(obj, pact)).toThrow();
+      });
+
+      it("should handle undefined at root", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = undefined as any;
+        const pact = undefined as any;
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+    });
+
+    describe("object arrays", () => {
+      it("should match arrays of objects in same order", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: {
+              users: [
+                { id: "1", name: "Alice" },
+                { id: "2", name: "Bob" },
+              ],
+            },
+          },
+        };
+        const pact = {
+          response: {
+            body: {
+              users: [
+                { id: "1", name: "Alice" },
+                { id: "2", name: "Bob" },
+              ],
+            },
+          },
+        };
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+
+      it("should fail when arrays of objects are in different order", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: {
+              users: [
+                { id: "1", name: "Alice" },
+                { id: "2", name: "Bob" },
+              ],
+            },
+          },
+        };
+        const pact = {
+          response: {
+            body: {
+              users: [
+                { id: "2", name: "Bob" },
+                { id: "1", name: "Alice" },
+              ],
+            },
+          },
+        };
+
+        expect(() => matcher.match(obj, pact)).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Values for "response > body > users > 0 > name" do not match',
+            ),
+          }),
+        );
+      });
+
+      it("should fail when object arrays have different lengths", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: {
+              users: [
+                { id: "1", name: "Alice" },
+                { id: "2", name: "Bob" },
+                { id: "3", name: "Charlie" },
+              ],
+            },
+          },
+        };
+        const pact = {
+          response: {
+            body: {
+              users: [
+                { id: "1", name: "Alice" },
+                { id: "2", name: "Bob" },
+              ],
+            },
+          },
+        };
+
+        expect(() => matcher.match(obj, pact)).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > users" have different lengths',
+            ),
+          }),
+        );
+      });
+
+      it("should match nested arrays of objects", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: {
+              groups: [
+                {
+                  name: "Group A",
+                  members: [
+                    { id: "1", name: "Alice" },
+                    { id: "2", name: "Bob" },
+                  ],
+                },
+              ],
+            },
+          },
+        };
+        const pact = {
+          response: {
+            body: {
+              groups: [
+                {
+                  name: "Group A",
+                  members: [
+                    { id: "1", name: "Alice" },
+                    { id: "2", name: "Bob" },
+                  ],
+                },
+              ],
+            },
+          },
+        };
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+
+      it("should fail when nested arrays differ", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: {
+              groups: [
+                {
+                  name: "Group A",
+                  members: [
+                    { id: "1", name: "Alice" },
+                    { id: "2", name: "Bob" },
+                  ],
+                },
+              ],
+            },
+          },
+        };
+        const pact = {
+          response: {
+            body: {
+              groups: [
+                {
+                  name: "Group A",
+                  members: [
+                    { id: "1", name: "Alice" },
+                    { id: "3", name: "Charlie" },
+                  ],
+                },
+              ],
+            },
+          },
+        };
+
+        expect(() => matcher.match(obj, pact)).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Values for "response > body > groups > 0 > members > 1 > name" do not match',
+            ),
+          }),
+        );
+      });
+
+      it("should match empty object arrays", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { users: [] as any },
+          },
+        };
+        const pact = {
+          response: {
+            body: { users: [] as any },
+          },
+        };
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+    });
+
+    describe("mixed array types", () => {
+      it("should match arrays with null and undefined", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { values: [1, null, undefined, "text"] },
+          },
+        };
+        const pact = {
+          response: {
+            body: { values: [null, 1, undefined, "text"] },
+          },
+        };
+
+        // With ignorePrimitiveArrayOrder: true (default)
+        expect(
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+        ).toBeTruthy();
+
+        // With ignorePrimitiveArrayOrder: false
+        expect(() =>
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+        ).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > values" have mismatches at indices',
+            ),
+          }),
+        );
+      });
+
+      it("should match nested arrays of primitives", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: {
+              matrix: [
+                [1, 2, 3],
+                [4, 5, 6],
+              ],
+            },
+          },
+        };
+        const pact = {
+          response: {
+            body: {
+              matrix: [
+                [1, 2, 3],
+                [4, 5, 6],
+              ],
+            },
+          },
+        };
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+
+      it("should fail when nested primitive arrays differ in content", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: {
+              matrix: [
+                [1, 2, 3],
+                [4, 5, 6],
+              ],
+            },
+          },
+        };
+        const pact = {
+          response: {
+            body: {
+              matrix: [
+                [1, 2, 3],
+                [4, 5, 7],
+              ],
+            },
+          },
+        };
+
+        // With ignorePrimitiveArrayOrder: true (default)
+        expect(() =>
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+        ).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > matrix > 1" have mismatches at indices "2".',
+            ),
+          }),
+        );
+
+        // With ignorePrimitiveArrayOrder: false
+        expect(() =>
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+        ).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > matrix > 1" have mismatches at indices "2".',
+            ),
+          }),
+        );
+      });
+
+      it("should fail when nested arrays have different order (objects)", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: {
+              matrix: [
+                [1, 2, 3],
+                [4, 5, 6],
+              ],
+            },
+          },
+        };
+        const pact = {
+          response: {
+            body: {
+              matrix: [
+                [4, 5, 6],
+                [1, 2, 3],
+              ],
+            },
+          },
+        };
+
+        // This should fail because nested arrays are treated as arrays of primitives
+        // but at different indices they represent different "objects" in the parent array
+        expect(() => matcher.match(obj, pact)).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > matrix > 0" have mismatches at indices "0,1,2".',
+            ),
+          }),
+        );
+      });
+    });
+
+    describe("array matching with strictMatching", () => {
+      it("should match arrays with strictMatching disabled", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: {
+              tags: [1, 2, 3, 4, 5],
+            },
+          },
+        };
+        const pact = {
+          response: {
+            body: {
+              tags: [1, 2, 3],
+            },
+          },
+        };
+
+        // With strictMatching disabled, extra values in obj should not cause failure
+        // for primitive arrays - actually this should still fail because arrays
+        // check for unexpected values
+        expect(() =>
+          matcher.match(obj, pact, { strictMatching: false }),
+        ).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > tags" have different lengths.',
+            ),
+          }),
+        );
+      });
+
+      it("should fail arrays with strictMatching enabled when lengths differ", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: {
+              users: [{ id: "1" }, { id: "2" }],
+            },
+          },
+        };
+        const pact = {
+          response: {
+            body: {
+              users: [{ id: "1" }],
+            },
+          },
+        };
+
+        expect(() =>
+          matcher.match(obj, pact, { strictMatching: true }),
+        ).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > users" have different lengths',
+            ),
+          }),
+        );
+      });
+    });
+
+    describe("edge cases", () => {
+      it("should match single element arrays", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { items: [1] },
+          },
+        };
+        const pact = {
+          response: {
+            body: { items: [1] },
+          },
+        };
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+
+      it("should match arrays with boolean values", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { flags: [true, false, true] },
+          },
+        };
+        const pact = {
+          response: {
+            body: { flags: [false, true, true] },
+          },
+        };
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+
+      it("should handle arrays with duplicate values", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { numbers: [1, 1, 2, 2, 3] },
+          },
+        };
+        const pact = {
+          response: {
+            body: { numbers: [3, 2, 2, 1, 1] },
+          },
+        };
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
+
+      it("should fail when duplicate count differs", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const obj = {
+          response: {
+            body: { numbers: [1, 1, 2, 3] },
+          },
+        };
+        const pact = {
+          response: {
+            body: { numbers: [1, 2, 2, 3] },
+          },
+        };
+
+        expect(() => matcher.match(obj, pact)).toThrow(
+          expect.objectContaining({
+            name: "C8yPactMatchError",
+            message: expect.stringContaining(
+              'Arrays with key "response > body > numbers" have mismatches at indices "1".',
+            ),
+          }),
+        );
+      });
+
+      it("should match very large arrays", () => {
+        const matcher = new C8yDefaultPactMatcher();
+        const largeArray = Array.from({ length: 1000 }, (_, i) => i);
+        const obj = {
+          response: {
+            body: { data: largeArray },
+          },
+        };
+        const pact = {
+          response: {
+            body: { data: [...largeArray].reverse() },
+          },
+        };
+
+        expect(matcher.match(obj, pact)).toBeTruthy();
+      });
     });
   });
 });

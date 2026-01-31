@@ -67,8 +67,9 @@ export interface C8yPactMatcherOptions {
   matchSchemaAndObject?: boolean;
   loggerProps?: { [key: string]: any };
   schemaMatcher?: C8ySchemaMatcher;
-  parents?: string[];
+  parents?: (string | number)[];
   ignoreCase?: boolean;
+  ignorePrimitiveArrayOrder?: boolean;
 }
 
 /**
@@ -108,6 +109,8 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
 
     const parents = options?.parents ?? [];
     const strictMatching = options?.strictMatching ?? false;
+    const ignorePrimitiveArrayOrder =
+      options?.ignorePrimitiveArrayOrder ?? true;
     const matchSchemaAndObject =
       options?.matchSchemaAndObject ??
       C8yDefaultPactMatcher.matchSchemaAndObject;
@@ -128,11 +131,14 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     };
 
     const throwPactError = (message: string, key?: string) => {
-      const newErr = new C8yPactMatchError(`Pact validation failed! ${message}`, {
-        actual: obj1,
-        expected: obj2,
-        ...(key != null ? { key, keyPath: keyPath(key) } : {}),
-      });
+      const newErr = new C8yPactMatchError(
+        `Pact validation failed! ${message}`,
+        {
+          actual: obj1,
+          expected: obj2,
+          ...(key != null ? { key, keyPath: keyPath(key) } : {}),
+        }
+      );
 
       addLoggerProps(options?.loggerProps, newErr.message, key);
       throw newErr;
@@ -144,31 +150,78 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
       schema?: any,
       value?: any
     ) => {
-      const newErr = new C8yPactMatchError(`Pact validation failed! ${message}`, {
-        actual: value ?? obj1,
-        expected: schema ?? obj2,
-        key,
-        keyPath: keyPath(key),
-        schema: schema,
-      });
+      const newErr = new C8yPactMatchError(
+        `Pact validation failed! ${message}`,
+        {
+          actual: value ?? obj1,
+          expected: schema ?? obj2,
+          key,
+          keyPath: keyPath(key),
+          schema: schema,
+        }
+      );
 
       addLoggerProps(options?.loggerProps, newErr.message, key);
       throw newErr;
     };
 
-    const keyPath = (k?: string) => {
+    const keyPath = (k?: string | (string | number)[]) => {
+      if (_.isArray(k)) {
+        const p = k.map((p) => p.toString());
+        return p.join(" > ");
+      }
       return `${[...parents, ...(k ? [k] : [])].join(" > ")}`;
     };
 
-    const isArrayOfPrimitives = (value: any) => {
+    const isArrayOfPrimitivesOrNull = (value: any) => {
       if (!_.isArray(value)) {
         return false;
       }
       const primitiveTypes = ["undefined", "boolean", "number", "string"];
       return (
-        value.filter((p) => primitiveTypes.includes(typeof p)).length ===
-        value.length
+        value.filter((p) => primitiveTypes.includes(typeof p) || p === null)
+          .length === value.length
       );
+    };
+
+    const matchArraysOfPrimitives = (
+      value: any[],
+      pact: any[],
+      parents: (string | number)[]
+    ) => {
+      if (value.length !== pact.length) {
+        throwPactError(
+          `Arrays with key "${keyPath(parents)}" have different lengths.`,
+          keyPath(parents)
+        );
+      }
+      const diff: number[] = [];
+      const sortedValue = ignorePrimitiveArrayOrder
+        ? [...value].sort()
+        : [...value];
+      const sortedPact = ignorePrimitiveArrayOrder
+        ? [...pact].sort()
+        : [...pact];
+      const maxLength = Math.max(sortedValue.length, sortedPact.length);
+
+      for (let i = 0; i < maxLength; i++) {
+        if (
+          i >= sortedValue.length ||
+          i >= sortedPact.length ||
+          sortedValue[i] !== sortedPact[i]
+        ) {
+          diff.push(i);
+        }
+      }
+
+      if (diff.length === 0) {
+        return;
+      } else {
+        throwPactError(
+          `Arrays with key "${keyPath(parents)}" have mismatches at indices "${diff}".`,
+          keyPath(parents)
+        );
+      }
     };
 
     if (_.isString(obj1) && _.isString(obj2) && !_.isEqual(obj1, obj2)) {
@@ -178,6 +231,20 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     if (!_.isObject(obj1) || !_.isObject(obj2)) {
       throwPactError(
         `Expected 2 objects as input for matching, but got "${typeof obj1}" and ${typeof obj2}".`
+      );
+    }
+
+    if (_.isArray(obj1) && _.isArray(obj2)) {
+      if (obj1.length !== obj2.length) {
+        throwPactError(
+          `Arrays at "${_.isEmpty(parents) ? "root" : keyPath()}" have different lengths.`
+        );
+      }
+    }
+
+    if (_.isArray(obj1) !== _.isArray(obj2)) {
+      throwPactError(
+        `Type mismatch at "${_.isEmpty(parents) ? "root" : keyPath()}". Expected ${_.isArray(obj2) ? "array" : "object"} but got ${_.isArray(obj1) ? "array" : "object"}.`
       );
     }
 
@@ -295,41 +362,47 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
             );
           }
         }
-      } else if (isArrayOfPrimitives(value) && isArrayOfPrimitives(pact)) {
-        const v = [value, pact].sort(
-          (a1: any[], a2: any[]) => a2.length - a1.length
-        );
-        const diff = _.difference(v[0], v[1]);
-        if (_.isEmpty(diff)) {
-          continue;
-        } else {
-          throwPactError(
-            `Array with key "${keyPath(key)}" has unexpected values "${diff}".`,
-            key
-          );
-        }
+      } else if (
+        isArrayOfPrimitivesOrNull(value) &&
+        isArrayOfPrimitivesOrNull(pact)
+      ) {
+        matchArraysOfPrimitives(value, pact, [...parents, key]);
       } else if (_.isArray(value) && _.isArray(pact)) {
         if (value.length !== pact.length) {
           throwPactError(
-            `Array with key "${keyPath(key)}" has different lengths.`,
+            `Arrays with key "${keyPath(key)}" have different lengths.`,
             key
           );
         }
         for (let i = 0; i < value.length; i++) {
-          this.match(
-            value[i],
-            pact[i],
-            _.extend(options, { parents: [...parents, key, `${i}`] })
-          );
+          if (
+            isArrayOfPrimitivesOrNull(value[i]) &&
+            isArrayOfPrimitivesOrNull(pact[i])
+          ) {
+            matchArraysOfPrimitives(value[i], pact[i], [...parents, key, i]);
+          } else {
+            this.match(
+              value[i],
+              pact[i],
+              _.extend(options, { parents: [...parents, key, i] })
+            );
+          }
         }
       } else if (_.isObjectLike(value) && _.isObjectLike(pact)) {
-        // if strictMatching is disabled, value1 and value2 have been swapped
-        // swap back to ensure swapping in next iteration works as expected
-        this.match(
-          strictMatching ? value : pact,
-          strictMatching ? pact : value,
-          _.extend(options, { parents: [...parents, key] })
-        );
+        if (
+          isArrayOfPrimitivesOrNull(value) &&
+          isArrayOfPrimitivesOrNull(pact)
+        ) {
+          matchArraysOfPrimitives(value, pact, [...parents, key]);
+        } else {
+          // if strictMatching is disabled, value1 and value2 have been swapped
+          // swap back to ensure swapping in next iteration works as expected
+          this.match(
+            strictMatching ? value : pact,
+            strictMatching ? pact : value,
+            _.extend(options, { parents: [...parents, key] })
+          );
+        }
       } else {
         if (value != null && pact != null && !_.isEqual(value, pact)) {
           throwPactError(`Values for "${keyPath(key)}" do not match.`, key);
