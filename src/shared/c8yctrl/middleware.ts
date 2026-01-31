@@ -211,7 +211,7 @@ export function createResponseInterceptor(
     if (pact != null) {
       // Calculate request duration
       const startTime = (req as any).c8yctrlStartTime;
-      const duration = startTime ? Date.now() - startTime : 0;
+      const duration = startTime ? Date.now() - startTime : -1;
 
       didSave = await c8yctrl.savePact(
         toCypressResponse(req, res, { resBody, reqBody, duration }),
