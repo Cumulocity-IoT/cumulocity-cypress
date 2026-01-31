@@ -209,8 +209,12 @@ export function createResponseInterceptor(
 
     let didSave = false;
     if (pact != null) {
+      // Calculate request duration
+      const startTime = (req as any).c8yctrlStartTime;
+      const duration = startTime ? Date.now() - startTime : 0;
+
       didSave = await c8yctrl.savePact(
-        toCypressResponse(req, res, { resBody, reqBody }),
+        toCypressResponse(req, res, { resBody, reqBody, duration }),
         pact
       );
     }
@@ -254,6 +258,9 @@ export function createRequestHandler(
     if (c8yctrl.currentPact?.id) {
       (req as any).c8yctrlId = c8yctrl.currentPact?.id;
     }
+
+    // Record request start time for duration tracking
+    (req as any).c8yctrlStartTime = Date.now();
 
     // 2) Then write the body (but only one source)
     const rawBody = (req as any).rawBody;
@@ -326,6 +333,7 @@ export function toCypressResponse(
   options?: {
     reqBody?: string;
     resBody?: string;
+    duration?: number;
   }
 ): Cypress.Response<any> {
   const statusCode = res?.statusCode || 200;
@@ -334,7 +342,7 @@ export function toCypressResponse(
     url: req?.url,
     headers: res?.getHeaders() as { [key: string]: string },
     status: res?.statusCode,
-    duration: 0,
+    duration: options?.duration ?? -1,
     requestHeaders: req?.headers as { [key: string]: string },
     requestBody: options?.reqBody,
     statusText: res?.statusMessage,
