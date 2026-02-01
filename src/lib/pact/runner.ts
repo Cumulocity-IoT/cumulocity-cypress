@@ -316,7 +316,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
             failedRequests.push({
               id,
               duration: response.duration,
-              message: `Duration exceeds configured maximum (${response.duration} ms / ${options.assertions.maxRequestDuration} ms).`,
+              message: `Request duration of ${response.duration}ms exceeds maximum of ${options.assertions.maxRequestDuration}ms.`,
             });
           }
         };
