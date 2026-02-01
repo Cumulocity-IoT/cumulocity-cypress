@@ -19,7 +19,7 @@ import {
   C8yPactHttpControllerOptions,
 } from "../c8yctrl";
 import {
-  C8yPact,
+  C8yPactObject,
   getEnvVar,
   validatePactMode,
 } from "../shared/c8ypact/c8ypact";
@@ -126,7 +126,7 @@ export function configureC8yPlugin(
   // use C8Y_PACT_FOLDER to find out where the pact files have been loaded from
   config.env.C8Y_PACT_FOLDER = adapter.getFolder();
 
-  function savePact(pact: C8yPact): null {
+  function savePact(pact: C8yPactObject): null {
     const { id, info, records } = pact;
     log(`savePact() - ${pact.id} (${records?.length || 0} records)`);
     validateId(id);
@@ -144,7 +144,7 @@ export function configureC8yPlugin(
     return null;
   }
 
-  function getPact(pact: string): C8yPact | null {
+  function getPact(pact: string): C8yPactObject | null {
     log(`getPact() - ${pact}`);
     validateId(pact);
     try {
