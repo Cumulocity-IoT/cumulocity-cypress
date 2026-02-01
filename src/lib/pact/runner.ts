@@ -11,7 +11,7 @@ import {
   getCreatedObjectId,
   isPact,
 } from "../../shared/c8ypact";
-import { getBaseUrlFromEnv } from "../utils";
+import { getBaseUrlFromEnv, throwError } from "../utils";
 import { Client } from "@c8y/client";
 import { buildTestHierarchy, to_array } from "../../shared/util";
 
@@ -48,6 +48,19 @@ export interface C8yPactRunnerOptions {
    * Path prefix filter for the runner.
    */
   paths?: string[];
+  /**
+   * Assertions for the runner. If one of the assertions fail on request execution,
+   * the test will fail.
+   */
+  assertions?: C8yPactRunnerAssertions;
+}
+
+export interface C8yPactRunnerAssertions {
+  /**
+   * Maximum request duration in milliseconds. If one request takes longer than this value,
+   * the test will fail. If not set, no duration check is performed.
+   */
+  maxRequestDuration?: number;
 }
 
 /**
@@ -67,6 +80,7 @@ export interface C8yPactRunner {
    * Runs a single pact object. Needs to run within a test-case.
    *
    * @param pact Pact object to run.
+   * @param options Runner options.
    */
   runTest: (pact: C8yPact, options?: C8yPactRunnerOptions) => void;
 }
@@ -159,7 +173,16 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
     let currentAuth: C8yAuthOptions | undefined = undefined;
 
     const methods = options.methods?.map((m) => m.toLowerCase()) || [];
+    let recordIndex = -1;
+
+    const failedRequests: {
+      id: string;
+      message?: string;
+      duration?: number;
+    }[] = [];
+
     for (const preRecord of pact?.records || []) {
+      recordIndex++;
       if (preRecord == null) continue;
 
       if (
@@ -233,7 +256,8 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           Cypress.c8ypact.getConfigValue("strictMatching") ??
           true;
 
-        const requestId = record.id ?? record.options?.requestId;
+        const requestId =
+          record.id ?? record.options?.requestId ?? `record-${recordIndex}`;
         const failOnStatusCode = (record.response?.status ?? 200) < 400;
         const cOpts: C8yClientOptions = {
           strictMatching,
@@ -245,7 +269,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           ..._.pick(record.options, configKeys),
         };
 
-        const responseFn = (response: Cypress.Response<any>) => {
+        const responseFn = (response: Cypress.Response<any>, id: string) => {
           if (
             url === "/devicecontrol/deviceCredentials" &&
             response.status === 201
@@ -284,6 +308,17 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
               );
             }
           }
+          if (
+            options.assertions?.maxRequestDuration != null &&
+            response.duration != null &&
+            response.duration > options.assertions.maxRequestDuration
+          ) {
+            failedRequests.push({
+              id,
+              duration: response.duration,
+              message: `Request duration of ${response.duration}ms exceeds maximum of ${options.assertions.maxRequestDuration}ms.`,
+            });
+          }
         };
 
         const envAuth = Cypress.env("C8Y_PACT_RUNNER_AUTH");
@@ -306,7 +341,9 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
                 cy.wrap(auth, { log: false }).login();
                 currentAuth = auth;
               }
-              cy.c8yclient(f, updatedOpts).then(responseFn);
+              cy.c8yclient(f, updatedOpts).then((response) =>
+                responseFn(response, requestId)
+              );
             } else {
               if (isBasicAuth || user != null) {
                 if (auth == null) {
@@ -319,15 +356,28 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
                 }
                 cy.wrap(auth, { log: false })
                   .c8yclient(f, updatedOpts)
-                  .then(responseFn);
+                  .then((response) => responseFn(response, requestId));
               } else {
-                cy.c8yclient(f, updatedOpts).then(responseFn);
+                cy.c8yclient(f, updatedOpts).then((response) =>
+                  responseFn(response, requestId)
+                );
               }
             }
           });
         });
       });
     }
+
+    cy.then(() => {
+      if (failedRequests.length > 0) {
+        const messages = failedRequests
+          .map((fr) => {
+            return `- [${fr.id}]: ${fr.message}`;
+          })
+          .join("\n");
+        throwError(`One or more requests failed:\n${messages}`);
+      }
+    });
   }
 
   protected createHeader(pact: C8yPactRecord): any {
