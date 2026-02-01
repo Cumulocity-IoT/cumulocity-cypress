@@ -485,7 +485,7 @@ Consider also using tools for visualizing and editing HAR files to create or upd
 There is some limitations when using HAR files as pacts. HAR files do not support storing of all meta data required for matching and recording, such as authentication information or test case information. When using HAR files as pacts, some features of `cumulocity-cypress` might not be available or require additional configuration.
 
 Limitations when using HAR files as pacts:
-* Limited metadata, inclduding missing authentication and test case information
+* Limited metadata, including missing authentication and test case information
 * Only .har file extension supported 
 * No javascript or yaml support as in `C8yPactDefaultFileAdapter`
 * Only wait time recorded for all request timings
