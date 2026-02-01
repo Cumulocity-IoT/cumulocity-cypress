@@ -6,6 +6,7 @@ import {
   C8yPact,
   C8yPactID,
   C8yPactInfo,
+  C8yPactObject,
   C8yPactRecord,
   C8yPactRequest,
   C8yPactSaveKeys,
@@ -53,7 +54,7 @@ export class C8yDefaultPact implements C8yPact {
   static from(
     ...args:
       | [obj: Cypress.Response<any>, info: C8yPactInfo, client?: C8yClient]
-      | [obj: string | C8yPact]
+      | [obj: string | C8yPact | C8yPactObject]
   ): C8yDefaultPact {
     const obj = args[0];
     if (!obj) {
@@ -77,7 +78,7 @@ export class C8yDefaultPact implements C8yPact {
       removeBaseUrlFromRequestUrl(pactRecord, info.baseUrl);
       return new C8yDefaultPact([pactRecord], info, info.id);
     } else {
-      let pact: C8yPact;
+      let pact: C8yPactObject;
       if (_.isString(obj)) {
         pact = JSON.parse(obj);
       } else if (_.isObjectLike(obj)) {

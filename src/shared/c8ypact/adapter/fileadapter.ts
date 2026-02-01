@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as glob from "glob";
 import debug from "debug";
-import { C8yPact, C8yPactSaveKeys, pactId } from "../c8ypact";
+import { C8yPactObject, C8yPactSaveKeys, pactId } from "../c8ypact";
 import * as yaml from "yaml";
 
 import { safeStringify } from "../../util";
@@ -14,6 +14,8 @@ const _ = lodash1 || lodash2;
 export interface C8yPactAdapterOptions {
   /** Enable loading of JavaScript pact files (.js, .cjs). Defaults to false. */
   enableJavaScript?: boolean;
+  /** Optional id to use for example for logging purposes. */
+  id?: string;
 }
 
 /**
@@ -22,20 +24,23 @@ export interface C8yPactAdapterOptions {
  *
  * The default adapter is C8yPactDefaultFileAdapter which loads and saves pact objects from/to
  * json files using C8yPact objects. Default location is cypress/fixtures/c8ypact folder.
+ *
+ * Alternative adapters:
+ * - C8yPactHARFileAdapter: Reads/writes HAR (HTTP Archive) format for use with external tools
  */
 export interface C8yPactFileAdapter {
   /**
    * Loads all pact objects. The key must be the pact id used in C8yPact.id.
    */
-  loadPacts: () => { [key: string]: C8yPact };
+  loadPacts: () => { [key: string]: C8yPactObject };
   /**
    * Loads a pact object by id from file.
    */
-  loadPact: (id: string) => C8yPact | null;
+  loadPact: (id: string) => C8yPactObject | null;
   /**
    * Saves a pact object.
    */
-  savePact: (pact: C8yPact) => void;
+  savePact: (pact: C8yPactObject) => void;
   /**
    * Deletes a pact object or file.
    */
@@ -55,8 +60,6 @@ export interface C8yPactFileAdapter {
   description(): string;
 }
 
-const log = debug("c8y:fileadapter");
-
 /**
  * Default implementation of C8yPactFileAdapter which loads and saves C8yPact objects
  * Provide location of the files using folder option. Default location is
@@ -70,7 +73,11 @@ const log = debug("c8y:fileadapter");
  */
 export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
   folder: string;
-  private enabledExtensions: string[];
+
+  protected enabledExtensions: string[];
+  protected fileExtension: string = "json";
+  protected readonly id: string;
+  protected readonly log: debug.Debugger;
 
   /**
    * Creates an instance of C8yPactDefaultFileAdapter.
@@ -84,15 +91,12 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
       ? folder
       : this.toAbsolutePath(folder);
 
-    this.enabledExtensions = [".json", ".yaml", ".yml"];
+    this.enabledExtensions = [`.${this.fileExtension}`, ".yaml", ".yml"];
     if (options?.enableJavaScript) {
       this.enabledExtensions.push(".js", ".cjs");
     }
-    log(
-      `Initialized with enabled extensions: ${this.enabledExtensions.join(
-        ", "
-      )}`
-    );
+    this.id = options?.id || "fileadapter";
+    this.log = debug(`c8y:${this.id}`);
   }
 
   description(): string {
@@ -103,28 +107,28 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
     return this.folder;
   }
 
-  loadPacts(): { [key: string]: C8yPact } {
+  loadPacts(): { [key: string]: C8yPactObject } {
     const pactObjects = this.loadPactObjects();
-    log(`loadPacts() - ${pactObjects.length} pact files from ${this.folder}`);
+    this.log(`loadPacts() - ${pactObjects.length} pact files from ${this.folder}`);
 
-    return pactObjects.reduce((acc: { [key: string]: C8yPact }, obj) => {
+    return pactObjects.reduce((acc: { [key: string]: C8yPactObject }, obj) => {
       if (!obj?.info?.id) return acc;
       acc[obj.info.id] = obj;
       return acc;
     }, {});
   }
 
-  loadPact(id: string): C8yPact | null {
-    log(`loadPact() - ${id}`);
+  loadPact(id: string): C8yPactObject | null {
+    this.log(`loadPact() - ${id}`);
 
     const pId = pactId(id);
     if (pId == null) {
-      log(`loadPact() - invalid pact id ${id} -> ${pId}`);
+      this.log(`loadPact() - invalid pact id ${id} -> ${pId}`);
       return null;
     }
 
     if (!this.folder || !fs.existsSync(this.folder)) {
-      log(`loadPact() - folder ${this.folder} does not exist`);
+      this.log(`loadPact() - folder ${this.folder} does not exist`);
       return null;
     }
 
@@ -138,16 +142,16 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
         try {
           loadedPact = this.loadPactFromFile(file);
           if (loadedPact) {
-            log(`loadPact() - ${file} loaded successfully`);
+            this.log(`loadPact() - ${file} loaded successfully`);
             return loadedPact;
           }
         } catch (error) {
-          log(`loadPact() - error loading ${file}: ${error}`);
+          this.log(`loadPact() - error loading ${file}: ${error}`);
         }
       }
     }
 
-    log(`loadPact() - no valid pact file found for id ${pId}`);
+    this.log(`loadPact() - no valid pact file found for id ${pId}`);
     return null;
   }
 
@@ -158,16 +162,16 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
     );
   }
 
-  savePact(pact: C8yPact | Pick<C8yPact, C8yPactSaveKeys>): void {
+  savePact(pact: C8yPactObject | Pick<C8yPactObject, C8yPactSaveKeys>): void {
     this.createFolderRecursive(this.folder);
     const pId = pactId(pact.id);
     if (pId == null) {
-      log(`savePact() - invalid pact id ${pact.id} -> ${pId}`);
+      this.log(`savePact() - invalid pact id ${pact.id} -> ${pId}`);
       return;
     }
 
-    const file = path.join(this.folder, `${pId}.json`);
-    log(`savePact() - write ${file} (${pact.records?.length || 0} records)`);
+    const file = path.join(this.folder, `${pId}.${this.fileExtension}`);
+    this.log(`savePact() - write ${file} (${pact.records?.length || 0} records)`);
 
     try {
       fs.writeFileSync(
@@ -190,22 +194,22 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
   deletePact(id: string): void {
     const pId = pactId(id);
     if (pId == null) {
-      log(`deletePact() - invalid pact id ${id} -> ${pId}`);
+      this.log(`deletePact() - invalid pact id ${id} -> ${pId}`);
       return;
     }
-    const filePath = path.join(this.folder, `${pId}.json`);
+    const filePath = path.join(this.folder, `${pId}.${this.fileExtension}`);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-      log(`deletePact() - deleted ${filePath}`);
+      this.log(`deletePact() - deleted ${filePath}`);
     } else {
-      log(`deletePact() - ${filePath} does not exist`);
+      this.log(`deletePact() - ${filePath} does not exist`);
     }
   }
 
   readPactFiles(): string[] {
-    log(`readPactFiles() - ${this.folder}`);
+    this.log(`readPactFiles() - ${this.folder}`);
     if (!this.folder || !fs.existsSync(this.folder)) {
-      log(`readPactFiles() - ${this.folder} does not exist`);
+      this.log(`readPactFiles() - ${this.folder} does not exist`);
       return [];
     }
     const pacts = this.loadPactObjects();
@@ -218,14 +222,16 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
    * @deprecated Use readPactFiles() instead.
    */
   readJsonFiles(): string[] {
-    log(`readJsonFiles() - ${this.folder}`);
+    this.log(`readJsonFiles() - ${this.folder}`);
     if (!this.folder || !fs.existsSync(this.folder)) {
-      log(`readJsonFiles() - ${this.folder} does not exist`);
+      this.log(`readJsonFiles() - ${this.folder} does not exist`);
       return [];
     }
-    const jsonFiles = glob.sync(path.join(this.folder, "*.json"));
-    log(
-      `readJsonFiles() - reading ${jsonFiles.length} json files from ${this.folder}`
+    const jsonFiles = glob.sync(
+      path.join(this.folder, `*.${this.fileExtension}`)
+    );
+    this.log(
+      `readJsonFiles() - reading ${jsonFiles.length} ${this.fileExtension} files from ${this.folder}`
     );
     const pacts = jsonFiles.map((file) => {
       return fs.readFileSync(file, "utf-8");
@@ -235,12 +241,14 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
 
   protected deleteJsonFiles(): void {
     if (!this.folder || !fs.existsSync(this.folder)) {
-      log(`deleteJsonFiles() - ${this.folder} does not exist`);
+      this.log(`deleteJsonFiles() - ${this.folder} does not exist`);
       return;
     }
-    const jsonFiles = glob.sync(path.join(this.folder, "*.json"));
-    log(
-      `deleteJsonFiles() - deleting ${jsonFiles.length} json files from ${this.folder}`
+    const jsonFiles = glob.sync(
+      path.join(this.folder, `*.${this.fileExtension}`)
+    );
+    this.log(
+      `deleteJsonFiles() - deleting ${jsonFiles.length} ${this.fileExtension} files from ${this.folder}`
     );
     jsonFiles.forEach((file) => {
       fs.unlinkSync(file);
@@ -248,9 +256,9 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
   }
 
   protected loadPactObjects() {
-    log(`loadPactObjects() - ${this.folder}`);
+    this.log(`loadPactObjects() - ${this.folder}`);
     if (!this.folder || !fs.existsSync(this.folder)) {
-      log(`loadPactObjects() - ${this.folder} does not exist`);
+      this.log(`loadPactObjects() - ${this.folder} does not exist`);
       return [];
     }
 
@@ -261,7 +269,7 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
     );
     const allFiles = glob.sync(combinedPattern);
 
-    log(
+    this.log(
       `loadPactObjects() - reading ${allFiles.length} files from ${this.folder}`
     );
 
@@ -271,19 +279,19 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
         try {
           return this.loadPactFromFile(file);
         } catch (error) {
-          log(`loadPactObjects() - error loading ${file}: ${error}`);
+          this.log(`loadPactObjects() - error loading ${file}: ${error}`);
           return null;
         }
       })
       .filter(Boolean);
 
-    log(`loadPactObjects() - loaded ${pactObjects.length} valid pact objects`);
+    this.log(`loadPactObjects() - loaded ${pactObjects.length} valid pact objects`);
     return pactObjects;
   }
 
-  protected loadPactFromFile(filePath: string): C8yPact | null {
+  protected loadPactFromFile(filePath: string): C8yPactObject | null {
     if (!fs.existsSync(filePath)) {
-      log(`loadPactFromFile() - file does not exist: ${filePath}`);
+      this.log(`loadPactFromFile() - file does not exist: ${filePath}`);
       return null;
     }
 
@@ -291,7 +299,7 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
 
     // Check if the extension is enabled
     if (!this.enabledExtensions.includes(extension)) {
-      log(
+      this.log(
         `loadPactFromFile() - file extension ${extension} is not supported or enabled for loading: ${filePath}`
       );
       return null;
@@ -301,12 +309,12 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
 
     try {
       // Handle different file formats
-      if (extension === ".json") {
+      if (extension === `.${this.fileExtension}`) {
         // Load JSON file
         return JSON.parse(content);
       } else if (extension === ".yaml" || extension === ".yml") {
         // Load YAML file
-        return yaml.parse(content) as C8yPact;
+        return yaml.parse(content) as C8yPactObject;
       } else if (extension === ".js" || extension === ".cjs") {
         // CommonJS modules (.js, .cjs) can use require
         const absolutePath = path.isAbsolute(filePath)
@@ -322,31 +330,31 @@ export class C8yPactDefaultFileAdapter implements C8yPactFileAdapter {
           const pactModule = require(absolutePath);
           return pactModule.default || pactModule;
         } catch (error) {
-          log(
+          this.log(
             `loadPactFromFile() - error loading ${extension} file ${absolutePath}: ${error}`
           );
         }
       }
     } catch (error) {
-      log(`loadPactFromFile() - error parsing file ${filePath}: ${error}`);
+      this.log(`loadPactFromFile() - error parsing file ${filePath}: ${error}`);
     }
     return null;
   }
 
   protected createFolderRecursive(f: string) {
-    log(`createFolderRecursive() - ${f}`);
+    this.log(`createFolderRecursive() - ${f}`);
     if (!f || !_.isString(f)) return undefined;
 
     const absolutePath = !path.isAbsolute(f) ? this.toAbsolutePath(f) : f;
     if (f !== absolutePath) {
-      log(`createFolderRecursive() - resolved ${f} to ${absolutePath}`);
+      this.log(`createFolderRecursive() - resolved ${f} to ${absolutePath}`);
     }
 
     if (fs.existsSync(f)) return undefined;
 
     const result = fs.mkdirSync(absolutePath, { recursive: true });
     if (result) {
-      log(`createFolderRecursive() - created ${absolutePath}`);
+      this.log(`createFolderRecursive() - created ${absolutePath}`);
     }
     return result;
   }
