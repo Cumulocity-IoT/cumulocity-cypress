@@ -32,6 +32,8 @@ Contents of this document:
 - [Recording of requests and responses](#recording-of-requests-and-responses)
   - [Setup](#setup)
   - [File format](#file-format)
+    - [C8yPact file format](#c8ypact-file-format)
+    - [HAR file format](#har-file-format)
   - [Configuration](#configuration)
   - [Identifier](#identifier)
   - [Preprocessing](#preprocessing)
@@ -442,7 +444,7 @@ For storing and loading from or to custom locations and formats, implement a cus
 
 ```typescript
 const { defineConfig } = require("cypress");
-const { configureC8yPlugin } = require("cumulocity-cypress/plugin/");
+const { configureC8yPlugin } = require("cumulocity-cypress/plugin");
 
 module.exports = defineConfig({
   e2e: {
@@ -458,6 +460,36 @@ module.exports = defineConfig({
 });
 ```
 
+#### C8yPact file format
+
+The default file format for recorded pacts is JSON using the `C8yPact` object structure. To store recorded pacts in files, use `C8yPactDefaultFileAdapter` as in the following example.
+
+```typescript
+import { C8yPactDefaultFileAdapter } from "cumulocity-cypress/plugin";
+const adapter = new C8yPactDefaultFileAdapter("/path/to/pact/files");
+```
+
+#### HAR file format
+
+To store recorded pacts in HAR format, use `C8yPactHARFileAdapter` as in the following example.
+
+```typescript
+import { C8yPactHARFileAdapter } from "cumulocity-cypress/plugin";
+const adapter = new C8yPactHARFileAdapter("/path/to/har/files");
+```
+
+HAR files can be created and imported from any source supporting HAR format. This allows for example to import existing HAR files as pacts for matching and mocking in Cypress tests. HAR files can also be created by browsers and other tools, making it easy to create pacts from manual testing or other automated tests.
+
+Consider also using tools for visualizing and editing HAR files to create or update pacts, such as [HAR Analyzer](https://marketplace.visualstudio.com/items?itemName=MattFoulks.har-analyzer) for Visual Studio Code or [HTTP Archive (HAR) Analyzer](https://toolbox.googleapps.com/apps/har_analyzer/) from the Google Admin Toolbox.
+
+There is some limitations when using HAR files as pacts. HAR files do not support storing of all meta data required for matching and recording, such as authentication information or test case information. When using HAR files as pacts, some features of `cumulocity-cypress` might not be available or require additional configuration.
+
+Limitations when using HAR files as pacts:
+* Limited metadata, inclduding missing authentication and test case information
+* Only .har file extension supported 
+* No javascript or yaml support as in `C8yPactDefaultFileAdapter`
+* Only wait time recorded for all request timings
+ 
 ### Configuration
 
 Configuration of recording and matching is available via `Cypress.c8ypact`. It allows for example registration of custom object or schema matchers and provides configuration interface using `Cypress.c8ypact.config`. 

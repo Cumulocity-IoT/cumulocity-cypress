@@ -10,7 +10,8 @@ import fetch from "cross-fetch";
 import {
   C8yPactFileAdapter,
   C8yPactDefaultFileAdapter,
-} from "../shared/c8ypact/adapter/fileadapter";
+  C8yPactHARFileAdapter,
+} from "../shared/c8ypact/adapter";
 import { get_i, safeStringify } from "../shared/util";
 
 import {
@@ -34,13 +35,10 @@ import {
 } from "../lib/screenshots/types";
 import { loadConfigFile } from "../c8yscrn/helper";
 import { C8yBaseUrl } from "../shared/types";
-import {
-  logJSONParserErrorGroup,
-  resolveRefs,
-} from "./c8yresolver";
+import { logJSONParserErrorGroup, resolveRefs } from "./c8yresolver";
 import { JSONParserErrorGroup } from "@apidevtools/json-schema-ref-parser";
 
-export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
+export { C8yPactFileAdapter, C8yPactDefaultFileAdapter, C8yPactHARFileAdapter };
 export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
 
 /**
@@ -815,10 +813,10 @@ export function configureEnvVariables(
 
   const baseUrl = normalizeBaseUrl(
     config.env.C8Y_BASEURL ||
-    config.env.baseUrl ||
-    config.env.C8Y_HOST ||
-    jwtBaseUrl ||
-    null
+      config.env.baseUrl ||
+      config.env.C8Y_HOST ||
+      jwtBaseUrl ||
+      null
   );
 
   if (baseUrl != null) {
