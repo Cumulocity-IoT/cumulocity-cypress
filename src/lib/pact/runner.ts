@@ -52,7 +52,7 @@ export interface C8yPactRunnerOptions {
    * Assertions for the runner. If one of the assertions fail on request execution,
    * the test will fail.
    */
-  assertions?: C8yPactRunnerAssertions
+  assertions?: C8yPactRunnerAssertions;
 }
 
 export interface C8yPactRunnerAssertions {
