@@ -26,24 +26,6 @@ import { C8yBaseUrl } from "./types";
 import { get_i } from "./util";
 import { toUrlString } from "./url";
 
-declare global {
-  interface Response {
-    data?: string | any;
-    method?: string;
-    responseObj?: Partial<Cypress.Response<any>>;
-    requestBody?: string | any;
-  }
-  namespace Cypress {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    interface Response<T> {
-      url?: string;
-      requestBody?: string | any;
-      method?: string;
-      $body?: any;
-    }
-  }
-}
-
 /**
  * C8yClientError is an error class used to throw errors related to the c8yclient command.
  * It extends the built-in Error class and adds an optional originalError property.
