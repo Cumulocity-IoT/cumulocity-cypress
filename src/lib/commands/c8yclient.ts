@@ -1,5 +1,7 @@
 const { _ } = Cypress;
 
+import "./../../shared/global";
+
 import {
   getBaseUrlFromEnv,
   getCookieAuthFromEnv,
@@ -156,14 +158,6 @@ declare global {
         serviceFn: C8yClientServiceListFn<R, T>,
         options?: C8yClientOptions
       ): Chainable<Response<C8yCollectionResponse<T>>>;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    interface Response<T> {
-      url?: string;
-      requestBody?: any;
-      method?: string;
-      $body?: any;
     }
   }
 
