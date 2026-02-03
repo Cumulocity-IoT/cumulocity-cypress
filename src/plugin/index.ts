@@ -39,6 +39,7 @@ import {
   resolveRefs,
 } from "./c8yresolver";
 import { JSONParserErrorGroup } from "@apidevtools/json-schema-ref-parser";
+import '../shared/global';
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter };
 export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
