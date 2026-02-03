@@ -32,7 +32,6 @@ import { toUrlString } from "./url";
  */
 export class C8yClientError extends Error {
   originalError?: Error;
-  
   constructor(message: string, originalError?: Error) {
     super(message);
     this.name = "C8yClientError";
