@@ -37,6 +37,7 @@ import { loadConfigFile } from "../c8yscrn/helper";
 import { C8yBaseUrl } from "../shared/types";
 import { logJSONParserErrorGroup, resolveRefs } from "./c8yresolver";
 import { JSONParserErrorGroup } from "@apidevtools/json-schema-ref-parser";
+import '../shared/global';
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter, C8yPactHARFileAdapter };
 export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
