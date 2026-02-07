@@ -134,7 +134,7 @@
     "odiff-bin": "^4.1.1",
     "raw-body": "^3.0.0",
     "semver": "^7.6.3",
-    "set-cookie-parser": "^2.6.0",
+    "set-cookie-parser": "^3.0.1",
     "swagger-ui-express": "^5.0.1",
     "tslib": "^2.6.2",
     "typescript": "^5.7.0",
