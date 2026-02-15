@@ -169,6 +169,7 @@
     "@types/ws": "^8.5.13",
     "copyfiles": "^2.4.1",
     "cross-env": "^10.0.0",
+    "cypress": "^14.0.0",
     "eslint": "^9.19.0",
     "eslint-plugin-cypress": "^5.1.0",
     "eslint-plugin-import": "^2.31.0",
