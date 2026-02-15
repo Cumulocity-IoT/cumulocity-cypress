@@ -297,14 +297,33 @@ it("another test requiring authentication", { auth: "myadmin" }, () => {
 
 #### Authentication via environment variables
 
-To provide authentication options into all tests, use `C8Y_USERNAME` and `C8Y_PASSWORD` env variables. Set env variables in your tests or use one of the ways descibed in [Cypress documentation](https://docs.cypress.io/guides/guides/environment-variables#Setting).
+To provide authentication options into all tests, use `C8Y_TOKEN` (for Bearer authentication) or `C8Y_USERNAME` and `C8Y_PASSWORD` env variables (for Basic authentication). Set env variables in your tests or use one of the ways descibed in [Cypress documentation](https://docs.cypress.io/guides/guides/environment-variables#Setting).
+
+When both token and username/password are provided, the token will be preferred.
 
 Example for setting environment variables in your tests:
 
 ```typescript
+// Bearer authentication (preferred)
+Cypress.env("C8Y_TOKEN", "your-jwt-token");
+
+// Or Basic authentication
 Cypress.env("C8Y_USERNAME", "admin");
 Cypress.env("C8Y_PASSWORD", "password");
 ```
+
+You can also use user aliases to configure authentication for specific users. User aliases support both token-based and username/password authentication:
+
+```typescript
+// Token-based authentication for admin user
+Cypress.env("admin_token", "admin-jwt-token");
+
+// Or username/password authentication for admin user
+Cypress.env("admin_username", "admin");
+Cypress.env("admin_password", "password");
+```
+
+When using user aliases, token authentication takes precedence over username/password if both are configured.
 
 #### Passing authentication to cy.request
 

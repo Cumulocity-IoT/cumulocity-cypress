@@ -23,12 +23,12 @@ declare global {
     interface Chainable extends ChainableWithState {
       /**
        * Get `C8yAuthOptions` from arguments or environment variables. If no arguments are
-       * provided, getAuth() will try to get the authentication from `C8Y_USERNAME` and
-       * `C8Y_PASSWORD` environment variables.
+       * provided, getAuth() will try to get the authentication from `C8Y_TOKEN` or
+       * `C8Y_USERNAME` and `C8Y_PASSWORD` environment variables.
        *
        * By providing a user alias, getAuth() will look for environment variables with the
-       * following pattern: `${userAlias}_username` and `${userAlias}_password`. If there is
-       * no such environment variable, an error will be thrown.
+       * following pattern: `${userAlias}_token` (preferred) or `${userAlias}_username` and
+       * `${userAlias}_password`. If there is no such environment variable, an error will be thrown.
        *
        * @example
        * cy.getAuth("admin", "password").login();
@@ -89,6 +89,7 @@ const getAuthEnvVariables = () => {
     if (
       key.endsWith("_username") ||
       key.endsWith("_password") ||
+      key.endsWith("_token") ||
       key === "C8Y_USERNAME" ||
       key === "C8Y_USER" ||
       key === "C8Y_PASSWORD" ||
@@ -142,7 +143,7 @@ function authFn(fnName: string, args: any[]) {
     logger.end();
     throw new Error(
       `No authentication found for userAlias ${userAlias}. Configure authentication ` +
-        `using ${userAlias}_username and ${userAlias}_password environment variables.`
+        `using ${userAlias}_token or ${userAlias}_username and ${userAlias}_password environment variables.`
     );
   }
 

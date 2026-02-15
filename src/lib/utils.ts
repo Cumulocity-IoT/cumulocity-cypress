@@ -177,8 +177,15 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
   ];
 
   // getAuthOptions("admin")
-  // return envs admin_username | admin, admin_password
+  // return envs admin_token (preferred) or admin_username | admin, admin_password
   if (!_.isEmpty(args) && _.isString(args[0])) {
+    const token = Cypress.env(`${args[0]}_token`);
+    if (token) {
+      return authWithTenant(Cypress.env(), {
+        token,
+        userAlias: args[0],
+      });
+    }
     const user = Cypress.env(`${args[0]}_username`) || args[0];
     const password = Cypress.env(`${args[0]}_password`);
     if (user && password) {
@@ -201,6 +208,13 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
 
     // getAuthOptions({userAlias: "abc"}, ...)
     if (args[0].userAlias) {
+      const token = Cypress.env(`${args[0].userAlias}_token`);
+      if (token) {
+        return authWithTenant(Cypress.env(), {
+          ..._.pick(args[0], commonFields),
+          token,
+        });
+      }
       const user =
         Cypress.env(`${args[0].userAlias}_username`) || args[0].userAlias;
       const password = Cypress.env(`${args[0].userAlias}_password`);
@@ -276,12 +290,12 @@ export function getC8yClientAuthentication(
   }
 
   if (!result) {
-    const xsrfToken = getXsrfToken();
     const jwtToken = authOptions?.token;
-    if (xsrfToken && !_.isEmpty(xsrfToken.trim())) {
-      result = new CookieAuth();
-    } else if (jwtToken && !_.isEmpty(jwtToken.trim())) {
+    const xsrfToken = getXsrfToken();
+    if (jwtToken && !_.isEmpty(jwtToken.trim())) {
       result = new BearerAuth(jwtToken);
+    } else if (xsrfToken && !_.isEmpty(xsrfToken.trim())) {
+      result = new CookieAuth();
     } else {
       result = new BasicAuth(authOptions);
     }

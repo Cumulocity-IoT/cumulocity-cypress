@@ -191,7 +191,7 @@ describe("auth", () => {
     it("should throw for userAlias without auth options", (done) => {
       Cypress.once("fail", (err) => {
         expect(err.message).to.eq(
-          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+          "No authentication found for userAlias xyz. Configure authentication using xyz_token or xyz_username and xyz_password environment variables."
         );
         done();
       });
@@ -206,7 +206,7 @@ describe("auth", () => {
 
       Cypress.once("fail", (err) => {
         expect(err.message).to.eq(
-          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+          "No authentication found for userAlias xyz. Configure authentication using xyz_token or xyz_username and xyz_password environment variables."
         );
         done();
       });
@@ -261,6 +261,43 @@ describe("auth", () => {
         expect(result?.token).to.eq(testToken);
         expect(result?.type).to.eq("BearerAuth");
       });
+    });
+
+    it("should prefer token from user alias over username/password", () => {
+      Cypress.env("admin_token", testToken);
+      Cypress.env("admin_username", "admin");
+      Cypress.env("admin_password", "password");
+      cy.getAuth("admin").then((result) => {
+        expect(result?.token).to.eq(testToken);
+        expect(result?.user).to.be.undefined;
+        expect(result?.password).to.be.undefined;
+        expect(result?.tenant).to.eq("t1234567");
+        expect(result?.userAlias).to.eq("admin");
+      });
+    });
+
+    it("should use token from user alias", () => {
+      Cypress.env("tokenuser_token", testToken);
+      cy.getAuth("tokenuser").then((result) => {
+        expect(result?.token).to.eq(testToken);
+        expect(result?.user).to.be.undefined;
+        expect(result?.password).to.be.undefined;
+        expect(result?.tenant).to.eq("t1234567");
+        expect(result?.userAlias).to.eq("tokenuser");
+      });
+    });
+
+    it("should use token from userAlias in options", () => {
+      Cypress.env("mytoken_token", testToken);
+      cy.wrap({ userAlias: "mytoken" })
+        .getAuth()
+        .then((result) => {
+          expect(result?.token).to.eq(testToken);
+          expect(result?.user).to.be.undefined;
+          expect(result?.password).to.be.undefined;
+          expect(result?.tenant).to.eq("t1234567");
+          expect(result?.userAlias).to.eq("mytoken");
+        });
     });
   });
 
@@ -359,7 +396,7 @@ describe("auth", () => {
     it("should not throw if no auth options found", (done) => {
       Cypress.once("fail", (err) => {
         expect(err.message).to.eq(
-          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+          "No authentication found for userAlias xyz. Configure authentication using xyz_token or xyz_username and xyz_password environment variables."
         );
         done();
       });
@@ -375,7 +412,7 @@ describe("auth", () => {
 
       Cypress.once("fail", (err) => {
         expect(err.message).to.eq(
-          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+          "No authentication found for userAlias xyz. Configure authentication using xyz_token or xyz_username and xyz_password environment variables."
         );
         done();
       });
