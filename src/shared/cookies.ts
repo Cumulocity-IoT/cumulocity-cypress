@@ -1,4 +1,3 @@
-
 import * as setCookieParser from "set-cookie-parser";
 import { get_i } from "./util";
 import _ from "lodash";
@@ -57,6 +56,18 @@ export function getAuthCookies(response: Response | Cypress.Response<any>):
     if (_.isEmpty(xsrfToken)) {
       xsrfToken = undefined;
     }
+  }
+
+  // remove quotes if xsrfToken value is wrapped in quotes, which can happen when the cookie value contains special characters like comma
+  if (xsrfToken && xsrfToken.startsWith('"') && xsrfToken.endsWith('"')) {
+    xsrfToken = xsrfToken.substring(1, xsrfToken.length - 1);
+  }
+  if (
+    authorization &&
+    authorization.startsWith('"') &&
+    authorization.endsWith('"')
+  ) {
+    authorization = authorization.substring(1, authorization.length - 1);
   }
 
   return { authorization, xsrfToken };
