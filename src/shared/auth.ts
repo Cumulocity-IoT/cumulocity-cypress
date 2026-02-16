@@ -21,8 +21,8 @@ export interface C8yAuthOptions extends ICredentials {
 }
 
 export type C8yPactAuthObject =
-  | { user: string; userAlias?: string; type?: string }
-  | { userAlias: string; user?: string; type?: string };
+  | { user: string; userAlias?: string; type?: string; token?: string }
+  | { userAlias: string; user?: string; type?: string; token?: string };
 
 type C8yPactAuthObjectType = keyof C8yPactAuthObject;
 export const C8yPactAuthObjectKeys: C8yPactAuthObjectType[] = [
