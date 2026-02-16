@@ -188,7 +188,7 @@ export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
     return undefined;
   }
 
-  return {...tokenAuth ?? {}, ...basicAuth ?? {}};
+  return { ...(basicAuth ?? {}), ...(tokenAuth ?? {}) };
 }
 
 export function authWithTenant(env: any, options: C8yAuthOptions) {
