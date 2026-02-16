@@ -325,7 +325,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
 
         const envAuth = getAuthType(Cypress.env("C8Y_PACT_RUNNER_AUTH"));
         const pactAuth = record.authType();
-        const optionsAuth = options.authType;
+        const optionsAuth = getAuthType(options.authType);
         // Priority for auth type: options, env, pact record
         const authType = optionsAuth ?? envAuth ?? pactAuth;
         const isCookieAuth = authType === "CookieAuth";
