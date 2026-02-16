@@ -4,13 +4,7 @@ import {
   C8yDefaultPactRecord,
   getOptionsFromEnvironment,
 } from "cumulocity-cypress/c8ypact";
-import {
-  basicAuthorization,
-  stubEnv,
-  url as _url,
-} from "cypress/support/testutils";
-
-const { _ } = Cypress;
+import { basicAuthorization, stubEnv } from "cypress/support/testutils";
 
 describe("pact runner", () => {
   let runner: C8yDefaultPactRunner;
