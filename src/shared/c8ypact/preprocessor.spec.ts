@@ -262,13 +262,11 @@ describe("C8yDefaultPactPreprocessor", () => {
         C8yDefaultPactPreprocessor.defaultObfuscationPattern
       );
     });
-
+  });
+  describe("authorization header obfuscation", () => {
     it("should preserve Basic and Bearer prefix if present", () => {
       const options: C8yPactPreprocessorOptions = {
-        obfuscate: [
-          "headers.authorization",
-          "requestHeaders.authorization",
-        ],
+        obfuscate: ["headers.authorization", "requestHeaders.authorization"],
       };
       const preprocessor = new C8yDefaultPactPreprocessor(options);
       response!.headers.authorization = "Basic dGVzdDp0ZXN0";
@@ -280,6 +278,85 @@ describe("C8yDefaultPactPreprocessor", () => {
       );
       expect(response!.requestHeaders.authorization).toBe(
         "Bearer " + C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+    });
+
+    it("should handle case-insensitive Bearer and Basic prefixes", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization", "requestHeaders.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "bearer token123";
+      response!.requestHeaders.authorization = "basic token456";
+      preprocessor.apply(response!);
+
+      expect(response!.headers.authorization).toBe(
+        "bearer " + C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+      expect(response!.requestHeaders.authorization).toBe(
+        "basic " + C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+    });
+
+    it("should obfuscate malformed Bearer/Basic without token completely", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization", "requestHeaders.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "Bearer";
+      response!.requestHeaders.authorization = "Basic";
+      preprocessor.apply(response!);
+
+      // Malformed headers without tokens should be obfuscated completely
+      expect(response!.headers.authorization).toBe(
+        C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+      expect(response!.requestHeaders.authorization).toBe(
+        C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+    });
+
+    it("should obfuscate Bearer/Basic with trailing space but no token completely", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization", "requestHeaders.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "Bearer ";
+      response!.requestHeaders.authorization = "Basic ";
+      preprocessor.apply(response!);
+
+      // Headers with only space but no actual token should be obfuscated completely
+      expect(response!.headers.authorization).toBe(
+        C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+      expect(response!.requestHeaders.authorization).toBe(
+        C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+    });
+
+    it("should preserve mixed case Bearer/Basic with tokens", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "bEaReR token123";
+      preprocessor.apply(response!);
+
+      expect(response!.headers.authorization).toBe(
+        "bEaReR " + C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+    });
+
+    it("should obfuscate non-Bearer/Basic authorization headers completely", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "CustomAuth token123";
+      preprocessor.apply(response!);
+
+      expect(response!.headers.authorization).toBe(
+        C8yDefaultPactPreprocessor.defaultObfuscationPattern
       );
     });
   });
