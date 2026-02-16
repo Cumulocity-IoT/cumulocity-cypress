@@ -14,6 +14,8 @@ import {
 import { getBaseUrlFromEnv, throwError } from "../utils";
 import { Client } from "@c8y/client";
 import { buildTestHierarchy, to_array } from "../../shared/util";
+import { getAuthType } from "../../shared/auth";
+import { C8yAuthOptionType } from "cumulocity-cypress/c8ypact";
 
 const { _ } = Cypress;
 
@@ -41,9 +43,9 @@ export interface C8yPactRunnerOptions {
    */
   methods?: string[];
   /**
-   * Authentication type for the runner. Supported values are `CookieAuth` and `BasicAuth`.
+   * Authentication type for the runner. Supported values are `CookieAuth`, `BasicAuth`, and `BearerAuth`.
    */
-  authType?: "CookieAuth" | "BasicAuth";
+  authType?: C8yAuthOptionType;
   /**
    * Path prefix filter for the runner.
    */
@@ -87,11 +89,11 @@ export interface C8yPactRunner {
 
 /**
  * Default implementation of C8yPactRunner. Runtime for C8yPact objects that will
- * create the tests dynamically and rerun recorded requests. Supports Basic and Cookie based
+ * create the tests dynamically and rerun recorded requests. Supports Basic, Cookie, and Bearer based
  * authentication, id mapping, consumer and producer filtering and URL replacement.
  *
  * Use `C8Y_PACT_RUNNER_AUTH` to set the authentication type for the runner and overwrite
- * the authentication type detected in the pact records. Supported values are `CookieAuth` and `BasicAuth`.
+ * the authentication type detected in the pact records. Supported values are `CookieAuth`, `BasicAuth`, and `BearerAuth`.
  */
 export class C8yDefaultPactRunner implements C8yPactRunner {
   constructor() {}
@@ -321,17 +323,28 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           }
         };
 
-        const envAuth = Cypress.env("C8Y_PACT_RUNNER_AUTH");
-        const pactAuth = options.authType ?? record.authType();
+        const envAuth = getAuthType(Cypress.env("C8Y_PACT_RUNNER_AUTH"));
+        const pactAuth = record.authType();
+        const optionsAuth = options.authType;
+        // Priority for auth type: options, env, pact record
+        const authType = optionsAuth ?? envAuth ?? pactAuth;
+        const isCookieAuth = authType === "CookieAuth";
+        const isBasicAuth = authType === "BasicAuth";
+        const isBearerAuth = authType === "BearerAuth";
 
-        const isCookieAuth =
-          (envAuth ?? pactAuth) === "CookieAuth" && envAuth !== "BasicAuth";
-
-        const isBasicAuth = (envAuth ?? pactAuth) === "BasicAuth";
         const f = (c: Client) => c.core.fetch(url, clientFetchOptions);
-
         users.forEach((user) => {
           (user ? cy.getAuth(user) : cy.getAuth()).then((auth) => {
+            if (isBasicAuth && (auth?.user == null || auth.password == null)) {
+              throw new Error(
+                `Basic auth configured for request, but username and password not found for ${auth?.userAlias ?? user}.`
+              );
+            } else if (isBearerAuth && auth?.token == null) {
+              throw new Error(
+                `Bearer auth configured for request, but token not found for ${auth?.userAlias ?? user}.`
+              );
+            }
+
             const updatedOpts = _.cloneDeep(cOpts);
             if (requestId != null && users.length > 1) {
               updatedOpts.requestId = `${requestId}/${user}`;
@@ -345,7 +358,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
                 responseFn(response, requestId)
               );
             } else {
-              if (isBasicAuth || user != null) {
+              if (isBasicAuth || isBearerAuth || user != null) {
                 if (auth == null) {
                   // should not get here as cy.getAuth(user) should fail if
                   // no auth is found for the user. just making sure we get the
@@ -511,7 +524,7 @@ export function getOptionsFromEnvironment(): C8yPactRunnerOptions {
   ) as C8yPactRunnerOptions["authType"];
   if (
     authType &&
-    !["basicauth", "cookieauth"].includes(authType.toLowerCase())
+    !["basicauth", "cookieauth", "bearerauth"].includes(authType.toLowerCase())
   ) {
     authType = undefined;
   }

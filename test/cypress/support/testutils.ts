@@ -32,6 +32,7 @@ export function url(path: string, baseUrl = getBaseUrlFromEnv()): string {
 let cypressBackendStub: sinon.SinonStub<any[], any> | undefined = undefined;
 let cypressAutomationStub: sinon.SinonStub<any[], any> | undefined = undefined;
 let fetchStub: sinon.SinonStub<any[], any> | undefined = undefined;
+let envStub: sinon.SinonStub<any[], any> | undefined = undefined;
 
 /**
  * Init stubbing requests. Must be called before `stubResponse()`, for example
@@ -54,6 +55,9 @@ export function initLoginRequestStub(
   authorization?: string,
   tenant?: C8yTenant
 ): void {
+  if (cypressBackendStub == null) {
+    cypressBackendStub = cy.stub(Cypress, "backend").callThrough();
+  }
   Cypress.env("C8Y_TENANT", tenant);
   const headers = new Headers();
   if (authorization) {
@@ -155,11 +159,13 @@ export function stubResponse<T>(
     .onCall(callIndex)
     .callsFake(success);
 
-  const s = response.status;
-  if (s != null && s >= 200 && s < 400) {
-    window.fetchStub.onCall(callIndex).callsFake(success);
-  } else {
-    window.fetchStub.onCall(callIndex).callsFake(failure);
+  if (fetchStub != null) {
+    const s = response.status;
+    if (s != null && s >= 200 && s < 400) {
+      window.fetchStub.onCall(callIndex).callsFake(success);
+    } else {
+      window.fetchStub.onCall(callIndex).callsFake(failure);
+    }
   }
 
   stubCookies(response);
@@ -301,8 +307,13 @@ export function expectC8yClientRequest(
   return expectCallsWithArgs(calls, all);
 }
 
-export function basicAuthorization(user: string, password: string): string {
-  return `Basic ${encodeBase64(`${user}:${password}`)}`;
+export function basicAuthorization(
+  user: string,
+  password: string,
+  tenant?: string
+): string {
+  const userWithTenant = tenant ? `${tenant}/${user}` : user;
+  return `Basic ${encodeBase64(`${userWithTenant}:${password}`)}`;
 }
 
 function expectCallsWithArgs(
@@ -468,7 +479,12 @@ export function getMessageForLogSpy(spy: sinon.SinonSpy, name: string): any {
  */
 export function stubEnv(env: any, log: boolean = false): void {
   const cypressEnv = Cypress.env();
-  cy.stub(Cypress, "env")
+  if (envStub != null) {
+    envStub.restore();
+    envStub = undefined;
+  }
+  envStub = cy
+    .stub(Cypress, "env")
     .log(log)
     .callsFake((key: string, value: any) => {
       if (key != null && value == null) {

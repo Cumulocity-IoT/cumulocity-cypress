@@ -178,10 +178,13 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
 
   // getAuthOptions("admin")
   // return envs admin_token (preferred) or admin_username | admin, admin_password
+  let tokenAuth: C8yAuthOptions | undefined = undefined;
+  let basicAuth: C8yAuthOptions | undefined = undefined;
+
   if (!_.isEmpty(args) && _.isString(args[0])) {
     const token = Cypress.env(`${args[0]}_token`);
     if (token) {
-      return authWithTenant(Cypress.env(), {
+      tokenAuth = authWithTenant(Cypress.env(), {
         token,
         userAlias: args[0],
       });
@@ -189,12 +192,16 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
     const user = Cypress.env(`${args[0]}_username`) || args[0];
     const password = Cypress.env(`${args[0]}_password`);
     if (user && password) {
-      return authWithTenant(Cypress.env(), {
+      basicAuth = authWithTenant(Cypress.env(), {
         user,
         password,
         userAlias: args[0],
       });
     }
+  }
+
+  if (tokenAuth || basicAuth) {
+    return { ...(tokenAuth ?? {}), ...(basicAuth ?? {}) };
   }
 
   // getAuthOptions({user: "abc", password: "abc"}, ...)

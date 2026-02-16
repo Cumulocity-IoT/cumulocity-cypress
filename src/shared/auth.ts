@@ -20,11 +20,9 @@ export interface C8yAuthOptions extends ICredentials {
   xsrfToken?: string;
 }
 
-export interface C8yPactAuthObject {
-  userAlias?: string;
-  user: string;
-  type?: string;
-}
+export type C8yPactAuthObject =
+  | { user: string; userAlias?: string; type?: string }
+  | { userAlias: string; user?: string; type?: string };
 
 type C8yPactAuthObjectType = keyof C8yPactAuthObject;
 export const C8yPactAuthObjectKeys: C8yPactAuthObjectType[] = [
@@ -32,6 +30,12 @@ export const C8yPactAuthObjectKeys: C8yPactAuthObjectType[] = [
   "user",
   "type",
 ];
+
+export type C8yAuthOptionType =
+  | "BasicAuth"
+  | "CookieAuth"
+  | "BearerAuth"
+  | undefined;
 
 export type C8yAuthentication = IAuthentication;
 
@@ -71,6 +75,25 @@ export function toC8yAuthentication(
       password: obj.password,
       tenant: obj.tenant,
     });
+  }
+  return undefined;
+}
+
+// map from case insensitive auth type to C8yAuthOptionType
+export function getAuthType(
+  auth?: C8yAuthOptions | C8yPactAuthObject | string
+): C8yAuthOptionType {
+  const type = _.isString(auth)
+    ? auth.toLowerCase()
+    : auth?.type?.toLowerCase();
+  if (type === "bearerauth") {
+    return "BearerAuth";
+  }
+  if (type === "basicauth") {
+    return "BasicAuth";
+  }
+  if (type === "cookieauth") {
+    return "CookieAuth";
   }
   return undefined;
 }
@@ -139,13 +162,13 @@ export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
   if (env == null || !_.isObjectLike(env)) {
     return undefined;
   }
-
   // check first environment variables
   const jwtToken = env["C8Y_TOKEN"];
+  let tokenAuth: C8yAuthOptions | undefined = undefined;
   try {
     const authFromToken = getAuthOptionsFromJWT(jwtToken);
     if (authFromToken) {
-      return authWithTenant(env, authFromToken);
+      tokenAuth = authWithTenant(env, authFromToken);
     }
   } catch {
     // ignore errors from extractTokensFromJWT
@@ -154,14 +177,18 @@ export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
 
   const user = env[`C8Y_USERNAME`] ?? env[`C8Y_USER`];
   const password = env[`C8Y_PASSWORD`];
+  let basicAuth: C8yAuthOptions | undefined = undefined;
   if (!_.isEmpty(user) && !_.isEmpty(password)) {
-    return authWithTenant(env, {
+    basicAuth = authWithTenant(env, {
       user,
       password,
     });
   }
+  if (!tokenAuth && !basicAuth) {
+    return undefined;
+  }
 
-  return undefined;
+  return {...tokenAuth ?? {}, ...basicAuth ?? {}};
 }
 
 export function authWithTenant(env: any, options: C8yAuthOptions) {
