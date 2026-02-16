@@ -15,7 +15,7 @@ import { getBaseUrlFromEnv, throwError } from "../utils";
 import { Client } from "@c8y/client";
 import { buildTestHierarchy, to_array } from "../../shared/util";
 import { getAuthType } from "../../shared/auth";
-import { C8yAuthOptionType } from "cumulocity-cypress/c8ypact";
+import type { C8yAuthOptionType } from "../../shared/auth";
 
 const { _ } = Cypress;
 
