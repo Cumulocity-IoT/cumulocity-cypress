@@ -8,8 +8,6 @@ import {
   performRegexReplace,
 } from "./preprocessor";
 
-import "../global";
-
 import _ from "lodash";
 
 class TestC8yDefaultPactPreprocessor extends C8yDefaultPactPreprocessor {
@@ -20,7 +18,7 @@ class TestC8yDefaultPactPreprocessor extends C8yDefaultPactPreprocessor {
 
 describe("C8yDefaultPactPreprocessor", () => {
   const BASE_URL = "http://localhost:4200";
-  let response: Cypress.Response<any> | undefined;
+  let response: (Cypress.Response<any> & { [key: string]: any }) | undefined;
 
   const obfuscationPattern =
     C8yDefaultPactPreprocessor.defaultObfuscationPattern;
