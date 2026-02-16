@@ -8,6 +8,8 @@ import {
   performRegexReplace,
 } from "./preprocessor";
 
+import "../global";
+
 import _ from "lodash";
 
 class TestC8yDefaultPactPreprocessor extends C8yDefaultPactPreprocessor {
@@ -258,6 +260,26 @@ describe("C8yDefaultPactPreprocessor", () => {
 
       expect(response!.body.c8y_LinkedSeries).toBe(
         C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+    });
+
+    it("should preserve Basic and Bearer prefix if present", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: [
+          "headers.authorization",
+          "requestHeaders.authorization",
+        ],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "Basic dGVzdDp0ZXN0";
+      response!.requestHeaders.authorization = "Bearer dGVzdDp0ZXN0";
+      preprocessor.apply(response!);
+
+      expect(response!.headers.authorization).toBe(
+        "Basic " + C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+      expect(response!.requestHeaders.authorization).toBe(
+        "Bearer " + C8yDefaultPactPreprocessor.defaultObfuscationPattern
       );
     });
   });

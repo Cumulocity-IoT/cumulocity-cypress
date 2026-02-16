@@ -129,7 +129,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
 
     const mapSensitiveKeys = (mapObject: any, keys: string[]) =>
       keys.map((k) =>
-        ignoreCase === true ? toSensitiveObjectKeyPath(mapObject, k) ?? k : k
+        ignoreCase === true ? (toSensitiveObjectKeyPath(mapObject, k) ?? k) : k
       );
 
     objs.forEach((obj) => {
@@ -355,7 +355,16 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
 
         if (restKeys.length === 0) {
           if (_.get(currentObj, currentKey) != null) {
-            _.set(currentObj, currentKey, p);
+            // if currentObj.currentKey  starts with Bearer or Basic, preserve that and only obfuscate the token part
+            if (
+              _.isString(target) &&
+              (target.startsWith("Bearer ") || target.startsWith("Basic "))
+            ) {
+              const [prefix] = target.split(" ");
+              _.set(currentObj, currentKey, `${prefix} ${p}`);
+            } else {
+              _.set(currentObj, currentKey, p);
+            }
           }
         } else if (_.isArray(target)) {
           target.forEach((item) => processKeyPath(item, restKeys));
@@ -384,7 +393,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
         const n = name?.toLowerCase();
         const shouldObfuscate = !n || (n && n === cookie.name?.toLowerCase());
         const cookieValue = shouldObfuscate
-          ? obfuscationPattern ?? ""
+          ? (obfuscationPattern ?? "")
           : cookie.value;
 
         acc.push(
@@ -463,7 +472,9 @@ export function parseRegexReplace(input: string): {
   replacement: string;
 } {
   if (!input || !_.isString(input)) {
-    throw new Error("Invalid replacement expression input. Regex must be a string.");
+    throw new Error(
+      "Invalid replacement expression input. Regex must be a string."
+    );
   }
 
   // Match a regex pattern with replacement in format /pattern/replacement/flags
@@ -483,13 +494,15 @@ export function parseRegexReplace(input: string): {
 
 export function performRegexReplace(
   input: string | any,
-  regexes: {
-    pattern: RegExp;
-    replacement: string;
-  }[] | {
-    pattern: RegExp;
-    replacement: string;
-  }
+  regexes:
+    | {
+        pattern: RegExp;
+        replacement: string;
+      }[]
+    | {
+        pattern: RegExp;
+        replacement: string;
+      }
 ): string | any {
   if (!input) return input;
 
@@ -499,22 +512,26 @@ export function performRegexReplace(
 
   // Direct string replacement
   if (_.isString(input)) {
-    return regexArray.reduce((result, regex) => 
-      result.replace(regex.pattern, regex.replacement), input);
+    return regexArray.reduce(
+      (result, regex) => result.replace(regex.pattern, regex.replacement),
+      input
+    );
   }
-  
+
   // Object/array traversal - do a single traversal applying all regexes
   if (_.isObjectLike(input)) {
     return _.cloneDeepWith(input, (value) => {
       if (_.isString(value)) {
         // Apply all regex replacements to the string value
-        return regexArray.reduce((result, regex) => 
-          result.replace(regex.pattern, regex.replacement), value);
+        return regexArray.reduce(
+          (result, regex) => result.replace(regex.pattern, regex.replacement),
+          value
+        );
       }
       return undefined; // Return undefined for default cloning
     });
   }
-  
+
   // Return unchanged for other types
   return input;
 }
