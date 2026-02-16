@@ -194,7 +194,7 @@ before(() => {
 
 If you are using [go-c8y-cli](https://goc8ycli.netlify.app) to manage your Cumulocity IoT environments, you can use the `set-session` command to set environment variables for your Cypress tests. This allows you to easily switch between different environments and configurations using `go-c8y-cli` session providers.
 
-The easiest way to pass environment variables to Cypress and cumulocity-cypress automtically, is to use `configureEnvVariables()` in your `cypress.config.ts` file.
+The easiest way to pass environment variables to Cypress and cumulocity-cypress automatically, is to use `configureEnvVariables()` in your `cypress.config.ts` file.
 
 ```typescript
 import { defineConfig } from "cypress";
