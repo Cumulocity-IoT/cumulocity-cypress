@@ -5,7 +5,9 @@ Collection of commands and utilities to be used for automating tests for [Cumulo
 Contribute by raising pull requests. All commands must be documented and, if possible, tested using test suite in this repository.
 
 # Content
+
 <!-- set markdown.extension.toc.levels 2..6 - level 1 is ignored in auto generated toc -->
+
 - [Overview of commands](#overview-of-commands)
 - [Screenshot automation](#screenshot-automation)
 - [Installation and setup](#installation-and-setup)
@@ -20,6 +22,7 @@ Contribute by raising pull requests. All commands must be documented and, if pos
     - [Authentication via getAuth and useAuth commands](#authentication-via-getauth-and-useauth-commands)
     - [Authentication via test case annotations](#authentication-via-test-case-annotations)
     - [Authentication via environment variables](#authentication-via-environment-variables)
+    - [Using authentication tokens](#using-authentication-tokens)
     - [Passing authentication to cy.request](#passing-authentication-to-cyrequest)
   - [Chaining of commands](#chaining-of-commands)
   - [c8y/client and Web SDK types](#c8yclient-and-web-sdk-types)
@@ -49,6 +52,7 @@ General commands
 - `highlight`, `clearHighlights`, `screenshot`
 
 Authentication related commands
+
 - `login`
 - `setAuth`
 - `useAuth`
@@ -56,13 +60,15 @@ Authentication related commands
 - `oauthLogin`
 
 Date related commands
+
 - `toDate`
 - `toISODate`
 - `compareDates`
 
 More information on date handling can be found in [Date Handling](./doc/Date%20Handling.md).
-  
+
 Administration related commands
+
 - `getCurrentTenant` and `getTenantId`
 - `createUser` and `deleteUser`
 - `assignUserRoles` and `clearUserRoles`
@@ -70,9 +76,11 @@ Administration related commands
 - `getSystemVersion` and `getShellVersion`
 
 Component testing
+
 - `mount`
 
 [Integration and API testing](./doc/API%20and%20Integration%20Testing.md) related commands
+
 - `c8yclient`, `c8yclientf`
 - `c8ymatch`
 - `retryRequest`
@@ -97,6 +105,7 @@ npm install --save-dev cumulocity-cypress
 `cumulocity-cypress` requires some peer dependencies to be installed in your project for all commands to work as expected. This is to make sure the exact versions of the dependencies in your tested project are used by `cumulocity-cypress`.
 
 Make sure the following dependencies are installed in your project:
+
 - `cypress`
 - `@c8y/client`
 - `angular-common`
@@ -122,13 +131,13 @@ module.exports = defineConfig({
 
 ### Import commands
 
-To use the `cumulocity-cypress` commands in your Cypress tests, import the commands in  your projects `e2e.supportFile` (e.g. `cypress/support/e2e.ts`).
+To use the `cumulocity-cypress` commands in your Cypress tests, import the commands in your projects `e2e.supportFile` (e.g. `cypress/support/e2e.ts`).
 
 ```typescript
 import "cumulocity-cypress/commands";
 ```
 
-This will import the standard commands, including for example login, authentication, date conversion, administration. 
+This will import the standard commands, including for example login, authentication, date conversion, administration.
 
 Optional commands for import (only import if really needed):
 
@@ -181,15 +190,18 @@ before(() => {
 });
 ```
 
-### Environment variables from go-c8y-cli 
+### Environment variables from go-c8y-cli
 
 If you are using [go-c8y-cli](https://goc8ycli.netlify.app) to manage your Cumulocity IoT environments, you can use the `set-session` command to set environment variables for your Cypress tests. This allows you to easily switch between different environments and configurations using `go-c8y-cli` session providers.
 
-The easiest way to pass environment variables to Cypress and cumulocity-cypress automtically, is to use `configureEnvVariables()` in your `cypress.config.ts` file. 
+The easiest way to pass environment variables to Cypress and cumulocity-cypress automtically, is to use `configureEnvVariables()` in your `cypress.config.ts` file.
 
 ```typescript
 import { defineConfig } from "cypress";
-import { configureC8yPlugin, configureEnvVariables } from "cumulocity-cypress/plugin";
+import {
+  configureC8yPlugin,
+  configureEnvVariables,
+} from "cumulocity-cypress/plugin";
 
 module.exports = defineConfig({
   e2e: {
@@ -325,6 +337,57 @@ Cypress.env("admin_password", "password");
 
 When using user aliases, token authentication takes precedence over username/password if both are configured.
 
+#### Using authentication tokens
+
+To use Bearer instead of Basic authentication, you can get a JWT token from username and password and store it in environment variable for later use. This is best done directly in your `cypress.config.ts`, before any of the tests are executed. This way, you can use the token for authentication in all your tests without having to worry about how to get the token in your tests or to set it up for each test.
+
+Please note, Bearer authentication is preferred over Basic authentication, so if both token and username/password are provided, the token will be used for authentication.
+
+```typescript
+import { oauthLogin } from 'cumulocity-cypress';
+
+export default defineConfig({
+  e2e: {
+    async setupNodeEvents(on, config) {
+      const username = config.env[`C8Y_USERNAME`];
+      const password = config.env[`C8Y_PASSWORD`];
+      await oauthLogin(
+        { username: username, password: password }
+        config.baseUrl
+      ).then(auth => {
+        config.env[`C8Y_TOKEN`] = auth.token;
+      });
+    return config;
+    }
+  }
+});
+```
+
+If you configure multiple users with username and password, you can get a token for each user and store it in a user alias for later use.
+
+```typescript
+import { oauthLogin } from 'cumulocity-cypress';
+
+export default defineConfig({
+  e2e: {
+    async setupNodeEvents(on, config) {
+      const users = ['admin', 'user1', 'user2'];
+      for (const user of users) {
+        const username = config.env[`${user}_username`];
+        const password = config.env[`${user}_password`];
+        await oauthLogin(
+          { username, password }
+          config.baseUrl
+        ).then(auth => {
+          config.env[`${user}__token`] = auth.token;
+        });
+      }
+      return config;
+    }
+  }
+});
+```
+
 #### Passing authentication to cy.request
 
 With `import "cumulocity-cypress/commands/request"`, it is also possible to add authentication support to `cy.request()` command. If enabled, `cy.request()` will use authentication from environment, `useAuth()` and test case auth annotation. As this feature is considered experimental, it is not automatically imported.
@@ -388,7 +451,7 @@ See [API and Integration Testing](./doc/API%20and%20Integration%20Testing.md) fo
 
 `cumulocity-cypress` provides fully configured `cy.mount` command for testing Cumulocity Angular components. For general information on component testing in Cypress, see [Component Testing](https://docs.cypress.io/guides/component-testing/introduction).
 
-The `cy.mount` command comes with capabilities to easily record and mock API requests and responses for component tests. For recording, `cy.mount` allows running component tests against a configured `C8Y_BASEURL` and record responses for mocking. 
+The `cy.mount` command comes with capabilities to easily record and mock API requests and responses for component tests. For recording, `cy.mount` allows running component tests against a configured `C8Y_BASEURL` and record responses for mocking.
 
 > **Note**: Configuration of baseUrl via `C8Y_BASEURL` environment variable is required as Cypress component tests do not allow configuration of a baseUrl. Component tests are expected to run using mocked data.
 
