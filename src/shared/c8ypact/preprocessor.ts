@@ -355,7 +355,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
 
         if (restKeys.length === 0) {
           if (_.get(currentObj, currentKey) != null) {
-            // if currentObj.currentKey  starts with Bearer or Basic, preserve that and only obfuscate the token part
+            // if currentObj.currentKey starts with Bearer or Basic, preserve that and only obfuscate the token part
             if (
               _.isString(target) &&
               (target.startsWith("Bearer ") || target.startsWith("Basic "))
