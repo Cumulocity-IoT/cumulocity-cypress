@@ -1705,7 +1705,7 @@ describe("c8ypact", () => {
         const record = pact?.records[0];
         expect(record).to.not.be.null;
         expect(_.get(record, "request.headers.Authorization")).to.eq(
-          obfuscationPattern
+          "Basic " + obfuscationPattern
         );
         expect(_.get(record, "response.body.password")).to.eq(
           obfuscationPattern

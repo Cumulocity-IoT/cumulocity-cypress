@@ -18,7 +18,10 @@ class TestC8yDefaultPactPreprocessor extends C8yDefaultPactPreprocessor {
 
 describe("C8yDefaultPactPreprocessor", () => {
   const BASE_URL = "http://localhost:4200";
-  let response: Cypress.Response<any> | undefined;
+  let response: (Cypress.Response<any> & { [key: string]: any }) | undefined;
+
+  const obfuscationPattern =
+    C8yDefaultPactPreprocessor.defaultObfuscationPattern;
 
   beforeEach(() => {
     response = {
@@ -157,12 +160,8 @@ describe("C8yDefaultPactPreprocessor", () => {
       const preprocessor = new C8yDefaultPactPreprocessor(options);
       preprocessor.apply(response!);
 
-      expect(response!.body.name).toBe(
-        C8yDefaultPactPreprocessor.defaultObfuscationPattern
-      );
-      expect(response!.requestBody.id).toBe(
-        C8yDefaultPactPreprocessor.defaultObfuscationPattern
-      );
+      expect(response!.body.name).toBe(obfuscationPattern);
+      expect(response!.requestBody.id).toBe(obfuscationPattern);
     });
 
     it("should obfuscate case with insensitive keys", () => {
@@ -243,9 +242,7 @@ describe("C8yDefaultPactPreprocessor", () => {
       ];
       preprocessor.apply(response!);
 
-      expect(response!.body.c8y_LinkedSeries).toBe(
-        C8yDefaultPactPreprocessor.defaultObfuscationPattern
-      );
+      expect(response!.body.c8y_LinkedSeries).toBe(obfuscationPattern);
     });
 
     it("should obfuscate empty array elements", () => {
@@ -256,9 +253,144 @@ describe("C8yDefaultPactPreprocessor", () => {
       response!.body.c8y_LinkedSeries = [];
       preprocessor.apply(response!);
 
-      expect(response!.body.c8y_LinkedSeries).toBe(
-        C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      expect(response!.body.c8y_LinkedSeries).toBe(obfuscationPattern);
+    });
+  });
+
+  describe("authorization header obfuscation", () => {
+    it("should preserve Basic and Bearer prefix if present", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization", "requestHeaders.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "Basic dGVzdDp0ZXN0";
+      response!.requestHeaders.authorization = "Bearer dGVzdDp0ZXN0";
+      preprocessor.apply(response!);
+
+      expect(response!.headers.authorization).toBe(
+        "Basic " + obfuscationPattern
       );
+      expect(response!.requestHeaders.authorization).toBe(
+        "Bearer " + obfuscationPattern
+      );
+    });
+
+    it("should handle case-insensitive Bearer and Basic prefixes", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization", "requestHeaders.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "bearer token123";
+      response!.requestHeaders.authorization = "basic token456";
+      preprocessor.apply(response!);
+
+      expect(response!.headers.authorization).toBe(
+        "bearer " + obfuscationPattern
+      );
+      expect(response!.requestHeaders.authorization).toBe(
+        "basic " + obfuscationPattern
+      );
+    });
+
+    it("should obfuscate malformed Bearer/Basic without token completely", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization", "requestHeaders.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "Bearer";
+      response!.requestHeaders.authorization = "Basic";
+      preprocessor.apply(response!);
+
+      // Malformed headers without tokens should be obfuscated completely
+      expect(response!.headers.authorization).toBe(obfuscationPattern);
+      expect(response!.requestHeaders.authorization).toBe(obfuscationPattern);
+    });
+
+    it("should obfuscate Bearer/Basic with trailing space but no token completely", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization", "requestHeaders.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "Bearer ";
+      response!.requestHeaders.authorization = "Basic ";
+      preprocessor.apply(response!);
+
+      // Headers with only space but no actual token should be obfuscated completely
+      expect(response!.headers.authorization).toBe(obfuscationPattern);
+      expect(response!.requestHeaders.authorization).toBe(obfuscationPattern);
+    });
+
+    it("should preserve mixed case Bearer/Basic with tokens", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "bEaReR token123";
+      preprocessor.apply(response!);
+
+      expect(response!.headers.authorization).toBe(
+        "bEaReR " + obfuscationPattern
+      );
+    });
+
+    it("should obfuscate non-Bearer/Basic authorization headers completely", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "CustomAuth token123";
+      preprocessor.apply(response!);
+
+      expect(response!.headers.authorization).toBe(obfuscationPattern);
+    });
+
+    it("should fully obfuscate non-authorization fields with Bearer-like values", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.password", "body.secret"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body = {
+        password: "Bearer token123",
+        secret: "Basic credentials456",
+      };
+      preprocessor.apply(response!);
+
+      // Password and secret fields should be fully obfuscated, not preserve Bearer/Basic
+      expect(response!.body.password).toBe(obfuscationPattern);
+      expect(response!.body.secret).toBe(obfuscationPattern);
+    });
+
+    it("should fully obfuscate nested non-authorization fields with auth-like values", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.user.apiKey", "body.config.token"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body = {
+        user: { apiKey: "Bearer myApiKey123" },
+        config: { token: "Basic secret" },
+      };
+      preprocessor.apply(response!);
+
+      // Non-authorization fields should be fully obfuscated
+      expect(response!.body.user.apiKey).toBe(obfuscationPattern);
+      expect(response!.body.config.token).toBe(obfuscationPattern);
+    });
+
+    it("should preserve Bearer in authorization but obfuscate in password field", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization", "body.password"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "Bearer authToken123";
+      response!.body = { password: "Bearer password123" };
+      preprocessor.apply(response!);
+
+      // Authorization should preserve Bearer prefix
+      expect(response!.headers.authorization).toBe(
+        "Bearer " + obfuscationPattern
+      );
+      // Password should be fully obfuscated
+      expect(response!.body.password).toBe(obfuscationPattern);
     });
   });
 
@@ -707,7 +839,7 @@ describe("C8yDefaultPactPreprocessor", () => {
 
       expect(response).toStrictEqual({
         headers: {
-          "content-type": C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+          "content-type": obfuscationPattern,
         },
       });
     });
@@ -730,7 +862,7 @@ describe("C8yDefaultPactPreprocessor", () => {
 
       expect(response).toStrictEqual({
         HEADERS: {
-          "Content-Type": C8yDefaultPactPreprocessor.defaultObfuscationPattern,
+          "Content-Type": obfuscationPattern,
         },
       });
     });
