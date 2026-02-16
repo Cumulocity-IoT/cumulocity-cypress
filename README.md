@@ -352,12 +352,13 @@ export default defineConfig({
       const username = config.env[`C8Y_USERNAME`];
       const password = config.env[`C8Y_PASSWORD`];
       await oauthLogin(
-        { username: username, password: password }
+        { username: username, password: password },
         config.baseUrl
       ).then(auth => {
         config.env[`C8Y_TOKEN`] = auth.token;
       });
-    return config;
+     
+      return config;
     }
   }
 });
