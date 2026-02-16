@@ -263,6 +263,7 @@ describe("C8yDefaultPactPreprocessor", () => {
       );
     });
   });
+  
   describe("authorization header obfuscation", () => {
     it("should preserve Basic and Bearer prefix if present", () => {
       const options: C8yPactPreprocessorOptions = {
