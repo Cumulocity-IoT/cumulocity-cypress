@@ -337,6 +337,8 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
   private obfuscateKey(obj: any, key: string, pattern?: string): void {
     const keyParts = key.split(".");
     const p = pattern ?? C8yDefaultPactPreprocessor.defaultObfuscationPattern;
+    const isAuthorizationKey = this.hasKey(keyParts, "authorization");
+    
     if (this.hasKey(keyParts, "set-cookie")) {
       this.obfuscateSetCookie(obj, keyParts, p);
     } else if (this.hasKey(keyParts, "cookie")) {
@@ -355,9 +357,10 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
 
         if (restKeys.length === 0) {
           if (_.get(currentObj, currentKey) != null) {
+            // Only preserve Bearer/Basic prefix for authorization headers
             // Check if value is a Bearer or Basic authorization header with a token
             // Match case-insensitively and ensure there's a non-empty token after the prefix
-            const authHeaderMatch = _.isString(target) 
+            const authHeaderMatch = isAuthorizationKey && _.isString(target) 
               ? target.match(/^(Bearer|Basic)\s+(.+)$/i) 
               : null;
             

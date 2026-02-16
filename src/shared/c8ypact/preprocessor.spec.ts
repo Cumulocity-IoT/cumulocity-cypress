@@ -21,7 +21,7 @@ class TestC8yDefaultPactPreprocessor extends C8yDefaultPactPreprocessor {
 describe("C8yDefaultPactPreprocessor", () => {
   const BASE_URL = "http://localhost:4200";
   let response: Cypress.Response<any> | undefined;
-
+  
   beforeEach(() => {
     response = {
       status: 200,
@@ -263,7 +263,7 @@ describe("C8yDefaultPactPreprocessor", () => {
       );
     });
   });
-  
+
   describe("authorization header obfuscation", () => {
     it("should preserve Basic and Bearer prefix if present", () => {
       const options: C8yPactPreprocessorOptions = {
@@ -357,6 +357,65 @@ describe("C8yDefaultPactPreprocessor", () => {
       preprocessor.apply(response!);
 
       expect(response!.headers.authorization).toBe(
+        C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+    });
+
+    it("should fully obfuscate non-authorization fields with Bearer-like values", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.password", "body.secret"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body = {
+        password: "Bearer token123",
+        secret: "Basic credentials456",
+      };
+      preprocessor.apply(response!);
+
+      // Password and secret fields should be fully obfuscated, not preserve Bearer/Basic
+      expect(response!.body.password).toBe(
+        C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+      expect(response!.body.secret).toBe(
+        C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+    });
+
+    it("should fully obfuscate nested non-authorization fields with auth-like values", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.user.apiKey", "body.config.token"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body = {
+        user: { apiKey: "Bearer myApiKey123" },
+        config: { token: "Basic secret" },
+      };
+      preprocessor.apply(response!);
+
+      // Non-authorization fields should be fully obfuscated
+      expect(response!.body.user.apiKey).toBe(
+        C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+      expect(response!.body.config.token).toBe(
+        C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+    });
+
+    it("should preserve Bearer in authorization but obfuscate in password field", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["headers.authorization", "body.password"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.headers.authorization = "Bearer authToken123";
+      response!.body = { password: "Bearer password123" };
+      preprocessor.apply(response!);
+
+      // Authorization should preserve Bearer prefix
+      expect(response!.headers.authorization).toBe(
+        "Bearer " + C8yDefaultPactPreprocessor.defaultObfuscationPattern
+      );
+      // Password should be fully obfuscated
+      expect(response!.body.password).toBe(
         C8yDefaultPactPreprocessor.defaultObfuscationPattern
       );
     });
