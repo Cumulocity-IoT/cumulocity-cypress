@@ -128,10 +128,10 @@ export function toPactAuthObject(
 export function isPactAuthObject(obj: any): obj is C8yPactAuthObject {
   return (
     _.isObjectLike(obj) &&
-    "user" in obj &&
+    ("user" in obj || "token" in obj) &&
     ("userAlias" in obj || "type" in obj || "token" in obj) &&
     Object.keys(obj).every((key) =>
-      (C8yPactAuthObjectKeys as string[]).includes(key)
+      ["token", ...C8yPactAuthObjectKeys].includes(key)
     )
   );
 }

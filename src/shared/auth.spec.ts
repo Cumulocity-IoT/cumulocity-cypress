@@ -101,7 +101,33 @@ describe("auth", () => {
       ).toBe(false);
     });
 
-    it("isPactAuthObject fails without user", function () {
+    it("isPactAuthObject validates object with token", function () {
+      expect(isPactAuthObject({ token: "test" })).toBe(true);
+      expect(isPactAuthObject({ token: "test", userAlias: "admin" })).toBe(
+        true
+      );
+      expect(isPactAuthObject({ token: "test", type: "CookieAuth" })).toBe(
+        true
+      );
+      expect(isPactAuthObject({ token: "test", user: "admin" })).toBe(true);
+      expect(
+        isPactAuthObject({
+          token: "test",
+          type: "CookieAuth",
+          user: "admin",
+        })
+      ).toBe(true);
+      expect(
+        isPactAuthObject({
+          token: "test",
+          type: "CookieAuth",
+          userAlias: "admin",
+          user: "admin",
+        })
+      ).toBe(true);
+    });
+
+    it("isPactAuthObject fails without user or token", function () {
       expect(isPactAuthObject({})).toBe(false);
       expect(isPactAuthObject({ userAlias: "admin" })).toBe(false);
     });
