@@ -379,7 +379,7 @@ export default defineConfig({
           { username, password }
           config.baseUrl
         ).then(auth => {
-          config.env[`${user}__token`] = auth.token;
+          config.env[`${user}_token`] = auth.token;
         });
       }
       return config;
