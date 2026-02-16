@@ -1,6 +1,7 @@
 import {
   C8yAuthOptions,
   C8yPactAuthObject,
+  getAuthType,
   isAuthOptions,
   isPactAuthObject,
   toPactAuthObject,
@@ -72,7 +73,8 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
       if (params.options) this.options = params.options;
       if (params.auth) this.auth = params.auth;
       if (params.createdObject) this.createdObject = params.createdObject;
-      if (params.modifiedResponse) this.modifiedResponse = params.modifiedResponse;
+      if (params.modifiedResponse)
+        this.modifiedResponse = params.modifiedResponse;
       if (params.id) this.id = params.id;
     } else {
       // Handle individual parameter style
@@ -127,8 +129,8 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
       isAuthOptions(auth) || isPactAuthObject(auth)
         ? toPactAuthObject(auth)
         : client?._auth
-        ? toPactAuthObject(client?._auth)
-        : undefined,
+          ? toPactAuthObject(client?._auth)
+          : undefined,
       undefined,
       undefined,
       id || _.get(obj, "id")
@@ -178,10 +180,8 @@ export class C8yDefaultPactRecord implements C8yPactRecord {
   }
 
   authType() {
-    const type = this.auth?.type;
-    if (type === "BasicAuth" || type === "CookieAuth") {
-      return type;
-    }
+    const type = getAuthType(this.auth);
+    if (type != null) return type;
     if (this.hasRequestHeader("x-xsrf-token")) {
       return "CookieAuth";
     }
@@ -232,16 +232,15 @@ export function createPactRecord(
   return C8yDefaultPactRecord.from(response, auth, client, options.id);
 }
 
-
 /**
  * Type guard to check if an object is C8yDefaultPactRecordInit
  */
 function isC8yDefaultPactRecordInit(obj: any): obj is C8yDefaultPactRecordInit {
   return (
     obj &&
-    typeof obj === 'object' &&
-    'request' in obj &&
-    'response' in obj &&
+    typeof obj === "object" &&
+    "request" in obj &&
+    "response" in obj &&
     obj.request != null &&
     obj.response != null
   );

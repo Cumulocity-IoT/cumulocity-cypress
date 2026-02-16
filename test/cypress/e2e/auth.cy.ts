@@ -1,7 +1,4 @@
-import {
-  BearerAuthFromSessionStorage,
-  IDeviceCredentials,
-} from "@c8y/client";
+import { BearerAuthFromSessionStorage, IDeviceCredentials } from "@c8y/client";
 import {
   url as _url,
   getConsolePropsForLogSpy,
@@ -14,12 +11,13 @@ describe("auth", () => {
   const testToken =
     "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3NTU5Nzc0NzUsImV4cCI6MTc4NzUxMzQ3NSwiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsInhzcmZUb2tlbiI6IjIzNG5tMjM0bm0yMzQyMzQiLCJ0ZW4iOiJ0MTIzNDU2NyIsInVzZXIiOiJ0b2tlbnVzZXIiLCJiYXNlVXJsIjoiaHR0cHM6Ly9teXRlc3QuYzh5LmlvIn0.wKGIxJrUnT0NNyd198mfxegV6kncYsNFhGa6MFSSKCE";
 
-  context("getAuth", () => {
-    beforeEach(() => {
-      Cypress.env("myauthuser_password", "myadminpassword");
-      Cypress.env("C8Y_TENANT", "t1234567");
-    });
+  beforeEach(() => {
+    Object.keys(Cypress.env()).forEach((key) => Cypress.env(key, undefined));
+    Cypress.env("C8Y_TENANT", "t1234567");
+    Cypress.env("myauthuser_password", "myadminpassword");
+  });
 
+  context("getAuth", () => {
     it("always returns wrapped auth options", () => {
       const auth = cy.getAuth("admin", "password");
       expect(Cypress.isCy(auth)).to.be.true;
@@ -191,7 +189,7 @@ describe("auth", () => {
     it("should throw for userAlias without auth options", (done) => {
       Cypress.once("fail", (err) => {
         expect(err.message).to.eq(
-          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+          "No authentication found for userAlias xyz. Configure authentication using xyz_token or xyz_username and xyz_password environment variables."
         );
         done();
       });
@@ -206,7 +204,7 @@ describe("auth", () => {
 
       Cypress.once("fail", (err) => {
         expect(err.message).to.eq(
-          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+          "No authentication found for userAlias xyz. Configure authentication using xyz_token or xyz_username and xyz_password environment variables."
         );
         done();
       });
@@ -218,8 +216,10 @@ describe("auth", () => {
       stubEnv({
         C8Y_USERNAME: "myusername",
         C8Y_PASSWORD: "mypassword",
+        C8Y_TOKEN: testToken,
         admin_username: "admin",
         admin_password: "password",
+        admin_token: testToken,
         abc: "def",
         aca: "def",
       });
@@ -234,12 +234,15 @@ describe("auth", () => {
           password: "password",
           user: "admin",
           userAlias: "admin",
+          token: testToken,
           tenant: "t1234567",
         });
-        expect(Object.keys(props.env)).to.have.length(5);
+        expect(Object.keys(props.env)).to.have.length(7);
         expect(props.env).to.deep.eq({
           C8Y_USERNAME: "myusername",
           C8Y_PASSWORD: "mypassword",
+          C8Y_TOKEN: testToken,
+          admin_token: testToken,
           admin_username: "admin",
           admin_password: "password",
           // from environment / defined in beforeEach
@@ -262,13 +265,33 @@ describe("auth", () => {
         expect(result?.type).to.eq("BearerAuth");
       });
     });
+
+    it("should use token from user alias", () => {
+      stubEnv({ tokenuser_token: testToken });
+      cy.getAuth("tokenuser").then((result) => {
+        expect(result?.token).to.eq(testToken);
+        expect(result?.user).to.be.undefined;
+        expect(result?.password).to.be.undefined;
+        expect(result?.tenant).to.eq("t1234567");
+        expect(result?.userAlias).to.eq("tokenuser");
+      });
+    });
+
+    it("should use token from userAlias in options", () => {
+      stubEnv({ mytoken_token: testToken });
+      cy.wrap({ userAlias: "mytoken" })
+        .getAuth()
+        .then((result) => {
+          expect(result?.token).to.eq(testToken);
+          expect(result?.user).to.be.undefined;
+          expect(result?.password).to.be.undefined;
+          expect(result?.tenant).to.eq("t1234567");
+          expect(result?.userAlias).to.eq("mytoken");
+        });
+    });
   });
 
   context("useAuth", () => {
-    beforeEach(() => {
-      Cypress.env("C8Y_TENANT", "t1234567");
-    });
-
     it("store and restore auth in current test context", () => {
       cy.useAuth("admin", "password");
 
@@ -359,7 +382,7 @@ describe("auth", () => {
     it("should not throw if no auth options found", (done) => {
       Cypress.once("fail", (err) => {
         expect(err.message).to.eq(
-          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+          "No authentication found for userAlias xyz. Configure authentication using xyz_token or xyz_username and xyz_password environment variables."
         );
         done();
       });
@@ -375,7 +398,7 @@ describe("auth", () => {
 
       Cypress.once("fail", (err) => {
         expect(err.message).to.eq(
-          "No authentication found for userAlias xyz. Configure authentication using xyz_username and xyz_password environment variables."
+          "No authentication found for userAlias xyz. Configure authentication using xyz_token or xyz_username and xyz_password environment variables."
         );
         done();
       });
@@ -410,7 +433,6 @@ describe("auth", () => {
           userAlias: "admin",
           tenant: "t1234567",
         });
-        expect(Object.keys(props.env)).to.have.length(5);
         expect(props.env).to.deep.eq({
           C8Y_USERNAME: "myusername",
           C8Y_PASSWORD: "mypassword",

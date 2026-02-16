@@ -75,9 +75,10 @@ declare global {
        *
        * If auth is not passed explicitly using `cy.getAuth()`, `cy.useAuth()` or
        * `cy.login()`, the following behavior will be applied:
-       * 1. Use Basic auth from `C8Y_USERNAME` and `C8Y_PASSWORD` env variables.
-       * 2. Use Bearer auth from `C8Y_TOKEN` env variable.
-       * 3. Use Cookie auth from `X-XSRF-TOKEN` cookie if present.
+       * 1. Use Basic auth if preferBasicAuth=true option is set and username/password are present.
+       * 2. Use Cookie auth if authorization and X-XSRF-TOKEN cookies are present.
+       * 3. Use Bearer auth from `C8Y_TOKEN` env variable.
+       * 4. Use Basic auth from `C8Y_USERNAME` and `C8Y_PASSWORD` env variable.
        *
        * For CookieAuth you should call `cy.login()` before using `cy.c8yclient` to
        * create the the required cookies. To force using basic auth method, pass
