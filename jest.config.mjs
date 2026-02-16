@@ -1,12 +1,15 @@
 export default {
   projects: [
     {
+      preset: "ts-jest/presets/default-esm",
+      extensionsToTreatAsEsm: [".ts"],
       roots: ["<rootDir>/src"],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",
           {
             tsconfig: "<rootDir>/tsconfig.spec.json",
+            useESM: true,
           },
         ],
         "^.+\\.jsx?$": "@swc/jest",
@@ -18,6 +21,7 @@ export default {
       moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
       moduleNameMapper: {
         "^cumulocity-cypress/(.*)$": "<rootDir>/src/$1",
+        "^(\\.{1,2}/.*)\\.js$": "$1",
       },
     },
   ],
