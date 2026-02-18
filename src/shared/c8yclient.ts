@@ -144,7 +144,7 @@ export async function wrapFetchRequest(
   } else {
     // add json content type if body is present and content-type is not set
     const method = fetchOptions?.method || "GET";
-    if (fetchOptions?.body && method !== "GET" && method != "HEAD") {
+    if (fetchOptions?.body && method !== "GET" && method != "HEAD" && !get_i(fetchOptions.headers, "content-type")) {
       fetchOptions.headers = {
         "content-type": "application/json",
         ...fetchOptions.headers,
