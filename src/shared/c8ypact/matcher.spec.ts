@@ -58,6 +58,104 @@ describe("matcher", () => {
 
       expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
     });
+
+    it("should retrieve and compare values correctly with case-insensitive keys", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = { ContentType: "application/json", StatusCode: 200 };
+      const obj2 = { contenttype: "application/json", statuscode: 200 };
+
+      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+    });
+
+    it("should detect value mismatch even with case-insensitive keys", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = { UserName: "alice" };
+      const obj2 = { username: "bob" };
+
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: true })).toThrow(
+        /Values for "username" do not match/
+      );
+    });
+
+    it("should handle nested objects with case-insensitive keys", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = { 
+        Headers: { 
+          ContentType: "application/json",
+          ApiKey: "secret123"
+        }
+      };
+      const obj2 = { 
+        headers: { 
+          contenttype: "application/json",
+          apikey: "secret123"
+        }
+      };
+
+      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+    });
+
+    it("should handle strict matching with case-insensitive keys", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = { 
+        ApiKey: "secret",
+        ContentType: "application/json"
+      };
+      const obj2 = { 
+        apikey: "secret"
+      };
+
+      expect(() => 
+        matcher.match(obj1, obj2, { ignoreCase: true, strictMatching: true })
+      ).toThrow(/not found in pact object/);
+    });
+
+    it("should handle non-strict matching with case-insensitive keys", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = { 
+        ApiKey: "secret",
+        ContentType: "application/json",
+        ExtraField: "value"
+      };
+      const obj2 = { 
+        apikey: "secret",
+        contenttype: "application/json"
+      };
+
+      expect(matcher.match(obj1, obj2, { ignoreCase: true, strictMatching: false })).toBeTruthy();
+    });
+
+    it("should resolve schema keys case-insensitively when matching", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = { 
+        Name: "test",
+        Age: 25
+      };
+      const obj2 = { 
+        name: "test",
+        age: 25
+      };
+
+      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+    });
+
+    it("should handle mixed case keys in arrays of objects", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = { 
+        Items: [
+          { Name: "item1", Value: 100 },
+          { Name: "item2", Value: 200 }
+        ]
+      };
+      const obj2 = { 
+        items: [
+          { name: "item1", value: 100 },
+          { name: "item2", value: 200 }
+        ]
+      };
+
+      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+    });
   });
 
   describe("C8yISODateStringMatcher", () => {

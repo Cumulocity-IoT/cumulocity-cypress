@@ -269,6 +269,16 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     const removeSchemaPrefix = (key: string) =>
       key.startsWith("$") ? key.slice(1) : key;
 
+    const findActualKey = (obj: any, keyToFind: string): string => {
+      if (!options?.ignoreCase) return keyToFind;
+      if (obj == null || !_.isObject(obj)) return keyToFind;
+      
+      const actualKey = Object.keys(obj).find(
+        (k) => k.toLowerCase() === keyToFind.toLowerCase()
+      );
+      return actualKey ?? keyToFind;
+    };
+
     // if strictMatching is disabled, only check properties of the pact for object matching
     // strictMatching for schema matching is considered within the matcher -> schema.additionalProperties
     const keys = !strictMatching ? pactKeys : objectKeys;
@@ -276,18 +286,26 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
       // schema is always defined on the pact object - needs special consideration
       const isSchema = key.startsWith("$") || schemaKeys.includes(`$${key}`);
 
-      const value = _.get(
-        strictMatching || isSchema ? obj1 : obj2,
+      // Resolve actual keys with correct casing when ignoreCase is enabled
+      const valueSourceObj = strictMatching || isSchema ? obj1 : obj2;
+      const pactSourceObj = strictMatching || isSchema ? obj2 : obj1;
+      
+      const keyForValue = findActualKey(
+        valueSourceObj,
         removeSchemaPrefix(key)
       );
-      let pact = _.get(
-        strictMatching || isSchema ? obj2 : obj1,
+      
+      const keyForPact = findActualKey(
+        pactSourceObj,
         isSchema && !key.startsWith("$") ? `$${key}` : key
       );
 
+      const value = _.get(valueSourceObj, keyForValue);
+      let pact = _.get(pactSourceObj, keyForPact);
+
       if (
         !isSchema &&
-        !this.getObjectForKeyPath(
+        !this.isKeyPathInObject(
           strictMatching ? pactKeys : objectKeys,
           key,
           options?.ignoreCase
@@ -332,7 +350,11 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
         if (!matchSchemaAndObject) {
           continue;
         }
-        pact = _.get(strictMatching ? obj2 : obj1, key);
+        const keyForSchemaAndObject = findActualKey(
+          strictMatching ? obj2 : obj1,
+          key
+        );
+        pact = _.get(strictMatching ? obj2 : obj1, keyForSchemaAndObject);
       }
 
       if (this.getPropertyMatcher(key, options?.ignoreCase) != null) {
@@ -416,9 +438,15 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     return true;
   }
 
-  protected getObjectForKeyPath(obj: any, keyPath: string, ignoreCase = false) {
+  private isKeyPathInObject(obj: any, keyPath: string, ignoreCase = false): boolean {
+    if (!Array.isArray(obj)) {
+      return false;
+    }
     if (ignoreCase) {
-      return get_i(obj, keyPath);
+      const lowerKeyPath = keyPath.toLowerCase();
+      return obj.some(
+        (item) => typeof item === "string" && item.toLowerCase() === lowerKeyPath
+      );
     }
     return obj.includes(keyPath);
   }
