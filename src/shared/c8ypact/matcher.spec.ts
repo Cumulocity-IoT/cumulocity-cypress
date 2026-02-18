@@ -42,6 +42,114 @@ describe("matcher", () => {
       const p3 = matcher.getPropertyMatcher("BODY", true);
       expect(p3).toBeDefined();
     });
+
+    it("should compare key case insensitivity", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = { ContentType: "application/json", StatusCode: 200 };
+      const obj2 = { contenttype: "application/json", statuscode: 200 };
+
+      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
+    });
+
+    it("should detect value mismatch even with case-insensitive keys", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = { UserName: "alice" };
+      const obj2 = { username: "bob" };
+
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: true })).toThrow(
+        /Values for "username" do not match/
+      );
+    });
+
+    it("should handle nested objects with case-insensitive keys", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        Headers: {
+          ContentType: "application/json",
+          ApiKey: "secret123",
+        },
+      };
+      const obj2 = {
+        headers: {
+          contenttype: "application/json",
+          apikey: "secret123",
+        },
+      };
+
+      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
+    });
+
+    it("should handle strict matching with case-insensitive keys", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        ApiKey: "secret",
+        ContentType: "application/json",
+      };
+      const obj2 = {
+        apikey: "secret",
+      };
+
+      expect(() =>
+        matcher.match(obj1, obj2, { ignoreCase: true, strictMatching: true })
+      ).toThrow(/not found in pact object/);
+    });
+
+    it("should handle non-strict matching with case-insensitive keys", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        ApiKey: "secret",
+        ContentType: "application/json",
+        ExtraField: "value",
+      };
+      const obj2 = {
+        apikey: "secret",
+        contenttype: "application/json",
+      };
+
+      expect(
+        matcher.match(obj1, obj2, { ignoreCase: true, strictMatching: false })
+      ).toBeTruthy();
+      expect(() =>
+        matcher.match(obj1, obj2, { ignoreCase: false, strictMatching: false })
+      ).toThrow();
+    });
+
+    it("should resolve schema keys case-insensitively when matching", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        Name: "test",
+        Age: 25,
+      };
+      const obj2 = {
+        name: "test",
+        age: 25,
+      };
+
+      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
+    });
+
+    it("should handle mixed case keys in arrays of objects", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        Items: [
+          { Name: "item1", Value: 100 },
+          { Name: "item2", Value: 200 },
+        ],
+      };
+      const obj2 = {
+        items: [
+          { name: "item1", value: 100 },
+          { name: "item2", value: 200 },
+        ],
+      };
+
+      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
+    });
   });
 
   describe("C8yISODateStringMatcher", () => {
@@ -203,9 +311,9 @@ describe("matcher", () => {
         expect.objectContaining({
           name: "C8yPactMatchError",
           message: expect.stringContaining(
-            `Pact validation failed! Schema for \"response > body\" does not match (data/age must be number).`,
+            `Pact validation failed! Schema for \"response > body\" does not match (data/age must be number).`
           ),
-        }),
+        })
       );
     });
 
@@ -229,7 +337,7 @@ describe("matcher", () => {
         matcher.match(obj, pact, {
           strictMatching: true,
           matchSchemaAndObject: false,
-        }),
+        })
       ).toBeTruthy();
 
       // object matching failure
@@ -237,7 +345,7 @@ describe("matcher", () => {
         matcher.match(obj, pact, {
           strictMatching: true,
           matchSchemaAndObject: true,
-        }),
+        })
       ).toThrow(`Values for "response > body > age" do not match.`);
     });
 
@@ -261,14 +369,14 @@ describe("matcher", () => {
       expect(() =>
         matcher.match(obj, pact, {
           strictMatching: true,
-        }),
+        })
       ).toThrow(
         expect.objectContaining({
           name: "C8yPactMatchError",
           message: expect.stringContaining(
-            `Values for "response > body > age" do not match.`,
+            `Values for "response > body > age" do not match.`
           ),
-        }),
+        })
       );
     });
   });
@@ -290,19 +398,19 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
         ).toBeTruthy();
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have mismatches at indices',
+              'Arrays with key "response > body > tags" have mismatches at indices'
             ),
-          }),
+          })
         );
       });
 
@@ -321,19 +429,19 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
         ).toBeTruthy();
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have mismatches at indices',
+              'Arrays with key "response > body > tags" have mismatches at indices'
             ),
-          }),
+          })
         );
       });
 
@@ -352,19 +460,19 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
         ).toBeTruthy();
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > values" have mismatches at indices',
+              'Arrays with key "response > body > values" have mismatches at indices'
             ),
-          }),
+          })
         );
       });
 
@@ -383,26 +491,26 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have mismatches at indices "2".',
+              'Arrays with key "response > body > tags" have mismatches at indices "2".'
             ),
-          }),
+          })
         );
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have mismatches at indices "2".',
+              'Arrays with key "response > body > tags" have mismatches at indices "2".'
             ),
-          }),
+          })
         );
       });
 
@@ -423,9 +531,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have different lengths.',
+              'Arrays with key "response > body > tags" have different lengths.'
             ),
-          }),
+          })
         );
       });
 
@@ -477,9 +585,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays at "root" have different lengths.',
+              'Arrays at "root" have different lengths.'
             ),
-          }),
+          })
         );
       });
 
@@ -496,9 +604,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Type mismatch at \"root\". Expected array but got object.',
+              'Type mismatch at \"root\". Expected array but got object.'
             ),
-          }),
+          })
         );
       });
 
@@ -511,7 +619,7 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining("Expected 2 objects"),
-          }),
+          })
         );
       });
 
@@ -532,7 +640,7 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining("Expected 2 objects"),
-          }),
+          })
         );
       });
 
@@ -623,9 +731,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Values for "response > body > users > 0 > name" do not match',
+              'Values for "response > body > users > 0 > name" do not match'
             ),
-          }),
+          })
         );
       });
 
@@ -657,9 +765,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > users" have different lengths',
+              'Arrays with key "response > body > users" have different lengths'
             ),
-          }),
+          })
         );
       });
 
@@ -736,9 +844,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Values for "response > body > groups > 0 > members > 1 > name" do not match',
+              'Values for "response > body > groups > 0 > members > 1 > name" do not match'
             ),
-          }),
+          })
         );
       });
 
@@ -775,19 +883,19 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
         ).toBeTruthy();
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > values" have mismatches at indices',
+              'Arrays with key "response > body > values" have mismatches at indices'
             ),
-          }),
+          })
         );
       });
 
@@ -842,26 +950,26 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > matrix > 1" have mismatches at indices "2".',
+              'Arrays with key "response > body > matrix > 1" have mismatches at indices "2".'
             ),
-          }),
+          })
         );
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > matrix > 1" have mismatches at indices "2".',
+              'Arrays with key "response > body > matrix > 1" have mismatches at indices "2".'
             ),
-          }),
+          })
         );
       });
 
@@ -894,9 +1002,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > matrix > 0" have mismatches at indices "0,1,2".',
+              'Arrays with key "response > body > matrix > 0" have mismatches at indices "0,1,2".'
             ),
-          }),
+          })
         );
       });
     });
@@ -923,14 +1031,14 @@ describe("matcher", () => {
         // for primitive arrays - actually this should still fail because arrays
         // check for unexpected values
         expect(() =>
-          matcher.match(obj, pact, { strictMatching: false }),
+          matcher.match(obj, pact, { strictMatching: false })
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have different lengths.',
+              'Arrays with key "response > body > tags" have different lengths.'
             ),
-          }),
+          })
         );
       });
 
@@ -952,14 +1060,14 @@ describe("matcher", () => {
         };
 
         expect(() =>
-          matcher.match(obj, pact, { strictMatching: true }),
+          matcher.match(obj, pact, { strictMatching: true })
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > users" have different lengths',
+              'Arrays with key "response > body > users" have different lengths'
             ),
-          }),
+          })
         );
       });
     });
@@ -1030,9 +1138,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > numbers" have mismatches at indices "1".',
+              'Arrays with key "response > body > numbers" have mismatches at indices "1".'
             ),
-          }),
+          })
         );
       });
 
@@ -1052,6 +1160,37 @@ describe("matcher", () => {
 
         expect(matcher.match(obj, pact)).toBeTruthy();
       });
+    });
+  });
+
+  describe("authorization header prefix", () => {
+    it("should match Authorization with preserved prefix", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      expect(
+        matcher.match(
+          { request: { headers: { Authorization: "Bearer ****" } } },
+          { request: { headers: { Authorization: "****" } } }
+        )
+      ).toBeTruthy();
+      expect(
+        matcher.match(
+          { request: { headers: { Authorization: "****" } } },
+          { request: { headers: { Authorization: "Basic ****" } } }
+        )
+      ).toBeTruthy();
+      expect(
+        matcher.match(
+          { request: { headers: { Authorization: "Bearer ****" } } },
+          { request: { headers: { Authorization: "Basic ****" } } }
+        )
+      ).toBeTruthy();
+      expect(
+        matcher.match(
+          { request: { headers: { Authorization: "****" } } },
+          { request: { headers: { authorization: "Basic ****" } } },
+          { ignoreCase: true }
+        )
+      ).toBeTruthy();
     });
   });
 });
