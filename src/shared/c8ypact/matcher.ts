@@ -286,8 +286,12 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
       );
 
       if (
-        !(strictMatching ? pactKeys : objectKeys).includes(key) &&
-        !isSchema
+        !isSchema &&
+        !this.getObjectForKeyPath(
+          strictMatching ? pactKeys : objectKeys,
+          key,
+          options?.ignoreCase
+        )
       ) {
         throwPactError(
           `"${keyPath(key)}" not found in ${
@@ -410,6 +414,13 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     }
 
     return true;
+  }
+
+  protected getObjectForKeyPath(obj: any, keyPath: string, ignoreCase = false) {
+    if (ignoreCase) {
+      return get_i(obj, keyPath);
+    }
+    return obj.includes(keyPath);
   }
 
   /**

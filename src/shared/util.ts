@@ -66,9 +66,23 @@ export function toSensitiveObjectKeyPath(
           actualPath.push(key);
           continue;
         }
+      } else {
+        // Handle non-numeric keys in arrays
+        if (current.length > 0 && _.isString(current[0])) {
+          const matchedIndex = current.findIndex(
+            (item) => _.isString(item) && item.toLowerCase() === key.toLowerCase()
+          );
+          if (matchedIndex !== -1) {
+            actualPath.push(String(matchedIndex));
+            current = current[matchedIndex];
+            continue;
+          }
+        }
+        // If not found or array doesn't contain strings, return undefined
+        return undefined;
       }
-      actualPath.push(...keys.slice(i));
-      return actualPath.join(".");
+      // Index out of bounds
+      return undefined;
     }
 
     // Handle object case with case-insensitive matching
@@ -81,12 +95,10 @@ export function toSensitiveObjectKeyPath(
         current = current[matchingKey];
         actualPath.push(matchingKey);
       } else {
-        actualPath.push(...keys.slice(i));
-        break;
+        return undefined;
       }
     } else {
-      actualPath.push(...keys.slice(i));
-      break;
+      return undefined;
     }
   }
 
@@ -116,19 +128,31 @@ export function toSensitiveObjectKeyPath(
  */
 export function get_i(obj: any, keyPath: string | string[]): any | undefined {
   if (obj == null || keyPath == null) return undefined;
-  const sensitivePath = toSensitiveObjectKeyPath(obj, keyPath);
-  if (sensitivePath == null) return undefined;
-
-  // Try direct access first
-  const direct = _.get(obj, sensitivePath);
-  if (direct !== undefined) return direct;
-
-  // Handle cookie and set-cookie deep access, e.g. requestHeaders.cookie.authorization
+  
+  // Handle case where obj itself is an array of strings with a single key lookup
   const keys = _.isArray(keyPath)
     ? (keyPath as string[]).filter((k) => !_.isEmpty(k))
-    : (keyPath as string)
-        .split(/[.[\]]/g)
-        .filter((k) => !_.isEmpty(k));
+    : (keyPath as string).split(/[.[\]]/g).filter((k) => !_.isEmpty(k));
+  
+  if (keys.length === 1 && _.isArray(obj) && obj.length > 0 && _.isString(obj[0])) {
+    const matchedString = obj.find(
+      (item) => _.isString(item) && item.toLowerCase() === keys[0].toLowerCase()
+    );
+    if (matchedString !== undefined) {
+      return matchedString;
+    }
+  }
+  
+  const sensitivePath = toSensitiveObjectKeyPath(obj, keyPath);
+  let direct: any = undefined;
+
+  // Try direct access first if we have a valid path
+  if (sensitivePath != null) {
+    direct = _.get(obj, sensitivePath);
+    if (direct !== undefined) return direct;
+  }
+
+  // Handle cookie and set-cookie deep access, e.g. requestHeaders.cookie.authorization
   if (!keys || keys.length === 0) return undefined;
 
   const indexOfKey = (arr: string[], val: string) =>
@@ -165,7 +189,9 @@ export function get_i(obj: any, keyPath: string | string[]): any | undefined {
   // headers.set-cookie.<name>
   if (setCookieIdx >= 0) {
     const parentPath = resolvePathUpTo(setCookieIdx);
-    const setCookieHeader: any = parentPath ? _.get(obj, parentPath) : undefined;
+    const setCookieHeader: any = parentPath
+      ? _.get(obj, parentPath)
+      : undefined;
     const cookieName = keys[setCookieIdx + 1];
     if (setCookieHeader == null) return undefined;
     if (!cookieName) return setCookieHeader; // return full header if no name
@@ -181,6 +207,29 @@ export function get_i(obj: any, keyPath: string | string[]): any | undefined {
       (c: any) => c?.name?.toLowerCase() === cookieName.toLowerCase()
     );
     return found?.value;
+  }
+
+  // Handle arrays of strings with case-insensitive matching
+  // For paths like "headers.authorization" where headers is ["Content-Type", "Authorization"]
+  for (let i = 0; i < keys.length; i++) {
+    const parentPath = resolvePathUpTo(i);
+    const parentValue = parentPath ? _.get(obj, parentPath) : undefined;
+    
+    if (_.isArray(parentValue) && parentValue.length > 0 && _.isString(parentValue[0])) {
+      const searchKey = keys[i + 1];
+      if (searchKey) {
+        const index = parseInt(searchKey);
+        if (isNaN(index)) {
+          // Non-numeric key, try to find case-insensitive match in string array
+          const matchedString = parentValue.find(
+            (item) => _.isString(item) && item.toLowerCase() === searchKey.toLowerCase()
+          );
+          if (matchedString !== undefined) {
+            return matchedString;
+          }
+        }
+      }
+    }
   }
 
   return direct;
