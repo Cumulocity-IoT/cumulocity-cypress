@@ -43,28 +43,13 @@ describe("matcher", () => {
       expect(p3).toBeDefined();
     });
 
-    it("should compare key case sensitivity", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = { Authorization: "****" };
-      const obj2 = { authorization: "****" };
-
-      expect(() => matcher.match(obj1, obj2)).toThrow();
-    });
-
     it("should compare key case insensitivity", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = { Authorization: "****" };
-      const obj2 = { authorization: "****" };
-
-      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
-    });
-
-    it("should retrieve and compare values correctly with case-insensitive keys", () => {
       const matcher = new C8yDefaultPactMatcher();
       const obj1 = { ContentType: "application/json", StatusCode: 200 };
       const obj2 = { contenttype: "application/json", statuscode: 200 };
 
       expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
     });
 
     it("should detect value mismatch even with case-insensitive keys", () => {
@@ -72,6 +57,7 @@ describe("matcher", () => {
       const obj1 = { UserName: "alice" };
       const obj2 = { username: "bob" };
 
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
       expect(() => matcher.match(obj1, obj2, { ignoreCase: true })).toThrow(
         /Values for "username" do not match/
       );
@@ -79,82 +65,90 @@ describe("matcher", () => {
 
     it("should handle nested objects with case-insensitive keys", () => {
       const matcher = new C8yDefaultPactMatcher();
-      const obj1 = { 
-        Headers: { 
+      const obj1 = {
+        Headers: {
           ContentType: "application/json",
-          ApiKey: "secret123"
-        }
+          ApiKey: "secret123",
+        },
       };
-      const obj2 = { 
-        headers: { 
+      const obj2 = {
+        headers: {
           contenttype: "application/json",
-          apikey: "secret123"
-        }
+          apikey: "secret123",
+        },
       };
 
       expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
     });
 
     it("should handle strict matching with case-insensitive keys", () => {
       const matcher = new C8yDefaultPactMatcher();
-      const obj1 = { 
+      const obj1 = {
         ApiKey: "secret",
-        ContentType: "application/json"
+        ContentType: "application/json",
       };
-      const obj2 = { 
-        apikey: "secret"
+      const obj2 = {
+        apikey: "secret",
       };
 
-      expect(() => 
+      expect(() =>
         matcher.match(obj1, obj2, { ignoreCase: true, strictMatching: true })
       ).toThrow(/not found in pact object/);
     });
 
     it("should handle non-strict matching with case-insensitive keys", () => {
       const matcher = new C8yDefaultPactMatcher();
-      const obj1 = { 
+      const obj1 = {
         ApiKey: "secret",
         ContentType: "application/json",
-        ExtraField: "value"
+        ExtraField: "value",
       };
-      const obj2 = { 
+      const obj2 = {
         apikey: "secret",
-        contenttype: "application/json"
+        contenttype: "application/json",
       };
 
-      expect(matcher.match(obj1, obj2, { ignoreCase: true, strictMatching: false })).toBeTruthy();
+      expect(
+        matcher.match(obj1, obj2, { ignoreCase: true, strictMatching: false })
+      ).toBeTruthy();
+      expect(() =>
+        matcher.match(obj1, obj2, { ignoreCase: false, strictMatching: false })
+      ).toThrow();
     });
 
     it("should resolve schema keys case-insensitively when matching", () => {
       const matcher = new C8yDefaultPactMatcher();
-      const obj1 = { 
+      const obj1 = {
         Name: "test",
-        Age: 25
+        Age: 25,
       };
-      const obj2 = { 
+      const obj2 = {
         name: "test",
-        age: 25
+        age: 25,
       };
 
       expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
     });
 
     it("should handle mixed case keys in arrays of objects", () => {
       const matcher = new C8yDefaultPactMatcher();
-      const obj1 = { 
+      const obj1 = {
         Items: [
           { Name: "item1", Value: 100 },
-          { Name: "item2", Value: 200 }
-        ]
+          { Name: "item2", Value: 200 },
+        ],
       };
-      const obj2 = { 
+      const obj2 = {
         items: [
           { name: "item1", value: 100 },
-          { name: "item2", value: 200 }
-        ]
+          { name: "item2", value: 200 },
+        ],
       };
 
       expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
+      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
     });
   });
 
