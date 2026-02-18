@@ -438,17 +438,17 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     return true;
   }
 
-  private isKeyPathInObject(obj: any, keyPath: string, ignoreCase = false): boolean {
-    if (!Array.isArray(obj)) {
+  private isKeyPathInObject(keys: any, keyPath: string, ignoreCase = false): boolean {
+    if (!Array.isArray(keys)) {
       return false;
     }
     if (ignoreCase) {
       const lowerKeyPath = keyPath.toLowerCase();
-      return obj.some(
+      return keys.some(
         (item) => typeof item === "string" && item.toLowerCase() === lowerKeyPath
       );
     }
-    return obj.includes(keyPath);
+    return keys.includes(keyPath);
   }
 
   /**
