@@ -1279,7 +1279,7 @@ describe("c8yclient", () => {
         });
     });
 
-    it("REPRODUCES BUG: adds content-type twice with different casing", () => {
+    it("should not add duplicate content-type header with different casing", () => {
       cy.getAuth({ user: "admin", password: "mypassword" })
         .c8yclient<ICurrentTenant>((c) => {
           return c.core.fetch("/inventory/managedObjects", {
