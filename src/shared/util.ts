@@ -33,9 +33,6 @@ export function sanitizeStringifiedObject(obj: any): any {
  * assumed to be a dot-separated string. If the path is an array, it is assumed
  * to be a list of keys.
  *
- * The function will go over all keys and return the actual case-sensitive path
- * up to the first mismatch.
- *
  * @param obj The object to query
  * @param path The case-insensitive path to find
  * @returns The actual case-sensitive path if found, undefined otherwise
