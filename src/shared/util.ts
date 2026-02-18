@@ -221,7 +221,8 @@ export function get_i(obj: any, keyPath: string | string[]): any | undefined {
           const matchedString = parentValue.find(
             (item) => _.isString(item) && item.toLowerCase() === searchKey.toLowerCase()
           );
-          if (matchedString !== undefined) {
+          // Only return a match when this segment is the final path segment
+          if (matchedString !== undefined && i + 1 === keys.length - 1) {
             return matchedString;
           }
         }
