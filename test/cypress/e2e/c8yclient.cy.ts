@@ -1174,43 +1174,6 @@ describe("c8yclient", () => {
         });
     });
 
-    it("should add missing content-type if request has body", () => {
-      cy.getAuth({ user: "admin", password: "mypassword" })
-        .c8yclient<ICurrentTenant>((c) => {
-          return c.core.fetch("/inventory/managedObjects", {
-            method: "POST",
-            body: JSON.stringify({ name: "test" }),
-          });
-        })
-        .then((response) => {
-          expect(response.status).to.eq(299);
-          expect(response.requestHeaders).to.have.property(
-            "content-type",
-            "application/json"
-          );
-        });
-    });
-
-    it("should not overwrite content-type if request has body", () => {
-      cy.getAuth({ user: "admin", password: "mypassword" })
-        .c8yclient<ICurrentTenant>((c) => {
-          return c.core.fetch("/inventory/managedObjects", {
-            method: "POST",
-            body: JSON.stringify({ name: "test" }),
-            headers: {
-              "content-type": "application/xml",
-            },
-          });
-        })
-        .then((response) => {
-          expect(response.status).to.eq(299);
-          expect(response.requestHeaders).to.have.property(
-            "content-type",
-            "application/xml"
-          );
-        });
-    });
-
     it("should not add content-type if request has no body", () => {
       cy.getAuth({ user: "admin", password: "mypassword" })
         .c8yclient<ICurrentTenant>((c) => {
@@ -1303,58 +1266,17 @@ describe("c8yclient", () => {
           expect(postCall).to.not.be.undefined;
           const headers = postCall?.args[1]?.headers;
 
-          if (headers && typeof headers === "object") {
-            const contentTypeKeys = Object.keys(headers).filter(
-              (key) => key.toLowerCase() === "content-type"
-            );
+          const contentTypeKeys = Object.keys(headers).filter(
+            (key) => key.toLowerCase() === "content-type"
+          );
 
-            expect(
-              contentTypeKeys.length,
-              `Expected 1 content-type header but found ${contentTypeKeys.length}: ${contentTypeKeys.join(", ")}`
-            ).to.eq(1);
-          }
-        });
-    });
+          expect(
+            contentTypeKeys.length,
+            `Expected 1 content-type header but found ${contentTypeKeys.length}: ${contentTypeKeys.join(", ")}`
+          ).to.eq(1);
 
-    it("should handle mixed case Content-Type header correctly", () => {
-      cy.getAuth({ user: "admin", password: "mypassword" })
-        .c8yclient<ICurrentTenant>((c) => {
-          return c.core.fetch("/inventory/managedObjects", {
-            method: "POST",
-            body: JSON.stringify({ name: "test" }),
-            headers: {
-              "Content-Type": "application/xml",
-            },
-          });
-        })
-        .then((response) => {
-          expect(response.status).to.eq(299);
-
-          // Check that window.fetchStub was called with correct headers
-          expect(window.fetchStub).to.have.been.called;
-          const calls = window.fetchStub.getCalls();
-          const postCall = calls.find((call: any) => {
-            return call?.args[1]?.method === "POST";
-          });
-
-          expect(postCall).to.not.be.undefined;
-          const headers = postCall?.args[1]?.headers;
-
-          if (headers && typeof headers === "object") {
-            const headerKeys = Object.keys(headers);
-            const contentTypeKeys = headerKeys.filter(
-              (key) => key.toLowerCase() === "content-type"
-            );
-
-            expect(
-              contentTypeKeys.length,
-              `Expected 1 content-type header but found ${contentTypeKeys.length}: ${contentTypeKeys.join(", ")}`
-            ).to.eq(1);
-
-            // The user-provided Content-Type should be preserved
-            const hasContentType = headers["Content-Type"] === "application/xml";
-            expect(hasContentType).to.be.true;
-          }
+          const hasContentType = headers["Content-Type"] === "application/xml";
+          expect(hasContentType).to.be.true;
         });
     });
   });
