@@ -100,6 +100,8 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     "$anchor",
     "$dynamicRef",
     "$dynamicAnchor",
+    "$recursiveRef",
+    "$recursiveAnchor",
   ]);
 
   constructor(
