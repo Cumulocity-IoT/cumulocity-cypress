@@ -629,16 +629,15 @@ function run(
     };
 
     const matchPact = (response: any, schema: any) => {
+      if (!schema && (ignore || !enabled || Cypress.c8ypact.mode() !== "apply"))
+        return;
+
+      const record = options.record ?? Cypress.c8ypact.current?.nextRecord();
       if (schema) {
         cy.c8ymatch(response, schema, undefined, options);
       } else {
         // object matching against existing pact
-        if (ignore || !enabled) return;
-        if (Cypress.c8ypact.mode() !== "apply") return;
-
         for (const r of _.isArray(response) ? response : [response]) {
-          const record =
-            options.record ?? Cypress.c8ypact.current?.nextRecord();
           const info = Cypress.c8ypact.current?.info;
           if (record != null && info != null && !ignore) {
             cy.c8ymatch(r, record, info, options);
@@ -658,7 +657,7 @@ function run(
               } else {
                 const current: any = Cypress.c8ypact.current;
                 const index = _.isFunction(current?.currentRecordIndex)
-                  ? current?.currentRecordIndex() ?? 0
+                  ? (current?.currentRecordIndex() ?? 0)
                   : 0;
                 throwError(
                   `Record with index ${index} not found in pact with id '${Cypress.c8ypact.getCurrentTestId()}'. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore.`
