@@ -85,6 +85,25 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
   static schemaMatcher: C8ySchemaMatcher;
   static matchSchemaAndObject = false;
 
+  /**
+   * Standard JSON Schema keywords that start with $ but are not schema matcher keys.
+   * These should be treated as regular object properties.
+   * @see https://json-schema.org/understanding-json-schema/reference
+   */
+  private static readonly JSON_SCHEMA_KEYWORDS = new Set([
+    "$schema",
+    "$id",
+    "$ref",
+    "$comment",
+    "$defs",
+    "$vocabulary",
+    "$anchor",
+    "$dynamicRef",
+    "$dynamicAnchor",
+    "$recursiveRef",
+    "$recursiveAnchor",
+  ]);
+
   constructor(
     propertyMatchers: { [key: string]: C8yPactMatcher } = {
       body: new C8yPactBodyMatcher(),
@@ -248,8 +267,12 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     }
 
     // get keys of objects without schema keys and schema keys separately
-    const objectKeys = Object.keys(obj1).filter((k) => !k.startsWith("$"));
-    const schemaKeys = Object.keys(obj2).filter((k) => k.startsWith("$"));
+    const objectKeys = Object.keys(obj1).filter(
+      (k) => !this.isSchemaMatcherKey(k)
+    );
+    const schemaKeys = Object.keys(obj2).filter((k) =>
+      this.isSchemaMatcherKey(k)
+    );
     // normalize pact keys and remove keys that have a schema defined
     // we do not want for example body and $body
     const pactKeys =
@@ -267,12 +290,12 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     }
 
     const removeSchemaPrefix = (key: string) =>
-      key.startsWith("$") ? key.slice(1) : key;
+      this.isSchemaMatcherKey(key) ? key.slice(1) : key;
 
     const findActualKey = (obj: any, keyToFind: string): string => {
       if (!options?.ignoreCase) return keyToFind;
       if (obj == null || !_.isObject(obj)) return keyToFind;
-      
+
       const actualKey = Object.keys(obj).find(
         (k) => k.toLowerCase() === keyToFind.toLowerCase()
       );
@@ -284,17 +307,18 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     const keys = !strictMatching ? pactKeys : objectKeys;
     for (const key of keys) {
       // schema is always defined on the pact object - needs special consideration
-      const isSchema = key.startsWith("$") || schemaKeys.includes(`$${key}`);
+      const isSchema =
+        this.isSchemaMatcherKey(key) || schemaKeys.includes(`$${key}`);
 
       // Resolve actual keys with correct casing when ignoreCase is enabled
       const valueSourceObj = strictMatching || isSchema ? obj1 : obj2;
       const pactSourceObj = strictMatching || isSchema ? obj2 : obj1;
-      
+
       const keyForValue = findActualKey(
         valueSourceObj,
         removeSchemaPrefix(key)
       );
-      
+
       const keyForPact = findActualKey(
         pactSourceObj,
         isSchema && !key.startsWith("$") ? `$${key}` : key
@@ -438,14 +462,29 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     return true;
   }
 
-  private isKeyPathInObject(keys: any, keyPath: string, ignoreCase = false): boolean {
+  /**
+   * Check if a key is a schema matcher key (starts with $ but is not a standard JSON Schema keyword)
+   */
+  private isSchemaMatcherKey(key: string): boolean {
+    if (!key.startsWith("$")) {
+      return false;
+    }
+    return !C8yDefaultPactMatcher.JSON_SCHEMA_KEYWORDS.has(key);
+  }
+
+  private isKeyPathInObject(
+    keys: any,
+    keyPath: string,
+    ignoreCase = false
+  ): boolean {
     if (!Array.isArray(keys)) {
       return false;
     }
     if (ignoreCase) {
       const lowerKeyPath = keyPath.toLowerCase();
       return keys.some(
-        (item) => typeof item === "string" && item.toLowerCase() === lowerKeyPath
+        (item) =>
+          typeof item === "string" && item.toLowerCase() === lowerKeyPath
       );
     }
     return keys.includes(keyPath);
