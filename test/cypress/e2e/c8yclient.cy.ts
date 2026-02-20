@@ -1145,7 +1145,7 @@ describe("c8yclient", () => {
         });
     });
 
-    it("should handle array of primities as response", () => {
+    it("should handle array of primitives as response", () => {
       const arrayContent = [1, 2, 3];
       stubResponse(
         new window.Response(JSON.stringify(arrayContent), {
