@@ -1193,4 +1193,215 @@ describe("matcher", () => {
       ).toBeTruthy();
     });
   });
+
+  describe("JSON Schema keywords", () => {
+    it("should match objects with $schema property", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        $schema: "http://json-schema.org/draft-07/schema#",
+        type: "object",
+      };
+      const obj2 = {
+        $schema: "http://json-schema.org/draft-07/schema#",
+        type: "object",
+      };
+      const obj3 = {
+        $schema: "http://json-schema.org/draft-06/schema#",
+        type: "object",
+      };
+
+      expect(matcher.match(obj1, obj2)).toBeTruthy();
+      expect(() => matcher.match(obj1, obj3)).toThrow();
+    });
+
+    it("should match objects with $id property", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        $id: "https://example.com/schema.json",
+        type: "object",
+      };
+      const obj2 = {
+        $id: "https://example.com/schema.json",
+        type: "object",
+      };
+      const obj3 = {
+        $id: "https://example.com/schema-v2.json",
+        type: "object",
+      };
+
+      expect(matcher.match(obj1, obj2)).toBeTruthy();
+      expect(() => matcher.match(obj1, obj3)).toThrow();
+    });
+
+    it("should match objects with $ref property", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        properties: {
+          user: { $ref: "#/definitions/User" },
+        },
+      };
+      const obj2 = {
+        properties: {
+          user: { $ref: "#/definitions/User" },
+        },
+      };
+      const obj3 = {
+        properties: {
+          user: { $ref: "#/definitions/Person" },
+        },
+      };
+
+      expect(matcher.match(obj1, obj2)).toBeTruthy();
+      expect(() => matcher.match(obj1, obj3)).toThrow();
+    });
+
+    it("should match objects with $comment property", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        $comment: "This is a test schema",
+        type: "object",
+      };
+      const obj2 = {
+        $comment: "This is a test schema",
+        type: "object",
+      };
+      const obj3 = {
+        $comment: "This is a different comment",
+        type: "object",
+      };
+
+      expect(matcher.match(obj1, obj2)).toBeTruthy();
+      expect(() => matcher.match(obj1, obj3)).toThrow();
+    });
+
+    it("should match objects with $defs property", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        $defs: {
+          address: { type: "object" },
+        },
+      };
+      const obj2 = {
+        $defs: {
+          address: { type: "object" },
+        },
+      };
+      const obj3 = {
+        $defs: {
+          address: { type: "string" },
+        },
+      };
+
+      expect(matcher.match(obj1, obj2)).toBeTruthy();
+      expect(() => matcher.match(obj1, obj3)).toThrow();
+    });
+
+    it("should match objects with multiple JSON Schema keywords", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        $schema: "http://json-schema.org/draft-07/schema#",
+        $id: "https://example.com/person.schema.json",
+        $comment: "A person schema",
+        type: "object",
+        properties: {
+          name: { type: "string" },
+        },
+      };
+      const obj2 = {
+        $schema: "http://json-schema.org/draft-07/schema#",
+        $id: "https://example.com/person.schema.json",
+        $comment: "A person schema",
+        type: "object",
+        properties: {
+          name: { type: "string" },
+        },
+      };
+
+      expect(matcher.match(obj1, obj2)).toBeTruthy();
+    });
+
+    it("should fail when one of multiple JSON Schema keywords differs", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        $schema: "http://json-schema.org/draft-07/schema#",
+        $id: "https://example.com/person.schema.json",
+        $comment: "A person schema",
+        type: "object",
+      };
+      const obj2 = {
+        $schema: "http://json-schema.org/draft-07/schema#",
+        $id: "https://example.com/person.schema.json",
+        $comment: "A different comment",
+        type: "object",
+      };
+
+      expect(() => matcher.match(obj1, obj2)).toThrow(
+        expect.objectContaining({
+          name: "C8yPactMatchError",
+          message: expect.stringContaining(
+            'Values for "$comment" do not match'
+          ),
+        })
+      );
+    });
+
+    it("should differentiate between $schema (JSON Schema) and $body (schema matcher)", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      C8yDefaultPactMatcher.schemaMatcher = new C8yAjvSchemaMatcher();
+
+      const obj1 = {
+        response: {
+          body: {
+            $schema: "http://json-schema.org/draft-07/schema#",
+            name: "John",
+          },
+        },
+      };
+      const obj2 = {
+        response: {
+          $body: {
+            type: "object",
+            properties: {
+              $schema: { type: "string" },
+              name: { type: "string" },
+            },
+          },
+        },
+      };
+
+      // $body is used as schema matcher, $schema is matched as regular property
+      expect(matcher.match(obj1, obj2)).toBeTruthy();
+    });
+
+    it("should handle nested objects with JSON Schema keywords", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj1 = {
+        definitions: {
+          User: {
+            $id: "#User",
+            type: "object",
+          },
+        },
+      };
+      const obj2 = {
+        definitions: {
+          User: {
+            $id: "#User",
+            type: "object",
+          },
+        },
+      };
+      const obj3 = {
+        definitions: {
+          User: {
+            $id: "#Person",
+            type: "object",
+          },
+        },
+      };
+
+      expect(matcher.match(obj1, obj2)).toBeTruthy();
+      expect(() => matcher.match(obj1, obj3)).toThrow();
+    });
+  });
 });
