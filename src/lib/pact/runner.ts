@@ -250,6 +250,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           "failOnStatusCode",
           "timeout",
           "requestId",
+          "schema"
         ];
         const strictMatching =
           Cypress.config().c8ypact?.strictMatching ??
