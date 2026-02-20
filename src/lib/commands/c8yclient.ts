@@ -657,7 +657,7 @@ function run(
               } else {
                 const current: any = Cypress.c8ypact.current;
                 const index = _.isFunction(current?.currentRecordIndex)
-                  ? (current?.currentRecordIndex() ?? 0)
+                  ? current?.currentRecordIndex() ?? 0
                   : 0;
                 throwError(
                   `Record with index ${index} not found in pact with id '${Cypress.c8ypact.getCurrentTestId()}'. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore.`
