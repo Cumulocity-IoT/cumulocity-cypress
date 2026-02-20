@@ -1059,7 +1059,7 @@ describe("c8yclient", () => {
         new window.Response(JSON.stringify({ name: "t123456789" }), {
           status: 200,
           statusText: "OK",
-          headers: {},
+          headers: { "content-type": "application/json" },
         })
       );
 
@@ -1083,6 +1083,87 @@ describe("c8yclient", () => {
           expectC8yClientRequest(requestOptions);
         });
     });
+
+    it("should handle plain text response when JSON is expected", () => {
+      stubResponse(
+        new window.Response("4", {
+          status: 200,
+          statusText: "OK",
+          headers: { "content-type": "text/plain" },
+        })
+      );
+
+      cy.getAuth({ user: "admin", password: "mypassword" })
+        .c8yclient((c) => {
+          return c.core.fetch("/some/endpoint");
+        })
+        .then((response) => {
+          expect(response.status).to.eq(200);
+          // 4 should be returned as text, not parsed as JSON
+          expect(response.body).to.eq("4");
+          expect(response.headers["content-type"]).to.eq("text/plain");
+        });
+    });
+
+    it("should handle invalid JSON with JSON content-type", () => {
+      stubResponse(
+        new window.Response("Not valid JSON", {
+          status: 200,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        })
+      );
+
+      cy.getAuth({ user: "admin", password: "mypassword" })
+        .c8yclient((c) => {
+          return c.core.fetch("/some/endpoint");
+        })
+        .then((response) => {
+          expect(response.status).to.eq(200);
+          expect(response.body).to.eq("Not valid JSON");
+        });
+    });
+
+    it("should handle HTML response as text", () => {
+      const htmlContent = "<html><body>Hello</body></html>";
+      stubResponse(
+        new window.Response(htmlContent, {
+          status: 200,
+          statusText: "OK",
+          headers: { "content-type": "text/html" },
+        })
+      );
+
+      cy.getAuth({ user: "admin", password: "mypassword" })
+        .c8yclient((c) => {
+          return c.core.fetch("/some/endpoint");
+        })
+        .then((response) => {
+          expect(response.status).to.eq(200);
+          expect(response.body).to.eq(htmlContent);
+          expect(response.headers["content-type"]).to.eq("text/html");
+        });
+    });
+
+    it("should handle array of primities as response", () => {
+      const arrayContent = [1, 2, 3];
+      stubResponse(
+        new window.Response(JSON.stringify(arrayContent), {
+          status: 200,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        })
+      );
+
+      cy.getAuth({ user: "admin", password: "mypassword" })
+        .c8yclient((c) => {
+          return c.core.fetch("/some/endpoint");
+        })
+        .then((response) => {
+          expect(response.status).to.eq(200);
+          expect(response.body).to.deep.eq(arrayContent);
+        }); 
+      });
   });
 
   context("timeout", () => {
