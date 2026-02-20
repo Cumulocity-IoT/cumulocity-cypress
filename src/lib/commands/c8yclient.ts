@@ -629,8 +629,8 @@ function run(
     };
 
     const matchPact = (response: any, schema: any) => {
-      if (ignore || !enabled) return;
-      if (Cypress.c8ypact.mode() !== "apply") return;
+      if (!schema && (ignore || !enabled || Cypress.c8ypact.mode() !== "apply"))
+        return;
 
       const record = options.record ?? Cypress.c8ypact.current?.nextRecord();
       if (schema) {
