@@ -246,7 +246,8 @@ export async function wrapFetchResponse(
   } else if (response.body) {
     try {
       rawBody = await response.text();
-      responseObj.body = JSON.parse(rawBody);
+      const json = JSON.parse(rawBody);
+      responseObj.body = _.isObjectLike(json) ? json : rawBody;
     } catch {
       responseObj.body = rawBody;
     }
