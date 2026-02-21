@@ -222,7 +222,7 @@ export const C8yPactPreprocessorDefaultOptions = {
  * ### Case-insensitive matching
  *
  * When `ignoreCase` is `true` (the default), each path segment is resolved
- * without regard to capitalisation. Mutations always use the actual key name
+ * without regard to capitalization. Mutations always use the actual key name
  * found in the object.
  *
  * ### Cookie / Set-Cookie shorthand
