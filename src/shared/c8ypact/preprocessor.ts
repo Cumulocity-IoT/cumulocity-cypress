@@ -349,7 +349,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     patterns: string[],
     ignoreCase?: boolean
   ): void {
-    this.walkKeyPath(obj, key, ignoreCase, (parent, k) => {
+    this.traverseKeyPath(obj, key, ignoreCase, (parent, k) => {
       const v = parent[k];
       if (v == null) return;
       let result = v;
@@ -405,7 +405,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
       this.obfuscateCookie(obj, keyParts, p, ignoreCase);
     } else {
       const isAuthorizationKey = this.hasKey(keyParts, "authorization");
-      this.walkKeyPath(obj, key, ignoreCase, (parent, k) => {
+      this.traverseKeyPath(obj, key, ignoreCase, (parent, k) => {
         const value = parent[k];
         if (value == null) return;
         const isAuthKey = isAuthorizationKey || k.toLowerCase() === "authorization";
