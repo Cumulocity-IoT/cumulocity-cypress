@@ -107,7 +107,7 @@ export interface C8yPactConfigOptions {
    *
    * The preprocessor runs on every pact record when it is saved (recording mode)
    * and before it is matched against any other record. Use it to remove or obfuscate
-   * sensitive values before they reach the fixture file, or to sanitise
+   * sensitive values before they reach the fixture file, or to sanitize
    * response bodies before they are compared.
    *
    * **Key-path syntax**
