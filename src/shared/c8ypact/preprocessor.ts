@@ -328,7 +328,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
         fn(currentObj, currentKey);
       } else if (_.isArray(target)) {
         const [peekKey] = restKeys;
-        if (!isNaN(parseInt(peekKey))) {
+        if (peekKey != null && !isNaN(parseInt(peekKey))) {
           walk(target, restKeys); // numeric: consume the index on next iteration
         } else {
           target.forEach((item) => { if (item != null) walk(item, restKeys); });
