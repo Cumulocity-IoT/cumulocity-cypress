@@ -360,8 +360,6 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
   });
 
   beforeEach(function () {
-    Cypress.c8ypact.current = null;
-
     let consoleProps: any = {};
     let logger: Cypress.Log | undefined = undefined;
     if (Cypress.c8ypact.debugLog === true) {
@@ -418,8 +416,13 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
     }
 
     Cypress.c8ypact.loadCurrent().then((pact) => {
-      Cypress.c8ypact.current = pact;
-      consoleProps.current = pact;
+      if (pact?.id === Cypress.c8ypact.current?.id) {
+        // already loaded, do not override current pact
+        logger?.end();
+        return;
+      }
+      Cypress.c8ypact.current = pact ?? null;
+      consoleProps.current = pact ?? null;
 
       // set tenant and baseUrl from pact info if not configured
       // this is needed to not require tenant and baseUrl for fully mocked tests
