@@ -127,11 +127,6 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     const ignoreCase = o.ignoreCase;
     const obfuscationPattern = o.obfuscationPattern;
 
-    const mapSensitiveKeys = (mapObject: any, keys: string[]) =>
-      keys.map((k) =>
-        ignoreCase === true ? toSensitiveObjectKeyPath(mapObject, k) ?? k : k
-      );
-
     objs.forEach((obj) => {
       if (o?.pick != null) {
         const keepPaths: string[] = [];
@@ -149,62 +144,19 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
       }
 
       if (o?.regexReplace != null) {
-        Object.entries(o.regexReplace ?? {}).forEach(([key, value]) => {
+        Object.entries(o.regexReplace).forEach(([key, value]) => {
           const patterns = Array.isArray(value) ? value : [value];
-          const keysToReplace = mapSensitiveKeys(obj, [key]);
-
-          keysToReplace.forEach((k) => {
-            const keyParts = k.split(".");
-            const processKeyPath = (
-              currentObj: any,
-              remainingKeyParts: string[]
-            ): void => {
-              if (!currentObj || remainingKeyParts.length === 0) return;
-              const [_currentKey, ...restKeys] = remainingKeyParts;
-              const currentKey =
-                ignoreCase === true
-                  ? (toSensitiveObjectKeyPath(currentObj, _currentKey) ?? _currentKey)
-                  : _currentKey;
-              const target = _.get(currentObj, currentKey);
-              if (restKeys.length === 0) {
-                if (target != null) {
-                  let v = target;
-                  for (const pattern of patterns) {
-                    try {
-                      const regex = parseRegexReplace(pattern);
-                      v = performRegexReplace(v, regex);
-                    } catch {
-                      // ignore invalid regex
-                    }
-                  }
-                  _.set(currentObj, currentKey, v);
-                }
-              } else if (_.isArray(target)) {
-                const [peekKey] = restKeys;
-                if (peekKey != null && !isNaN(parseInt(peekKey))) {
-                  // Numeric index: re-enter with the array as current object so the
-                  // index key is consumed in the next iteration via _.get(array, "0")
-                  processKeyPath(target, restKeys);
-                } else {
-                  // Non-numeric: apply remaining path to every element
-                  target.forEach((item) => {
-                    if (item != null) processKeyPath(item, restKeys);
-                  });
-                }
-              } else {
-                processKeyPath(target, restKeys);
-              }
-            };
-            processKeyPath(obj, keyParts);
-          });
+          this.applyRegexReplace(obj, key, patterns, ignoreCase);
         });
       }
 
-      const keysToObfuscate = mapSensitiveKeys(obj, o.obfuscate ?? []);
-      this.handleObfuscation(obj, keysToObfuscate, obfuscationPattern, ignoreCase);
+      this.filterValidKeys(obj, o.obfuscate ?? []).forEach((key) => {
+        this.obfuscateKey(obj, key, obfuscationPattern, ignoreCase);
+      });
 
-      const keysToRemove = mapSensitiveKeys(obj, o.ignore ?? []);
-      this.handleRemoval(obj, keysToRemove, ignoreCase);
+      this.filterValidKeys(obj, o.ignore ?? []).forEach((key) => {
+        this.removeKey(obj, key, ignoreCase);
+      });
     });
   }
 
@@ -265,63 +217,16 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     }
   }
 
-  private handleObfuscation(
-    obj: any,
-    keysToObfuscate: string[],
-    obfuscationPattern?: string,
-    ignoreCase?: boolean
-  ): void {
-    const validKeys = this.filterValidKeys(obj, keysToObfuscate);
-    validKeys.forEach((key) => {
-      this.obfuscateKey(obj, key, obfuscationPattern, ignoreCase);
-    });
-  }
-
-  private handleRemoval(obj: any, keysToRemove: string[], ignoreCase?: boolean): void {
-    const validKeys = this.filterValidKeys(obj, keysToRemove);
-    validKeys.forEach((key) => {
-      this.removeKey(obj, key, ignoreCase);
-    });
-  }
-
   private removeKey(obj: any, key: string, ignoreCase?: boolean): void {
     const keyPath = key.split(".");
-
     if (this.hasKey(keyPath, "set-cookie")) {
       this.removeSetCookie(obj, keyPath, ignoreCase);
     } else if (this.hasKey(keyPath, "cookie")) {
       this.removeCookie(obj, keyPath, ignoreCase);
     } else {
-      const processKeyPath = (
-        currentObj: any,
-        remainingKeyParts: string[]
-      ): void => {
-        if (!currentObj || remainingKeyParts.length === 0) return;
-
-        const [_currentKey, ...restKeys] = remainingKeyParts;
-        const currentKey =
-          toSensitiveObjectKeyPath(currentObj, _currentKey) ?? _currentKey;
-        const target = _.get(currentObj, currentKey);
-
-        if (restKeys.length === 0) {
-          // Remove the key regardless of whether it's an array or not
-          _.unset(currentObj, currentKey);
-        } else if (_.isArray(target)) {
-          const [peekKey] = restKeys;
-          if (peekKey != null && !isNaN(parseInt(peekKey))) {
-            // Numeric index: re-enter with the array as current object so the
-            // index key is consumed in the next iteration via _.get(array, "0")
-            processKeyPath(target, restKeys);
-          } else {
-            // Non-numeric: apply remaining path to every element
-            target.forEach((item) => processKeyPath(item, restKeys));
-          }
-        } else {
-          processKeyPath(target, restKeys);
-        }
-      };
-
-      processKeyPath(obj, keyPath);
+      this.traverseKeyPath(obj, key, ignoreCase, (parent, k) =>
+        _.unset(parent, k)
+      );
     }
   }
 
@@ -382,61 +287,141 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     return _.without(keys, ...this.reservedKeys);
   }
 
+  /**
+   * Unified key-path traversal. Calls `fn(parent, resolvedKey)` on every
+   * matching leaf. Handles recursive descent (`..leafKey` / `prefix..leafKey`)
+   * and regular dot-/bracket-separated paths including array indices.
+   */
+  private traverseKeyPath(
+    obj: any,
+    key: string,
+    ignoreCase: boolean | undefined,
+    fn: (parent: any, key: string) => void
+  ): void {
+    if (key.includes("..")) {
+      const sep = key.indexOf("..");
+      const prefix = key.slice(0, sep);
+      const leafKey = key.slice(sep + 2);
+      if (!leafKey) return;
+      let target: any = obj;
+      if (prefix) {
+        const resolvedPrefix =
+          ignoreCase === true
+            ? (toSensitiveObjectKeyPath(obj, prefix) ?? prefix)
+            : prefix;
+        target = _.get(obj, resolvedPrefix);
+        if (target == null) return;
+      }
+      this.applyRecursive(target, leafKey, fn, ignoreCase);
+      return;
+    }
+
+    const walk = (currentObj: any, remainingParts: string[]): void => {
+      if (!currentObj || remainingParts.length === 0) return;
+      const [rawKey, ...restKeys] = remainingParts;
+      const currentKey =
+        ignoreCase === true
+          ? (toSensitiveObjectKeyPath(currentObj, rawKey) ?? rawKey)
+          : rawKey;
+      const target = _.get(currentObj, currentKey);
+      if (restKeys.length === 0) {
+        fn(currentObj, currentKey);
+      } else if (_.isArray(target)) {
+        const [peekKey] = restKeys;
+        if (peekKey != null && !isNaN(parseInt(peekKey))) {
+          walk(target, restKeys); // numeric: consume the index on next iteration
+        } else {
+          target.forEach((item) => { if (item != null) walk(item, restKeys); });
+        }
+      } else {
+        walk(target, restKeys);
+      }
+    };
+    walk(obj, key.split("."));
+  }
+
+  /**
+   * Applies a list of regex-replace patterns to the value at the given key path.
+   */
+  private applyRegexReplace(
+    obj: any,
+    key: string,
+    patterns: string[],
+    ignoreCase?: boolean
+  ): void {
+    this.traverseKeyPath(obj, key, ignoreCase, (parent, k) => {
+      const v = parent[k];
+      if (v == null) return;
+      let result = v;
+      for (const pattern of patterns) {
+        try {
+          result = performRegexReplace(result, parseRegexReplace(pattern));
+        } catch {
+          // ignore invalid regex
+        }
+      }
+      parent[k] = result;
+    });
+  }
+
+  /**
+   * Recursively walks `obj` (depth-first) and calls `fn` on every node whose
+   * key matches `leafKey` (case-sensitively, or case-insensitively when
+   * `ignoreCase` is true). Traverses into arrays and plain objects.
+   */
+  private applyRecursive(
+    obj: any,
+    leafKey: string,
+    fn: (parent: any, key: string) => void,
+    ignoreCase?: boolean
+  ): void {
+    if (!_.isObjectLike(obj)) return;
+    if (_.isArray(obj)) {
+      obj.forEach((item) => this.applyRecursive(item, leafKey, fn, ignoreCase));
+      return;
+    }
+    // Apply at this level if a matching key exists
+    const matchingKey = Object.keys(obj).find((k) =>
+      ignoreCase === true
+        ? k.toLowerCase() === leafKey.toLowerCase()
+        : k === leafKey
+    );
+    if (matchingKey !== undefined) {
+      fn(obj, matchingKey);
+    }
+    // Recurse into all child values
+    Object.values(obj).forEach((value) =>
+      this.applyRecursive(value, leafKey, fn, ignoreCase)
+    );
+  }
+
   private obfuscateKey(obj: any, key: string, pattern?: string, ignoreCase?: boolean): void {
-    const keyParts = key.split(".");
     const p = pattern ?? C8yDefaultPactPreprocessor.defaultObfuscationPattern;
-    const isAuthorizationKey = this.hasKey(keyParts, "authorization");
-    
+    const keyParts = key.split(".");
+
     if (this.hasKey(keyParts, "set-cookie")) {
       this.obfuscateSetCookie(obj, keyParts, p, ignoreCase);
     } else if (this.hasKey(keyParts, "cookie")) {
       this.obfuscateCookie(obj, keyParts, p, ignoreCase);
     } else {
-      const processKeyPath = (
-        currentObj: any,
-        remainingKeyParts: string[]
-      ): void => {
-        if (!currentObj || remainingKeyParts.length === 0) return;
-
-        const [_currentKey, ...restKeys] = remainingKeyParts;
-        const currentKey =
-          toSensitiveObjectKeyPath(currentObj, _currentKey) ?? _currentKey;
-        const target = _.get(currentObj, currentKey);
-
-        if (restKeys.length === 0) {
-          if (_.get(currentObj, currentKey) != null) {
-            // Only preserve Bearer/Basic prefix for authorization headers
-            // Check if value is a Bearer or Basic authorization header with a token
-            // Match case-insensitively and ensure there's a non-empty token after the prefix
-            const authHeaderMatch = isAuthorizationKey && _.isString(target) 
-              ? target.match(/^(Bearer|Basic)\s+(.+)$/i) 
-              : null;
-            
-            if (authHeaderMatch && authHeaderMatch[2]?.trim()) {
-              // Preserve the original case of the prefix and obfuscate the token
-              const prefix = authHeaderMatch[1];
-              _.set(currentObj, currentKey, `${prefix} ${p}`);
-            } else {
-              // Obfuscate the entire value for non-auth headers or malformed headers
-              _.set(currentObj, currentKey, p);
-            }
-          }
-        } else if (_.isArray(target)) {
-          const [peekKey] = restKeys;
-          if (peekKey != null && !isNaN(parseInt(peekKey))) {
-            // Numeric index: re-enter with the array as current object so the
-            // index key is consumed in the next iteration via _.get(array, "0")
-            processKeyPath(target, restKeys);
-          } else {
-            // Non-numeric: apply remaining path to every element
-            target.forEach((item) => processKeyPath(item, restKeys));
-          }
-        } else {
-          processKeyPath(target, restKeys);
-        }
-      };
-
-      processKeyPath(obj, keyParts);
+      const isAuthorizationKey = this.hasKey(keyParts, "authorization");
+      this.traverseKeyPath(obj, key, ignoreCase, (parent, k) => {
+        const value = parent[k];
+        if (value == null) return;
+        const isAuthKey =
+          isAuthorizationKey ||
+          (ignoreCase === true
+            ? k.toLowerCase() === "authorization"
+            : k === "authorization");
+        const authMatch =
+          isAuthKey && _.isString(value)
+            ? value.match(/^(Bearer|Basic)\s+(.+)$/i)
+            : null;
+        parent[k] =
+          authMatch && authMatch[2]?.trim()
+            ? `${authMatch[1]} ${p}`
+            : p;
+      });
     }
   }
 
