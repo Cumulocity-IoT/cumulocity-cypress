@@ -148,7 +148,7 @@ export interface C8yPactPreprocessorOptions {
   ignoreCase?: boolean;
 }
 
-/*
+/**
  * Default options for `C8yPactPreprocessor`. Used when constructing an instance
  * without custom options, and as fallback for missing properties when applying
  * with partial options.
