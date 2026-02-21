@@ -320,7 +320,7 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
       if (!currentObj || remainingParts.length === 0) return;
       const [rawKey, ...restKeys] = remainingParts;
       const currentKey =
-        ignoreCase !== false
+        ignoreCase === true
           ? (toSensitiveObjectKeyPath(currentObj, rawKey) ?? rawKey)
           : rawKey;
       const target = _.get(currentObj, currentKey);
