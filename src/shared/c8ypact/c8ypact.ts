@@ -142,7 +142,7 @@ export interface C8yPactConfigOptions {
    * **Case-insensitive matching**
    *
    * Set `ignoreCase: true` (the default) to resolve keys without regard to
-   * capitalisation. The resolved casing of the actual object key is used for
+   * capitalization. The resolved casing of the actual object key is used for
    * all mutations, so the original structure is never corrupted.
    *
    * **Cookie / Set-Cookie shorthand**
