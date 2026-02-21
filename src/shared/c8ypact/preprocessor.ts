@@ -408,7 +408,11 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
       this.traverseKeyPath(obj, key, ignoreCase, (parent, k) => {
         const value = parent[k];
         if (value == null) return;
-        const isAuthKey = isAuthorizationKey || k.toLowerCase() === "authorization";
+        const isAuthKey =
+          isAuthorizationKey ||
+          (ignoreCase === true
+            ? k.toLowerCase() === "authorization"
+            : k === "authorization");
         const authMatch =
           isAuthKey && _.isString(value)
             ? value.match(/^(Bearer|Basic)\s+(.+)$/i)
