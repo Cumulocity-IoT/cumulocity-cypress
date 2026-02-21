@@ -74,8 +74,21 @@ export function toSensitiveObjectKeyPath(
             current = current[matchedIndex];
             continue;
           }
+        } else if (current.length > 0 && _.isObjectLike(current[0])) {
+          // For arrays of objects, resolve the key case through the first element
+          // and continue path resolution without including an array index.
+          // This enables case-insensitive key correction for paths traversing arrays.
+          const firstObj = current[0];
+          const matchingKey = Object.keys(firstObj).find(
+            (k) => k.toLowerCase() === key.toLowerCase()
+          );
+          if (matchingKey !== undefined) {
+            actualPath.push(matchingKey);
+            current = firstObj[matchingKey];
+            continue;
+          }
         }
-        // If not found or array doesn't contain strings, return undefined
+        // If not found or array doesn't contain applicable elements, return undefined
         return undefined;
       }
       // Index out of bounds
