@@ -310,6 +310,56 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(response!.body.users[0].address.zip).toBe("10115");
       expect(response!.body.users[1].address.zip).toBe("80331");
     });
+
+    it("should obfuscate key at specific index in array using dot notation a.b.0.c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.users.0.password"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", password: "secret1" },
+        { name: "User2", password: "secret2" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].password).toBe("******");
+      expect(response!.body.users[1].password).toBe("secret2");
+    });
+
+    it("should obfuscate key at specific index in array using bracket notation a.b[0].c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.users[0].password"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", password: "secret1" },
+        { name: "User2", password: "secret2" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].password).toBe("******");
+      expect(response!.body.users[1].password).toBe("secret2");
+    });
+
+    it("should obfuscate deeply nested key at specific index a.b.0.c.d", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.users.1.address.city"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", address: { city: "Berlin", zip: "10115" } },
+        { name: "User2", address: { city: "Munich", zip: "80331" } },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].address.city).toBe("Berlin");
+      expect(response!.body.users[1].address.city).toBe("******");
+      expect(response!.body.users[0].address.zip).toBe("10115");
+      expect(response!.body.users[1].address.zip).toBe("80331");
+    });
   });
 
   describe("authorization header obfuscation", () => {
@@ -640,6 +690,53 @@ describe("C8yDefaultPactPreprocessor", () => {
       preprocessor.apply(response!);
 
       expect(response!.body.users[0].address).not.toHaveProperty("city");
+      expect(response!.body.users[1].address).not.toHaveProperty("city");
+      expect(response!.body.users[0].address.zip).toBe("10115");
+      expect(response!.body.users[1].address.zip).toBe("80331");
+    });
+
+    it("should remove key at specific index in array using dot notation a.b.0.c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.users.0.password"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", password: "secret1" },
+        { name: "User2", password: "secret2" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0]).not.toHaveProperty("password");
+      expect(response!.body.users[1].password).toBe("secret2");
+    });
+
+    it("should remove key at specific index in array using bracket notation a.b[0].c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.users[0].password"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", password: "secret1" },
+        { name: "User2", password: "secret2" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0]).not.toHaveProperty("password");
+      expect(response!.body.users[1].password).toBe("secret2");
+    });
+
+    it("should remove deeply nested key at specific index a.b.0.c.d", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.users.1.address.city"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", address: { city: "Berlin", zip: "10115" } },
+        { name: "User2", address: { city: "Munich", zip: "80331" } },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].address.city).toBe("Berlin");
       expect(response!.body.users[1].address).not.toHaveProperty("city");
       expect(response!.body.users[0].address.zip).toBe("10115");
       expect(response!.body.users[1].address.zip).toBe("80331");
@@ -1341,6 +1438,48 @@ describe("C8yDefaultPactPreprocessor", () => {
       expect(r.body.users[0].address.city).toBe("Hamburg");
       expect(r.body.users[1].address.city).toBe("Hamburg");
       expect(r.body.users[0].address.zip).toBe("10115");
+    });
+
+    it("should perform regex replace at specific index using dot notation a.b.0.c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.users.0.name": "/User/Person/g",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const r: any = {
+        body: {
+          users: [
+            { name: "User1", id: 1 },
+            { name: "User2", id: 2 },
+          ],
+        },
+      };
+      preprocessor.apply(r);
+
+      expect(r.body.users[0].name).toBe("Person1");
+      expect(r.body.users[1].name).toBe("User2");
+    });
+
+    it("should perform regex replace at specific index using bracket notation a.b[0].c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.users[0].name": "/User/Person/g",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const r: any = {
+        body: {
+          users: [
+            { name: "User1", id: 1 },
+            { name: "User2", id: 2 },
+          ],
+        },
+      };
+      preprocessor.apply(r);
+
+      expect(r.body.users[0].name).toBe("Person1");
+      expect(r.body.users[1].name).toBe("User2");
     });
   });
 

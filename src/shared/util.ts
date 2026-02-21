@@ -43,67 +43,61 @@ export function toSensitiveObjectKeyPath(
 ): string | undefined {
   if (!obj) return undefined;
 
-  const keys = _.isArray(path) ? path : path.split(/[.[\]]/g);
+  const inputStr = _.isArray(path) ? null : (path as string);
+  const keys = _.isArray(path)
+    ? (path as string[]).filter((k) => !_.isEmpty(k))
+    : (path as string).split(/[.[\]]/g).filter((k) => !_.isEmpty(k));
+
   let current = obj;
-  const actualPath: string[] = [];
+  const resolved: string[] = [];
 
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    if (_.isEmpty(key)) continue;
-
-    if (current === null || current === undefined) {
-      return undefined;
-    }
+  for (const key of keys) {
+    if (current === null || current === undefined) return undefined;
 
     if (_.isArray(current)) {
       const index = parseInt(key);
       if (!isNaN(index)) {
         if (index >= 0 && index < current.length) {
+          resolved.push(key);
           current = current[index];
-          actualPath.push(key);
-          continue;
+        } else {
+          return undefined; // index out of bounds
+        }
+      } else if (current.length > 0 && _.isString(current[0])) {
+        const matchedIndex = current.findIndex(
+          (item) => _.isString(item) && item.toLowerCase() === key.toLowerCase()
+        );
+        if (matchedIndex !== -1) {
+          resolved.push(String(matchedIndex));
+          current = current[matchedIndex];
+        } else {
+          return undefined;
+        }
+      } else if (current.length > 0 && _.isObjectLike(current[0])) {
+        // For arrays of objects, resolve case through the first element so
+        // the caller gets the correctly-cased key without needing an index.
+        const matchingKey = Object.keys(current[0]).find(
+          (k) => k.toLowerCase() === key.toLowerCase()
+        );
+        if (matchingKey !== undefined) {
+          resolved.push(matchingKey);
+          current = current[0][matchingKey];
+        } else {
+          return undefined;
         }
       } else {
-        // Handle non-numeric keys in arrays
-        if (current.length > 0 && _.isString(current[0])) {
-          const matchedIndex = current.findIndex(
-            (item) => _.isString(item) && item.toLowerCase() === key.toLowerCase()
-          );
-          if (matchedIndex !== -1) {
-            actualPath.push(String(matchedIndex));
-            current = current[matchedIndex];
-            continue;
-          }
-        } else if (current.length > 0 && _.isObjectLike(current[0])) {
-          // For arrays of objects, resolve the key case through the first element
-          // and continue path resolution without including an array index.
-          // This enables case-insensitive key correction for paths traversing arrays.
-          const firstObj = current[0];
-          const matchingKey = Object.keys(firstObj).find(
-            (k) => k.toLowerCase() === key.toLowerCase()
-          );
-          if (matchingKey !== undefined) {
-            actualPath.push(matchingKey);
-            current = firstObj[matchingKey];
-            continue;
-          }
-        }
-        // If not found or array doesn't contain applicable elements, return undefined
         return undefined;
       }
-      // Index out of bounds
-      return undefined;
+      continue;
     }
 
-    // Handle object case with case-insensitive matching
     if (_.isObjectLike(current)) {
       const matchingKey = Object.keys(current).find(
         (k) => k.toLowerCase() === key.toLowerCase()
       );
-
       if (matchingKey !== undefined) {
+        resolved.push(matchingKey);
         current = current[matchingKey];
-        actualPath.push(matchingKey);
       } else {
         return undefined;
       }
@@ -112,7 +106,25 @@ export function toSensitiveObjectKeyPath(
     }
   }
 
-  return actualPath.join(".");
+  // Fast path: array input or no brackets in input — plain dot-joined output
+  if (!inputStr || !inputStr.includes("[")) return resolved.join(".");
+
+  // Mirror bracket vs. dot notation from the input when building the output.
+  // Walk the original string in parallel with the resolved keys: wherever the
+  // input had `[key]` we emit `[resolvedKey]`, otherwise `.resolvedKey`.
+  let result = "";
+  let pos = 0;
+  for (let i = 0; i < resolved.length; i++) {
+    // skip separators (dot after a `]`, or the `]` itself)
+    while (pos < inputStr.length && (inputStr[pos] === "." || inputStr[pos] === "]")) pos++;
+    const useBracket = inputStr[pos] === "[";
+    if (useBracket) pos++; // skip `[`
+    // skip past the key characters in the input
+    while (pos < inputStr.length && inputStr[pos] !== "." && inputStr[pos] !== "[" && inputStr[pos] !== "]") pos++;
+    if (i === 0) result = resolved[i];
+    else result += useBracket ? `[${resolved[i]}]` : `.${resolved[i]}`;
+  }
+  return result;
 }
 
 /**

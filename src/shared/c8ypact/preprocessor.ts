@@ -180,9 +180,17 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
                   _.set(currentObj, currentKey, v);
                 }
               } else if (_.isArray(target)) {
-                target.forEach((item) => {
-                  if (item != null) processKeyPath(item, restKeys);
-                });
+                const [peekKey] = restKeys;
+                if (peekKey != null && !isNaN(parseInt(peekKey))) {
+                  // Numeric index: re-enter with the array as current object so the
+                  // index key is consumed in the next iteration via _.get(array, "0")
+                  processKeyPath(target, restKeys);
+                } else {
+                  // Non-numeric: apply remaining path to every element
+                  target.forEach((item) => {
+                    if (item != null) processKeyPath(item, restKeys);
+                  });
+                }
               } else {
                 processKeyPath(target, restKeys);
               }
@@ -299,8 +307,15 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
           // Remove the key regardless of whether it's an array or not
           _.unset(currentObj, currentKey);
         } else if (_.isArray(target)) {
-          // If the current key points to an array, process each element
-          target.forEach((item) => processKeyPath(item, restKeys));
+          const [peekKey] = restKeys;
+          if (peekKey != null && !isNaN(parseInt(peekKey))) {
+            // Numeric index: re-enter with the array as current object so the
+            // index key is consumed in the next iteration via _.get(array, "0")
+            processKeyPath(target, restKeys);
+          } else {
+            // Non-numeric: apply remaining path to every element
+            target.forEach((item) => processKeyPath(item, restKeys));
+          }
         } else {
           processKeyPath(target, restKeys);
         }
@@ -407,7 +422,15 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
             }
           }
         } else if (_.isArray(target)) {
-          target.forEach((item) => processKeyPath(item, restKeys));
+          const [peekKey] = restKeys;
+          if (peekKey != null && !isNaN(parseInt(peekKey))) {
+            // Numeric index: re-enter with the array as current object so the
+            // index key is consumed in the next iteration via _.get(array, "0")
+            processKeyPath(target, restKeys);
+          } else {
+            // Non-numeric: apply remaining path to every element
+            target.forEach((item) => processKeyPath(item, restKeys));
+          }
         } else {
           processKeyPath(target, restKeys);
         }

@@ -175,6 +175,27 @@ describe("util", () => {
       expect(path).toBe("items.0.Name");
     });
 
+    it("should handle array of objects with bracket notation index a.b[0].c", () => {
+      const obj = {
+        items: [{ Name: "item1" }, { Name: "item2" }],
+      };
+      const path = toSensitiveObjectKeyPath(obj, "items[0].name");
+      expect(path).toBe("items[0].Name");
+    });
+
+    it("should handle deeply nested path with bracket notation a.b[0].c.d", () => {
+      const obj = {
+        users: [
+          { profile: { City: "Berlin" } },
+          { profile: { City: "Munich" } },
+        ],
+      };
+      const path = toSensitiveObjectKeyPath(obj, "users[0].profile.city");
+      expect(path).toBe("users[0].profile.City");
+      const path2 = toSensitiveObjectKeyPath(obj, "users.1.profile.city");
+      expect(path2).toBe("users.1.profile.City");
+    });
+
     it("should resolve case-insensitive key in array of objects using first element", () => {
       const obj = {
         items: [{ Name: "item1" }, { Name: "item2" }],
