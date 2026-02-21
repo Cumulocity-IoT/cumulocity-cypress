@@ -104,6 +104,66 @@ export interface C8yPactConfigOptions {
   strictMocking?: boolean;
   /**
    * Options to configure the C8yPactPreprocessor.
+   *
+   * The preprocessor runs on every pact record when it is saved (recording mode)
+   * and before it is matched against any other record. Use it to remove or obfuscate
+   * sensitive values before they reach the fixture file, or to sanitise
+   * response bodies before they are compared.
+   *
+   * **Key-path syntax**
+   *
+   * All option values that accept key paths use dot-separated segments:
+   * ```
+   * response.body.password
+   * request.headers.Authorization
+   * ```
+   * Bracket notation and numeric indices are also supported and the style is
+   * preserved in output:
+   * ```
+   * response.body.items[0].token   // bracket style
+   * response.body.items.0.token    // dot style
+   * ```
+   * When a segment resolves to an **array of objects** and the next segment is
+   * not a numeric index, the operation is applied to every element of that
+   * array automatically:
+   * ```
+   * response.body.users.password   // obfuscates `password` in every user object
+   * ```
+   *
+   * **Recursive-descent operator (`..`)**
+   *
+   * Prefix the leaf key with `..` to apply the operation at any nesting depth
+   * below the current node (or below the optional prefix path):
+   * ```
+   * ..password                       // find `password` anywhere in the record
+   * response.body..password          // find `password` anywhere inside body
+   * ```
+   *
+   * **Case-insensitive matching**
+   *
+   * Set `ignoreCase: true` (the default) to resolve keys without regard to
+   * capitalisation. The resolved casing of the actual object key is used for
+   * all mutations, so the original structure is never corrupted.
+   *
+   * **Cookie / Set-Cookie shorthand**
+   *
+   * Append the cookie name as an extra segment to operate on a single cookie
+   * rather than the entire header string:
+   * ```
+   * request.headers.cookie.XSRF-TOKEN
+   * response.headers.set-cookie.authorization
+   * ```
+   *
+   * @example
+   * // Remove non-essential headers, obfuscate credentials, redact a token
+   * preprocessor: {
+   *   ignore:    ["response.headers.cache-control"],
+   *   obfuscate: ["request.headers.authorization", "response.body..password"],
+   *   regexReplace: {
+   *     // keep only the first 4 chars, e.g. "abcd----"
+   *     "response.body.token": "/^(.{4}).+$/$1----/"
+   *   }
+   * }
    */
   preprocessor?: C8yPactPreprocessorOptions;
   /**
