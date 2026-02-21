@@ -154,19 +154,48 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
           const keysToReplace = mapSensitiveKeys(obj, [key]);
 
           keysToReplace.forEach((k) => {
-            let v = _.get(obj, k);
-            if (v != null) {
-              // Apply each regex pattern in sequence
-              for (const pattern of patterns) {
-                try {
-                  const regex = parseRegexReplace(pattern);
-                  v = performRegexReplace(v, regex);
-                } catch {
-                  // ignore invalid regex
+            const keyParts = k.split(".");
+            const processKeyPath = (
+              currentObj: any,
+              remainingKeyParts: string[]
+            ): void => {
+              if (!currentObj || remainingKeyParts.length === 0) return;
+              const [_currentKey, ...restKeys] = remainingKeyParts;
+              const currentKey =
+                ignoreCase === true
+                  ? (toSensitiveObjectKeyPath(currentObj, _currentKey) ?? _currentKey)
+                  : _currentKey;
+              const target = _.get(currentObj, currentKey);
+              if (restKeys.length === 0) {
+                if (target != null) {
+                  let v = target;
+                  for (const pattern of patterns) {
+                    try {
+                      const regex = parseRegexReplace(pattern);
+                      v = performRegexReplace(v, regex);
+                    } catch {
+                      // ignore invalid regex
+                    }
+                  }
+                  _.set(currentObj, currentKey, v);
                 }
+              } else if (_.isArray(target)) {
+                const [peekKey] = restKeys;
+                if (peekKey != null && !isNaN(parseInt(peekKey))) {
+                  // Numeric index: re-enter with the array as current object so the
+                  // index key is consumed in the next iteration via _.get(array, "0")
+                  processKeyPath(target, restKeys);
+                } else {
+                  // Non-numeric: apply remaining path to every element
+                  target.forEach((item) => {
+                    if (item != null) processKeyPath(item, restKeys);
+                  });
+                }
+              } else {
+                processKeyPath(target, restKeys);
               }
-              _.set(obj, k, v);
-            }
+            };
+            processKeyPath(obj, keyParts);
           });
         });
       }
@@ -198,13 +227,24 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
     };
 
     const recursiveFilter = (currentObj: any, currentPath: string): void => {
-      if (!_.isObject(currentObj)) return;
+      if (!_.isObjectLike(currentObj)) return;
+
+      if (_.isArray(currentObj)) {
+        // For arrays of objects, recurse into each element using the same path
+        // so that array indices are not included in path matching.
+        currentObj.forEach((item) => {
+          if (_.isObjectLike(item)) {
+            recursiveFilter(item, currentPath);
+          }
+        });
+        return;
+      }
 
       Object.keys(currentObj).forEach((key) => {
         const fullPath = currentPath ? `${currentPath}.${key}` : key;
         if (!shouldKeep(fullPath)) {
-          _.unset(obj, fullPath);
-        } else if (!keepPaths.includes(fullPath)) {
+          _.unset(currentObj, key);
+        } else if (!keepPaths.map((k) => prepKey(k)).includes(prepKey(fullPath))) {
           recursiveFilter(_.get(currentObj, key), fullPath);
         }
       });
@@ -267,8 +307,15 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
           // Remove the key regardless of whether it's an array or not
           _.unset(currentObj, currentKey);
         } else if (_.isArray(target)) {
-          // If the current key points to an array, process each element
-          target.forEach((item) => processKeyPath(item, restKeys));
+          const [peekKey] = restKeys;
+          if (peekKey != null && !isNaN(parseInt(peekKey))) {
+            // Numeric index: re-enter with the array as current object so the
+            // index key is consumed in the next iteration via _.get(array, "0")
+            processKeyPath(target, restKeys);
+          } else {
+            // Non-numeric: apply remaining path to every element
+            target.forEach((item) => processKeyPath(item, restKeys));
+          }
         } else {
           processKeyPath(target, restKeys);
         }
@@ -375,7 +422,15 @@ export class C8yDefaultPactPreprocessor implements C8yPactPreprocessor {
             }
           }
         } else if (_.isArray(target)) {
-          target.forEach((item) => processKeyPath(item, restKeys));
+          const [peekKey] = restKeys;
+          if (peekKey != null && !isNaN(parseInt(peekKey))) {
+            // Numeric index: re-enter with the array as current object so the
+            // index key is consumed in the next iteration via _.get(array, "0")
+            processKeyPath(target, restKeys);
+          } else {
+            // Non-numeric: apply remaining path to every element
+            target.forEach((item) => processKeyPath(item, restKeys));
+          }
         } else {
           processKeyPath(target, restKeys);
         }
