@@ -62,6 +62,7 @@ import {
   toC8yAuthentication,
 } from "../../shared/auth";
 import "../pact/c8ymatch";
+import { C8yDefaultPactMatcher } from "../../shared/c8ypact/matcher";
 import { C8yBaseUrl } from "../../shared/types";
 
 declare global {
@@ -632,9 +633,26 @@ function run(
       if (!schema && (ignore || !enabled || Cypress.c8ypact.mode() !== "apply"))
         return;
 
+      const matchSchemaAndObject =
+        C8yDefaultPactMatcher.options?.matchSchemaAndObject === true;
+
       const record = options.record ?? Cypress.c8ypact.current?.nextRecord();
       if (schema) {
         cy.c8ymatch(response, schema, undefined, options);
+        // when matchSchemaAndObject is enabled, also match against the pact record
+        if (
+          matchSchemaAndObject &&
+          !ignore &&
+          enabled &&
+          Cypress.c8ypact.mode() === "apply"
+        ) {
+          for (const r of _.isArray(response) ? response : [response]) {
+            const info = Cypress.c8ypact.current?.info;
+            if (record != null && info != null) {
+              cy.c8ymatch(r, record, info, options);
+            }
+          }
+        }
       } else {
         // object matching against existing pact
         for (const r of _.isArray(response) ? response : [response]) {

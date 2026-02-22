@@ -43,12 +43,23 @@ Cypress.Commands.add("c8ymatch", (response, pact, info = {}, options = {}) => {
   let matcher: Matcher = Cypress.c8ypact.matcher;
   if (!matcher && Cypress.c8ypact?.isEnabled() === true) return;
 
+  const isSchemaMatching = !("request" in pact) && !("response" in pact);
+  if (isSchemaMatching) {
+    matcher =
+      options.schemaMatcher ||
+      Cypress.c8ypact?.schemaMatcher ||
+      new C8yAjvSchemaMatcher();
+    options.failOnPactValidation = true;
+  }
+
   const consoleProps: any = {
     response: response || null,
     matcher: matcher || null,
     options,
     info,
+    isSchemaMatching,
   };
+
   const logger = Cypress.log({
     autoEnd: false,
     name: "c8ymatch",
@@ -62,17 +73,6 @@ Cypress.Commands.add("c8ymatch", (response, pact, info = {}, options = {}) => {
       `Matching requires object or schema to match. Received: ${pact}`
     );
   }
-
-  const isSchemaMatching = !("request" in pact) && !("response" in pact);
-  if (isSchemaMatching) {
-    matcher =
-      options.schemaMatcher ||
-      Cypress.c8ypact?.schemaMatcher ||
-      new C8yAjvSchemaMatcher();
-    options.failOnPactValidation = true;
-  }
-  consoleProps.isSchemaMatching = isSchemaMatching;
-  consoleProps.matcher = matcher;
 
   if (matcher == null) {
     logger.end();
