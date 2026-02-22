@@ -84,6 +84,9 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
 
   static schemaMatcher: C8ySchemaMatcher;
   static matchSchemaAndObject = false;
+  static options?: C8yPactMatcherOptions;
+
+  options?: C8yPactMatcherOptions;
 
   /**
    * Standard JSON Schema keywords that start with $ but are not schema matcher keys.
@@ -118,13 +121,22 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
       url: new C8yIgnoreMatcher(),
       "X-XSRF-TOKEN": new C8yIgnoreMatcher(),
       lastMessage: new C8yISODateStringMatcher(),
-    }
+    },
+    options?: C8yPactMatcherOptions
   ) {
     this.propertyMatchers = propertyMatchers;
+    this.options = options;
   }
 
   match(obj1: any, obj2: any, options?: C8yPactMatcherOptions): boolean {
     if (obj1 === obj2) return true;
+
+    options = _.defaultsDeep(
+      {},
+      options,
+      this.options,
+      C8yDefaultPactMatcher.options
+    );
 
     const parents = options?.parents ?? [];
     const strictMatching = options?.strictMatching ?? false;
