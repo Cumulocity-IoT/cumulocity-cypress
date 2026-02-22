@@ -131,7 +131,7 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
   match(obj1: any, obj2: any, options?: C8yPactMatcherOptions): boolean {
     if (obj1 === obj2) return true;
 
-    options = _.defaultsDeep(
+    options = _.defaults(
       {},
       options,
       this.options,
