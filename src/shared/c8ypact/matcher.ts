@@ -83,28 +83,7 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
   propertyMatchers: { [key: string]: C8yPactMatcher } = {};
 
   static schemaMatcher: C8ySchemaMatcher;
-  static options?: C8yPactMatcherOptions;
-
-  options?: C8yPactMatcherOptions;
-
-  /**
-   * Standard JSON Schema keywords that start with $ but are not schema matcher keys.
-   * These should be treated as regular object properties.
-   * @see https://json-schema.org/understanding-json-schema/reference
-   */
-  private static readonly JSON_SCHEMA_KEYWORDS = new Set([
-    "$schema",
-    "$id",
-    "$ref",
-    "$comment",
-    "$defs",
-    "$vocabulary",
-    "$anchor",
-    "$dynamicRef",
-    "$dynamicAnchor",
-    "$recursiveRef",
-    "$recursiveAnchor",
-  ]);
+  static matchSchemaAndObject = false;
 
   constructor(
     propertyMatchers: { [key: string]: C8yPactMatcher } = {
@@ -120,28 +99,21 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
       url: new C8yIgnoreMatcher(),
       "X-XSRF-TOKEN": new C8yIgnoreMatcher(),
       lastMessage: new C8yISODateStringMatcher(),
-    },
-    options?: C8yPactMatcherOptions
+    }
   ) {
     this.propertyMatchers = propertyMatchers;
-    this.options = options;
   }
 
   match(obj1: any, obj2: any, options?: C8yPactMatcherOptions): boolean {
     if (obj1 === obj2) return true;
 
-    options = _.defaults(
-      {},
-      options,
-      this.options,
-      C8yDefaultPactMatcher.options
-    );
-
     const parents = options?.parents ?? [];
     const strictMatching = options?.strictMatching ?? false;
     const ignorePrimitiveArrayOrder =
       options?.ignorePrimitiveArrayOrder ?? true;
-    const matchSchemaAndObject = options?.matchSchemaAndObject ?? false;
+    const matchSchemaAndObject =
+      options?.matchSchemaAndObject ??
+      C8yDefaultPactMatcher.matchSchemaAndObject;
 
     const schemaMatcher =
       options?.schemaMatcher || C8yDefaultPactMatcher.schemaMatcher;
@@ -276,12 +248,8 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     }
 
     // get keys of objects without schema keys and schema keys separately
-    const objectKeys = Object.keys(obj1).filter(
-      (k) => !this.isSchemaMatcherKey(k)
-    );
-    const schemaKeys = Object.keys(obj2).filter((k) =>
-      this.isSchemaMatcherKey(k)
-    );
+    const objectKeys = Object.keys(obj1).filter((k) => !k.startsWith("$"));
+    const schemaKeys = Object.keys(obj2).filter((k) => k.startsWith("$"));
     // normalize pact keys and remove keys that have a schema defined
     // we do not want for example body and $body
     const pactKeys =
@@ -299,50 +267,27 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     }
 
     const removeSchemaPrefix = (key: string) =>
-      this.isSchemaMatcherKey(key) ? key.slice(1) : key;
-
-    const findActualKey = (obj: any, keyToFind: string): string => {
-      if (!options?.ignoreCase) return keyToFind;
-      if (obj == null || !_.isObject(obj)) return keyToFind;
-
-      const actualKey = Object.keys(obj).find(
-        (k) => k.toLowerCase() === keyToFind.toLowerCase()
-      );
-      return actualKey ?? keyToFind;
-    };
+      key.startsWith("$") ? key.slice(1) : key;
 
     // if strictMatching is disabled, only check properties of the pact for object matching
     // strictMatching for schema matching is considered within the matcher -> schema.additionalProperties
     const keys = !strictMatching ? pactKeys : objectKeys;
     for (const key of keys) {
       // schema is always defined on the pact object - needs special consideration
-      const isSchema =
-        this.isSchemaMatcherKey(key) || schemaKeys.includes(`$${key}`);
+      const isSchema = key.startsWith("$") || schemaKeys.includes(`$${key}`);
 
-      // Resolve actual keys with correct casing when ignoreCase is enabled
-      const valueSourceObj = strictMatching || isSchema ? obj1 : obj2;
-      const pactSourceObj = strictMatching || isSchema ? obj2 : obj1;
-
-      const keyForValue = findActualKey(
-        valueSourceObj,
+      const value = _.get(
+        strictMatching || isSchema ? obj1 : obj2,
         removeSchemaPrefix(key)
       );
-
-      const keyForPact = findActualKey(
-        pactSourceObj,
+      let pact = _.get(
+        strictMatching || isSchema ? obj2 : obj1,
         isSchema && !key.startsWith("$") ? `$${key}` : key
       );
 
-      const value = _.get(valueSourceObj, keyForValue);
-      let pact = _.get(pactSourceObj, keyForPact);
-
       if (
-        !isSchema &&
-        !this.isKeyPathInObject(
-          strictMatching ? pactKeys : objectKeys,
-          key,
-          options?.ignoreCase
-        )
+        !(strictMatching ? pactKeys : objectKeys).includes(key) &&
+        !isSchema
       ) {
         throwPactError(
           `"${keyPath(key)}" not found in ${
@@ -383,11 +328,7 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
         if (!matchSchemaAndObject) {
           continue;
         }
-        const keyForSchemaAndObject = findActualKey(
-          strictMatching ? obj2 : obj1,
-          key
-        );
-        pact = _.get(strictMatching ? obj2 : obj1, keyForSchemaAndObject);
+        pact = _.get(strictMatching ? obj2 : obj1, key);
       }
 
       if (this.getPropertyMatcher(key, options?.ignoreCase) != null) {
@@ -469,34 +410,6 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     }
 
     return true;
-  }
-
-  /**
-   * Check if a key is a schema matcher key (starts with $ but is not a standard JSON Schema keyword)
-   */
-  private isSchemaMatcherKey(key: string): boolean {
-    if (!key.startsWith("$")) {
-      return false;
-    }
-    return !C8yDefaultPactMatcher.JSON_SCHEMA_KEYWORDS.has(key);
-  }
-
-  private isKeyPathInObject(
-    keys: any,
-    keyPath: string,
-    ignoreCase = false
-  ): boolean {
-    if (!Array.isArray(keys)) {
-      return false;
-    }
-    if (ignoreCase) {
-      const lowerKeyPath = keyPath.toLowerCase();
-      return keys.some(
-        (item) =>
-          typeof item === "string" && item.toLowerCase() === lowerKeyPath
-      );
-    }
-    return keys.includes(keyPath);
   }
 
   /**

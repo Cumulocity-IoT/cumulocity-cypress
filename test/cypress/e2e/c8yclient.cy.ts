@@ -31,7 +31,10 @@ import {
   isCypressResponse,
 } from "cumulocity-cypress/c8ypact";
 
-import { C8yAjvJson6SchemaMatcher } from "cumulocity-cypress/contrib/ajv";
+import {
+  C8yAjvJson6SchemaMatcher,
+  C8yAjvSchemaMatcher,
+} from "cumulocity-cypress/contrib/ajv";
 
 const { _, sinon } = Cypress;
 
@@ -619,6 +622,140 @@ describe("c8yclient", () => {
     });
   });
 
+  context("schema matching", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+        },
+      },
+    };
+
+    const auth = {
+      user: "admin",
+      password: "mypassword",
+      tenant: "t12345678",
+    };
+
+    it("should use schema for matching response", () => {
+      const spy = cy.spy(Cypress.c8ypact.schemaMatcher!, "match");
+      cy.getAuth({ user: "admin", password: "mypassword", tenant: "t12345678" })
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
+        .then(() => {
+          expect(spy).to.have.been.calledOnce;
+        });
+    });
+
+    it("should fail if schema does not match response", (done) => {
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.contain("data/name must be number");
+        done();
+      });
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          schema: {
+            type: "object",
+            properties: {
+              name: {
+                type: "number",
+              },
+            },
+          },
+        })
+        .then(() => {
+          // @ts-expect-error
+          const spy = Cypress.c8ypact.matcher.schemaMatcher
+            .match as sinon.SinonSpy;
+          expect(spy).to.have.been.calledOnce;
+        });
+    });
+
+    it("should support schema reference", (done) => {
+      const openapi = {
+        openapi: "3.0.0",
+        info: {
+          title: "MySpec",
+          version: "1.0.0",
+        },
+        components: {
+          schemas: {
+            CurrentTenant: {
+              type: "object",
+              properties: {
+                name: {
+                  type: "number",
+                },
+              },
+            },
+          },
+        },
+      };
+
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.contain("data/name must be number");
+        done();
+      });
+
+      const matcher = new C8yAjvSchemaMatcher();
+      matcher.ajv.addSchema(openapi, "MySpec");
+      Cypress.c8ypact.schemaMatcher = matcher;
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          schema: { $ref: "MySpec#/components/schemas/CurrentTenant" },
+        })
+        .then(() => {
+          // @ts-expect-error
+          const spy = Cypress.c8ypact.matcher.schemaMatcher
+            .match as sinon.SinonSpy;
+          expect(spy).to.have.been.calledOnce;
+        });
+    });
+
+    it("should use schema if pact mode is disabled with default schema matcher", () => {
+      Cypress.env("C8Y_PACT_MODE", undefined);
+      expect(Cypress.c8ypact.isEnabled()).to.be.false;
+
+      cy.stub(Cypress.c8ypact, "schemaMatcher").value(undefined);
+      const logSpy: sinon.SinonSpy = cy.spy(Cypress, "log").log(false);
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          schema,
+          schemaMatcher: undefined,
+        })
+        .then(() => {
+          const props = getConsolePropsForLogSpy(logSpy, "c8ymatch");
+          expect(props?.matcher).to.not.be.undefined;
+          expect(props.matcher.constructor.name).to.eq(
+            C8yAjvSchemaMatcher.prototype.constructor.name
+          );
+        });
+    });
+
+    it("should use custom schema matcher if pact mode is disabled", () => {
+      Cypress.env("C8Y_PACT_MODE", undefined);
+      expect(Cypress.c8ypact.isEnabled()).to.be.false;
+      const logSpy: sinon.SinonSpy = cy.spy(Cypress, "log").log(false);
+      cy.stub(Cypress.c8ypact, "schemaMatcher").returns(undefined);
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          schema,
+          schemaMatcher: new C8yAjvJson6SchemaMatcher(),
+        })
+        .then(() => {
+          const props = getConsolePropsForLogSpy(logSpy, "c8ymatch");
+          expect(props?.matcher).to.not.be.undefined;
+          expect(props.matcher.constructor.name).to.eq(
+            C8yAjvJson6SchemaMatcher.prototype.constructor.name
+          );
+        });
+    });
+  });
+
   context("chaining of c8yclient requests", () => {
     beforeEach(() => {
       Cypress.env("C8Y_TENANT", "t123456789");
@@ -922,7 +1059,7 @@ describe("c8yclient", () => {
         new window.Response(JSON.stringify({ name: "t123456789" }), {
           status: 200,
           statusText: "OK",
-          headers: { "content-type": "application/json" },
+          headers: {},
         })
       );
 
@@ -946,87 +1083,6 @@ describe("c8yclient", () => {
           expectC8yClientRequest(requestOptions);
         });
     });
-
-    it("should handle plain text response when JSON is expected", () => {
-      stubResponse(
-        new window.Response("4", {
-          status: 200,
-          statusText: "OK",
-          headers: { "content-type": "text/plain" },
-        })
-      );
-
-      cy.getAuth({ user: "admin", password: "mypassword" })
-        .c8yclient((c) => {
-          return c.core.fetch("/some/endpoint");
-        })
-        .then((response) => {
-          expect(response.status).to.eq(200);
-          // 4 should be returned as text, not parsed as JSON
-          expect(response.body).to.eq("4");
-          expect(response.headers["content-type"]).to.eq("text/plain");
-        });
-    });
-
-    it("should handle invalid JSON with JSON content-type", () => {
-      stubResponse(
-        new window.Response("Not valid JSON", {
-          status: 200,
-          statusText: "OK",
-          headers: { "content-type": "application/json" },
-        })
-      );
-
-      cy.getAuth({ user: "admin", password: "mypassword" })
-        .c8yclient((c) => {
-          return c.core.fetch("/some/endpoint");
-        })
-        .then((response) => {
-          expect(response.status).to.eq(200);
-          expect(response.body).to.eq("Not valid JSON");
-        });
-    });
-
-    it("should handle HTML response as text", () => {
-      const htmlContent = "<html><body>Hello</body></html>";
-      stubResponse(
-        new window.Response(htmlContent, {
-          status: 200,
-          statusText: "OK",
-          headers: { "content-type": "text/html" },
-        })
-      );
-
-      cy.getAuth({ user: "admin", password: "mypassword" })
-        .c8yclient((c) => {
-          return c.core.fetch("/some/endpoint");
-        })
-        .then((response) => {
-          expect(response.status).to.eq(200);
-          expect(response.body).to.eq(htmlContent);
-          expect(response.headers["content-type"]).to.eq("text/html");
-        });
-    });
-
-    it("should handle array of primitives as response", () => {
-      const arrayContent = [1, 2, 3];
-      stubResponse(
-        new window.Response(JSON.stringify(arrayContent), {
-          status: 200,
-          statusText: "OK",
-          headers: { "content-type": "application/json" },
-        })
-      );
-
-      cy.getAuth({ user: "admin", password: "mypassword" })
-        .c8yclient((c) => {
-          return c.core.fetch("/some/endpoint");
-        })
-        .then((response) => {
-          expect(response.status).to.eq(200);
-          expect(response.body).to.deep.eq(arrayContent);
-        }); 
-      });
   });
 
   context("timeout", () => {
@@ -1118,6 +1174,43 @@ describe("c8yclient", () => {
         });
     });
 
+    it("should add missing content-type if request has body", () => {
+      cy.getAuth({ user: "admin", password: "mypassword" })
+        .c8yclient<ICurrentTenant>((c) => {
+          return c.core.fetch("/inventory/managedObjects", {
+            method: "POST",
+            body: JSON.stringify({ name: "test" }),
+          });
+        })
+        .then((response) => {
+          expect(response.status).to.eq(299);
+          expect(response.requestHeaders).to.have.property(
+            "content-type",
+            "application/json"
+          );
+        });
+    });
+
+    it("should not overwrite content-type if request has body", () => {
+      cy.getAuth({ user: "admin", password: "mypassword" })
+        .c8yclient<ICurrentTenant>((c) => {
+          return c.core.fetch("/inventory/managedObjects", {
+            method: "POST",
+            body: JSON.stringify({ name: "test" }),
+            headers: {
+              "content-type": "application/xml",
+            },
+          });
+        })
+        .then((response) => {
+          expect(response.status).to.eq(299);
+          expect(response.requestHeaders).to.have.property(
+            "content-type",
+            "application/xml"
+          );
+        });
+    });
+
     it("should not add content-type if request has no body", () => {
       cy.getAuth({ user: "admin", password: "mypassword" })
         .c8yclient<ICurrentTenant>((c) => {
@@ -1147,80 +1240,6 @@ describe("c8yclient", () => {
             "content-type",
             "application/json"
           );
-        });
-    });
-
-    it("should add content-type for POST requests", () => {
-      cy.getAuth({ user: "admin", password: "mypassword" })
-        .c8yclient<ICurrentTenant>((c) => {
-          return c.core.fetch("/inventory/managedObjects", {
-            method: "POST",
-            body: JSON.stringify({ name: "test" }),
-          });
-        })
-        .then((response) => {
-          expect(response.status).to.eq(299);
-          expect(response.requestHeaders).to.have.property(
-            "content-type",
-            "application/json"
-          );
-
-          // Check that window.fetchStub was called with correct headers
-          expect(window.fetchStub).to.have.been.called;
-          const calls = window.fetchStub.getCalls();
-          const postCall = calls.find((call: any) => {
-            return call?.args[1]?.method === "POST";
-          });
-
-          expect(postCall).to.not.be.undefined;
-          const headers = postCall?.args[1]?.headers;
-
-          // Verify only one content-type header exists
-          if (headers && typeof headers === "object") {
-            const headerKeys = Object.keys(headers);
-            const contentTypeKeys = headerKeys.filter(
-              (key) => key.toLowerCase() === "content-type"
-            );
-            expect(contentTypeKeys.length).to.eq(1);
-          }
-        });
-    });
-
-    it("should not add duplicate content-type header with different casing", () => {
-      cy.getAuth({ user: "admin", password: "mypassword" })
-        .c8yclient<ICurrentTenant>((c) => {
-          return c.core.fetch("/inventory/managedObjects", {
-            method: "POST",
-            body: JSON.stringify({ name: "test" }),
-            headers: {
-              "Content-Type": "application/xml", // User provides capitalized
-            },
-          });
-        })
-        .then((response) => {
-          expect(response.status).to.eq(299);
-
-          // Check the actual fetch call
-          expect(window.fetchStub).to.have.been.called;
-          const calls = window.fetchStub.getCalls();
-          const postCall = calls.find((call: any) => {
-            return call?.args[1]?.method === "POST";
-          });
-
-          expect(postCall).to.not.be.undefined;
-          const headers = postCall?.args[1]?.headers;
-
-          const contentTypeKeys = Object.keys(headers).filter(
-            (key) => key.toLowerCase() === "content-type"
-          );
-
-          expect(
-            contentTypeKeys.length,
-            `Expected 1 content-type header but found ${contentTypeKeys.length}: ${contentTypeKeys.join(", ")}`
-          ).to.eq(1);
-
-          const hasContentType = headers["Content-Type"] === "application/xml";
-          expect(hasContentType).to.be.true;
         });
     });
   });

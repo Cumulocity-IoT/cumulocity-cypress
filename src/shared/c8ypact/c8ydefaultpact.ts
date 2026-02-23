@@ -319,18 +319,9 @@ export function toSerializablePactRecord(
     record.modifiedResponse = modifiedPactRecord.response;
   }
 
-  const matchingProperties = ["request", "response"];
-  const p = _.pick(record, matchingProperties);
-  options?.preprocessor?.apply(p);
-  if (p.request == null) {
-    p.request = {};
-  }
-  if (p.response == null) {
-    p.response = {};
-  }
+  options?.preprocessor?.apply(record);
 
-  const result = { ...p, ..._.omit(record, matchingProperties) };
-  return result as C8yPactRecord;
+  return record;
 }
 
 export async function toPactSerializableObject(

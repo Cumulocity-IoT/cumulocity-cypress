@@ -360,6 +360,8 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
   });
 
   beforeEach(function () {
+    Cypress.c8ypact.current = null;
+
     let consoleProps: any = {};
     let logger: Cypress.Log | undefined = undefined;
     if (Cypress.c8ypact.debugLog === true) {
@@ -407,52 +409,42 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
       return;
     }
 
-    if (
-      Cypress.c8ypact.current == null ||
-      Cypress.c8ypact.current?.id !== Cypress.c8ypact.getCurrentTestId()
-    ) {
-      if (isRecordingEnabled() && recordingMode() === "refresh") {
-        cy.task(
-          "c8ypact:remove",
-          Cypress.c8ypact.getCurrentTestId(),
-          debugLogger()
-        );
+    if (isRecordingEnabled() && recordingMode() === "refresh") {
+      cy.task(
+        "c8ypact:remove",
+        Cypress.c8ypact.getCurrentTestId(),
+        debugLogger()
+      );
+    }
+
+    Cypress.c8ypact.loadCurrent().then((pact) => {
+      Cypress.c8ypact.current = pact;
+      consoleProps.current = pact;
+
+      // set tenant and baseUrl from pact info if not configured
+      // this is needed to not require tenant and baseUrl for fully mocked tests
+      if (!Cypress.env("C8Y_TENANT") && pact?.info?.tenant) {
+        Cypress.env("C8Y_TENANT", pact?.info?.tenant);
       }
 
-      Cypress.c8ypact.loadCurrent().then((pact) => {
-        if (pact?.id === Cypress.c8ypact.current?.id) {
-          // already loaded, do not override current pact
-          logger?.end();
-          return;
-        }
-        Cypress.c8ypact.current = pact ?? null;
-        consoleProps.current = pact ?? null;
+      const baseUrl = getBaseUrlFromEnv();
+      const pactBaseUrl = pact?.info?.baseUrl;
+      if (
+        baseUrl == null ||
+        (pactBaseUrl != null &&
+          baseUrl === Cypress.config().baseUrl &&
+          Cypress.c8ypact.config.strictMocking === true)
+      ) {
+        Cypress.env("C8Y_BASEURL", pactBaseUrl);
+        consoleProps.baseUrl = getBaseUrlFromEnv();
+      }
 
-        // set tenant and baseUrl from pact info if not configured
-        // this is needed to not require tenant and baseUrl for fully mocked tests
-        if (!Cypress.env("C8Y_TENANT") && pact?.info?.tenant) {
-          Cypress.env("C8Y_TENANT", pact?.info?.tenant);
-        }
+      if (pact != null && _.isFunction(Cypress.c8ypact.on.loadPact)) {
+        Cypress.c8ypact.on.loadPact(pact);
+      }
 
-        const baseUrl = getBaseUrlFromEnv();
-        const pactBaseUrl = pact?.info?.baseUrl;
-        if (
-          baseUrl == null ||
-          (pactBaseUrl != null &&
-            baseUrl === Cypress.config().baseUrl &&
-            Cypress.c8ypact.config.strictMocking === true)
-        ) {
-          Cypress.env("C8Y_BASEURL", pactBaseUrl);
-          consoleProps.baseUrl = getBaseUrlFromEnv();
-        }
-
-        if (pact != null && _.isFunction(Cypress.c8ypact.on.loadPact)) {
-          Cypress.c8ypact.on.loadPact(pact);
-        }
-
-        logger?.end();
-      });
-    }
+      logger?.end();
+    });
   });
 }
 

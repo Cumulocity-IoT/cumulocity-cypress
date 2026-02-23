@@ -130,114 +130,26 @@ describe("util", () => {
       expect(path2).toBe("requestHeaders.cookie");
     });
 
-    it("should return undefined for path that doesn't fully exist", () => {
+    it("should return sensitive path up to first mismatch", () => {
       const path = toSensitiveObjectKeyPath(
         response!,
         "HEADERS.Set-Cookie.Expires"
       );
-      expect(path).toBeUndefined();
+      expect(path).toBe("headers.set-cookie.Expires");
     });
 
     it("should use key path as array", () => {
       const path = toSensitiveObjectKeyPath(response!, [
         "HEADERS",
         "Set-Cookie",
+        "Expires",
       ]);
-      expect(path).toBe("headers.set-cookie");
+      expect(path).toBe("headers.set-cookie.Expires");
     });
 
     it("should return undefined if object is null", () => {
       const path = toSensitiveObjectKeyPath(null, "HEADERS.Set-Cookie");
       expect(path).toBeUndefined();
-    });
-
-    it("should handle array of strings with case-insensitive matching", () => {
-      const obj = {
-        headers: ["Content-Type", "Authorization", "X-Custom-Header"],
-      };
-      const path = toSensitiveObjectKeyPath(obj, "headers.authorization");
-      expect(path).toBe("headers.1");
-    });
-
-    it("should return undefined if string not found in array", () => {
-      const obj = {
-        headers: ["Content-Type", "Authorization"],
-      };
-      const path = toSensitiveObjectKeyPath(obj, "headers.notfound");
-      expect(path).toBeUndefined();
-    });
-
-    it("should handle array of objects with numeric index", () => {
-      const obj = {
-        items: [{ Name: "item1" }, { Name: "item2" }],
-      };
-      const path = toSensitiveObjectKeyPath(obj, "items.0.name");
-      expect(path).toBe("items.0.Name");
-    });
-
-    it("should handle array of objects with bracket notation index a.b[0].c", () => {
-      const obj = {
-        items: [{ Name: "item1" }, { Name: "item2" }],
-      };
-      const path = toSensitiveObjectKeyPath(obj, "items[0].name");
-      expect(path).toBe("items[0].Name");
-    });
-
-    it("should handle deeply nested path with bracket notation a.b[0].c.d", () => {
-      const obj = {
-        users: [
-          { profile: { City: "Berlin" } },
-          { profile: { City: "Munich" } },
-        ],
-      };
-      const path = toSensitiveObjectKeyPath(obj, "users[0].profile.city");
-      expect(path).toBe("users[0].profile.City");
-      const path2 = toSensitiveObjectKeyPath(obj, "users.1.profile.city");
-      expect(path2).toBe("users.1.profile.City");
-    });
-
-    it("should resolve case-insensitive key in array of objects using first element", () => {
-      const obj = {
-        items: [{ Name: "item1" }, { Name: "item2" }],
-      };
-      // Resolves path through array of objects using the first element for case correction.
-      // This allows case-insensitive key resolution for paths that traverse arrays of objects.
-      // The returned path is useful for key-case correction but not for direct _.get across
-      // all array elements — use per-segment traversal to apply to every element.
-      const path = toSensitiveObjectKeyPath(obj, "items.name");
-      expect(path).toBe("items.Name");
-    });
-
-    it("should return undefined for non-existent key in array of objects", () => {
-      const obj = {
-        items: [{ Name: "item1" }, { Name: "item2" }],
-      };
-      const path = toSensitiveObjectKeyPath(obj, "items.nonexistent");
-      expect(path).toBeUndefined();
-    });
-
-    it("should handle mixed array case", () => {
-      const obj = {
-        data: ["string1", { key: "value" }, "string2"],
-      };
-      const path1 = toSensitiveObjectKeyPath(obj, "data.STRING1");
-      expect(path1).toBe("data.0");
-      const path2 = toSensitiveObjectKeyPath(obj, "data.1.key");
-      expect(path2).toBe("data.1.key");
-    });
-
-    it("should return undefined for empty array with non-numeric key", () => {
-      const obj = {
-        items: [] as string[],
-        numbers: [1, 2, 3, 4, 5],
-        mixed: [123, "text", true],
-      };
-      const path1 = toSensitiveObjectKeyPath(obj, "items.notfound");
-      expect(path1).toBeUndefined();
-      const path2 = toSensitiveObjectKeyPath(obj, "numbers.somekey");
-      expect(path2).toBeUndefined();
-      const path3 = toSensitiveObjectKeyPath(obj, "mixed.text");
-      expect(path3).toBeUndefined();
     });
   });
 
@@ -283,35 +195,6 @@ describe("util", () => {
       expect(result3).toBe("b");
       const result4 = get_i(obj, "ARRAY[1].test[2]");
       expect(result4).toBe("c");
-    });
-
-    it("should return value from array of strings case-insensitively", () => {
-      const obj = ["Content-Type", "Authorization", "X-Custom-Header"];
-      const result = get_i(obj, "authorization");
-      expect(result).toBe("Authorization");
-      const result2 = get_i(obj, "content-type");
-      expect(result2).toBe("Content-Type");
-    });
-
-    it("should return undefined for non-existent string in array", () => {
-      const obj = {
-        items: ["Apple", "Banana", "Cherry"],
-      };
-      const result = get_i(obj, "items.orange");
-      expect(result).toBeUndefined();
-    });
-
-    it("should handle case-insensitive nested object keys in arrays", () => {
-      const obj = {
-        data: [
-          { Name: "first", Value: 1 },
-          { Name: "second", Value: 2 },
-        ],
-      };
-      const result = get_i(obj, "data[0].name");
-      expect(result).toBe("first");
-      const result2 = get_i(obj, "data.1.VALUE");
-      expect(result2).toBe(2);
     });
 
     it("should return undefined if object is null", () => {

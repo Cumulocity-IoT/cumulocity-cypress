@@ -62,7 +62,6 @@ import {
   toC8yAuthentication,
 } from "../../shared/auth";
 import "../pact/c8ymatch";
-import { C8yDefaultPactMatcher } from "../../shared/c8ypact/matcher";
 import { C8yBaseUrl } from "../../shared/types";
 
 declare global {
@@ -198,44 +197,39 @@ declare global {
   type C8yCollectionResponse<T> = T extends IAlarm
     ? { alarms: T[] } & CollectionMetadata<T>
     : T extends IManagedObject
-      ? { managedObjects: T[] } & CollectionMetadata<T>
-      : T extends IEvent
-        ? { events: T[] } & CollectionMetadata<T>
-        : T extends IOperation
-          ? { operations: T[] } & CollectionMetadata<T>
-          : T extends IMeasurement
-            ? { measurements: T[] } & CollectionMetadata<T>
-            : T extends IAuditRecord
-              ? { auditRecords: T[] } & CollectionMetadata<T>
-              : T extends IDeviceRegistration
-                ? { newDeviceRequests: T[] } & CollectionMetadata<T>
-                : T extends IExternalIdentity
-                  ? { externalIds: T[] } & CollectionMetadata<T>
-                  : T extends IOperationBulk
-                    ? { bulkOperations: T[] } & CollectionMetadata<T>
-                    : T extends IManagedObjectBinary
-                      ? { managedObjects: T[] } & CollectionMetadata<T>
-                      : T extends IApplicationVersion
-                        ? { versions: T[] } & CollectionMetadata<T>
-                        : T extends IRoleReference
-                          ? { references: T[] } & CollectionMetadata<T>
-                          : T extends ITenantLoginOption
-                            ? { loginOptions: T[] } & CollectionMetadata<T>
-                            : T extends ITenantOption
-                              ? { options: T[] } & CollectionMetadata<T>
-                              : T extends IUserReference
-                                ? { references: T[] } & CollectionMetadata<T>
-                                : T extends IUserGroup
-                                  ? { groups: T[] } & CollectionMetadata<T>
-                                  : // UNION TYPE FALLBACK - For interfaces with only optionals or custom fragments
-                                    T extends
-                                        | IUser
-                                        | IRole
-                                        | IApplication
-                                        | ITenant
-                                        | IIdentified
-                                    ? CustomFragmentsInterfaceResponse<T>
-                                    : never;
+    ? { managedObjects: T[] } & CollectionMetadata<T>
+    : T extends IEvent
+    ? { events: T[] } & CollectionMetadata<T>
+    : T extends IOperation
+    ? { operations: T[] } & CollectionMetadata<T>
+    : T extends IMeasurement
+    ? { measurements: T[] } & CollectionMetadata<T>
+    : T extends IAuditRecord
+    ? { auditRecords: T[] } & CollectionMetadata<T>
+    : T extends IDeviceRegistration
+    ? { newDeviceRequests: T[] } & CollectionMetadata<T>
+    : T extends IExternalIdentity
+    ? { externalIds: T[] } & CollectionMetadata<T>
+    : T extends IOperationBulk
+    ? { bulkOperations: T[] } & CollectionMetadata<T>
+    : T extends IManagedObjectBinary
+    ? { managedObjects: T[] } & CollectionMetadata<T>
+    : T extends IApplicationVersion
+    ? { versions: T[] } & CollectionMetadata<T>
+    : T extends IRoleReference
+    ? { references: T[] } & CollectionMetadata<T>
+    : T extends ITenantLoginOption
+    ? { loginOptions: T[] } & CollectionMetadata<T>
+    : T extends ITenantOption
+    ? { options: T[] } & CollectionMetadata<T>
+    : T extends IUserReference
+    ? { references: T[] } & CollectionMetadata<T>
+    : T extends IUserGroup
+    ? { groups: T[] } & CollectionMetadata<T>
+    : // UNION TYPE FALLBACK - For interfaces with only optionals or custom fragments
+    T extends IUser | IRole | IApplication | ITenant | IIdentified
+    ? CustomFragmentsInterfaceResponse<T>
+    : never;
 
   type CollectionMetadata<T> = {
     statistics?: Paging<T>;
@@ -635,56 +629,41 @@ function run(
     };
 
     const matchPact = (response: any, schema: any) => {
-      const shouldMatchObject =
-        !ignore && enabled && Cypress.c8ypact.mode() === "apply";
-      const instanceMatcher =
-        Cypress.c8ypact.matcher as C8yDefaultPactMatcher | undefined;
-      const matchSchemaAndObject =
-        options?.matchSchemaAndObject ??
-        instanceMatcher?.options?.matchSchemaAndObject ??
-        Cypress.c8ypact.getConfigValue("matchSchemaAndObject", false);
+      if (schema) {
+        cy.c8ymatch(response, schema, undefined, options);
+      } else {
+        // object matching against existing pact
+        if (ignore || !enabled) return;
+        if (Cypress.c8ypact.mode() !== "apply") return;
 
-      // Nothing to do when there is no schema and object matching is not active
-      if (!schema && !shouldMatchObject) return;
-
-      const responses = _.isArray(response) ? response : [response];
-
-      // Object matching runs when: no schema provided, OR schema+matchSchemaAndObject is set
-      const doObjectMatch = shouldMatchObject && (!schema || matchSchemaAndObject);
-
-      for (const r of responses) {
-        // Schema matching: validate each individual response against the schema
-        if (schema) {
-          cy.c8ymatch(r, schema, undefined, options);
-        }
-
-        // Object matching: validate each response against the loaded pact record.
-        // options.record is a static override; nextRecord() is called per-response
-        // to correctly advance the pact cursor for each item in an array response.
-        if (doObjectMatch) {
+        for (const r of _.isArray(response) ? response : [response]) {
+          const record =
+            options.record ?? Cypress.c8ypact.current?.nextRecord();
           const info = Cypress.c8ypact.current?.info;
-          const record = options.record ?? Cypress.c8ypact.current?.nextRecord();
-          if (record != null && info != null) {
+          if (record != null && info != null && !ignore) {
             cy.c8ymatch(r, record, info, options);
-          } else if (
-            record == null &&
-            Cypress.c8ypact.getConfigValue("failOnMissingPacts", true)
-          ) {
+          } else {
             if (
-              Cypress.c8ypact.current == null ||
-              _.isEmpty(Cypress.c8ypact.current?.records)
+              record == null &&
+              Cypress.c8ypact.getConfigValue("failOnMissingPacts", true) &&
+              !ignore
             ) {
-              throwError(
-                `Invalid pact or no records found in pact with id '${Cypress.c8ypact.getCurrentTestId()}'. Check pact file for errors. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore.`
-              );
-            } else {
-              const current: any = Cypress.c8ypact.current;
-              const index = _.isFunction(current?.currentRecordIndex)
-                ? (current?.currentRecordIndex() ?? 0)
-                : 0;
-              throwError(
-                `Record with index ${index} not found in pact with id '${Cypress.c8ypact.getCurrentTestId()}'. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore.`
-              );
+              if (
+                Cypress.c8ypact.current == null ||
+                _.isEmpty(Cypress.c8ypact.current?.records)
+              ) {
+                throwError(
+                  `Invalid pact or no records found in pact with id '${Cypress.c8ypact.getCurrentTestId()}'. Check pact file for errors. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore.`
+                );
+              } else {
+                const current: any = Cypress.c8ypact.current;
+                const index = _.isFunction(current?.currentRecordIndex)
+                  ? current?.currentRecordIndex() ?? 0
+                  : 0;
+                throwError(
+                  `Record with index ${index} not found in pact with id '${Cypress.c8ypact.getCurrentTestId()}'. Disable Cypress.c8ypact.config.failOnMissingPacts to ignore.`
+                );
+              }
             }
           }
         }

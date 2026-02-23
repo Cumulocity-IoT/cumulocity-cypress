@@ -42,211 +42,6 @@ describe("matcher", () => {
       const p3 = matcher.getPropertyMatcher("BODY", true);
       expect(p3).toBeDefined();
     });
-
-    it("should compare key case insensitivity", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = { ContentType: "application/json", StatusCode: 200 };
-      const obj2 = { contenttype: "application/json", statuscode: 200 };
-
-      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
-      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
-    });
-
-    it("should detect value mismatch even with case-insensitive keys", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = { UserName: "alice" };
-      const obj2 = { username: "bob" };
-
-      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
-      expect(() => matcher.match(obj1, obj2, { ignoreCase: true })).toThrow(
-        /Values for "username" do not match/
-      );
-    });
-
-    it("should handle nested objects with case-insensitive keys", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        Headers: {
-          ContentType: "application/json",
-          ApiKey: "secret123",
-        },
-      };
-      const obj2 = {
-        headers: {
-          contenttype: "application/json",
-          apikey: "secret123",
-        },
-      };
-
-      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
-      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
-    });
-
-    it("should handle strict matching with case-insensitive keys", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        ApiKey: "secret",
-        ContentType: "application/json",
-      };
-      const obj2 = {
-        apikey: "secret",
-      };
-
-      expect(() =>
-        matcher.match(obj1, obj2, { ignoreCase: true, strictMatching: true })
-      ).toThrow(/not found in pact object/);
-    });
-
-    it("should handle non-strict matching with case-insensitive keys", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        ApiKey: "secret",
-        ContentType: "application/json",
-        ExtraField: "value",
-      };
-      const obj2 = {
-        apikey: "secret",
-        contenttype: "application/json",
-      };
-
-      expect(
-        matcher.match(obj1, obj2, { ignoreCase: true, strictMatching: false })
-      ).toBeTruthy();
-      expect(() =>
-        matcher.match(obj1, obj2, { ignoreCase: false, strictMatching: false })
-      ).toThrow();
-    });
-
-    it("should resolve schema keys case-insensitively when matching", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        Name: "test",
-        Age: 25,
-      };
-      const obj2 = {
-        name: "test",
-        age: 25,
-      };
-
-      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
-      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
-    });
-
-    it("should handle mixed case keys in arrays of objects", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        Items: [
-          { Name: "item1", Value: 100 },
-          { Name: "item2", Value: 200 },
-        ],
-      };
-      const obj2 = {
-        items: [
-          { name: "item1", value: 100 },
-          { name: "item2", value: 200 },
-        ],
-      };
-
-      expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
-      expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
-    });
-
-    describe("default options", () => {
-      afterEach(() => {
-        C8yDefaultPactMatcher.options = undefined;
-      });
-
-      it("should accept options in constructor and use them as defaults", () => {
-        const matcher = new C8yDefaultPactMatcher(undefined, {
-          ignoreCase: true,
-        });
-        expect(matcher.options).toEqual({ ignoreCase: true });
-
-        const obj1 = { UserName: "alice", Status: "active" };
-        const obj2 = { username: "alice", status: "active" };
-
-        expect(matcher.match(obj1, obj2)).toBeTruthy();
-        expect(() => new C8yDefaultPactMatcher().match(obj1, obj2)).toThrow();
-      });
-
-      it("should use static options as base defaults", () => {
-        C8yDefaultPactMatcher.options = { ignoreCase: true };
-
-        const matcher = new C8yDefaultPactMatcher();
-        const obj1 = { UserName: "alice" };
-        const obj2 = { username: "alice" };
-
-        expect(matcher.match(obj1, obj2)).toBeTruthy();
-      });
-
-      it("should give instance options priority over static options", () => {
-        C8yDefaultPactMatcher.options = { ignoreCase: false };
-
-        const matcher = new C8yDefaultPactMatcher(undefined, {
-          ignoreCase: true,
-        });
-        const obj1 = { UserName: "alice" };
-        const obj2 = { username: "alice" };
-
-        expect(matcher.match(obj1, obj2)).toBeTruthy();
-      });
-
-      it("should give options passed to match() priority over instance options", () => {
-        const matcher = new C8yDefaultPactMatcher(undefined, {
-          ignoreCase: true,
-        });
-        const obj1 = { UserName: "alice" };
-        const obj2 = { username: "alice" };
-
-        // override the instance option
-        expect(() =>
-          matcher.match(obj1, obj2, { ignoreCase: false })
-        ).toThrow();
-      });
-
-      it("should give options passed to match() priority over static options", () => {
-        C8yDefaultPactMatcher.options = { ignoreCase: true };
-
-        const matcher = new C8yDefaultPactMatcher();
-        const obj1 = { UserName: "alice" };
-        const obj2 = { username: "alice" };
-
-        // override the static option
-        expect(() =>
-          matcher.match(obj1, obj2, { ignoreCase: false })
-        ).toThrow();
-      });
-
-      it("should merge individual options, not replace all", () => {
-        C8yDefaultPactMatcher.options = {
-          ignoreCase: true,
-          strictMatching: false,
-        };
-
-        const matcher = new C8yDefaultPactMatcher(undefined, {
-          strictMatching: true,
-        });
-
-        // ignoreCase still comes from static options, not overridden by instance
-        const obj1 = { UserName: "alice", Extra: "x" };
-        const obj2 = { username: "alice" };
-
-        // strictMatching=true from instance: obj1 has Extra not in obj2 -> should throw
-        expect(() => matcher.match(obj1, obj2)).toThrow(/not found in pact/);
-      });
-
-      it("should not mutate options when match() is called repeatedly", () => {
-        const matcher = new C8yDefaultPactMatcher(undefined, {
-          ignoreCase: true,
-        });
-        const obj1 = { UserName: "alice" };
-        const obj2 = { username: "alice" };
-
-        matcher.match(obj1, obj2);
-        matcher.match(obj1, obj2);
-        expect(matcher.options).toEqual({ ignoreCase: true });
-      });
-    });
   });
 
   describe("C8yISODateStringMatcher", () => {
@@ -371,7 +166,7 @@ describe("matcher", () => {
     C8yDefaultPactMatcher.schemaMatcher = new C8yAjvSchemaMatcher();
 
     beforeEach(() => {
-      C8yDefaultPactMatcher.options = undefined;
+      C8yDefaultPactMatcher.matchSchemaAndObject = false;
     });
 
     it("should match schema", () => {
@@ -408,9 +203,9 @@ describe("matcher", () => {
         expect.objectContaining({
           name: "C8yPactMatchError",
           message: expect.stringContaining(
-            `Pact validation failed! Schema for \"response > body\" does not match (data/age must be number).`
+            `Pact validation failed! Schema for \"response > body\" does not match (data/age must be number).`,
           ),
-        })
+        }),
       );
     });
 
@@ -434,7 +229,7 @@ describe("matcher", () => {
         matcher.match(obj, pact, {
           strictMatching: true,
           matchSchemaAndObject: false,
-        })
+        }),
       ).toBeTruthy();
 
       // object matching failure
@@ -442,13 +237,13 @@ describe("matcher", () => {
         matcher.match(obj, pact, {
           strictMatching: true,
           matchSchemaAndObject: true,
-        })
+        }),
       ).toThrow(`Values for "response > body > age" do not match.`);
     });
 
     it("should not match object and schema with global matchSchemaAndObject config", () => {
       const matcher = new C8yDefaultPactMatcher();
-      C8yDefaultPactMatcher.options = { matchSchemaAndObject: true };
+      C8yDefaultPactMatcher.matchSchemaAndObject = true;
 
       const obj = {
         response: {
@@ -466,208 +261,15 @@ describe("matcher", () => {
       expect(() =>
         matcher.match(obj, pact, {
           strictMatching: true,
-        })
+        }),
       ).toThrow(
         expect.objectContaining({
           name: "C8yPactMatchError",
           message: expect.stringContaining(
-            `Values for "response > body > age" do not match.`
+            `Values for "response > body > age" do not match.`,
           ),
-        })
+        }),
       );
-    });
-
-    it("should match schema when body is an array", () => {
-      const arraySchema = {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            age: { type: "number" },
-          },
-          required: ["name", "age"],
-        },
-      };
-      const matcher = new C8yDefaultPactMatcher();
-
-      const obj = {
-        response: {
-          body: [
-            { name: "Alice", age: 30 },
-            { name: "Bob", age: 25 },
-          ],
-        },
-      };
-      const pact = {
-        response: { $body: arraySchema },
-      };
-
-      expect(matcher.match(obj, pact)).toBeTruthy();
-    });
-
-    it("should not match schema when array body contains invalid item", () => {
-      const arraySchema = {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            age: { type: "number" },
-          },
-          required: ["name", "age"],
-        },
-      };
-      const matcher = new C8yDefaultPactMatcher();
-
-      const obj = {
-        response: {
-          body: [
-            { name: "Alice", age: 30 },
-            { name: "Bob", age: "twenty-five" }, // invalid age
-          ],
-        },
-      };
-      const pact = {
-        response: { $body: arraySchema },
-      };
-
-      expect(() => matcher.match(obj, pact)).toThrow(
-        expect.objectContaining({
-          name: "C8yPactMatchError",
-          message: expect.stringContaining(
-            `Schema for "response > body" does not match`
-          ),
-        })
-      );
-    });
-
-    it("should match schema and object when body is an array with matchSchemaAndObject", () => {
-      const arraySchema = {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            age: { type: "number" },
-          },
-          required: ["name", "age"],
-        },
-      };
-      const matcher = new C8yDefaultPactMatcher();
-      const body = [
-        { name: "Alice", age: 30 },
-        { name: "Bob", age: 25 },
-      ];
-
-      const obj = { response: { body } };
-      const pact = {
-        response: {
-          $body: arraySchema,
-          body,
-        },
-      };
-
-      // with matchSchemaAndObject: false — schema only, no object comparison
-      expect(
-        matcher.match(obj, pact, {
-          strictMatching: true,
-          matchSchemaAndObject: false,
-        })
-      ).toBeTruthy();
-
-      // with matchSchemaAndObject: true — schema + object must both pass
-      expect(
-        matcher.match(obj, pact, {
-          strictMatching: true,
-          matchSchemaAndObject: true,
-        })
-      ).toBeTruthy();
-    });
-
-    it("should fail object matching when array body differs with matchSchemaAndObject", () => {
-      const arraySchema = {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            age: { type: "number" },
-          },
-          required: ["name", "age"],
-        },
-      };
-      const matcher = new C8yDefaultPactMatcher();
-
-      const obj = {
-        response: {
-          body: [
-            { name: "Alice", age: 30 },
-            { name: "Bob", age: 25 },
-          ],
-        },
-      };
-      const pact = {
-        response: {
-          $body: arraySchema,
-          // pact body has different age for Bob
-          body: [
-            { name: "Alice", age: 30 },
-            { name: "Bob", age: 99 },
-          ],
-        },
-      };
-
-      // schema passes, but object comparison must fail
-      expect(() =>
-        matcher.match(obj, pact, {
-          strictMatching: true,
-          matchSchemaAndObject: true,
-        })
-      ).toThrow(
-        expect.objectContaining({
-          name: "C8yPactMatchError",
-          message: expect.stringContaining(`do not match`),
-        })
-      );
-    });
-
-    it("should honour instance-level options.matchSchemaAndObject", () => {
-      // Instance constructed with matchSchemaAndObject: true — no call-time option needed
-      const matcher = new C8yDefaultPactMatcher(
-        {},
-        { matchSchemaAndObject: true }
-      );
-
-      const obj = {
-        response: {
-          body: { name: "John Doe", age: 30 },
-        },
-      };
-      const pact = {
-        response: {
-          $body: schema,
-          body: { name: "John Doe", age: 35 },
-        },
-      };
-
-      // object mismatch (age 30 vs 35) must be detected via the instance option
-      expect(() => matcher.match(obj, pact, { strictMatching: true })).toThrow(
-        expect.objectContaining({
-          name: "C8yPactMatchError",
-          message: expect.stringContaining(
-            `Values for "response > body > age" do not match.`
-          ),
-        })
-      );
-
-      // instance option can still be overridden per call
-      expect(
-        matcher.match(obj, pact, {
-          strictMatching: true,
-          matchSchemaAndObject: false,
-        })
-      ).toBeTruthy();
     });
   });
 
@@ -688,19 +290,19 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
         ).toBeTruthy();
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have mismatches at indices'
+              'Arrays with key "response > body > tags" have mismatches at indices',
             ),
-          })
+          }),
         );
       });
 
@@ -719,19 +321,19 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
         ).toBeTruthy();
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have mismatches at indices'
+              'Arrays with key "response > body > tags" have mismatches at indices',
             ),
-          })
+          }),
         );
       });
 
@@ -750,19 +352,19 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
         ).toBeTruthy();
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > values" have mismatches at indices'
+              'Arrays with key "response > body > values" have mismatches at indices',
             ),
-          })
+          }),
         );
       });
 
@@ -781,26 +383,26 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have mismatches at indices "2".'
+              'Arrays with key "response > body > tags" have mismatches at indices "2".',
             ),
-          })
+          }),
         );
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have mismatches at indices "2".'
+              'Arrays with key "response > body > tags" have mismatches at indices "2".',
             ),
-          })
+          }),
         );
       });
 
@@ -821,9 +423,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have different lengths.'
+              'Arrays with key "response > body > tags" have different lengths.',
             ),
-          })
+          }),
         );
       });
 
@@ -875,9 +477,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays at "root" have different lengths.'
+              'Arrays at "root" have different lengths.',
             ),
-          })
+          }),
         );
       });
 
@@ -894,9 +496,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Type mismatch at \"root\". Expected array but got object.'
+              'Type mismatch at \"root\". Expected array but got object.',
             ),
-          })
+          }),
         );
       });
 
@@ -909,7 +511,7 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining("Expected 2 objects"),
-          })
+          }),
         );
       });
 
@@ -930,7 +532,7 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining("Expected 2 objects"),
-          })
+          }),
         );
       });
 
@@ -1021,9 +623,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Values for "response > body > users > 0 > name" do not match'
+              'Values for "response > body > users > 0 > name" do not match',
             ),
-          })
+          }),
         );
       });
 
@@ -1055,9 +657,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > users" have different lengths'
+              'Arrays with key "response > body > users" have different lengths',
             ),
-          })
+          }),
         );
       });
 
@@ -1134,9 +736,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Values for "response > body > groups > 0 > members > 1 > name" do not match'
+              'Values for "response > body > groups > 0 > members > 1 > name" do not match',
             ),
-          })
+          }),
         );
       });
 
@@ -1173,19 +775,19 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
         ).toBeTruthy();
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > values" have mismatches at indices'
+              'Arrays with key "response > body > values" have mismatches at indices',
             ),
-          })
+          }),
         );
       });
 
@@ -1240,26 +842,26 @@ describe("matcher", () => {
 
         // With ignorePrimitiveArrayOrder: true (default)
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: true }),
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > matrix > 1" have mismatches at indices "2".'
+              'Arrays with key "response > body > matrix > 1" have mismatches at indices "2".',
             ),
-          })
+          }),
         );
 
         // With ignorePrimitiveArrayOrder: false
         expect(() =>
-          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false })
+          matcher.match(obj, pact, { ignorePrimitiveArrayOrder: false }),
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > matrix > 1" have mismatches at indices "2".'
+              'Arrays with key "response > body > matrix > 1" have mismatches at indices "2".',
             ),
-          })
+          }),
         );
       });
 
@@ -1292,9 +894,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > matrix > 0" have mismatches at indices "0,1,2".'
+              'Arrays with key "response > body > matrix > 0" have mismatches at indices "0,1,2".',
             ),
-          })
+          }),
         );
       });
     });
@@ -1321,14 +923,14 @@ describe("matcher", () => {
         // for primitive arrays - actually this should still fail because arrays
         // check for unexpected values
         expect(() =>
-          matcher.match(obj, pact, { strictMatching: false })
+          matcher.match(obj, pact, { strictMatching: false }),
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > tags" have different lengths.'
+              'Arrays with key "response > body > tags" have different lengths.',
             ),
-          })
+          }),
         );
       });
 
@@ -1350,14 +952,14 @@ describe("matcher", () => {
         };
 
         expect(() =>
-          matcher.match(obj, pact, { strictMatching: true })
+          matcher.match(obj, pact, { strictMatching: true }),
         ).toThrow(
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > users" have different lengths'
+              'Arrays with key "response > body > users" have different lengths',
             ),
-          })
+          }),
         );
       });
     });
@@ -1428,9 +1030,9 @@ describe("matcher", () => {
           expect.objectContaining({
             name: "C8yPactMatchError",
             message: expect.stringContaining(
-              'Arrays with key "response > body > numbers" have mismatches at indices "1".'
+              'Arrays with key "response > body > numbers" have mismatches at indices "1".',
             ),
-          })
+          }),
         );
       });
 
@@ -1450,248 +1052,6 @@ describe("matcher", () => {
 
         expect(matcher.match(obj, pact)).toBeTruthy();
       });
-    });
-  });
-
-  describe("authorization header prefix", () => {
-    it("should match Authorization with preserved prefix", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      expect(
-        matcher.match(
-          { request: { headers: { Authorization: "Bearer ****" } } },
-          { request: { headers: { Authorization: "****" } } }
-        )
-      ).toBeTruthy();
-      expect(
-        matcher.match(
-          { request: { headers: { Authorization: "****" } } },
-          { request: { headers: { Authorization: "Basic ****" } } }
-        )
-      ).toBeTruthy();
-      expect(
-        matcher.match(
-          { request: { headers: { Authorization: "Bearer ****" } } },
-          { request: { headers: { Authorization: "Basic ****" } } }
-        )
-      ).toBeTruthy();
-      expect(
-        matcher.match(
-          { request: { headers: { Authorization: "****" } } },
-          { request: { headers: { authorization: "Basic ****" } } },
-          { ignoreCase: true }
-        )
-      ).toBeTruthy();
-    });
-  });
-
-  describe("JSON Schema keywords", () => {
-    it("should match objects with $schema property", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        $schema: "http://json-schema.org/draft-07/schema#",
-        type: "object",
-      };
-      const obj2 = {
-        $schema: "http://json-schema.org/draft-07/schema#",
-        type: "object",
-      };
-      const obj3 = {
-        $schema: "http://json-schema.org/draft-06/schema#",
-        type: "object",
-      };
-
-      expect(matcher.match(obj1, obj2)).toBeTruthy();
-      expect(() => matcher.match(obj1, obj3)).toThrow();
-    });
-
-    it("should match objects with $id property", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        $id: "https://example.com/schema.json",
-        type: "object",
-      };
-      const obj2 = {
-        $id: "https://example.com/schema.json",
-        type: "object",
-      };
-      const obj3 = {
-        $id: "https://example.com/schema-v2.json",
-        type: "object",
-      };
-
-      expect(matcher.match(obj1, obj2)).toBeTruthy();
-      expect(() => matcher.match(obj1, obj3)).toThrow();
-    });
-
-    it("should match objects with $ref property", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        properties: {
-          user: { $ref: "#/definitions/User" },
-        },
-      };
-      const obj2 = {
-        properties: {
-          user: { $ref: "#/definitions/User" },
-        },
-      };
-      const obj3 = {
-        properties: {
-          user: { $ref: "#/definitions/Person" },
-        },
-      };
-
-      expect(matcher.match(obj1, obj2)).toBeTruthy();
-      expect(() => matcher.match(obj1, obj3)).toThrow();
-    });
-
-    it("should match objects with $comment property", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        $comment: "This is a test schema",
-        type: "object",
-      };
-      const obj2 = {
-        $comment: "This is a test schema",
-        type: "object",
-      };
-      const obj3 = {
-        $comment: "This is a different comment",
-        type: "object",
-      };
-
-      expect(matcher.match(obj1, obj2)).toBeTruthy();
-      expect(() => matcher.match(obj1, obj3)).toThrow();
-    });
-
-    it("should match objects with $defs property", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        $defs: {
-          address: { type: "object" },
-        },
-      };
-      const obj2 = {
-        $defs: {
-          address: { type: "object" },
-        },
-      };
-      const obj3 = {
-        $defs: {
-          address: { type: "string" },
-        },
-      };
-
-      expect(matcher.match(obj1, obj2)).toBeTruthy();
-      expect(() => matcher.match(obj1, obj3)).toThrow();
-    });
-
-    it("should match objects with multiple JSON Schema keywords", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        $schema: "http://json-schema.org/draft-07/schema#",
-        $id: "https://example.com/person.schema.json",
-        $comment: "A person schema",
-        type: "object",
-        properties: {
-          name: { type: "string" },
-        },
-      };
-      const obj2 = {
-        $schema: "http://json-schema.org/draft-07/schema#",
-        $id: "https://example.com/person.schema.json",
-        $comment: "A person schema",
-        type: "object",
-        properties: {
-          name: { type: "string" },
-        },
-      };
-
-      expect(matcher.match(obj1, obj2)).toBeTruthy();
-    });
-
-    it("should fail when one of multiple JSON Schema keywords differs", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        $schema: "http://json-schema.org/draft-07/schema#",
-        $id: "https://example.com/person.schema.json",
-        $comment: "A person schema",
-        type: "object",
-      };
-      const obj2 = {
-        $schema: "http://json-schema.org/draft-07/schema#",
-        $id: "https://example.com/person.schema.json",
-        $comment: "A different comment",
-        type: "object",
-      };
-
-      expect(() => matcher.match(obj1, obj2)).toThrow(
-        expect.objectContaining({
-          name: "C8yPactMatchError",
-          message: expect.stringContaining(
-            'Values for "$comment" do not match'
-          ),
-        })
-      );
-    });
-
-    it("should differentiate between $schema (JSON Schema) and $body (schema matcher)", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      C8yDefaultPactMatcher.schemaMatcher = new C8yAjvSchemaMatcher();
-
-      const obj1 = {
-        response: {
-          body: {
-            $schema: "http://json-schema.org/draft-07/schema#",
-            name: "John",
-          },
-        },
-      };
-      const obj2 = {
-        response: {
-          $body: {
-            type: "object",
-            properties: {
-              $schema: { type: "string" },
-              name: { type: "string" },
-            },
-          },
-        },
-      };
-
-      // $body is used as schema matcher, $schema is matched as regular property
-      expect(matcher.match(obj1, obj2)).toBeTruthy();
-    });
-
-    it("should handle nested objects with JSON Schema keywords", () => {
-      const matcher = new C8yDefaultPactMatcher();
-      const obj1 = {
-        definitions: {
-          User: {
-            $id: "#User",
-            type: "object",
-          },
-        },
-      };
-      const obj2 = {
-        definitions: {
-          User: {
-            $id: "#User",
-            type: "object",
-          },
-        },
-      };
-      const obj3 = {
-        definitions: {
-          User: {
-            $id: "#Person",
-            type: "object",
-          },
-        },
-      };
-
-      expect(matcher.match(obj1, obj2)).toBeTruthy();
-      expect(() => matcher.match(obj1, obj3)).toThrow();
     });
   });
 });
