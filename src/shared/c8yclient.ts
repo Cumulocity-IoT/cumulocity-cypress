@@ -54,6 +54,7 @@ export type C8yClientOptions = Partial<Cypress.Loggable> &
     failOnPactValidation: boolean;
     ignorePact: boolean;
     schema: any;
+    matchSchemaAndObject: boolean;
     record: C8yPactRecord;
     schemaMatcher: C8ySchemaMatcher;
     strictMatching: boolean;
@@ -144,7 +145,7 @@ export async function wrapFetchRequest(
   } else {
     // add json content type if body is present and content-type is not set
     const method = fetchOptions?.method || "GET";
-    if (fetchOptions?.body && method !== "GET" && method != "HEAD") {
+    if (fetchOptions?.body && method !== "GET" && method != "HEAD" && !get_i(fetchOptions.headers, "content-type")) {
       fetchOptions.headers = {
         "content-type": "application/json",
         ...fetchOptions.headers,
@@ -246,7 +247,8 @@ export async function wrapFetchResponse(
   } else if (response.body) {
     try {
       rawBody = await response.text();
-      responseObj.body = JSON.parse(rawBody);
+      const json = JSON.parse(rawBody);
+      responseObj.body = _.isObjectLike(json) ? json : rawBody;
     } catch {
       responseObj.body = rawBody;
     }

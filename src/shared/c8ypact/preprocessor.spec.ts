@@ -255,6 +255,189 @@ describe("C8yDefaultPactPreprocessor", () => {
 
       expect(response!.body.c8y_LinkedSeries).toBe(obfuscationPattern);
     });
+
+    it("should obfuscate keys in multiple array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.users.password"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", password: "secret1" },
+        { name: "User2", password: "secret2" },
+        { name: "User3", password: "secret3" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].password).toBe("******");
+      expect(response!.body.users[1].password).toBe("******");
+      expect(response!.body.users[2].password).toBe("******");
+      expect(response!.body.users[0].name).toBe("User1");
+    });
+
+    it("should obfuscate keys with case insensitive path in multiple array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.USERS.PASSWORD"],
+        obfuscationPattern: "******",
+        ignoreCase: true,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", Password: "secret1" },
+        { name: "User2", passworD: "secret2" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].Password).toBe("******");
+      expect(response!.body.users[1].passworD).toBe("******");
+      expect(response!.body.users[0].name).toBe("User1");
+    });
+
+    it("should obfuscate deeply nested keys in array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.users.address.city"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", address: { city: "Berlin", zip: "10115" } },
+        { name: "User2", address: { city: "Munich", zip: "80331" } },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].address.city).toBe("******");
+      expect(response!.body.users[1].address.city).toBe("******");
+      expect(response!.body.users[0].address.zip).toBe("10115");
+      expect(response!.body.users[1].address.zip).toBe("80331");
+    });
+
+    it("should obfuscate key at specific index in array using dot notation a.b.0.c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.users.0.password"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", password: "secret1" },
+        { name: "User2", password: "secret2" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].password).toBe("******");
+      expect(response!.body.users[1].password).toBe("secret2");
+    });
+
+    it("should obfuscate key at specific index in array using bracket notation a.b[0].c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.users[0].password"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", password: "secret1" },
+        { name: "User2", password: "secret2" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].password).toBe("******");
+      expect(response!.body.users[1].password).toBe("secret2");
+    });
+
+    it("should obfuscate deeply nested key at specific index a.b.0.c.d", () => {
+      const options: C8yPactPreprocessorOptions = {
+        obfuscate: ["body.users.1.address.city"],
+        obfuscationPattern: "******",
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", address: { city: "Berlin", zip: "10115" } },
+        { name: "User2", address: { city: "Munich", zip: "80331" } },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].address.city).toBe("Berlin");
+      expect(response!.body.users[1].address.city).toBe("******");
+      expect(response!.body.users[0].address.zip).toBe("10115");
+      expect(response!.body.users[1].address.zip).toBe("80331");
+    });
+
+    describe("recursive descent (..)", () => {
+      it("should obfuscate any field at any depth with ..key", () => {
+        const options: C8yPactPreprocessorOptions = {
+          obfuscate: ["..password"],
+          obfuscationPattern: "******",
+        };
+        const preprocessor = new C8yDefaultPactPreprocessor(options);
+        response!.body = {
+          password: "toplevel",
+          user: { password: "nested" },
+          users: [
+            { name: "User1", password: "inarray1" },
+            { name: "User2", password: "inarray2" },
+          ],
+        };
+        preprocessor.apply(response!);
+
+        expect(response!.body.password).toBe("******");
+        expect(response!.body.user.password).toBe("******");
+        expect(response!.body.users[0].password).toBe("******");
+        expect(response!.body.users[1].password).toBe("******");
+        expect(response!.body.users[0].name).toBe("User1");
+      });
+
+      it("should obfuscate with prefix: body..password", () => {
+        const options: C8yPactPreprocessorOptions = {
+          obfuscate: ["body..password"],
+          obfuscationPattern: "******",
+        };
+        const preprocessor = new C8yDefaultPactPreprocessor(options);
+        response!.body = {
+          user: { password: "nested" },
+          users: [{ name: "User1", password: "inarray" }],
+        };
+        response!.requestBody = { password: "should-stay" };
+        preprocessor.apply(response!);
+
+        expect(response!.body.user.password).toBe("******");
+        expect(response!.body.users[0].password).toBe("******");
+        // outside of body prefix — untouched
+        expect(response!.requestBody.password).toBe("should-stay");
+      });
+
+      it("should obfuscate case-insensitively", () => {
+        const options: C8yPactPreprocessorOptions = {
+          obfuscate: ["..PASSWORD"],
+          obfuscationPattern: "******",
+          ignoreCase: true,
+        };
+        const preprocessor = new C8yDefaultPactPreprocessor(options);
+        response!.body = {
+          Password: "mixed-case-key",
+          user: { pAsSwOrD: "deep" },
+        };
+        preprocessor.apply(response!);
+
+        expect(response!.body.Password).toBe("******");
+        expect(response!.body.user.pAsSwOrD).toBe("******");
+      });
+
+      it("should not obfuscate when case sensitive and case does not match", () => {
+        const options: C8yPactPreprocessorOptions = {
+          obfuscate: ["..password"],
+          obfuscationPattern: "******",
+          ignoreCase: false,
+        };
+        const preprocessor = new C8yDefaultPactPreprocessor(options);
+        response!.body = {
+          password: "exact-match",
+          Password: "should-stay",
+        };
+        preprocessor.apply(response!);
+
+        expect(response!.body.password).toBe("******");
+        expect(response!.body.Password).toBe("should-stay");
+      });
+    });
   });
 
   describe("authorization header obfuscation", () => {
@@ -534,6 +717,161 @@ describe("C8yDefaultPactPreprocessor", () => {
       preprocessor.apply(response!);
 
       expect(response!.body.c8y_LinkedSeries).toBeUndefined();
+    });
+
+    it("should remove keys in multiple array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.users.password"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", password: "secret1" },
+        { name: "User2", password: "secret2" },
+        { name: "User3", password: "secret3" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0]).not.toHaveProperty("password");
+      expect(response!.body.users[1]).not.toHaveProperty("password");
+      expect(response!.body.users[2]).not.toHaveProperty("password");
+      expect(response!.body.users[0].name).toBe("User1");
+    });
+
+    it("should remove keys case insensitive in multiple array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.users.password"],
+        ignoreCase: true,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", Passwor: "secret1" },
+        { name: "User2", passworD: "secret2" },
+        { name: "User3", PASSWORD: "secret3" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0]).not.toHaveProperty("Password");
+      expect(response!.body.users[1]).not.toHaveProperty("passworD");
+      expect(response!.body.users[2]).not.toHaveProperty("PASSWORD");
+      expect(response!.body.users[0].name).toBe("User1");
+    });
+
+    it("should remove deeply nested keys in array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.users.address.city"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", address: { city: "Berlin", zip: "10115" } },
+        { name: "User2", address: { city: "Munich", zip: "80331" } },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].address).not.toHaveProperty("city");
+      expect(response!.body.users[1].address).not.toHaveProperty("city");
+      expect(response!.body.users[0].address.zip).toBe("10115");
+      expect(response!.body.users[1].address.zip).toBe("80331");
+    });
+
+    it("should remove key at specific index in array using dot notation a.b.0.c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.users.0.password"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", password: "secret1" },
+        { name: "User2", password: "secret2" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0]).not.toHaveProperty("password");
+      expect(response!.body.users[1].password).toBe("secret2");
+    });
+
+    it("should remove key at specific index in array using bracket notation a.b[0].c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.users[0].password"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", password: "secret1" },
+        { name: "User2", password: "secret2" },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0]).not.toHaveProperty("password");
+      expect(response!.body.users[1].password).toBe("secret2");
+    });
+
+    it("should remove deeply nested key at specific index a.b.0.c.d", () => {
+      const options: C8yPactPreprocessorOptions = {
+        ignore: ["body.users.1.address.city"],
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      response!.body.users = [
+        { name: "User1", address: { city: "Berlin", zip: "10115" } },
+        { name: "User2", address: { city: "Munich", zip: "80331" } },
+      ];
+      preprocessor.apply(response!);
+
+      expect(response!.body.users[0].address.city).toBe("Berlin");
+      expect(response!.body.users[1].address).not.toHaveProperty("city");
+      expect(response!.body.users[0].address.zip).toBe("10115");
+      expect(response!.body.users[1].address.zip).toBe("80331");
+    });
+
+    describe("recursive descent (..)", () => {
+      it("should remove any field at any depth with ..key", () => {
+        const options: C8yPactPreprocessorOptions = {
+          ignore: ["..password"],
+        };
+        const preprocessor = new C8yDefaultPactPreprocessor(options);
+        response!.body = {
+          password: "toplevel",
+          user: { password: "nested", name: "User1" },
+          users: [
+            { name: "User2", password: "inarray1" },
+            { name: "User3", password: "inarray2" },
+          ],
+        };
+        preprocessor.apply(response!);
+
+        expect(response!.body).not.toHaveProperty("password");
+        expect(response!.body.user).not.toHaveProperty("password");
+        expect(response!.body.user.name).toBe("User1");
+        expect(response!.body.users[0]).not.toHaveProperty("password");
+        expect(response!.body.users[1]).not.toHaveProperty("password");
+        expect(response!.body.users[0].name).toBe("User2");
+      });
+
+      it("should remove with prefix: body..password", () => {
+        const options: C8yPactPreprocessorOptions = {
+          ignore: ["body..password"],
+        };
+        const preprocessor = new C8yDefaultPactPreprocessor(options);
+        response!.body = { user: { password: "nested" } };
+        response!.requestBody = { password: "should-stay" };
+        preprocessor.apply(response!);
+
+        expect(response!.body.user).not.toHaveProperty("password");
+        expect(response!.requestBody.password).toBe("should-stay");
+      });
+
+      it("should remove case-insensitively with ignoreCase: true", () => {
+        const options: C8yPactPreprocessorOptions = {
+          ignore: ["..PASSWORD"],
+          ignoreCase: true,
+        };
+        const preprocessor = new C8yDefaultPactPreprocessor(options);
+        response!.body = {
+          Password: "mixed-case-key",
+          user: { pAsSwOrD: "deep" },
+        };
+        preprocessor.apply(response!);
+
+        expect(response!.body).not.toHaveProperty("Password");
+        expect(response!.body.user).not.toHaveProperty("pAsSwOrD");
+      });
     });
   });
 
@@ -964,6 +1302,74 @@ describe("C8yDefaultPactPreprocessor", () => {
         },
       });
     });
+
+    it("should pick keys in array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: {
+          "body.users": ["name"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const r: any = {
+        body: {
+          users: [
+            { name: "User1", password: "secret1", role: "admin" },
+            { name: "User2", password: "secret2", role: "user" },
+          ],
+        },
+        status: 200,
+      };
+      preprocessor.apply(r);
+
+      expect(r.body.users[0]).toStrictEqual({ name: "User1" });
+      expect(r.body.users[1]).toStrictEqual({ name: "User2" });
+      expect(r.status).toBeUndefined();
+    });
+
+    it("should pick multiple keys in array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: {
+          "body.users": ["name", "role"],
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const r: any = {
+        body: {
+          users: [
+            { name: "User1", password: "secret1", role: "admin" },
+            { name: "User2", password: "secret2", role: "user" },
+          ],
+        },
+      };
+      preprocessor.apply(r);
+
+      expect(r.body.users[0]).toStrictEqual({ name: "User1", role: "admin" });
+      expect(r.body.users[1]).toStrictEqual({ name: "User2", role: "user" });
+    });
+
+    it("should pick keys in array elements with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        pick: {
+          "BODY.Users": ["name"],
+        },
+        ignoreCase: true,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const r: any = {
+        body: {
+          users: [
+            { namE: "User1", password: "secret1" },
+            { Name: "User2", password: "secret2" },
+          ],
+        },
+      };
+      preprocessor.apply(r);
+
+      expect(r.body.users[0]).toStrictEqual({ namE: "User1" });
+      expect(r.body.users[1]).toStrictEqual({ Name: "User2" });
+      expect(r.body.users[0].password).toBeUndefined();
+      expect(r.body.users[1].password).toBeUndefined();
+    });
   });
 
   describe("regexReplace", () => {
@@ -1096,6 +1502,175 @@ describe("C8yDefaultPactPreprocessor", () => {
       const response = { body: { name: "abc" } };
       preprocessor.apply(response);
       expect(response.body.name).toBe(""); // Should replace with empty string
+    });
+
+    it("should perform regex replace in array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.users.name": "/User/Person/g",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const r: any = {
+        body: {
+          users: [
+            { name: "User1", id: 1 },
+            { name: "User2", id: 2 },
+            { name: "User3", id: 3 },
+          ],
+        },
+      };
+      preprocessor.apply(r);
+
+      expect(r.body.users[0].name).toBe("Person1");
+      expect(r.body.users[1].name).toBe("Person2");
+      expect(r.body.users[2].name).toBe("Person3");
+      expect(r.body.users[0].id).toBe(1);
+    });
+
+    it("should perform regex replace in array elements with case insensitive keys", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.USERS.NAME": "/User/Person/g",
+        },
+        ignoreCase: true,
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const r: any = {
+        body: {
+          users: [
+            { NamE: "User1", id: 1 },
+            { namE: "User2", id: 2 },
+          ],
+        },
+      };
+      preprocessor.apply(r);
+
+      expect(r.body.users[0].NamE).toBe("Person1");
+      expect(r.body.users[1].namE).toBe("Person2");
+    });
+
+    it("should perform regex replace on deeply nested keys in array elements", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.users.address.city": "/Berlin/Hamburg/g",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const r: any = {
+        body: {
+          users: [
+            { name: "User1", address: { city: "Berlin", zip: "10115" } },
+            { name: "User2", address: { city: "Berlin", zip: "80331" } },
+          ],
+        },
+      };
+      preprocessor.apply(r);
+
+      expect(r.body.users[0].address.city).toBe("Hamburg");
+      expect(r.body.users[1].address.city).toBe("Hamburg");
+      expect(r.body.users[0].address.zip).toBe("10115");
+    });
+
+    it("should perform regex replace at specific index using dot notation a.b.0.c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.users.0.name": "/User/Person/g",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const r: any = {
+        body: {
+          users: [
+            { name: "User1", id: 1 },
+            { name: "User2", id: 2 },
+          ],
+        },
+      };
+      preprocessor.apply(r);
+
+      expect(r.body.users[0].name).toBe("Person1");
+      expect(r.body.users[1].name).toBe("User2");
+    });
+
+    it("should perform regex replace at specific index using bracket notation a.b[0].c", () => {
+      const options: C8yPactPreprocessorOptions = {
+        regexReplace: {
+          "body.users[0].name": "/User/Person/g",
+        },
+      };
+      const preprocessor = new C8yDefaultPactPreprocessor(options);
+      const r: any = {
+        body: {
+          users: [
+            { name: "User1", id: 1 },
+            { name: "User2", id: 2 },
+          ],
+        },
+      };
+      preprocessor.apply(r);
+
+      expect(r.body.users[0].name).toBe("Person1");
+      expect(r.body.users[1].name).toBe("User2");
+    });
+
+    describe("recursive descent (..)", () => {
+      it("should regex-replace any field at any depth with ..key", () => {
+        const options: C8yPactPreprocessorOptions = {
+          regexReplace: { "..name": "/User/Person/g" },
+        };
+        const preprocessor = new C8yDefaultPactPreprocessor(options);
+        const r: any = {
+          body: {
+            name: "UserRoot",
+            user: { name: "UserNested" },
+            users: [
+              { name: "User1", id: 1 },
+              { name: "User2", id: 2 },
+            ],
+          },
+        };
+        preprocessor.apply(r);
+
+        expect(r.body.name).toBe("PersonRoot");
+        expect(r.body.user.name).toBe("PersonNested");
+        expect(r.body.users[0].name).toBe("Person1");
+        expect(r.body.users[1].name).toBe("Person2");
+        expect(r.body.users[0].id).toBe(1);
+      });
+
+      it("should regex-replace with prefix: body..name", () => {
+        const options: C8yPactPreprocessorOptions = {
+          regexReplace: { "body..name": "/User/Person/g" },
+        };
+        const preprocessor = new C8yDefaultPactPreprocessor(options);
+        const r: any = {
+          body: { users: [{ name: "User1" }] },
+          requestBody: { name: "UserReq" },
+        };
+        preprocessor.apply(r);
+
+        expect(r.body.users[0].name).toBe("Person1");
+        expect(r.requestBody.name).toBe("UserReq");
+      });
+
+      it("should regex-replace case-insensitively with ignoreCase: true", () => {
+        const options: C8yPactPreprocessorOptions = {
+          regexReplace: { "..NAME": "/User/Person/g" },
+          ignoreCase: true,
+        };
+        const preprocessor = new C8yDefaultPactPreprocessor(options);
+        const r: any = {
+          body: {
+            nAmE: "User1",
+            user: { Name: "User2" },
+          },
+        };
+        preprocessor.apply(r);
+
+        expect(r.body.nAmE).toBe("Person1");
+        expect(r.body.user.Name).toBe("Person2");
+      });
     });
   });
 
