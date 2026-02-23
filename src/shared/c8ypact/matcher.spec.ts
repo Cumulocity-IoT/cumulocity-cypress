@@ -150,6 +150,103 @@ describe("matcher", () => {
       expect(matcher.match(obj1, obj2, { ignoreCase: true })).toBeTruthy();
       expect(() => matcher.match(obj1, obj2, { ignoreCase: false })).toThrow();
     });
+
+    describe("default options", () => {
+      afterEach(() => {
+        C8yDefaultPactMatcher.options = undefined;
+      });
+
+      it("should accept options in constructor and use them as defaults", () => {
+        const matcher = new C8yDefaultPactMatcher(undefined, {
+          ignoreCase: true,
+        });
+        expect(matcher.options).toEqual({ ignoreCase: true });
+
+        const obj1 = { UserName: "alice", Status: "active" };
+        const obj2 = { username: "alice", status: "active" };
+
+        expect(matcher.match(obj1, obj2)).toBeTruthy();
+        expect(() => new C8yDefaultPactMatcher().match(obj1, obj2)).toThrow();
+      });
+
+      it("should use static options as base defaults", () => {
+        C8yDefaultPactMatcher.options = { ignoreCase: true };
+
+        const matcher = new C8yDefaultPactMatcher();
+        const obj1 = { UserName: "alice" };
+        const obj2 = { username: "alice" };
+
+        expect(matcher.match(obj1, obj2)).toBeTruthy();
+      });
+
+      it("should give instance options priority over static options", () => {
+        C8yDefaultPactMatcher.options = { ignoreCase: false };
+
+        const matcher = new C8yDefaultPactMatcher(undefined, {
+          ignoreCase: true,
+        });
+        const obj1 = { UserName: "alice" };
+        const obj2 = { username: "alice" };
+
+        expect(matcher.match(obj1, obj2)).toBeTruthy();
+      });
+
+      it("should give options passed to match() priority over instance options", () => {
+        const matcher = new C8yDefaultPactMatcher(undefined, {
+          ignoreCase: true,
+        });
+        const obj1 = { UserName: "alice" };
+        const obj2 = { username: "alice" };
+
+        // override the instance option
+        expect(() =>
+          matcher.match(obj1, obj2, { ignoreCase: false })
+        ).toThrow();
+      });
+
+      it("should give options passed to match() priority over static options", () => {
+        C8yDefaultPactMatcher.options = { ignoreCase: true };
+
+        const matcher = new C8yDefaultPactMatcher();
+        const obj1 = { UserName: "alice" };
+        const obj2 = { username: "alice" };
+
+        // override the static option
+        expect(() =>
+          matcher.match(obj1, obj2, { ignoreCase: false })
+        ).toThrow();
+      });
+
+      it("should merge individual options, not replace all", () => {
+        C8yDefaultPactMatcher.options = {
+          ignoreCase: true,
+          strictMatching: false,
+        };
+
+        const matcher = new C8yDefaultPactMatcher(undefined, {
+          strictMatching: true,
+        });
+
+        // ignoreCase still comes from static options, not overridden by instance
+        const obj1 = { UserName: "alice", Extra: "x" };
+        const obj2 = { username: "alice" };
+
+        // strictMatching=true from instance: obj1 has Extra not in obj2 -> should throw
+        expect(() => matcher.match(obj1, obj2)).toThrow(/not found in pact/);
+      });
+
+      it("should not mutate options when match() is called repeatedly", () => {
+        const matcher = new C8yDefaultPactMatcher(undefined, {
+          ignoreCase: true,
+        });
+        const obj1 = { UserName: "alice" };
+        const obj2 = { username: "alice" };
+
+        matcher.match(obj1, obj2);
+        matcher.match(obj1, obj2);
+        expect(matcher.options).toEqual({ ignoreCase: true });
+      });
+    });
   });
 
   describe("C8yISODateStringMatcher", () => {
