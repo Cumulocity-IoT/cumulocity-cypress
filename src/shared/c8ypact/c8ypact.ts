@@ -174,6 +174,12 @@ export interface C8yPactConfigOptions {
    * Recording mode for the pact. Default is `refresh`.
    */
   recordingMode?: C8yPactRecordingMode;
+  /**
+   * When set to true, both schema validation and pact object matching are performed
+   * when a schema is provided to cy.c8yclient. By default only schema validation runs
+   * when a schema is provided. Default is false.
+   */
+  matchSchemaAndObject?: boolean;
 }
 export type C8yPactConfigKeys = keyof C8yPactConfigOptions;
 

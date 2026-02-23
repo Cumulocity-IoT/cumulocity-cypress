@@ -83,7 +83,6 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
   propertyMatchers: { [key: string]: C8yPactMatcher } = {};
 
   static schemaMatcher: C8ySchemaMatcher;
-  static matchSchemaAndObject = false;
   static options?: C8yPactMatcherOptions;
 
   options?: C8yPactMatcherOptions;
@@ -142,9 +141,7 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     const strictMatching = options?.strictMatching ?? false;
     const ignorePrimitiveArrayOrder =
       options?.ignorePrimitiveArrayOrder ?? true;
-    const matchSchemaAndObject =
-      options?.matchSchemaAndObject ??
-      C8yDefaultPactMatcher.matchSchemaAndObject;
+    const matchSchemaAndObject = options?.matchSchemaAndObject ?? false;
 
     const schemaMatcher =
       options?.schemaMatcher || C8yDefaultPactMatcher.schemaMatcher;

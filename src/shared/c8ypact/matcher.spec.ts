@@ -371,7 +371,7 @@ describe("matcher", () => {
     C8yDefaultPactMatcher.schemaMatcher = new C8yAjvSchemaMatcher();
 
     beforeEach(() => {
-      C8yDefaultPactMatcher.matchSchemaAndObject = false;
+      C8yDefaultPactMatcher.options = undefined;
     });
 
     it("should match schema", () => {
@@ -448,7 +448,7 @@ describe("matcher", () => {
 
     it("should not match object and schema with global matchSchemaAndObject config", () => {
       const matcher = new C8yDefaultPactMatcher();
-      C8yDefaultPactMatcher.matchSchemaAndObject = true;
+      C8yDefaultPactMatcher.options = { matchSchemaAndObject: true };
 
       const obj = {
         response: {
@@ -475,6 +475,199 @@ describe("matcher", () => {
           ),
         })
       );
+    });
+
+    it("should match schema when body is an array", () => {
+      const arraySchema = {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            age: { type: "number" },
+          },
+          required: ["name", "age"],
+        },
+      };
+      const matcher = new C8yDefaultPactMatcher();
+
+      const obj = {
+        response: {
+          body: [
+            { name: "Alice", age: 30 },
+            { name: "Bob", age: 25 },
+          ],
+        },
+      };
+      const pact = {
+        response: { $body: arraySchema },
+      };
+
+      expect(matcher.match(obj, pact)).toBeTruthy();
+    });
+
+    it("should not match schema when array body contains invalid item", () => {
+      const arraySchema = {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            age: { type: "number" },
+          },
+          required: ["name", "age"],
+        },
+      };
+      const matcher = new C8yDefaultPactMatcher();
+
+      const obj = {
+        response: {
+          body: [
+            { name: "Alice", age: 30 },
+            { name: "Bob", age: "twenty-five" }, // invalid age
+          ],
+        },
+      };
+      const pact = {
+        response: { $body: arraySchema },
+      };
+
+      expect(() => matcher.match(obj, pact)).toThrow(
+        expect.objectContaining({
+          name: "C8yPactMatchError",
+          message: expect.stringContaining(
+            `Schema for "response > body" does not match`
+          ),
+        })
+      );
+    });
+
+    it("should match schema and object when body is an array with matchSchemaAndObject", () => {
+      const arraySchema = {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            age: { type: "number" },
+          },
+          required: ["name", "age"],
+        },
+      };
+      const matcher = new C8yDefaultPactMatcher();
+      const body = [
+        { name: "Alice", age: 30 },
+        { name: "Bob", age: 25 },
+      ];
+
+      const obj = { response: { body } };
+      const pact = {
+        response: {
+          $body: arraySchema,
+          body,
+        },
+      };
+
+      // with matchSchemaAndObject: false — schema only, no object comparison
+      expect(
+        matcher.match(obj, pact, {
+          strictMatching: true,
+          matchSchemaAndObject: false,
+        })
+      ).toBeTruthy();
+
+      // with matchSchemaAndObject: true — schema + object must both pass
+      expect(
+        matcher.match(obj, pact, {
+          strictMatching: true,
+          matchSchemaAndObject: true,
+        })
+      ).toBeTruthy();
+    });
+
+    it("should fail object matching when array body differs with matchSchemaAndObject", () => {
+      const arraySchema = {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            age: { type: "number" },
+          },
+          required: ["name", "age"],
+        },
+      };
+      const matcher = new C8yDefaultPactMatcher();
+
+      const obj = {
+        response: {
+          body: [
+            { name: "Alice", age: 30 },
+            { name: "Bob", age: 25 },
+          ],
+        },
+      };
+      const pact = {
+        response: {
+          $body: arraySchema,
+          // pact body has different age for Bob
+          body: [
+            { name: "Alice", age: 30 },
+            { name: "Bob", age: 99 },
+          ],
+        },
+      };
+
+      // schema passes, but object comparison must fail
+      expect(() =>
+        matcher.match(obj, pact, {
+          strictMatching: true,
+          matchSchemaAndObject: true,
+        })
+      ).toThrow(
+        expect.objectContaining({
+          name: "C8yPactMatchError",
+          message: expect.stringContaining(`do not match`),
+        })
+      );
+    });
+
+    it("should honour instance-level options.matchSchemaAndObject", () => {
+      // Instance constructed with matchSchemaAndObject: true — no call-time option needed
+      const matcher = new C8yDefaultPactMatcher(
+        {},
+        { matchSchemaAndObject: true }
+      );
+
+      const obj = {
+        response: {
+          body: { name: "John Doe", age: 30 },
+        },
+      };
+      const pact = {
+        response: {
+          $body: schema,
+          body: { name: "John Doe", age: 35 },
+        },
+      };
+
+      // object mismatch (age 30 vs 35) must be detected via the instance option
+      expect(() => matcher.match(obj, pact, { strictMatching: true })).toThrow(
+        expect.objectContaining({
+          name: "C8yPactMatchError",
+          message: expect.stringContaining(
+            `Values for "response > body > age" do not match.`
+          ),
+        })
+      );
+
+      // instance option can still be overridden per call
+      expect(
+        matcher.match(obj, pact, {
+          strictMatching: true,
+          matchSchemaAndObject: false,
+        })
+      ).toBeTruthy();
     });
   });
 
