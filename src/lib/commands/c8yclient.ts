@@ -637,8 +637,12 @@ function run(
     const matchPact = (response: any, schema: any) => {
       const shouldMatchObject =
         !ignore && enabled && Cypress.c8ypact.mode() === "apply";
+      const instanceMatcher =
+        Cypress.c8ypact.matcher as C8yDefaultPactMatcher | undefined;
       const matchSchemaAndObject =
-        C8yDefaultPactMatcher.options?.matchSchemaAndObject === true;
+        instanceMatcher?.options?.matchSchemaAndObject ??
+        C8yDefaultPactMatcher.options?.matchSchemaAndObject ??
+        C8yDefaultPactMatcher.matchSchemaAndObject;
 
       // Nothing to do when there is no schema and object matching is not active
       if (!schema && !shouldMatchObject) return;
