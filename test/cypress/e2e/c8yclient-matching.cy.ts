@@ -417,7 +417,8 @@ describe("c8yclient matching", () => {
         .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
         .then(() => {
           expect(schemaSpy).to.have.been.calledOnce;
-          expect(nextSpy).to.not.have.been.called;
+          // cursor is always advanced when schema is provided so subsequent calls stay in sync
+          expect(nextSpy).to.have.been.calledOnce;
           expect(matchSpy).to.not.have.been.called;
         });
     });
@@ -528,8 +529,8 @@ describe("c8yclient matching", () => {
         })
         .then(() => {
           expect(schemaSpy).to.have.been.calledOnce;
-          // per-call false wins — no object match
-          expect(nextSpy).to.not.have.been.called;
+          // per-call false wins — no object match, but cursor is still advanced
+          expect(nextSpy).to.have.been.calledOnce;
           expect(matchSpy).to.not.have.been.called;
         });
     });
@@ -556,7 +557,8 @@ describe("c8yclient matching", () => {
           matchSchemaAndObject: false,
         })
         .then(() => {
-          expect(nextSpy).to.not.have.been.called;
+          // cursor is always advanced when schema is provided so subsequent calls stay in sync
+          expect(nextSpy).to.have.been.calledOnce;
         });
     });
 
@@ -897,6 +899,247 @@ describe("c8yclient matching", () => {
         ],
         { schema: itemSchema, matchSchemaAndObject: true, strictMatching: false }
       );
+    });
+  });
+
+  context("mixed schema and object matching in sequence", () => {
+    beforeEach(() => {
+      Cypress.env("C8Y_PLUGIN_LOADED", "true");
+      Cypress.env("C8Y_PACT_MODE", "apply");
+    });
+
+    it("should advance cursor for schema-only call so subsequent object-matching call uses the next record", () => {
+      // Two sequential c8yclient calls:
+      //   call 1 — schema only (matchSchemaAndObject=false) → consumes record[0] without object-matching
+      //   call 2 — object matching (no schema)              → consumes record[1]
+      // Verify: nextRecord called twice, schemaSpy once, matchSpy once
+      const schema = {
+        type: "object",
+        properties: { name: { type: "string" } },
+      };
+
+      Cypress.c8ypact.matcher = new AcceptAllMatcher();
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [
+          { request: {}, response: {} } as any,
+          { request: {}, response: {} } as any,
+        ],
+        {} as any,
+        "test"
+      );
+
+      const nextSpy = cy
+        .spy(Cypress.c8ypact.current, "nextRecord")
+        .log(false);
+      const schemaSpy = cy
+        .spy(Cypress.c8ypact.schemaMatcher!, "match")
+        .log(false);
+      const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
+
+      cy.getAuth(auth)
+        // schema-only: validates against schema, advances cursor
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
+        // object-matching: should see record[1], not record[0]
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current())
+        .then(() => {
+          expect(nextSpy).to.have.been.calledTwice;
+          expect(schemaSpy).to.have.been.calledOnce;
+          expect(matchSpy).to.have.been.calledOnce;
+        });
+    });
+
+    it("should advance cursor for object-matching call so subsequent schema-only call sees the next pact position", () => {
+      // Two sequential c8yclient calls:
+      //   call 1 — object matching (no schema) → consumes record[0]
+      //   call 2 — schema only                 → consumes record[1] (without object-matching)
+      // Verify: nextRecord called twice, matchSpy once, schemaSpy once
+      const schema = {
+        type: "object",
+        properties: { name: { type: "string" } },
+      };
+
+      Cypress.c8ypact.matcher = new AcceptAllMatcher();
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [
+          { request: {}, response: {} } as any,
+          { request: {}, response: {} } as any,
+        ],
+        {} as any,
+        "test"
+      );
+
+      const nextSpy = cy
+        .spy(Cypress.c8ypact.current, "nextRecord")
+        .log(false);
+      const schemaSpy = cy
+        .spy(Cypress.c8ypact.schemaMatcher!, "match")
+        .log(false);
+      const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
+
+      cy.getAuth(auth)
+        // object-matching first
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current())
+        // schema-only second — cursor should already be at record[1]
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
+        .then(() => {
+          expect(nextSpy).to.have.been.calledTwice;
+          expect(matchSpy).to.have.been.calledOnce;
+          expect(schemaSpy).to.have.been.calledOnce;
+        });
+    });
+
+    it("should advance cursor correctly for three sequential calls: object, schema-only, object", () => {
+      // Three sequential c8yclient calls with 3 pact records:
+      //   call 1 — object matching → record[0]
+      //   call 2 — schema only     → record[1] (cursor advanced, no object-match)
+      //   call 3 — object matching → record[2]
+      // Verify: nextRecord called three times, matchSpy twice, schemaSpy once
+      stubResponses([
+        new window.Response(JSON.stringify({ name: "t12345678" }), {
+          status: 200,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response("{}", {
+          status: 201,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response("{}", {
+          status: 202,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response("{}", {
+          status: 203,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+      ]);
+
+      const schema = {
+        type: "object",
+        properties: { name: { type: "string" } },
+      };
+
+      Cypress.c8ypact.matcher = new AcceptAllMatcher();
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [
+          { request: {}, response: {} } as any,
+          { request: {}, response: {} } as any,
+          { request: {}, response: {} } as any,
+        ],
+        {} as any,
+        "test"
+      );
+
+      const nextSpy = cy
+        .spy(Cypress.c8ypact.current, "nextRecord")
+        .log(false);
+      const schemaSpy = cy
+        .spy(Cypress.c8ypact.schemaMatcher!, "match")
+        .log(false);
+      const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current())
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current())
+        .then(() => {
+          expect(nextSpy).to.have.been.calledThrice;
+          expect(schemaSpy).to.have.been.calledOnce;
+          expect(matchSpy).to.have.been.calledTwice;
+        });
+    });
+
+    it("should not run object matching on schema-only call even when pact record at that position has a mismatched status", () => {
+      // Ensures the schema-only call silently advances past a "bad" pact record
+      // (status 999 would fail object matching) and does NOT throw.
+      // The subsequent object-matching call then receives the next (good) record.
+      const schema = {
+        type: "object",
+        properties: { name: { type: "string" } },
+      };
+
+      Cypress.c8ypact.matcher = new AcceptAllMatcher();
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [
+          // record[0]: bad status that would fail object matching
+          { request: {}, response: { status: 999 } } as any,
+          // record[1]: used by the second (object-matching) call
+          { request: {}, response: {} } as any,
+        ],
+        {} as any,
+        "test"
+      );
+
+      const nextSpy = cy
+        .spy(Cypress.c8ypact.current, "nextRecord")
+        .log(false);
+      const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
+
+      cy.getAuth(auth)
+        // call 1: schema only — advances cursor past record[0] without validating
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
+        // call 2: object matching — receives record[1] and succeeds (AcceptAllMatcher)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current())
+        .then(() => {
+          expect(nextSpy).to.have.been.calledTwice;
+          // AcceptAllMatcher called only for the second request
+          expect(matchSpy).to.have.been.calledOnce;
+        });
+    });
+
+    it("should report correct record index error when schema-only calls exhaust the pact before an object-matching call", (done) => {
+      // 2 schema-only calls consume both pact records; the 3rd call (object matching)
+      // finds no record and should report index 2 in the error message.
+      stubResponses([
+        new window.Response(JSON.stringify({ name: "t12345678" }), {
+          status: 200,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response("{}", {
+          status: 201,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response("{}", {
+          status: 202,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response("{}", {
+          status: 203,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+      ]);
+
+      const schema = {
+        type: "object",
+        properties: { name: { type: "string" } },
+      };
+
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [
+          { request: {}, response: {} } as any,
+          { request: {}, response: {} } as any,
+        ],
+        {} as any,
+        "test"
+      );
+
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.contain("Record with index 2");
+        done();
+      });
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
+        // both records exhausted by schema calls — this object-matching call fails
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current());
     });
   });
 });
