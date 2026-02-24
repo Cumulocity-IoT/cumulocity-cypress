@@ -637,8 +637,9 @@ function run(
     const matchPact = (response: any, schema: any) => {
       const shouldMatchObject =
         !ignore && enabled && Cypress.c8ypact.mode() === "apply";
-      const instanceMatcher =
-        Cypress.c8ypact.matcher as C8yDefaultPactMatcher | undefined;
+      const instanceMatcher = Cypress.c8ypact.matcher as
+        | C8yDefaultPactMatcher
+        | undefined;
       const matchSchemaAndObject =
         options?.matchSchemaAndObject ??
         instanceMatcher?.options?.matchSchemaAndObject ??
@@ -650,9 +651,13 @@ function run(
       const responses = _.isArray(response) ? response : [response];
 
       // Object matching runs when: no schema provided, OR schema+matchSchemaAndObject is set
-      const doObjectMatch = shouldMatchObject && (!schema || matchSchemaAndObject);
+      const doObjectMatch =
+        shouldMatchObject && (!schema || matchSchemaAndObject);
 
+      const info = Cypress.c8ypact.current?.info;
       for (const r of responses) {
+        const record = options.record ?? Cypress.c8ypact.current?.nextRecord();
+
         // Schema matching: validate each individual response against the schema
         if (schema) {
           cy.c8ymatch(r, schema, undefined, options);
@@ -662,8 +667,6 @@ function run(
         // options.record is a static override; nextRecord() is called per-response
         // to correctly advance the pact cursor for each item in an array response.
         if (doObjectMatch) {
-          const info = Cypress.c8ypact.current?.info;
-          const record = options.record ?? Cypress.c8ypact.current?.nextRecord();
           if (record != null && info != null) {
             cy.c8ymatch(r, record, info, options);
           } else if (
