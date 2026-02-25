@@ -449,4 +449,114 @@ describe("c8ydefaultpact", () => {
       expect(pact.test_getRequesIndex("put:/test1")).toEqual(1);
     });
   });
+
+  describe("nextRecord() with id", function () {
+    let record1: C8yDefaultPactRecord;
+    let record2: C8yDefaultPactRecord;
+    let record3: C8yDefaultPactRecord;
+    let pact: TestPact;
+
+    beforeEach(() => {
+      record1 = new C8yDefaultPactRecord(
+        { url: url("/tenant/currentTenant"), method: "GET" },
+        { status: 200 },
+        { requestId: "req-1" }
+      );
+      record2 = new C8yDefaultPactRecord(
+        { url: url("/inventory/managedObjects/1"), method: "GET" },
+        { status: 200 },
+        { requestId: "req-2" }
+      );
+      record3 = new C8yDefaultPactRecord(
+        { url: url("/tenant/currentTenant"), method: "GET" },
+        { status: 201 },
+        { requestId: "req-1" }
+      );
+      pact = new TestPact(
+        [record1, record2, record3],
+        { id: "testid", baseUrl: BASE_URL },
+        "testid"
+      );
+    });
+
+    it("should return the matching record by options.requestId", function () {
+      const result = pact.nextRecord("req-2");
+      expect(result).toBe(record2);
+    });
+
+    it("should return the matching record by id", function () {
+      // give a record an id (no options.requestId) and verify id matching
+      const r = new C8yDefaultPactRecord(
+        { url: url("/tenant/currentTenant"), method: "GET" },
+        { status: 200 },
+        {}
+      );
+      (r as any).id = "my-id";
+      const p = new TestPact(
+        [r],
+        { id: "testid", baseUrl: BASE_URL },
+        "testid"
+      );
+      expect(p.nextRecord("my-id")).toBe(r);
+    });
+
+    it("should return null when no record matches the id", function () {
+      expect(pact.nextRecord("unknown-id")).toBeNull();
+    });
+
+    it("should cycle through multiple records with the same id", function () {
+      // record1 and record3 both have requestId "req-1"
+      const r1 = pact.nextRecord("req-1");
+      expect(r1).toBe(record1);
+      expect(pact.test_getRequestIndexMap()["req-1"]).toBe(1);
+
+      const r2 = pact.nextRecord("req-1");
+      expect(r2).toBe(record3);
+      expect(pact.test_getRequestIndexMap()["req-1"]).toBe(2);
+    });
+
+    it("should clamp to the last matching record when index exceeds matches", function () {
+      // advance past both matches for "req-1"
+      pact.nextRecord("req-1");
+      pact.nextRecord("req-1");
+
+      // third call: index 2 >= 2 matches → clamps to last (record3)
+      const r = pact.nextRecord("req-1");
+      expect(r).toBe(record3);
+    });
+
+    it("should advance recordIndex to position after the matched record", function () {
+      // records: [record1(idx 0, req-1), record2(idx 1, req-2), record3(idx 2, req-1)]
+      pact.nextRecord("req-1"); // matches record1 at index 0 → recordIndex = 1
+      expect(pact.test_getRecordIndex()).toBe(1);
+
+      pact.nextRecord("req-2"); // matches record2 at index 1 → recordIndex = 2
+      expect(pact.test_getRecordIndex()).toBe(2);
+
+      pact.nextRecord("req-1"); // second match = record3 at index 2 → recordIndex = 3
+      expect(pact.test_getRecordIndex()).toBe(3);
+    });
+
+    it("should not advance recordIndex when no record matches", function () {
+      const before = pact.test_getRecordIndex();
+      pact.nextRecord("unknown-id");
+      expect(pact.test_getRecordIndex()).toBe(before);
+    });
+
+    it("should fall back to sequential index when called without id", function () {
+      // without id: behaves like the original nextRecord()
+      expect(pact.nextRecord()).toBe(record1);
+      expect(pact.test_getRecordIndex()).toBe(1);
+      expect(pact.nextRecord()).toBe(record2);
+      expect(pact.test_getRecordIndex()).toBe(2);
+    });
+
+    it("should track id index independently from other ids", function () {
+      pact.nextRecord("req-1");
+      pact.nextRecord("req-2");
+
+      expect(pact.test_getRequestIndexMap()["req-1"]).toBe(1);
+      expect(pact.test_getRequestIndexMap()["req-2"]).toBe(1);
+    });
+  });
 });

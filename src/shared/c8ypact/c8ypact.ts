@@ -238,8 +238,11 @@ export interface C8yPact extends C8yPactObject {
   replaceRecord(record: C8yPactRecord): boolean;
   /**
    * Returns the next pact record or null if no more records are available.
+   * If an id is provided, the record is looked up by requestId or record id
+   * and the cursor is advanced to the position after the matched record.
+   * If no id is provided, the next record by sequential index is returned.
    */
-  nextRecord(): C8yPactRecord | null;
+  nextRecord(id?: string): C8yPactRecord | null;
   /**
    * Returns the next pact record matching the given request. Request matching is
    * based ob criteria like url and method. Returns null if no record is found.

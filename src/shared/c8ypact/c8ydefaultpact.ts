@@ -153,8 +153,29 @@ export class C8yDefaultPact implements C8yPact {
 
   /**
    * Returns the next pact record or null if no more records are available.
+   * If an id is provided, the record is looked up by requestId or record id
+   * and the cursor is advanced to the position after the matched record.
+   * If no id is provided, the next record by sequential index is returned.
    */
-  nextRecord(): C8yPactRecord | null {
+  nextRecord(id?: string): C8yPactRecord | null {
+    if (id) {
+      const matches = this.records.filter(
+        (r) => r.options?.requestId === id || r.id === id
+      );
+      if (!matches.length) return null;
+
+      const currentIndex = Math.max(0, this.getIndexForKey(id));
+      const result = matches[Math.min(currentIndex, matches.length - 1)];
+      this.requestIndexMap[id] = currentIndex + 1;
+
+      const recordsIndex = this.records.indexOf(result);
+      if (recordsIndex >= 0) {
+        this.recordIndex = recordsIndex + 1;
+      }
+
+      return result;
+    }
+
     if (this.recordIndex >= this.records.length) {
       return null;
     }
