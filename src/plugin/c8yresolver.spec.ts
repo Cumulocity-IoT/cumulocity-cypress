@@ -503,6 +503,47 @@ describe("resolvePact", () => {
       const resolved = await resolveRefs(doc);
       expect(resolved?.records[0].response.jsonSchema).toEqual(jsonSchema);
     });
+
+    it("should not resolve $refs in options.schema properties", async () => {
+      // options.schema on a C8yPactRecord holds a JSON Schema passed to
+      // cy.c8yclient. Its internal $ref keywords are schema-level references
+      // (e.g. #/definitions/Foo) and must not be dereferenced by the pact
+      // resolver, which would corrupt the schema or produce unexpected results.
+      const schema = {
+        $schema: "http://json-schema.org/draft-07/schema#",
+        type: "object",
+        definitions: {
+          MyType: { type: "string" },
+        },
+        properties: {
+          name: { $ref: "#/definitions/MyType" },
+        },
+      };
+
+      const doc = {
+        definitions: {
+          pactDef: { inlinedValue: "should not appear in options.schema" },
+        },
+        records: [
+          {
+            request: { method: "GET", path: "/item" },
+            response: { status: 200, body: { name: "t1" } },
+            options: { schema },
+          },
+        ],
+        id: "pact123",
+        info: { version: "1.0" },
+      };
+
+      expect(() => resolveRefs(doc)).not.toThrow();
+      const resolved = await resolveRefs(doc);
+      // The schema must be preserved verbatim — $ref not resolved.
+      expect(resolved?.records[0].options?.schema).toEqual(schema);
+      // In particular the internal $ref must still be intact.
+      expect(resolved?.records[0].options?.schema.properties.name).toEqual({
+        $ref: "#/definitions/MyType",
+      });
+    });
   });
 
   describe("external file $refs", () => {

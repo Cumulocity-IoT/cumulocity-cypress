@@ -261,6 +261,12 @@ export async function resolveRefs(
 
           if (
             currentSegment === "jsonSchema" ||
+            // options.schema on a C8yPactRecord holds a JSON Schema object.
+            // Its $ref keywords are schema references, not pact refs — exclude
+            // the entire subtree once we see "schema" preceded by "options".
+            (currentSegment === "schema" &&
+              i > 0 &&
+              segments[i - 1] === "options") ||
             currentSegment.startsWith("$") ||
             currentSegment.startsWith("%24")
           ) {
