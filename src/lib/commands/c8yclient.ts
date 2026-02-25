@@ -268,7 +268,6 @@ export const defaultClientOptions = () => {
     ignorePact: false,
     failOnPactValidation: true,
     schema: undefined,
-    strictMatching: false,
   } as C8yClientOptions;
 };
 
