@@ -1,4 +1,4 @@
-import { ICurrentTenant, IManagedObject } from "@c8y/client";
+import { ICurrentTenant } from "@c8y/client";
 import {
   initRequestStub,
   stubResponses,
@@ -13,8 +13,6 @@ import {
   C8yAjvJson6SchemaMatcher,
   C8yAjvSchemaMatcher,
 } from "cumulocity-cypress/contrib/ajv";
-
-const { sinon } = Cypress;
 
 /** Accepts every match — used to isolate cursor/call-count assertions from content checks. */
 class AcceptAllMatcher implements C8yPactMatcher {
@@ -67,6 +65,7 @@ describe("c8yclient matching", () => {
   afterEach(() => {
     C8yDefaultPactMatcher.options = undefined;
     Cypress.c8ypact.config.matchSchemaAndObject = undefined;
+    Cypress.c8ypact.config.strictMatching = undefined;
     Cypress.c8ypact.current = null;
   });
 
@@ -186,9 +185,7 @@ describe("c8yclient matching", () => {
         "test"
       );
 
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
 
       cy.getAuth(auth)
@@ -209,54 +206,11 @@ describe("c8yclient matching", () => {
         "test"
       );
 
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
 
       cy.getAuth(auth)
         .c8yclient<ICurrentTenant>((c) => c.tenant.current())
-        .then(() => {
-          expect(nextSpy).to.not.have.been.called;
-          expect(matchSpy).to.not.have.been.called;
-        });
-    });
-
-    it("should fail when response does not match pact record status", (done) => {
-      Cypress.c8ypact.current = new C8yDefaultPact(
-        // pact says status 999 but stub returns 200
-        [{ response: { status: 999 } } as any],
-        {} as any,
-        "test"
-      );
-
-      Cypress.once("fail", (err) => {
-        expect(err.message).to.contain("Pact validation failed!");
-        done();
-      });
-
-      cy.getAuth(auth).c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
-        strictMatching: false,
-      });
-    });
-
-    it("should not call matcher when ignorePact is true", () => {
-      Cypress.c8ypact.matcher = new AcceptAllMatcher();
-      Cypress.c8ypact.current = new C8yDefaultPact(
-        [{ request: {}, response: {} } as any],
-        {} as any,
-        "test"
-      );
-
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
-      const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
-
-      cy.getAuth(auth)
-        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
-          ignorePact: true,
-        })
         .then(() => {
           expect(nextSpy).to.not.have.been.called;
           expect(matchSpy).to.not.have.been.called;
@@ -300,9 +254,7 @@ describe("c8yclient matching", () => {
         "test"
       );
 
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
 
       cy.getAuth(auth)
         // first call exhausts the single record; second call returns null record → no error
@@ -322,9 +274,7 @@ describe("c8yclient matching", () => {
         "test"
       );
 
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
 
       cy.getAuth(auth)
@@ -338,23 +288,6 @@ describe("c8yclient matching", () => {
         });
     });
 
-    it("should not throw on pact mismatch when failOnPactValidation is false", () => {
-      // pact record with status 999 ≠ stub 200, but error is swallowed
-      Cypress.c8ypact.current = new C8yDefaultPact(
-        [{ response: { status: 999 } } as any],
-        {} as any,
-        "test"
-      );
-
-      cy.getAuth(auth)
-        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
-          failOnPactValidation: false,
-          strictMatching: false,
-        })
-        .then((resp) => {
-          expect(resp.status).to.eq(200);
-        });
-    });
   });
 
   context("matchSchemaAndObject", () => {
@@ -381,9 +314,7 @@ describe("c8yclient matching", () => {
       const schemaSpy = cy
         .spy(Cypress.c8ypact.schemaMatcher!, "match")
         .log(false);
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
 
       cy.getAuth(auth)
@@ -408,9 +339,7 @@ describe("c8yclient matching", () => {
       const schemaSpy = cy
         .spy(Cypress.c8ypact.schemaMatcher!, "match")
         .log(false);
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
 
       cy.getAuth(auth)
@@ -419,6 +348,32 @@ describe("c8yclient matching", () => {
           expect(schemaSpy).to.have.been.calledOnce;
           // cursor is always advanced when schema is provided so subsequent calls stay in sync
           expect(nextSpy).to.have.been.calledOnce;
+          expect(matchSpy).to.not.have.been.called;
+        });
+    });
+
+    it("should default matchSchemaAndObject to false when neither global config nor per-call option is set", () => {
+      // afterEach resets config.matchSchemaAndObject to undefined, so it is unset here.
+      // The ?? chain falls through to getConfigValue("matchSchemaAndObject", false) === false.
+      Cypress.c8ypact.matcher = new AcceptAllMatcher();
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [{ request: {}, response: {} } as any],
+        {} as any,
+        "test"
+      );
+
+      const schemaSpy = cy
+        .spy(Cypress.c8ypact.schemaMatcher!, "match")
+        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
+      const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
+        .then(() => {
+          expect(schemaSpy).to.have.been.calledOnce;
+          expect(nextSpy).to.have.been.calledOnce;
+          // object matching must NOT run — matchSchemaAndObject defaults to false
           expect(matchSpy).to.not.have.been.called;
         });
     });
@@ -459,9 +414,7 @@ describe("c8yclient matching", () => {
       const schemaSpy = cy
         .spy(Cypress.c8ypact.schemaMatcher!, "match")
         .log(false);
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher!, "match").log(false);
 
       cy.getAuth(auth)
@@ -486,9 +439,7 @@ describe("c8yclient matching", () => {
       const schemaSpy = cy
         .spy(Cypress.c8ypact.schemaMatcher!, "match")
         .log(false);
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
 
       cy.getAuth(auth)
@@ -517,9 +468,7 @@ describe("c8yclient matching", () => {
       const schemaSpy = cy
         .spy(Cypress.c8ypact.schemaMatcher!, "match")
         .log(false);
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
 
       cy.getAuth(auth)
@@ -547,9 +496,7 @@ describe("c8yclient matching", () => {
         "test"
       );
 
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
 
       cy.getAuth(auth)
         .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
@@ -575,6 +522,196 @@ describe("c8yclient matching", () => {
         schema,
         matchSchemaAndObject: true,
       });
+    });
+  });
+
+  context("strictMatching", () => {
+    const schema = {
+      type: "object",
+      properties: { name: { type: "string" } },
+    };
+
+    beforeEach(() => {
+      Cypress.env("C8Y_PLUGIN_LOADED", "true");
+    });
+
+    it("should pick up strictMatching=true from global config when no per-call option is set", () => {
+      Cypress.c8ypact.config.strictMatching = true;
+
+      const schemaSpy = cy
+        .spy(Cypress.c8ypact.schemaMatcher!, "match")
+        .log(false);
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
+        .then(() => {
+          expect(schemaSpy).to.have.been.calledOnce;
+          expect(schemaSpy.getCall(0).args[2]).to.equal(true);
+        });
+    });
+
+    it("should default strictMatching to false when global config is unset", () => {
+      // config.strictMatching is undefined — getConfigValue returns undefined, so === true is false
+      const schemaSpy = cy
+        .spy(Cypress.c8ypact.schemaMatcher!, "match")
+        .log(false);
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), { schema })
+        .then(() => {
+          expect(schemaSpy).to.have.been.calledOnce;
+          expect(schemaSpy.getCall(0).args[2]).to.equal(false);
+        });
+    });
+
+    it("should use per-call strictMatching=true overriding unset global config", () => {
+      // global is unset (false), per-call option forces strict
+      const schemaSpy = cy
+        .spy(Cypress.c8ypact.schemaMatcher!, "match")
+        .log(false);
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          schema,
+          strictMatching: true,
+        })
+        .then(() => {
+          expect(schemaSpy).to.have.been.calledOnce;
+          expect(schemaSpy.getCall(0).args[2]).to.equal(true);
+        });
+    });
+
+    it("should use per-call strictMatching=false overriding global config true", () => {
+      Cypress.c8ypact.config.strictMatching = true;
+
+      const schemaSpy = cy
+        .spy(Cypress.c8ypact.schemaMatcher!, "match")
+        .log(false);
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          schema,
+          strictMatching: false,
+        })
+        .then(() => {
+          expect(schemaSpy).to.have.been.calledOnce;
+          expect(schemaSpy.getCall(0).args[2]).to.equal(false);
+        });
+    });
+  });
+
+  context("ignorePact option", () => {
+    beforeEach(() => {
+      Cypress.env("C8Y_PLUGIN_LOADED", "true");
+      Cypress.env("C8Y_PACT_MODE", "apply");
+
+      Cypress.c8ypact.matcher = new AcceptAllMatcher();
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [{ request: {}, response: {} } as any],
+        {} as any,
+        "test"
+      );
+    });
+
+    it("should default to false and run pact matching", () => {
+      // ignorePact not set → defaults to false from defaultClientOptions() → matching runs
+      const matchSpy = cy.spy(Cypress.c8ypact.matcher!, "match").log(false);
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current())
+        .then(() => {
+          expect(matchSpy).to.have.been.calledOnce;
+        });
+    });
+
+    it("should skip pact matching when set to true", () => {
+      const matchSpy = cy.spy(Cypress.c8ypact.matcher!, "match").log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current!, "nextRecord").log(false);
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          ignorePact: true,
+        })
+        .then(() => {
+          expect(nextSpy).to.not.have.been.called;
+          expect(matchSpy).to.not.have.been.called;
+        });
+    });
+
+    it("should prefer per-call ignorePact=true over loaded pact and apply mode", () => {
+      // pact record would cause a failure if matched — but ignorePact suppresses it entirely
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [{ response: { status: 999 } } as any],
+        {} as any,
+        "test"
+      );
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          ignorePact: true,
+        })
+        .then((resp) => {
+          expect(resp.status).to.eq(200);
+        });
+    });
+  });
+
+  context("failOnPactValidation option", () => {
+    beforeEach(() => {
+      Cypress.env("C8Y_PLUGIN_LOADED", "true");
+      Cypress.env("C8Y_PACT_MODE", "apply");
+    });
+
+    it("should default to true and throw on pact record mismatch", (done) => {
+      // failOnPactValidation not set → defaults to true from defaultClientOptions() → throws
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [{ response: { status: 999 } } as any],
+        {} as any,
+        "test"
+      );
+
+      Cypress.once("fail", (err) => {
+        expect(err.message).to.contain("Pact validation failed!");
+        done();
+      });
+
+      cy.getAuth(auth).c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+        strictMatching: false,
+      });
+    });
+
+    it("should not throw on pact mismatch when set to false", () => {
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [{ response: { status: 999 } } as any],
+        {} as any,
+        "test"
+      );
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          failOnPactValidation: false,
+          strictMatching: false,
+        })
+        .then((resp) => {
+          expect(resp.status).to.eq(200);
+        });
+    });
+
+    it("should prefer per-call failOnPactValidation=false over the true default", () => {
+      // Even with a catastrophic mismatch (wrong status AND wrong body), the error is suppressed
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [{ response: { status: 404, body: { error: "not found" } } } as any],
+        {} as any,
+        "test"
+      );
+
+      cy.getAuth(auth)
+        .c8yclient<ICurrentTenant>((c) => c.tenant.current(), {
+          failOnPactValidation: false,
+        })
+        .then((resp) => {
+          expect(resp.status).to.eq(200);
+        });
     });
   });
 
@@ -614,9 +751,7 @@ describe("c8yclient matching", () => {
         "test"
       );
 
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
 
       cy.getAuth({ user: "admin", password: "mypassword" })
@@ -789,9 +924,7 @@ describe("c8yclient matching", () => {
       const schemaSpy = cy
         .spy(Cypress.c8ypact.schemaMatcher!, "match")
         .log(false);
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
 
       cy.getAuth({ user: "admin", password: "mypassword" })
@@ -897,7 +1030,195 @@ describe("c8yclient matching", () => {
           c.inventory.detail(1, { withChildren: false }),
           c.inventory.detail(2, { withChildren: false }),
         ],
-        { schema: itemSchema, matchSchemaAndObject: true, strictMatching: false }
+        {
+          schema: itemSchema,
+          matchSchemaAndObject: true,
+          strictMatching: false,
+        }
+      );
+    });
+
+    it("should cycle through requestId-tagged records in order, matching each array response to the correct record", () => {
+      stubResponses([
+        new window.Response(JSON.stringify({ name: "t123456" }), {
+          status: 200,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response(JSON.stringify({ id: "first" }), {
+          status: 201,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response(JSON.stringify({ id: "second" }), {
+          status: 202,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+      ]);
+
+      Cypress.c8ypact.matcher = new AcceptAllMatcher();
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [
+          {
+            request: {},
+            response: { status: 201, body: { id: "first" } },
+            options: { requestId: "rid" },
+          } as any,
+          {
+            request: {},
+            response: { status: 202, body: { id: "second" } },
+            options: { requestId: "rid" },
+          } as any,
+        ],
+        {} as any,
+        "test"
+      );
+
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
+      const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
+
+      cy.getAuth({ user: "admin", password: "mypassword" })
+        .c8yclient(
+          (c) => [
+            c.inventory.detail(1, { withChildren: false }),
+            c.inventory.detail(2, { withChildren: false }),
+          ],
+          { requestId: "rid" }
+        )
+        .then((responses) => {
+          expect(responses).to.have.lengthOf(2);
+
+          // nextRecord called once per array item, each time forwarding the requestId
+          expect(nextSpy).to.have.been.calledTwice;
+          expect(nextSpy.getCall(0).args[0]).to.equal("rid");
+          expect(nextSpy.getCall(1).args[0]).to.equal("rid");
+
+          expect(matchSpy).to.have.been.calledTwice;
+          // first response matched against first tagged record
+          expect(matchSpy.getCall(0).args[1]).to.deep.include({
+            response: { status: 201, body: { id: "first" } },
+          });
+          // second response matched against second tagged record — cursor advanced correctly
+          expect(matchSpy.getCall(1).args[1]).to.deep.include({
+            response: { status: 202, body: { id: "second" } },
+          });
+        });
+    });
+
+    it("should skip untagged records and cycle through requestId-tagged records in pact order for array responses", () => {
+      stubResponses([
+        new window.Response(JSON.stringify({ name: "t123456" }), {
+          status: 200,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response(JSON.stringify({ id: "first" }), {
+          status: 201,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response(JSON.stringify({ id: "second" }), {
+          status: 202,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+      ]);
+
+      Cypress.c8ypact.matcher = new AcceptAllMatcher();
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [
+          // index 0: untagged — must never be used when requestId is given
+          {
+            request: {},
+            response: { status: 999, body: { id: "wrong" } },
+          } as any,
+          {
+            request: {},
+            response: { status: 201, body: { id: "first" } },
+            options: { requestId: "rid" },
+          } as any,
+          {
+            request: {},
+            response: { status: 202, body: { id: "second" } },
+            options: { requestId: "rid" },
+          } as any,
+        ],
+        {} as any,
+        "test"
+      );
+
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
+      const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
+
+      cy.getAuth({ user: "admin", password: "mypassword" })
+        .c8yclient(
+          (c) => [
+            c.inventory.detail(1, { withChildren: false }),
+            c.inventory.detail(2, { withChildren: false }),
+          ],
+          { requestId: "rid" }
+        )
+        .then((responses) => {
+          expect(responses).to.have.lengthOf(2);
+
+          expect(nextSpy).to.have.been.calledTwice;
+          expect(nextSpy.getCall(0).args[0]).to.equal("rid");
+          expect(nextSpy.getCall(1).args[0]).to.equal("rid");
+
+          expect(matchSpy).to.have.been.calledTwice;
+          // first response matched against first tagged record (not the untagged one at index 0)
+          expect(matchSpy.getCall(0).args[1]).to.deep.include({
+            response: { status: 201, body: { id: "first" } },
+          });
+          // second response matched against second tagged record
+          expect(matchSpy.getCall(1).args[1]).to.deep.include({
+            response: { status: 202, body: { id: "second" } },
+          });
+        });
+    });
+
+    it("should fail for array responses when requestId yields no matching pact records", (done) => {
+      stubResponses([
+        new window.Response(JSON.stringify({ name: "t123456" }), {
+          status: 200,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response("{}", {
+          status: 201,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+        new window.Response("{}", {
+          status: 202,
+          statusText: "OK",
+          headers: { "content-type": "application/json" },
+        }),
+      ]);
+
+      // No records tagged with "rid" — nextRecord("rid") returns null
+      Cypress.c8ypact.current = new C8yDefaultPact(
+        [
+          { request: {}, response: {} } as any,
+          { request: {}, response: {} } as any,
+        ],
+        {} as any,
+        "test"
+      );
+
+      Cypress.once("fail", (err) => {
+        // pact is not empty but no record matches the requestId → index error
+        expect(err.message).to.contain("Record with index 0 not found");
+        done();
+      });
+
+      cy.getAuth({ user: "admin", password: "mypassword" }).c8yclient(
+        (c) => [
+          c.inventory.detail(1, { withChildren: false }),
+          c.inventory.detail(2, { withChildren: false }),
+        ],
+        { requestId: "rid" }
       );
     });
   });
@@ -928,9 +1249,7 @@ describe("c8yclient matching", () => {
         "test"
       );
 
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const schemaSpy = cy
         .spy(Cypress.c8ypact.schemaMatcher!, "match")
         .log(false);
@@ -968,9 +1287,7 @@ describe("c8yclient matching", () => {
         "test"
       );
 
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const schemaSpy = cy
         .spy(Cypress.c8ypact.schemaMatcher!, "match")
         .log(false);
@@ -1033,9 +1350,7 @@ describe("c8yclient matching", () => {
         "test"
       );
 
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const schemaSpy = cy
         .spy(Cypress.c8ypact.schemaMatcher!, "match")
         .log(false);
@@ -1073,9 +1388,7 @@ describe("c8yclient matching", () => {
         "test"
       );
 
-      const nextSpy = cy
-        .spy(Cypress.c8ypact.current, "nextRecord")
-        .log(false);
+      const nextSpy = cy.spy(Cypress.c8ypact.current, "nextRecord").log(false);
       const matchSpy = cy.spy(Cypress.c8ypact.matcher, "match").log(false);
 
       cy.getAuth(auth)
