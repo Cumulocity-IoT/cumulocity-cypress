@@ -314,6 +314,21 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
     // if strictMatching is disabled, only check properties of the pact for object matching
     // strictMatching for schema matching is considered within the matcher -> schema.additionalProperties
     const keys = strictMatching === false ? pactKeys : objectKeys;
+
+    // When strictMatching is enabled, also ensure every pact key is present in the response.
+    // The main loop (iterating objectKeys) only catches extra response keys not in the pact;
+    // this extra pass catches pact keys that are absent from the response.
+    if (strictMatching === true) {
+      for (const pactKey of pactKeys) {
+        if (this.isSchemaMatcherKey(pactKey)) continue;
+        if (!this.isKeyPathInObject(objectKeys, pactKey, options?.ignoreCase)) {
+          throwPactError(
+            `"${keyPath(pactKey)}" not found in response object.`
+          );
+        }
+      }
+    }
+
     for (const key of keys) {
       // schema is always defined on the pact object - needs special consideration
       const isSchema =
@@ -345,11 +360,17 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
           options?.ignoreCase
         )
       ) {
-        throwPactError(
-          `"${keyPath(key)}" not found in ${
-            strictMatching ? "pact" : "response"
-          } object.`
-        );
+        if (strictMatching) {
+          throwPactError(`"${keyPath(key)}" not found in pact object.`);
+        } else {
+          // strictMatching: false — only skip when the key is genuinely absent from the
+          // response (no match even case-insensitively). If the key exists with different
+          // casing but ignoreCase: false, surface the casing mismatch by throwing.
+          if (this.isKeyPathInObject(objectKeys, key, true)) {
+            throwPactError(`"${keyPath(key)}" not found in response object.`);
+          }
+          continue;
+        }
       }
       if (isSchema) {
         const errorKey = removeSchemaPrefix(key);

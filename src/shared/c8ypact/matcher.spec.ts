@@ -1456,7 +1456,9 @@ describe("matcher", () => {
   describe("strictMatching", () => {
     it("should default to false - extra fields in response do not throw", () => {
       const matcher = new C8yDefaultPactMatcher();
-      const obj = { response: { body: { name: "alice", extra: "unexpected" } } };
+      const obj = {
+        response: { body: { name: "alice", extra: "unexpected" } },
+      };
       const pact = { response: { body: { name: "alice" } } };
 
       // no strictMatching option passed → defaults to false → extra field in obj is ignored
@@ -1465,22 +1467,22 @@ describe("matcher", () => {
 
     it("should pass with strictMatching: false when response has extra fields", () => {
       const matcher = new C8yDefaultPactMatcher();
-      const obj = { response: { body: { name: "alice", extra: "unexpected" } } };
+      const obj = {
+        response: { body: { name: "alice", extra: "unexpected" } },
+      };
       const pact = { response: { body: { name: "alice" } } };
 
-      expect(
-        matcher.match(obj, pact, { strictMatching: false })
-      ).toBeTruthy();
+      expect(matcher.match(obj, pact, { strictMatching: false })).toBeTruthy();
     });
 
     it("should throw with strictMatching: true when response has extra fields not in pact", () => {
       const matcher = new C8yDefaultPactMatcher();
-      const obj = { response: { body: { name: "alice", extra: "unexpected" } } };
+      const obj = {
+        response: { body: { name: "alice", extra: "unexpected" } },
+      };
       const pact = { response: { body: { name: "alice" } } };
 
-      expect(() =>
-        matcher.match(obj, pact, { strictMatching: true })
-      ).toThrow(
+      expect(() => matcher.match(obj, pact, { strictMatching: true })).toThrow(
         expect.objectContaining({
           name: "C8yPactMatchError",
           message: expect.stringContaining(
@@ -1490,21 +1492,44 @@ describe("matcher", () => {
       );
     });
 
-    it("should throw with strictMatching: false when pact has field missing from response", () => {
+    it("should throw with strictMatching: true and response is missing a nested field", () => {
       const matcher = new C8yDefaultPactMatcher();
-      const obj = { response: { body: { name: "alice" } } };
-      const pact = { response: { body: { name: "alice", required: "missing" } } };
+      const obj = {
+        response: {
+          body: {
+            user: { id: "1", name: "alice" },
+          },
+        },
+      };
+      const pact = {
+        response: {
+          body: {
+            user: { id: "1", name: "alice", "required": "missing" },
+          },
+        },
+      };
+      
+      expect(matcher.match(obj, pact, { strictMatching: false })).toBeTruthy();
 
-      expect(() =>
-        matcher.match(obj, pact, { strictMatching: false })
-      ).toThrow(
+      expect(() => matcher.match(obj, pact, { strictMatching: true })).toThrow(
         expect.objectContaining({
           name: "C8yPactMatchError",
           message: expect.stringContaining(
-            '"response > body > required" not found in response object.'
+            '"response > body > user > required" not found in response object.'
           ),
         })
       );
+    });
+
+    it("should pass with strictMatching: false when pact has field missing from response", () => {
+      const matcher = new C8yDefaultPactMatcher();
+      const obj = { response: { body: { name: "alice" } } };
+      const pact = {
+        response: { body: { name: "alice", required: "missing" } },
+      };
+
+      // strictMatching: false — pact fields absent from response are silently skipped
+      expect(matcher.match(obj, pact, { strictMatching: false })).toBeTruthy();
     });
 
     it("should throw with strictMatching: true when response and pact have different values", () => {
@@ -1512,9 +1537,7 @@ describe("matcher", () => {
       const obj = { response: { body: { name: "alice" } } };
       const pact = { response: { body: { name: "bob" } } };
 
-      expect(() =>
-        matcher.match(obj, pact, { strictMatching: true })
-      ).toThrow(
+      expect(() => matcher.match(obj, pact, { strictMatching: true })).toThrow(
         expect.objectContaining({ name: "C8yPactMatchError" })
       );
     });
@@ -1536,9 +1559,7 @@ describe("matcher", () => {
         },
       };
 
-      expect(
-        matcher.match(obj, pact, { strictMatching: false })
-      ).toBeTruthy();
+      expect(matcher.match(obj, pact, { strictMatching: false })).toBeTruthy();
     });
 
     it("should throw with strictMatching: true and nested object has extra fields", () => {
@@ -1558,9 +1579,7 @@ describe("matcher", () => {
         },
       };
 
-      expect(() =>
-        matcher.match(obj, pact, { strictMatching: true })
-      ).toThrow(
+      expect(() => matcher.match(obj, pact, { strictMatching: true })).toThrow(
         expect.objectContaining({
           name: "C8yPactMatchError",
           message: expect.stringContaining(
@@ -1575,9 +1594,7 @@ describe("matcher", () => {
       const obj = { a: "1", b: "2", c: "3" };
       const pact = { a: "1" };
 
-      expect(
-        matcher.match(obj, pact, { strictMatching: false })
-      ).toBeTruthy();
+      expect(matcher.match(obj, pact, { strictMatching: false })).toBeTruthy();
     });
 
     it("should throw with strictMatching: true when response top-level has extra keys", () => {
@@ -1585,9 +1602,7 @@ describe("matcher", () => {
       const obj = { a: "1", b: "2" };
       const pact = { a: "1" };
 
-      expect(() =>
-        matcher.match(obj, pact, { strictMatching: true })
-      ).toThrow(
+      expect(() => matcher.match(obj, pact, { strictMatching: true })).toThrow(
         expect.objectContaining({
           name: "C8yPactMatchError",
           message: expect.stringContaining('"b" not found in pact object.'),
@@ -1602,9 +1617,9 @@ describe("matcher", () => {
       const obj = { name: "alice" };
       const pact = { name: "bob" };
 
-      expect(() =>
-        matcher.match(obj, pact, { strictMatching: false })
-      ).toThrow(expect.objectContaining({ name: "C8yPactMatchError" }));
+      expect(() => matcher.match(obj, pact, { strictMatching: false })).toThrow(
+        expect.objectContaining({ name: "C8yPactMatchError" })
+      );
     });
   });
 
