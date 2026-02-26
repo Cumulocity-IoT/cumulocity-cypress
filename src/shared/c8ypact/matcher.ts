@@ -70,6 +70,7 @@ export interface C8yPactMatcherOptions {
   parents?: (string | number)[];
   ignoreCase?: boolean;
   ignorePrimitiveArrayOrder?: boolean;
+  requestId?: string;
 }
 
 /**
@@ -160,7 +161,7 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
 
     const throwPactError = (message: string, key?: string) => {
       const newErr = new C8yPactMatchError(
-        `Pact validation failed! ${message}`,
+        `Pact validation failed${options?.requestId ? ` for request ${options.requestId}` : ""}! ${message}`,
         {
           actual: obj1,
           expected: obj2,
@@ -179,7 +180,7 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
       value?: any
     ) => {
       const newErr = new C8yPactMatchError(
-        `Pact validation failed! ${message}`,
+        `Pact validation failed${options?.requestId ? ` for request ${options.requestId}` : ""}! ${message}`,
         {
           actual: value ?? obj1,
           expected: schema ?? obj2,
@@ -405,7 +406,10 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
         if (!matchSchemaAndObject) {
           continue;
         }
-        const keyForSchemaAndObject = findActualKey(obj2, removeSchemaPrefix(key));
+        const keyForSchemaAndObject = findActualKey(
+          obj2,
+          removeSchemaPrefix(key)
+        );
         pact = _.get(obj2, keyForSchemaAndObject);
       }
 
