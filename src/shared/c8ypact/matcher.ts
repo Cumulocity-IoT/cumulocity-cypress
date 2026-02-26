@@ -313,15 +313,16 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
 
     // if strictMatching is disabled, only check properties of the pact for object matching
     // strictMatching for schema matching is considered within the matcher -> schema.additionalProperties
-    const keys = !strictMatching ? pactKeys : objectKeys;
+    const keys = strictMatching === false ? pactKeys : objectKeys;
     for (const key of keys) {
       // schema is always defined on the pact object - needs special consideration
       const isSchema =
         this.isSchemaMatcherKey(key) || schemaKeys.includes(`$${key}`);
 
       // Resolve actual keys with correct casing when ignoreCase is enabled
-      const valueSourceObj = strictMatching || isSchema ? obj1 : obj2;
-      const pactSourceObj = strictMatching || isSchema ? obj2 : obj1;
+      // obj1 is always the actual response, obj2 is always the pact/record
+      const valueSourceObj = obj1;
+      const pactSourceObj = obj2;
 
       const keyForValue = findActualKey(
         valueSourceObj,
@@ -383,11 +384,8 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
         if (!matchSchemaAndObject) {
           continue;
         }
-        const keyForSchemaAndObject = findActualKey(
-          strictMatching ? obj2 : obj1,
-          key
-        );
-        pact = _.get(strictMatching ? obj2 : obj1, keyForSchemaAndObject);
+        const keyForSchemaAndObject = findActualKey(obj2, removeSchemaPrefix(key));
+        pact = _.get(obj2, keyForSchemaAndObject);
       }
 
       if (this.getPropertyMatcher(key, options?.ignoreCase) != null) {
@@ -453,11 +451,9 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
         ) {
           matchArraysOfPrimitives(value, pact, [...parents, key]);
         } else {
-          // if strictMatching is disabled, value1 and value2 have been swapped
-          // swap back to ensure swapping in next iteration works as expected
           this.match(
-            strictMatching ? value : pact,
-            strictMatching ? pact : value,
+            value,
+            pact,
             _.extend(options, { parents: [...parents, key] })
           );
         }
