@@ -90,16 +90,22 @@ Cypress.Commands.add("c8ymatch", (response, pact, info = {}, options = {}) => {
       matcher.match(response.body, schema, strictMatching);
     } else {
       const matchingProperties = ["request", "response"];
+
       const pactToMatch = _.pick(pact, matchingProperties);
+      Cypress.c8ypact.preprocessor?.apply(
+        pactToMatch,
+        info?.preprocessor ?? Cypress.c8ypact?.getConfigValue("preprocessor")
+      );
+
       const responseAsRecord = _.pick(
         C8yDefaultPactRecord.from(response),
         matchingProperties
       );
-
       Cypress.c8ypact.preprocessor?.apply(
         responseAsRecord,
         info?.preprocessor ?? Cypress.c8ypact?.getConfigValue("preprocessor")
       );
+
       _.extend(
         consoleProps,
         { responseAsRecord },
