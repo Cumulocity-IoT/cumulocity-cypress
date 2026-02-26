@@ -258,8 +258,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           Cypress.c8ypact.getConfigValue("strictMatching") ??
           true;
 
-        const requestId =
-          record.id ?? record.options?.requestId;
+        const requestId = record.id ?? record.options?.requestId;
         const failOnStatusCode =
           record.options?.failOnStatusCode ??
           (record.response?.status ?? 200) < 400;
@@ -280,7 +279,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           ..._.pick(record.options, configKeys),
         };
 
-        const responseFn = (response: Cypress.Response<any>, id: string) => {
+        const responseFn = (response: Cypress.Response<any>, id?: string) => {
           if (
             url === "/devicecontrol/deviceCredentials" &&
             response.status === 201
@@ -325,7 +324,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
             response.duration > options.assertions.maxRequestDuration
           ) {
             failedRequests.push({
-              id,
+              id: id ?? `record-${recordIndex}`,
               duration: response.duration,
               message: `Request duration of ${response.duration}ms exceeds maximum of ${options.assertions.maxRequestDuration}ms.`,
             });
