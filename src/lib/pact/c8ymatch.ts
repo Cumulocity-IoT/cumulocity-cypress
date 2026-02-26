@@ -51,8 +51,8 @@ Cypress.Commands.add("c8ymatch", (response, pact, info = {}, options = {}) => {
   const isSchemaMatching = !("request" in pact) && !("response" in pact);
   if (isSchemaMatching) {
     matcher =
-      options.schemaMatcher ||
-      Cypress.c8ypact?.schemaMatcher ||
+      options.schemaMatcher ??
+      Cypress.c8ypact?.schemaMatcher ??
       new C8yAjvSchemaMatcher();
     options.failOnPactValidation = true;
   }
@@ -116,6 +116,7 @@ Cypress.Commands.add("c8ymatch", (response, pact, info = {}, options = {}) => {
         strictMatching,
         loggerProps: consoleProps,
         schemaMatcher: Cypress.c8ypact.schemaMatcher,
+        requestId: options.requestId,
       });
     }
   } catch (error: any) {
