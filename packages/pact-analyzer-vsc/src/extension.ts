@@ -518,10 +518,10 @@ function getWebviewContent(
 
     <!-- Embed data as non-executable JSON to comply with CSP -->
     <script type="application/json" id="pactData">
-      ${JSON.stringify(pactData)}
+      ${JSON.stringify(pactData).replace(/</g, "\\u003c")}
     </script>
     <script type="application/json" id="recordDetailsMap">
-      ${JSON.stringify(Array.from(generateRecordDetailsMap(records).entries()))}
+      ${JSON.stringify(Array.from(generateRecordDetailsMap(records).entries())).replace(/</g, "\\u003c")}
     </script>
     <script src="${scriptUri}?v=${Date.now()}"></script>
 </body>
