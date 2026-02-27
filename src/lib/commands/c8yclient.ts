@@ -268,7 +268,6 @@ export const defaultClientOptions = () => {
     ignorePact: false,
     failOnPactValidation: true,
     schema: undefined,
-    strictMatching: false,
   } as C8yClientOptions;
 };
 
@@ -656,7 +655,8 @@ function run(
 
       const info = Cypress.c8ypact.current?.info;
       for (const r of responses) {
-        const record = options.record ?? Cypress.c8ypact.current?.nextRecord();
+        const record =
+          options.record ?? Cypress.c8ypact.current?.nextRecord(options?.requestId);
 
         // Schema matching: validate each individual response against the schema
         if (schema) {

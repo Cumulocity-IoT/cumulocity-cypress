@@ -638,4 +638,204 @@ describe("pact runner", () => {
       runner.runTest(pact);
     });
   });
+
+  describe("c8yclient options", () => {
+    beforeEach(() => {
+      stubEnv({ C8Y_TOKEN: testToken });
+    });
+
+    it("should pass strictMatching: false from record.options", () => {
+      cy.intercept("GET", "**/tenant/currentTenant*", {
+        statusCode: 200,
+        body: { name: "test-tenant", extra: "unexpected-field" },
+      }).as("tenantRequest");
+
+      const pact = new C8yDefaultPact(
+        [
+          new C8yDefaultPactRecord(
+            {
+              method: "GET",
+              url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+            },
+            { status: 200, body: { name: "test-tenant" } },
+            { strictMatching: false }
+          ),
+        ],
+        {
+          id: "strict-record-opts-false-test",
+          title: ["Strict Record Opts False Test"],
+          baseUrl: Cypress.config().baseUrl!,
+        },
+        "strict-record-opts-false-test"
+      );
+
+      runner.runTest(pact);
+      cy.wait("@tenantRequest");
+    });
+
+    it("should fail for strictMatching: true from record.options", (done) => {
+      cy.once("fail", (err) => {
+        expect(err.message).to.include("Pact validation failed!");
+        done();
+      });
+
+      cy.intercept("GET", "**/tenant/currentTenant*", {
+        statusCode: 200,
+        body: { name: "test-tenant", extra: "unexpected-field" },
+      }).as("tenantRequest");
+
+      const pact = new C8yDefaultPact(
+        [
+          new C8yDefaultPactRecord(
+            {
+              method: "GET",
+              url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+            },
+            { status: 200, body: { name: "test-tenant" } },
+            { strictMatching: true }
+          ),
+        ],
+        {
+          id: "strict-record-opts-true-test",
+          title: ["Strict Record Opts True Test"],
+          baseUrl: Cypress.config().baseUrl!,
+        },
+        "strict-record-opts-true-test"
+      );
+
+      runner.runTest(pact);
+    });
+
+    it("should pass strictMatching: false from pact.info - extra fields in response do not throw", () => {
+      const pact = new C8yDefaultPact(
+        [
+          new C8yDefaultPactRecord(
+            {
+              method: "GET",
+              url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+            },
+            { status: 200, body: { name: "test-tenant" } },
+            {}
+          ),
+        ],
+        {
+          id: "strict-pact-info-test",
+          title: ["Strict Pact Info Test"],
+          baseUrl: Cypress.config().baseUrl!,
+          strictMatching: false,
+        },
+        "strict-pact-info-test"
+      );
+
+      cy.intercept("GET", "**/tenant/currentTenant*", {
+        statusCode: 200,
+        body: { name: "test-tenant", extra: "unexpected-field" },
+      }).as("tenantRequest");
+
+      runner.runTest(pact);
+      cy.wait("@tenantRequest");
+    });
+
+    it("should default failOnStatusCode to false when record response status is 4xx", () => {
+      const pact = new C8yDefaultPact(
+        [
+          new C8yDefaultPactRecord(
+            {
+              method: "GET",
+              url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+            },
+            { status: 404, body: { error: "Not Found" } },
+            {}
+          ),
+        ],
+        {
+          id: "failonstatus-default-test",
+          title: ["FailOnStatus Default Test"],
+          baseUrl: Cypress.config().baseUrl!,
+          strictMatching: false,
+        },
+        "failonstatus-default-test"
+      );
+
+      cy.intercept("GET", "**/tenant/currentTenant*", {
+        statusCode: 404,
+        body: { error: "Not Found" },
+      }).as("tenantRequest");
+
+      // Should not throw: record.response.status is 404 so failOnStatusCode defaults to false
+      runner.runTest(pact);
+      cy.wait("@tenantRequest");
+    });
+
+    it("should use failOnStatusCode: true from record.options - 4xx response throws", (done) => {
+      cy.once("fail", (err) => {
+        expect(err.message).to.match(/404|status code/i);
+        done();
+      });
+
+      // Record response matches actual (404), so pact matching passes.
+      // failOnStatusCode: true is set explicitly, overriding the default of false for 4xx records.
+      const pact = new C8yDefaultPact(
+        [
+          new C8yDefaultPactRecord(
+            {
+              method: "GET",
+              url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+            },
+            { status: 404, body: { error: "Not Found" } },
+            { failOnStatusCode: true, strictMatching: false }
+          ),
+        ],
+        {
+          id: "failonstatus-opts-test",
+          title: ["FailOnStatus Opts Test"],
+          baseUrl: Cypress.config().baseUrl!,
+        },
+        "failonstatus-opts-test"
+      );
+
+      cy.intercept("GET", "**/tenant/currentTenant*", {
+        statusCode: 404,
+        body: { error: "Not Found" },
+      }).as("tenantRequest");
+
+      runner.runTest(pact);
+    });
+
+    it("should use requestId from record.id in failure messages", (done) => {
+      cy.once("fail", (err) => {
+        expect(err.message).to.include("my-record-id");
+        done();
+      });
+
+      const record = new C8yDefaultPactRecord(
+        {
+          method: "GET",
+          url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+        },
+        { status: 200, body: { name: "expected" } },
+        // strictMatching: false so only pact keys are checked; body.name is in the pact
+        // but has a different value → error fires with requestId in the message
+        { strictMatching: false }
+      );
+      record.id = "my-record-id";
+
+      const pact = new C8yDefaultPact(
+        [record],
+        {
+          id: "requestid-record-test",
+          title: ["RequestId Record Test"],
+          baseUrl: Cypress.config().baseUrl!,
+        },
+        "requestid-record-test"
+      );
+
+      cy.intercept("GET", "**/tenant/currentTenant*", {
+        statusCode: 200,
+        body: { name: "different" },
+      }).as("tenantRequest");
+
+      runner.runTest(pact);
+    });
+  });
 });

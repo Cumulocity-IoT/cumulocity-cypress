@@ -247,11 +247,10 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
         const configKeys = [
           "skipClientAuthentication",
           "preferBasicAuth",
-          "failOnStatusCode",
           "timeout",
-          "requestId",
-          "schema"
+          "schema",
         ];
+
         const strictMatching =
           Cypress.config().c8ypact?.strictMatching ??
           record.options?.strictMatching ??
@@ -259,20 +258,28 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           Cypress.c8ypact.getConfigValue("strictMatching") ??
           true;
 
-        const requestId =
-          record.id ?? record.options?.requestId ?? `record-${recordIndex}`;
-        const failOnStatusCode = (record.response?.status ?? 200) < 400;
+        const requestId = record.id ?? record.options?.requestId;
+        const failOnStatusCode =
+          record.options?.failOnStatusCode ??
+          (record.response?.status ?? 200) < 400;
+        const matchSchemaAndObject =
+          record.options?.matchSchemaAndObject ??
+          pact.info?.matchSchemaAndObject ??
+          Cypress.c8ypact.getConfigValue("matchSchemaAndObject") ??
+          false;
+
         const cOpts: C8yClientOptions = {
           strictMatching,
           record,
           failOnStatusCode,
+          matchSchemaAndObject,
           ...(requestId ? { requestId } : {}),
           // config keys from record override pact info values
           ..._.pick(pact.info, configKeys),
           ..._.pick(record.options, configKeys),
         };
 
-        const responseFn = (response: Cypress.Response<any>, id: string) => {
+        const responseFn = (response: Cypress.Response<any>, id?: string) => {
           if (
             url === "/devicecontrol/deviceCredentials" &&
             response.status === 201
@@ -317,7 +324,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
             response.duration > options.assertions.maxRequestDuration
           ) {
             failedRequests.push({
-              id,
+              id: id ?? `record-${recordIndex}`,
               duration: response.duration,
               message: `Request duration of ${response.duration}ms exceeds maximum of ${options.assertions.maxRequestDuration}ms.`,
             });

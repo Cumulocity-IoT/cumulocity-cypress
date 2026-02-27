@@ -1227,10 +1227,13 @@ describe("c8ypact", () => {
           done();
         });
 
-        cy.c8yclient<IManagedObject>([
-          (c) => c.inventory.detail(1, { withChildren: false }),
-          (c) => c.inventory.detail(1, { withChildren: false }),
-        ]).then(() => {
+        cy.c8yclient<IManagedObject>(
+          [
+            (c) => c.inventory.detail(1, { withChildren: false }),
+            (c) => c.inventory.detail(1, { withChildren: false }),
+          ],
+          { strictMatching: false }
+        ).then(() => {
           expect(Cypress.c8ypact.current).to.be.null;
         });
       }
