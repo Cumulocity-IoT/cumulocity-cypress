@@ -170,7 +170,7 @@
     "copyfiles": "^2.4.1",
     "cross-env": "^10.0.0",
     "eslint": "^9.19.0",
-    "eslint-plugin-cypress": "^5.1.0",
+    "eslint-plugin-cypress": "^6.1.0",
     "eslint-plugin-import": "^2.31.0",
     "jest": "^30.0.3",
     "memfs": "^4.8.2",
