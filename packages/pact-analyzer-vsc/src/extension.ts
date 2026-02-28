@@ -55,10 +55,10 @@ export function activate(context: vscode.ExtensionContext): void {
       } catch (error) {
         console.error("Error in c8yPactAnalyzer.analyze command:", error);
         vscode.window.showErrorMessage(
-          `Command failed: ${(error as Error).message}`
+          `Command failed: ${(error as Error).message}`,
         );
       }
-    }
+    },
   );
 
   // Auto-update analyzer when switching between files, but only if panel is already open
@@ -97,7 +97,7 @@ export function activate(context: vscode.ExtensionContext): void {
       } else {
         console.log("No editor or not JSON language");
       }
-    }
+    },
   );
 
   context.subscriptions.push(disposable);
@@ -110,7 +110,7 @@ export function activate(context: vscode.ExtensionContext): void {
 async function analyzePactDocument(
   document: vscode.TextDocument,
   context: vscode.ExtensionContext,
-  panelState: PanelState
+  panelState: PanelState,
 ): Promise<void> {
   console.log("analyzePactDocument called for:", document.uri.fsPath);
   const filePath = document.uri.fsPath;
@@ -136,14 +136,14 @@ async function analyzePactDocument(
       console.log(
         "Valid pact found with",
         pact.records?.length || 0,
-        "records"
+        "records",
       );
     } catch (e) {
       console.error("Error parsing pact:", e);
       vscode.window.showErrorMessage(
         `This does not appear to be a valid C8yPact file. ${
           (e as Error).message
-        }`
+        }`,
       );
       return;
     }
@@ -157,7 +157,7 @@ async function analyzePactDocument(
       panel.webview.html = getWebviewContent(
         pact,
         panel.webview,
-        context.extensionUri
+        context.extensionUri,
       );
       panel.reveal(vscode.ViewColumn.Two, true);
       panelState.currentDocument = document;
@@ -170,7 +170,7 @@ async function analyzePactDocument(
         {
           enableScripts: true,
           retainContextWhenHidden: true,
-        }
+        },
       );
 
       // Mark as disposed when closed
@@ -184,7 +184,7 @@ async function analyzePactDocument(
       panel.webview.html = getWebviewContent(
         pact,
         panel.webview,
-        context.extensionUri
+        context.extensionUri,
       );
 
       panelState.panel = panel;
@@ -207,18 +207,18 @@ async function analyzePactDocument(
               navigateToSourceInFile(
                 panelState.currentDocument!,
                 message.recordIndex,
-                message.path
+                message.path,
               );
               break;
           }
         },
         undefined,
-        context.subscriptions
+        context.subscriptions,
       );
     }
   } catch (error) {
     vscode.window.showErrorMessage(
-      `Error analyzing pact file: ${(error as Error).message}`
+      `Error analyzing pact file: ${(error as Error).message}`,
     );
   }
 }
@@ -229,7 +229,7 @@ async function analyzePactDocument(
 async function navigateToSourceInFile(
   document: vscode.TextDocument,
   recordIndex: number,
-  path: string
+  path: string,
 ): Promise<void> {
   try {
     const text = document.getText();
@@ -238,7 +238,7 @@ async function navigateToSourceInFile(
     if (position) {
       // Find if document is already open in an editor
       const editor = vscode.window.visibleTextEditors.find(
-        (e) => e.document.uri.toString() === document.uri.toString()
+        (e) => e.document.uri.toString() === document.uri.toString(),
       );
 
       const range = new vscode.Range(position, position);
@@ -258,12 +258,12 @@ async function navigateToSourceInFile(
       }
     } else {
       vscode.window.showWarningMessage(
-        `Could not find ${path} for record at index ${recordIndex}`
+        `Could not find ${path} for record at index ${recordIndex}`,
       );
     }
   } catch (error) {
     vscode.window.showErrorMessage(
-      `Error navigating to source: ${(error as Error).message}`
+      `Error navigating to source: ${(error as Error).message}`,
     );
   }
 }
@@ -274,7 +274,7 @@ async function navigateToSourceInFile(
 function findJsonPath(
   text: string,
   recordIndex: number,
-  path: string
+  path: string,
 ): vscode.Position | null {
   const lines = text.split("\n");
 
@@ -404,13 +404,13 @@ async function exportRecord(record: C8yPactRecord): Promise<void> {
 function getWebviewContent(
   pactData: C8yPact,
   webview: vscode.Webview,
-  extensionUri: vscode.Uri
+  extensionUri: vscode.Uri,
 ): string {
   const styleUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "media", "style.css")
+    vscode.Uri.joinPath(extensionUri, "media", "style.css"),
   );
   const scriptUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "out", "webview.js")
+    vscode.Uri.joinPath(extensionUri, "out", "webview.js"),
   );
 
   const info = pactData.info || {};
@@ -435,7 +435,7 @@ function getWebviewContent(
         <header>
             <div class="header-content">
                 <h1>${escapeHtml(
-                  (info.title || []).join(" › ") || "Pact Analysis"
+                  (info.title || []).join(" › ") || "Pact Analysis",
                 )}</h1>
                 <div class="pact-id">${escapeHtml(pactData.id || "N/A")}</div>
             </div>
@@ -445,18 +445,18 @@ function getWebviewContent(
                 ${createInfoItem(
                   "Base URL",
                   info.baseUrl || "N/A",
-                  "full-width"
+                  "full-width",
                 )}
             </div>
             <div class="info-row">
                 ${createInfoItem("Tenant", info.tenant || "N/A")}
                 ${createInfoItem(
                   "System Version",
-                  info.version?.system || "N/A"
+                  info.version?.system || "N/A",
                 )}
                 ${createInfoItem(
                   "C8yPact Version",
-                  info.version?.c8ypact || "N/A"
+                  info.version?.c8ypact || "N/A",
                 )}
             </div>
         </section>
@@ -495,8 +495,8 @@ function getWebviewContent(
                       .map(
                         (alias) =>
                           `<option value="${escapeHtml(alias)}">${escapeHtml(
-                            alias
-                          )}</option>`
+                            alias,
+                          )}</option>`,
                       )
                       .join("")}
                 </select>
@@ -532,7 +532,7 @@ function getWebviewContent(
  * Generate record details map for pre-rendering
  */
 function generateRecordDetailsMap(
-  records: C8yPactRecord[]
+  records: C8yPactRecord[],
 ): Map<number, string> {
   const detailsMap = new Map<number, string>();
   records.forEach((record, index) => {
@@ -592,7 +592,7 @@ function calculateStats(records: C8yPactRecord[]): Stats {
  */
 function generateRecordsHTML(
   records: C8yPactRecord[],
-  expandUserAliases = false
+  expandUserAliases = false,
 ): string {
   const rows: string[] = [];
   let displayIndex = 1;
@@ -606,8 +606,9 @@ function generateRecordsHTML(
     let userAliases: string[] | undefined = undefined;
     const authInfo = getAuthDetails(record);
     if (authInfo) {
-      userAliases = expandUserAliases
-        ? to_array(authInfo.userAlias)
+      userAliases =
+        expandUserAliases ?
+          to_array(authInfo.userAlias)
         : to_array(authInfo.display ?? "Default");
     }
     if (!userAliases || userAliases.length === 0) {
@@ -621,20 +622,20 @@ function generateRecordsHTML(
                             <span class="index-number">${displayIndex++}</span>
                             <span class="method method-${method.toLowerCase()}">${method}</span>
                             <span class="url" title="${escapeHtml(
-                              url
+                              url,
                             )}">${escapeHtml(truncateUrl(url))}</span>
                             <span class="status ${statusClass}">${status}</span>
                             <span class="auth-info user-alias-display">${escapedAlias}</span>
                             <span class="toggle-icon">▼</span>
                         </div>
                         ${
-                          aliasIndex === 0
-                            ? `
+                          aliasIndex === 0 ?
+                            `
                         <div class="record-details" id="record-${index}" style="display: none;">
                             ${generateRecordDetails(record, index)}
                         </div>
                         `
-                            : ""
+                          : ""
                         }
                     </div>
                 `;
@@ -650,7 +651,7 @@ function generateRecordsHTML(
  */
 function createDetailItem(
   label: string,
-  contentOrValue: string | null | undefined
+  contentOrValue: string | null | undefined,
 ): string {
   if (!contentOrValue) {
     return "";
@@ -671,35 +672,34 @@ function createDetailItem(
 
 function createAuthItem(record: C8yPactRecord): string {
   const authInfo = getAuthDetails(record);
-  const userAliases = record.auth?.userAlias;
-  const hasMultipleUsers = Array.isArray(userAliases) && userAliases.length > 0;
+  const userAliases =
+    record.auth?.userAlias ? to_array(record.auth?.userAlias) : undefined;
 
-  const user = authInfo?.tenant
-    ? authInfo.tenant + "/" + (authInfo?.user ?? "-")
+  const user =
+    authInfo?.tenant ?
+      authInfo.tenant + "/" + (authInfo?.user ?? "-")
     : authInfo?.user;
 
   if ((!authInfo && !record.auth) || (!user && !userAliases)) {
     return createDetailItem(
       "Authentication",
-      `<span class="detail-value"><i>No authorization details.</i></span>`
+      `<span class="detail-value"><i>No authorization details.</i></span>`,
     );
   }
 
   return createDetailItem(
     "Authentication",
     `<span class="detail-value">${
-      authInfo?.display
-        ? escapeHtml(authInfo.display)
-        : `<i>No authorization details.</i>`
+      authInfo?.display ? escapeHtml(authInfo.display) : ``
     } ${user ? escapeHtml(user) : ""}</span>` +
-      (hasMultipleUsers
-        ? `<span class="detail-value user-aliases">${userAliases
-            .map(
-              (userAlias) =>
-                `<span class="user-alias-badge">${escapeHtml(userAlias)}</span>`
-            )
-            .join(" ")}</span>`
-        : null)
+      `<span class="detail-value user-aliases">${userAliases
+        ?.map(
+          (userAlias) =>
+            '<span class="user-alias-badge">' +
+            escapeHtml(userAlias ? userAlias : "undefined") +
+            "</span>",
+        )
+        .join(" ")}</span>`,
   );
 }
 /**
@@ -729,6 +729,8 @@ function generateRecordDetails(record: C8yPactRecord, index: number): string {
   const requestContentType = get_i(record.request?.headers, "content-type");
   const requestAcceptType = get_i(record.request?.headers, "accept");
   const responseContentType = get_i(record.response?.headers, "content-type");
+  const requestId = get_i(record.options, "requestId") || get_i(record, "id");
+  const schema = get_i(record.options, "schema");
 
   const requestDetails = [
     createDetailItem("Method", record.request?.method || "N/A"),
@@ -738,52 +740,61 @@ function generateRecordDetails(record: C8yPactRecord, index: number): string {
     createDetailItem("Accept", requestAcceptType),
     createDetailItem(
       "Headers",
-      record.request?.headers
-        ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="request.headers">View in source →</span></span>`
-        : null
+      record.request?.headers ?
+        `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="request.headers">View in source →</span></span>`
+      : null,
     ),
     createDetailItem(
       "Body",
-      record.request?.body
-        ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="request.body">View in source →</span></span>`
-        : null
+      record.request?.body ?
+        `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="request.body">View in source →</span></span>`
+      : null,
     ),
+    createDetailItem(
+      "Schema",
+      schema ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="options.schema">View in source →</span></span>` : null,
+    ),
+    createDetailItem(
+      "Request ID",
+      requestId ? `<span class="detail-value">${escapeHtml(requestId)}</span>` : null,
+    ),  
   ].join("");
+
 
   const responseDetails = [
     createDetailItem(
       "Status",
       `<span class="detail-value ${getStatusClass(
-        record.response?.status || "N/A"
+        record.response?.status || "N/A",
       )}">${escapeHtml(String(record.response?.status || "N/A"))}${
-        record.response?.statusText
-          ? ` ${escapeHtml(record.response.statusText)}`
-          : ""
-      }</span>`
+        record.response?.statusText ?
+          ` ${escapeHtml(record.response.statusText)}`
+        : ""
+      }</span>`,
     ),
     createDetailItem(
       "Duration",
-      record.response?.duration
-        ? `<span class="detail-value">${record.response.duration}ms</span>`
-        : null
+      record.response?.duration ?
+        `<span class="detail-value">${record.response.duration}ms</span>`
+      : null,
     ),
     createDetailItem("Content-Type", responseContentType),
     createDetailItem(
       "Headers",
-      record.response?.headers
-        ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="response.headers">View in source →</span></span>`
-        : null
+      record.response?.headers ?
+        `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="response.headers">View in source →</span></span>`
+      : null,
     ),
     createDetailItem(
       "Body",
-      record.response?.body
-        ? `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="response.body">View in source →</span></span>`
-        : null
+      record.response?.body ?
+        `<span class="detail-value"><span class="source-link" data-record-index="${index}" data-path="response.body">View in source →</span></span>`
+      : null,
     ),
   ].join("");
   const createdObjectDetails = createDetailItem(
     "Object ID",
-    record.createdObject
+    record.createdObject,
   );
 
   return `
@@ -801,15 +812,15 @@ function generateRecordDetails(record: C8yPactRecord, index: number): string {
                 </div>
             </div>
             ${
-              record.createdObject
-                ? `
+              record.createdObject ?
+                `
             <div class="details-section">
                 <h3>Created Object</h3>
                 <div class="details-content">
                     ${createdObjectDetails}
                 </div>
             </div>`
-                : ""
+              : ""
             }
         </div>
     `;
