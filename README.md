@@ -335,6 +335,33 @@ Cypress.env("admin_username", "admin");
 Cypress.env("admin_password", "password");
 ```
 
+#### Tenant-per-user-alias configuration
+
+User aliases can also be configured with different tenants using the `${userAlias}_tenant` environment variable. This is useful for testing multi-tenant scenarios, such as parent/child tenant relationships, where different users may need to authenticate against different tenants.
+
+```typescript
+// Configure first user with tenant1
+Cypress.env("user1_username", "user1");
+Cypress.env("user1_password", "password1");
+Cypress.env("user1_tenant", "tenant1");
+
+// Configure second user with tenant2
+Cypress.env("user2_username", "user2");
+Cypress.env("user2_password", "password2");
+Cypress.env("user2_tenant", "tenant2");
+
+// Use in tests
+cy.getAuth("user1").c8yclient(...); // Uses tenant1
+cy.getAuth("user2").c8yclient(...); // Uses tenant2
+```
+
+The tenant resolution follows this priority order:
+1. Explicit `tenant` property in auth options (highest priority)
+2. `${userAlias}_tenant` environment variable (if user alias is used)
+3. `C8Y_TENANT` environment variable (fallback, lowest priority)
+
+This enables implementing multi-tenant test scenarios where you can test interactions between parent and child tenants in a single test.
+
 When using user aliases, token authentication takes precedence over username/password if both are configured.
 
 #### Using authentication tokens

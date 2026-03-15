@@ -3,6 +3,7 @@ import {
   C8yDefaultPact,
   C8yDefaultPactRecord,
   getOptionsFromEnvironment,
+  getAuthOptionsFromBasicAuthHeader,
 } from "cumulocity-cypress/c8ypact";
 import { basicAuthorization, stubEnv } from "cypress/support/testutils";
 
@@ -595,6 +596,149 @@ describe("pact runner", () => {
         "tenantRequest"
       );
       runner.runTest(pact); // No auth type, no user
+    });
+
+    it("should fallback to C8Y_TENANT when userAlias_tenant is not specified", () => {
+      stubEnv({
+        parentadmin_username: "parentadmin",
+        parentadmin_password: "parentpass",
+        // parentadmin_tenant NOT specified - should fallback to C8Y_TENANT
+        C8Y_TENANT: "ttenant",
+        C8Y_USERNAME: "fallbackuser",
+        C8Y_PASSWORD: "fallbackpass",
+      });
+
+      const pact = new C8yDefaultPact(
+        [
+          new C8yDefaultPactRecord(
+            {
+              method: "GET",
+              url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+            },
+            responseMock,
+            {},
+            { userAlias: "parentadmin" }
+          ),
+          new C8yDefaultPactRecord(
+            {
+              method: "GET",
+              url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+            },
+            responseMock,
+            {}
+            // No userAlias - should use global auth
+          ),
+        ],
+        {
+          id: "fallback-tenant-test",
+          title: ["Fallback Tenant Test"],
+          baseUrl: Cypress.config().baseUrl!,
+        },
+        "fallback-tenant-test"
+      );
+
+      cy.intercept("GET", "**/tenant/currentTenant*", responseMock).as(
+        "tenantRequest"
+      );
+
+      runner.runTest(pact);
+
+      cy.get("@tenantRequest.all").should("have.length", 2);
+      // both should use C8Y_TENANT since no userAlias_tenant is provided
+      cy.get("@tenantRequest.all").then((calls: any) => {
+        expect(calls[0].request.headers).to.have.property(
+          "authorization",
+          basicAuthorization("parentadmin", "parentpass", "ttenant")
+        );
+        expect(calls[1].request.headers).to.have.property(
+          "authorization",
+          basicAuthorization("fallbackuser", "fallbackpass", "ttenant")
+        );
+      });
+    });
+
+    it("should handle different tenant queries in same pact runner test", () => {
+      stubEnv({
+        parent_username: "parentadmin",
+        parent_password: "parentpass",
+        parent_tenant: "t0000001",
+        child_username: "childadmin",
+        child_password: "childpass",
+        child_tenant: "t0000001-child1",
+      });
+
+      const responseMockParent = { status: 200, body: { name: "Parent" } };
+      const responseMockChild = { status: 200, body: { name: "Child" } };
+
+      const pact = new C8yDefaultPact(
+        [
+          new C8yDefaultPactRecord(
+            {
+              method: "GET",
+              url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+            },
+            responseMockParent,
+            {},
+            { userAlias: "parent" }
+          ),
+          new C8yDefaultPactRecord(
+            {
+              method: "GET",
+              url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+            },
+            responseMockChild,
+            {},
+            { userAlias: "child" }
+          ),
+          new C8yDefaultPactRecord(
+            {
+              method: "GET",
+              url: `${Cypress.config().baseUrl}/tenant/currentTenant`,
+            },
+            responseMockParent,
+            {},
+            { userAlias: "parent" }
+          ),
+        ],
+        {
+          id: "parent-child-test",
+          title: ["Parent Child Tenant Test"],
+          baseUrl: Cypress.config().baseUrl!,
+        },
+        "parent-child-test"
+      );
+
+      cy.intercept("GET", "**/tenant/currentTenant*", (req) => {
+        // Route to appropriate response based on auth header
+        const authHeader: string = req.headers.authorization as string || "";
+        const auth = getAuthOptionsFromBasicAuthHeader(authHeader);
+        if (auth?.user.includes("t0000001-child1/")) {
+          req.reply(responseMockChild);
+        } else {
+          req.reply(responseMockParent);
+        }
+      }).as("tenantRequest");
+
+      runner.runTest(pact);
+
+      cy.get("@tenantRequest.all").should("have.length", 3);
+      cy.get("@tenantRequest.all").then((calls: any) => {
+        // First request - parent
+        expect(calls[0].request.headers).to.have.property(
+          "authorization",
+          basicAuthorization("parentadmin", "parentpass", "t0000001")
+        );
+        // Second request - child
+        expect(calls[1].request.headers).to.have.property(
+          "authorization",
+          basicAuthorization("childadmin", "childpass", "t0000001-child1")
+        );
+        // Third request - parent again
+        expect(calls[2].request.headers).to.have.property(
+          "authorization",
+          basicAuthorization("parentadmin", "parentpass", "t0000001")
+        );
+      });
     });
   });
 
