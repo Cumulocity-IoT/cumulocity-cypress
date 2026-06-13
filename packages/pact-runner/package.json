@@ -33,6 +33,6 @@
     "@cypress/grep": "^5.0.0",
     "@c8y/client": "^1022.9.6",
     "cumulocity-cypress": "^1.2.3",
-    "cypress": "^14.5.0"
+    "cypress": "^15.17.0"
   }
 }
