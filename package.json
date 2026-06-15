@@ -140,11 +140,11 @@
     "typescript": "^5.7.0",
     "winston": "^3.13.0",
     "ws": "^8.21.0",
-    "yaml": "^2.7.0",
+    "yaml": "^2.9.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@angular/common": "^19.2.16",
+    "@angular/common": "^22.0.1",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
@@ -188,7 +188,7 @@
     "yalc": "^1.0.0-pre.53"
   },
   "peerDependencies": {
-    "@angular/common": ">=14.0.0",
+    "@angular/common": ">=19.0.0",
     "@c8y/client": ">=1015.0.0",
     "cypress": "<15.0.0"
   },
