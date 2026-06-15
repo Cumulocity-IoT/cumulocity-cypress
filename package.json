@@ -193,6 +193,7 @@
     "cypress": "<15.0.0"
   },
   "overrides": {
+    "@cypress/request": "4.0.1",
     "@c8y/client": {
       "cross-fetch": {
         "node-fetch": {
