@@ -1,6 +1,12 @@
 import _ from "lodash";
 import { parse } from "date-fns";
 
+function normalizeDateParsingWhitespace(value: string): string {
+  // Angular locale patterns may contain non-breaking or narrow non-breaking spaces.
+  // Normalizing allows parsing inputs that use regular spaces.
+  return value.replace(/[\u00A0\u202F]/g, " ");
+}
+
 export function parseDate(
   date: string | number | Date,
   format: string
@@ -13,7 +19,9 @@ export function parseDate(
 
   // parse with format
   if (!isValidDate(parsedDate) && _.isString(date)) {
-    parsedDate = parse(<string>date, format, new Date());
+    const normalizedDate = normalizeDateParsingWhitespace(<string>date);
+    const normalizedFormat = normalizeDateParsingWhitespace(format);
+    parsedDate = parse(normalizedDate, normalizedFormat, new Date());
 
     // if (!isValidDate(parsedDate) && _.isString(date)) {
     //   parsedDate = new Date(date);

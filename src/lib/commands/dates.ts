@@ -474,7 +474,11 @@ Cypress.Commands.add(
 
     consoleProps.target = target;
 
-    const unsafeFortmat = findDateFormatForSource(source, localizedFormats);
+    const unsafeFortmat = findDateFormatForSource(
+      source,
+      localizedFormats,
+      true
+    );
     consoleProps.format = unsafeFortmat;
     if (!unsafeFortmat) {
       if (options?.invalid === "throw") {
@@ -502,13 +506,25 @@ Cypress.Commands.add(
 
 function findDateFormatForSource(
   source: string,
-  localizedFormats: string[]
+  localizedFormats: string[],
+  requireRoundTrip = false
 ): string | undefined {
   if (!source) return undefined;
+  const normalizedSource = source.replace(/[\u00A0\u202F]/g, " ");
   for (const format of localizedFormats) {
-    if (isValidDate(parseDate(source, format))) {
-      return format;
+    const parsed = parseDate(source, format);
+    if (!isValidDate(parsed)) {
+      continue;
     }
+    if (requireRoundTrip) {
+      const roundTrip = Cypress.datefns
+        .format(parsed as Date, format)
+        .replace(/[\u00A0\u202F]/g, " ");
+      if (roundTrip !== normalizedSource) {
+        continue;
+      }
+    }
+    return format;
   }
   return undefined;
 }
@@ -535,14 +551,31 @@ function prepareLocalizedFormats(options: ISODateOptions): string[] {
     const timeFormats = formatWidths.map((f) =>
       localizedTimeFormat(language, f as number)
     );
-    localizedFormats = [...dateTimeFormats, ...dateFormats, ...timeFormats];
+
+    // Angular locale data can omit long/full dateTime patterns and fall back to short.
+    // Compose additional combinations so legacy strings (for example, with "at") still parse.
+    const combinedDateTimeFormats = dateFormats.flatMap((date) => {
+      return timeFormats.flatMap((time) => [
+        `${date}, ${time}`,
+        `${date} 'at' ${time}`,
+      ]);
+    });
+
+    localizedFormats = [
+      ...dateTimeFormats,
+      ...combinedDateTimeFormats,
+      ...dateFormats,
+      ...timeFormats,
+    ];
   }
 
   // date-fns does not use z...zzzz. fix or converion will fail
   // https://github.com/date-fns/date-fns/issues/2088
-  return localizedFormats.map((format) => {
+  return _.uniq(localizedFormats).map((format) => {
     let result = format.replace("zzzz", "'GMT'X");
     result = result.replace("z", "X");
+    result = result.replace("OOOO", "'GMT'X");
+    result = result.replace("O", "X");
     return result;
   });
 }
