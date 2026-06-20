@@ -31,7 +31,7 @@
   "dependencies": {
     "@angular/common": "^22.0.1",
     "@cypress/grep": "^5.0.0",
-    "@c8y/client": "^1022.9.6",
+    "@c8y/client": "^1023.88.4",
     "cumulocity-cypress": "^1.2.3",
     "cypress": "<15.0.0"
   },
