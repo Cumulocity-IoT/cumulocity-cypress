@@ -396,10 +396,12 @@ export async function clearUserRoles(client: Client, username: string | IUser) {
   }
 
   for (const assignedRole of assignedRoles) {
-    await client.userGroup.removeUserFromGroup(
-      assignedRole.group.id,
-      userIdentifier
-    );
+    if (assignedRole.group?.id) {
+      await client.userGroup.removeUserFromGroup(
+        assignedRole.group.id,
+        userIdentifier
+      );
+    }
   }
 }
 
