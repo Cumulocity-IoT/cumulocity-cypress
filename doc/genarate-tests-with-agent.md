@@ -1,4 +1,4 @@
-# ADR-0001: Agentic generation of Cumulocity Cypress E2E tests
+# Agentic generation of Cumulocity Cypress E2E tests
 
 - **Status:** Proposed (design locked for a first slice; not yet built)
 - **Date:** 2026-06-27
@@ -47,6 +47,7 @@ ground truth?*
 
 **Goals**
 
+- to be clarified- should this new feature consists also of writing scenarios? what level of dev assistance?
 - Turn an **approved scenario** into a **runnable, house-style Cypress spec** with
   correct selectors, setup/teardown, intercepts, and assertions.
 - Keep a **human in the loop at the cheap stage** (reviewing a plain-language scenario
@@ -57,8 +58,8 @@ ground truth?*
 **Non-goals (for now)**
 
 - Replacing developer judgment on *what* to test.
-- Generating tests with no human review.
-- Component-test generation (focus is E2E first).
+- Generating tests with no human review
+- Component-test generation (focus is E2E first, but on not that far away in future- also component tests).
 - Cross-framework support — we emit **Cypress only** (the team's standard).
 
 ---
@@ -115,9 +116,12 @@ final test is deterministic and needs no tenant at run time.
 
 ---
 
-## 5. Decision: architecture
+## 5. Possible options: architecture
 
-A **standalone Node CLI** (`c8y-cygen`) that drives an agent loop.
+- A **standalone Node CLI** that drives an agent loop (LLM api key required)
+- An mcp- could be problematic as in company we have strict policy and only mcps that are in c8y registry can be used (not sure if coding agent likce Claude code is sufficient or API key needed?)
+- coding agent skill/set of skills (for CLaude code or Copilot; we can focus on Claude code for simplicity)
+- other- I'm open to suggestions
 
 ### 5.1 Agent runtime
 
@@ -166,6 +170,7 @@ One CLI flag, one branch in the generator prompt:
 - **`integration`:** emit real `cy.request` setup/cleanup against a tenant in
   `beforeEach`/`afterEach` using the Cumulocity domain pack. More realistic, slower,
   needs tenant access.
+- or should it be prompted to user (if he wants to make it mocked or not)
 
 ### 5.5 Self-heal loop and anti-gaming guardrails
 
@@ -192,16 +197,12 @@ first read.
 
 ### 5.7 Cost / caching
 
+- Prompt caching and cost handling should be done as one of last steps- not to optimize prematurely
 - **Prompt-cache the stable prefix** (system prompt + house rules + Cumulocity domain
   doc) — it never changes within a run.
 - Keep **volatile content** (DOM snapshots, network dumps) after the last cache breakpoint,
   and **trim snapshots** to the interactive accessibility subtree, not full HTML.
 
-### 5.8 Configurable per repo
-
-A small `c8y-cygen.config.ts` (paths to the Cypress dir, `baseUrl`, env file, tenant URL,
-model) keeps the tool repo-agnostic so it can be dropped into any Cumulocity Cypress
-project, not just one.
 
 ---
 
@@ -227,6 +228,7 @@ Stage 3  SELF-HEAL: run_cypress → read failure → fix → loop to green
 
 Human review sits at Stage 1 (approve a markdown scenario) and at the final diff — both
 cheap. The expensive middle is automated.
+Stage 0 - change summary can be created with https://github.com/Cumulocity-IoT/cumulocity-ui/pull/12191 .github/prompts/c8y-review-guide.prompt.md . It is out of scope of this feature, as it should be done regardless of decision to add/modify e2e tests in scope of PR or not. Anyway, change summary should be prerequisite for the whole process. Open question- as md file? Or agent can have github mcp to read PR description and PR number is input to resolve change summary?
 
 ---
 
@@ -248,30 +250,12 @@ use the real format, so nothing is throwaway.
 
 ---
 
-## 8. Technology decisions (summary)
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Agent platform | Standalone Node CLI + Anthropic SDK Tool Runner | Own process, own tools, own loop; no external harness. |
-| Model | `claude-sonnet-4-6` first, `claude-opus-4-8` if needed | Config-swappable; tune cost/quality empirically. |
-| Browser control (explore) | **Playwright** (dev-only) | Best agent-grade DOM + network introspection; never ships. |
-| Test framework (emit) | **Cypress** | Team standard; non-negotiable. |
-| Default data strategy | **Mocked** (intercept + captured fixtures) | Deterministic, fast, no tenant at run time → most adoptable. |
-| Alt data strategy | **Integration** (real `cy.request`) | Realism when a tenant is available. |
-| Language / stack | TypeScript, `tsx`, `commander`, `zod` | Matches scaffolded `package.json`. |
+## 8. First slice (MVP) — what we'd build to prove the loop
 
-Scaffolded dependencies (from `package.json`): `@anthropic-ai/sdk`, `commander`,
-`playwright`, `zod`; dev: `tsx`, `typescript`, `@types/node`.
+Target an existing, known-good flow as a **free oracle** from `cumulocity-ui`. Scope:
 
----
-
-## 9. First slice (MVP) — what we'd build to prove the loop
-
-Target an existing, known-good flow as a **free oracle** (originally the prototype's
-`navigator-header.cy.ts`; in `cumulocity-ui`, pick an equivalent simple authenticated
-page). Scope:
-
-1. Package skeleton: CLI + `c8y-cygen.config.ts`.
+1. Feature skeleton
 2. `explore/auth.ts`: OAI-Secure login in Node → inject cookies into Playwright.
 3. Browser tools: `navigate`, `snapshot`, `list_data_cy`.
 4. Tool Runner loop on `claude-sonnet-4-6`.
@@ -283,30 +267,7 @@ scale to real PR scenarios, the domain pack, the `integration` style, and Stage 
 
 ---
 
-## 10. Change of plan: moving into the Cumulocity-IOT org / `cumulocity-ui`
-
-Originally prototyped standalone against a tiny `test-app`. Now moving into a
-`cumulocity-ui`-based repo under the **Cumulocity-IOT** org, with proper tenant access.
-This unlocks and obligates several things to revisit:
-
-- **Real / shared test tenant** may now exist → the `integration` style and live capture
-  become first-class (the prototype only had a personal tenant).
-- **Existing Cypress infrastructure & conventions** in `cumulocity-ui` — align the house
-  rules, selector conventions, and `data-cy` patterns to what already ships there rather
-  than the prototype's `test-app` rules.
-- **A domain pack may already partially exist** (`cy.login`, data-setup commands). Reuse,
-  don't reinvent — wrap whatever `cumulocity-cypress` / the repo already provides.
-- **CI integration** — running `run_cypress` and the assertion-trace check could become a
-  CI step or a PR bot in a later iteration (explicitly a future iteration, not the PoC).
-- **Auth variations** — confirm the OAI-Secure assumption holds across the org's tenants;
-  support Basic auth fallback.
-- **Open-source / licensing** — under a company org, decide license, visibility, and
-  whether it's internal-only initially. Keep it **private until the first slice proves
-  out** and tenant-specific details are scrubbed.
-
----
-
-## 11. Risks, open questions, and things to challenge
+## 9. Risks, open questions, and things to challenge
 
 These are deliberately surfaced for the team / reviewing agent to push on:
 
@@ -339,19 +300,8 @@ These are deliberately surfaced for the team / reviewing agent to push on:
 
 - **`cumulocity-cypress`** — provides `cy.login()` / OAI-Secure auth and Cumulocity test
   helpers; the tool builds on it rather than re-implementing.
-- **`10x-test-planner`** — a video→Gemini→test-plan CLI. Inspiration for *prompts-as-
-  markdown*, *disk-cached expensive steps*, *tag-delimited model output*, and a *thin
-  orchestrator*. Its video approach is **not** adopted for codegen (see §3).
 - Cumulocity Codex / `@c8y/ngx-components` — component and design-system context for the
   app under test.
-
+- cumulocity-ui e2e tests
 ---
 
-## 13. Decision
-
-Adopt **Approach C**: a standalone Node CLI that drives a live browser via Playwright for
-**exploration**, captures real selectors and network, and **emits self-healed Cypress
-tests**, with human review at the scenario and final-diff stages. Build the first slice
-against a known-good flow as an oracle before investing further.
-
-**Status: Proposed — pending team and second-agent review.**
