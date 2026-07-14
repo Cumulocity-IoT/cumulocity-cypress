@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.yalc/
+yalc.lock
+*.tsbuildinfo
+.env
+.env.*
+!.env.example

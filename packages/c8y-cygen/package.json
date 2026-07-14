@@ -1,0 +1,46 @@
+{
+  "name": "cumulocity-cypress-cygen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agentic generator of Cumulocity Cypress E2E specs. Explores a live app with Playwright, emits house-style Cypress, self-heals to green.",
+  "bin": {
+    "c8y-cygen": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "clean": "rimraf dist/ && rimraf .yalc && rimraf yalc.lock",
+    "cygen": "tsx src/cli.ts",
+    "test": "jest --config jest.config.mjs",
+    "test:watch": "jest --config jest.config.mjs --watch",
+    "package:dev": "npx yalc add cumulocity-cypress"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Cumulocity-IoT/cumulocity-cypress.git",
+    "directory": "packages/c8y-cygen"
+  },
+  "keywords": ["Cypress", "Cumulocity", "IoT", "Test", "AI", "Agent"],
+  "author": "jakub.drewniak@cumulocity.com",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "cross-fetch": "^4.1.0",
+    "cumulocity-cypress": "^1.2.3",
+    "lodash": "^4.17.21",
+    "playwright": "^1.61.1",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@swc/jest": "^0.2.39",
+    "@types/jest": "^30.0.0",
+    "@types/mocha": "^10.0.10",
+    "@types/lodash": "^4.17.13",
+    "@types/node": "^24.0.0",
+    "@types/yargs": "^17.0.33",
+    "jest": "^30.0.3",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.1.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.0"
+  }
+}
