@@ -129,7 +129,7 @@ final test is deterministic and needs no tenant at run time.
   agentic loop: it calls the model, executes our tools, feeds results back, and loops
   until done. This is the "standalone CLI that makes its own LLM calls and drives the
   browser directly" — no external agent harness.
-- **Model is a config field.** Start with **`claude-sonnet-4-6`** (adaptive thinking,
+- **Model is a config field.** Start with **`claude-sonnet-5`** (adaptive thinking,
   `effort: high`); escalate to **`claude-opus-4-8`** if quality requires it. The switch
   is one line of config, deliberately, so we can tune cost/quality empirically.
 
@@ -258,7 +258,7 @@ Target an existing, known-good flow as a **free oracle** from `cumulocity-ui`. S
 1. Feature skeleton
 2. `explore/auth.ts`: OAI-Secure login in Node → inject cookies into Playwright.
 3. Browser tools: `navigate`, `snapshot`, `list_data_cy`.
-4. Tool Runner loop on `claude-sonnet-4-6`.
+4. Tool Runner loop on `claude-sonnet-5`.
 5. A hand-written `*.scenario.md` for the oracle flow.
 6. Emit a **mocked** spec, self-heal to green, **diff against the hand-written oracle**.
 

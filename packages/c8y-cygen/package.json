@@ -28,7 +28,8 @@
     "cumulocity-cypress": "^1.2.3",
     "lodash": "^4.17.21",
     "playwright": "^1.61.1",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@swc/jest": "^0.2.39",
@@ -37,6 +38,7 @@
     "@types/lodash": "^4.17.13",
     "@types/node": "^24.0.0",
     "@types/yargs": "^17.0.33",
+    "cypress": "^14.5.4",
     "jest": "^30.0.3",
     "rimraf": "^6.0.1",
     "ts-jest": "^29.1.2",
