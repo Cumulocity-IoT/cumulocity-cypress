@@ -4,13 +4,20 @@ import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { BrowserTools } from "../browser/browserTools.js";
 import { writeSpec } from "../spec/writeSpec.js";
 import { runCypressSpec } from "../cypress/cypressRunner.js";
+import { shapeIntercept } from "../fixture/fixtureFreezer.js";
 
 /**
  * The agent's tool surface (design doc §5.2): browser exploration tools bound
- * to one persistent session, plus write_spec and run_cypress. capture_network
- * -> fixture freezing (M5) and the bounded self-heal wrapper around
- * run_cypress (M6) are layered on top of this in later milestones - this is
- * the mechanical wiring that lets the agent explore, write a spec, and run it.
+ * to one persistent session, write_spec, run_cypress, and stage_fixture. The
+ * bounded self-heal wrapper around run_cypress (M6) is layered on top of this
+ * in a later milestone - this is the mechanical wiring that lets the agent
+ * explore, write a spec, and run it.
+ *
+ * stage_fixture deliberately stops short of writing a fixture file: freezing
+ * one for real is gated on human confirmation (redaction policy - captured
+ * responses may carry customer data/PII/hostnames), so freezeFixture() is not
+ * exposed here at all. Only the CLI's interactive confirm step (M7) is meant
+ * to call it - see fixture/fixtureFreezer.ts.
  */
 export function buildAgentTools(browser: BrowserTools, appRepoPath: string) {
   return [
@@ -83,6 +90,59 @@ export function buildAgentTools(browser: BrowserTools, appRepoPath: string) {
       }),
       run: async ({ pathname, method }) =>
         JSON.stringify(await browser.captureNetwork({ pathname, method }), null, 2),
+    }),
+
+    betaZodTool({
+      name: "stage_fixture",
+      description:
+        "Shape the most recent captured network exchange matching a pathname (and " +
+        "optional method) into a cy.intercept(...) line plus fixture JSON. Does NOT " +
+        "write anything to disk - fixture files require human confirmation before " +
+        "they exist (redaction policy: captured responses may contain customer " +
+        "data/PII/internal hostnames). Use the returned intercept snippet in your " +
+        "spec, and note in your final summary which staged fixtures still need a " +
+        "human to review and freeze them.",
+      inputSchema: z.object({
+        pathname: z.string(),
+        method: z.string().optional(),
+        fixtureRelativePath: z
+          .string()
+          .describe(
+            "Path relative to cypress/fixtures/ in the target app repo, e.g. 'events/list.json'."
+          ),
+        alias: z
+          .string()
+          .optional()
+          .describe("cy.intercept(...).as(alias), for cy.wait('@alias')."),
+      }),
+      run: async ({ pathname, method, fixtureRelativePath, alias }) => {
+        const exchanges = await browser.captureNetwork({ pathname, method });
+        if (exchanges.length === 0) {
+          return (
+            `No captured network exchange matched pathname=${pathname}` +
+            `${method ? ` method=${method}` : ""}. Trigger it first (navigate/click/type), then retry.`
+          );
+        }
+        const exchange = exchanges[exchanges.length - 1];
+        const interceptSnippet = shapeIntercept({
+          exchange,
+          fixtureRelativePath,
+          alias,
+        });
+        return JSON.stringify(
+          {
+            interceptSnippet,
+            fixtureRelativePath,
+            fixtureContent: exchange.responseBody,
+            note:
+              "This fixture has NOT been written to disk. Use the intercept snippet " +
+              "in your spec as-is, but flag in your final summary that this fixture " +
+              "is pending human review/freeze before the spec can actually pass.",
+          },
+          null,
+          2
+        );
+      },
     }),
 
     betaZodTool({
