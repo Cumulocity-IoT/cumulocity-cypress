@@ -19,7 +19,23 @@ import { shapeIntercept } from "../fixture/fixtureFreezer.js";
  * exposed here at all. Only the CLI's interactive confirm step (M7) is meant
  * to call it - see fixture/fixtureFreezer.ts.
  */
-export function buildAgentTools(browser: BrowserTools, appRepoPath: string) {
+
+/**
+ * Side channel the self-heal loop (agent/selfHeal.ts) reads after each
+ * attempt to find out what the agent actually wrote, so it can independently
+ * re-run Cypress and check the assertion trace rather than trusting the
+ * agent's own run_cypress tool call or its final-turn summary.
+ */
+export interface AgentSessionRecord {
+  lastSpecRelativePath?: string;
+  lastSpecContent?: string;
+}
+
+export function buildAgentTools(
+  browser: BrowserTools,
+  appRepoPath: string,
+  sessionRecord?: AgentSessionRecord
+) {
   return [
     betaZodTool({
       name: "browser_navigate",
@@ -159,6 +175,10 @@ export function buildAgentTools(browser: BrowserTools, appRepoPath: string) {
       }),
       run: async ({ relativePath, content }) => {
         const result = await writeSpec({ appRepoPath, relativePath, content });
+        if (sessionRecord) {
+          sessionRecord.lastSpecRelativePath = relativePath;
+          sessionRecord.lastSpecContent = content;
+        }
         return `Wrote spec to ${result.absolutePath}`;
       },
     }),

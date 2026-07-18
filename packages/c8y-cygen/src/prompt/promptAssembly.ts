@@ -31,7 +31,16 @@ weakening or deleting an assertion. The scenario's Expected Outcomes below
 are immutable: every one of them must be verifiable by a concrete assertion
 in the spec you write. If you believe an Expected Outcome's assertion should
 be reinterpreted, say so explicitly as a flagged note in your final response
-for a human to review - never silently change what it checks.`;
+for a human to review - never silently change what it checks.
+
+Concretely: every Expected Outcome must be covered by at least one
+.should(...) call (use .should((el) => { ... }) for custom logic, e.g. a
+date-diff check - not .invoke('text').then(text => expect(...))). This is
+checked mechanically after you finish, together with a real Cypress run of
+the spec you wrote. If any Expected Outcome has no matching .should(...), or
+the run fails, you will be told exactly what's missing/failing and asked to
+fix it and try again, up to a bounded number of attempts - a Cypress-green
+run alone does not satisfy this check.`;
 
 const MOCKED_STYLE_INSTRUCTIONS = `Emit a MOCKED spec: use capture_network during exploration to observe the
 real request/response shapes, then emit cy.intercept(...) plus fixture data

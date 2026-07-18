@@ -9,7 +9,7 @@ import type { Scenario } from "../scenario/scenarioContract.js";
  * claude-opus-4-8 if quality requires it. One config field, tuned empirically.
  */
 export const DEFAULT_MODEL = "claude-sonnet-5";
-const DEFAULT_MAX_ITERATIONS = 30;
+export const DEFAULT_MAX_ITERATIONS = 30;
 
 export interface GenerationLoopOptions {
   scenario: Scenario;
@@ -109,7 +109,11 @@ export async function runGenerationLoop(
   return runToolRunnerToCompletion(runner, options.onMessage);
 }
 
-function renderScenarioAsTask(scenario: Scenario, style: string): string {
+/**
+ * Exported so the self-heal loop (agent/selfHeal.ts) can render the same
+ * initial task turn without duplicating this formatting.
+ */
+export function renderScenarioAsTask(scenario: Scenario, style: string): string {
   const list = (items: string[]) => items.map((item) => `- ${item}`).join("\n");
   const numbered = (items: string[]) =>
     items.map((item, i) => `${i + 1}. ${item}`).join("\n");
