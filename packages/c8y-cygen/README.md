@@ -9,8 +9,30 @@ full design and rationale. This package is the MVP build described there.
 
 ## Status
 
-Under construction, milestone by milestone (M0–M7 in the PRD). Not yet runnable end to
-end.
+All milestones M0–M7 are implemented: auth, browser exploration, scenario parsing,
+prompt assembly + Tool Runner loop, fixture capture/freeze with a redaction-confirm
+gate, the bounded self-heal loop with the assertion-trace hard gate, and the `c8y-cygen`
+CLI below. The one thing not yet done in this environment is the live run: driving the
+CLI against a real tenant and a real `ANTHROPIC_API_KEY` to confirm the agent actually
+reproduces or improves on the frozen oracle end to end (PRD "First slice" - the MVP's
+real definition of done). Everything short of that live call has real (non-mocked)
+verification - see each module's `.spec.ts` and the milestone history.
+
+## Usage
+
+```bash
+npx tsx src/cli.ts \
+  --scenario test/oracle/events.scenario.md \
+  --app-repo /path/to/cumulocity-ui-e2e \
+  --base-url https://mytenant.eu-latest.cumulocity.com \
+  --username "$C8Y_USERNAME" --password "$C8Y_PASSWORD" \
+  --oracle test/oracle/events.cy.oracle.ts
+```
+
+`--style` is optional if the scenario has its own `Style` field (as the oracle scenario
+does); otherwise it's prompted for interactively, or required via the flag when running
+non-interactively. Captured fixtures are never written without an explicit `y` at the
+confirm prompt this CLI shows after the run - see "Fixture safety" in the PRD.
 
 ## Architecture at a glance
 

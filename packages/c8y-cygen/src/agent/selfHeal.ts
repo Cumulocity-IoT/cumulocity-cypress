@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import path from "node:path";
 import { assembleSystemPrompt } from "../prompt/promptAssembly.js";
-import { buildAgentTools, type AgentSessionRecord } from "./tools.js";
+import { buildAgentTools, type AgentSessionRecord, type StagedFixture } from "./tools.js";
 import {
   runToolRunnerToCompletion,
   renderScenarioAsTask,
@@ -168,6 +168,8 @@ export interface SelfHealResult {
   specRelativePath?: string;
   cypressResult?: CypressRunResult;
   assertionTrace?: AssertionTraceResult;
+  /** Every stage_fixture proposal from the run - none of these are written to disk yet. */
+  stagedFixtures: StagedFixture[];
 }
 
 /**
@@ -195,7 +197,7 @@ export async function runSelfHealLoop(
     style,
   });
 
-  const sessionRecord: AgentSessionRecord = {};
+  const sessionRecord: AgentSessionRecord = { stagedFixtures: [] };
   const tools = buildAgentTools(options.browser, options.appRepoPath, sessionRecord);
   const client = new Anthropic({ apiKey: options.anthropicApiKey });
 
@@ -274,5 +276,6 @@ export async function runSelfHealLoop(
     specRelativePath: sessionRecord.lastSpecRelativePath,
     cypressResult: lastCypressResult,
     assertionTrace: lastAssertionTrace,
+    stagedFixtures: sessionRecord.stagedFixtures,
   };
 }

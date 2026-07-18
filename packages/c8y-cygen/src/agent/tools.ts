@@ -20,15 +20,25 @@ import { shapeIntercept } from "../fixture/fixtureFreezer.js";
  * to call it - see fixture/fixtureFreezer.ts.
  */
 
+/** One stage_fixture proposal, recorded for the CLI's later confirm gate. */
+export interface StagedFixture {
+  relativePath: string;
+  content: unknown;
+  interceptSnippet: string;
+}
+
 /**
- * Side channel the self-heal loop (agent/selfHeal.ts) reads after each
- * attempt to find out what the agent actually wrote, so it can independently
- * re-run Cypress and check the assertion trace rather than trusting the
- * agent's own run_cypress tool call or its final-turn summary.
+ * Side channel the self-heal loop (agent/selfHeal.ts) and CLI (cli.ts) read
+ * after a run to find out what the agent actually did, so they can
+ * independently re-run Cypress/check the assertion trace and surface staged
+ * fixtures for human confirmation, rather than trusting the agent's own
+ * run_cypress tool call or its final-turn summary. freezeFixture() itself is
+ * still never reachable by the agent - only this bookkeeping is.
  */
 export interface AgentSessionRecord {
   lastSpecRelativePath?: string;
   lastSpecContent?: string;
+  stagedFixtures: StagedFixture[];
 }
 
 export function buildAgentTools(
@@ -144,6 +154,11 @@ export function buildAgentTools(
           exchange,
           fixtureRelativePath,
           alias,
+        });
+        sessionRecord?.stagedFixtures.push({
+          relativePath: fixtureRelativePath,
+          content: exchange.responseBody,
+          interceptSnippet,
         });
         return JSON.stringify(
           {
