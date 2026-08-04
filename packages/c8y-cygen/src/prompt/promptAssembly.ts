@@ -40,7 +40,19 @@ checked mechanically after you finish, together with a real Cypress run of
 the spec you wrote. If any Expected Outcome has no matching .should(...), or
 the run fails, you will be told exactly what's missing/failing and asked to
 fix it and try again, up to a bounded number of attempts - a Cypress-green
-run alone does not satisfy this check.`;
+run alone does not satisfy this check.
+
+write_spec and run_cypress are for producing and verifying your one real
+spec - not a scratch REPL. Do not write throwaway "probe"/"dump" specs whose
+only purpose is a deliberately-failing assertion that leaks a value through
+the error diff (e.g. asserting a DOM string or an id against a sentinel that
+can never match) - each such run costs a full Cypress/Electron process and
+real tenant writes for something answered instantly otherwise. If you need to
+know what a custom command (cy.createDevice, cy.getDeviceIdByName, ...)
+returns or how it behaves, use read_file on cypress/support/commands.ts (or
+another existing spec) to see its real implementation. If you need a DOM
+value or selector, use browser_snapshot/list_data_cy on the live page you
+already have open - it is faster and does not touch the tenant.`;
 
 const MOCKED_STYLE_INSTRUCTIONS = `Emit a MOCKED spec: use capture_network during exploration to observe the
 real request/response shapes, then emit cy.intercept(...) plus fixture data

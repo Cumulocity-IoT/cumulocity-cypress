@@ -4,6 +4,7 @@ export * from "./auth/authSession.js";
 export * from "./browser/browserTools.js";
 export * from "./scenario/scenarioContract.js";
 export * from "./spec/writeSpec.js";
+export * from "./repo/readFile.js";
 export * from "./fixture/fixtureFreezer.js";
 export * from "./cypress/cypressRunner.js";
 export * from "./prompt/promptAssembly.js";

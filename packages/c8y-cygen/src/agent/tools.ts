@@ -1,17 +1,74 @@
 import path from "node:path";
 import { z } from "zod";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
-import type { BrowserTools } from "../browser/browserTools.js";
+import type { BrowserTools, NetworkExchange } from "../browser/browserTools.js";
 import { writeSpec } from "../spec/writeSpec.js";
-import { runCypressSpec } from "../cypress/cypressRunner.js";
+import { runCypressSpec, type CypressRunResult } from "../cypress/cypressRunner.js";
 import { shapeIntercept } from "../fixture/fixtureFreezer.js";
+import { readRepoFile } from "../repo/readFile.js";
+import { truncateForAgent } from "../util/truncateForAgent.js";
+
+/**
+ * Capping the capture_network TOOL's output only (not BrowserTools.captureNetwork
+ * itself, which stage_fixture calls directly and needs raw/complete data for a
+ * correct fixture). Uncapped, a long exploration against a real, complex app can
+ * accumulate enough captured response bodies to blow past the model's context
+ * window over many tool-call turns (observed on a live run).
+ */
+const MAX_NETWORK_EXCHANGES_SHOWN = 10;
+const MAX_RESPONSE_BODY_CHARS = 2000;
+
+function shapeExchangeForDisplay(exchange: NetworkExchange) {
+  const bodyText = JSON.stringify(exchange.responseBody);
+  return {
+    ...exchange,
+    responseBody: truncateForAgent(
+      bodyText,
+      MAX_RESPONSE_BODY_CHARS,
+      "narrow with pathname/method, or use stage_fixture once you know which endpoint you need"
+    ),
+  };
+}
+
+/**
+ * A Cypress assertion failure's diff can be enormous (e.g. asserting against
+ * full page HTML) - uncapped, one such failure fed back as a tool_result can
+ * carry as much text as many turns of normal exploration combined (observed
+ * on a live run). The failure signal itself (which assertion, on which test)
+ * still needs to reach the agent - only the message body is capped.
+ */
+const MAX_ERROR_MESSAGE_CHARS = 3000;
+
+/** cypress/support/commands.ts and other house-style spec files are rarely huge; this is a generous ceiling. */
+const MAX_READ_FILE_CHARS = 20_000;
+
+function shapeCypressResultForDisplay(result: CypressRunResult) {
+  return {
+    ...result,
+    testFailures: result.testFailures.map((f) => ({
+      ...f,
+      errorMessage: truncateForAgent(f.errorMessage, MAX_ERROR_MESSAGE_CHARS),
+    })),
+    specFailures: result.specFailures.map((f) => ({
+      ...f,
+      errorMessage: truncateForAgent(f.errorMessage, MAX_ERROR_MESSAGE_CHARS),
+    })),
+  };
+}
 
 /**
  * The agent's tool surface (design doc §5.2): browser exploration tools bound
- * to one persistent session, write_spec, run_cypress, and stage_fixture. The
- * bounded self-heal wrapper around run_cypress (M6) is layered on top of this
- * in a later milestone - this is the mechanical wiring that lets the agent
- * explore, write a spec, and run it.
+ * to one persistent session, read_file, write_spec, run_cypress, and
+ * stage_fixture. The bounded self-heal wrapper around run_cypress (M6) is
+ * layered on top of this in a later milestone - this is the mechanical wiring
+ * that lets the agent explore, write a spec, and run it.
+ *
+ * read_file exists because a live run showed the agent improvising without
+ * it: unable to inspect cypress/support/commands.ts to learn a custom
+ * command's real signature, it wrote and ran throwaway "probe" specs with a
+ * deliberately-failing assertion just to leak a value through Cypress's
+ * error diff - each cycle costing a full Cypress/Electron run. read_file
+ * answers the same question directly, for the cost of one file read.
  *
  * stage_fixture deliberately stops short of writing a fixture file: freezing
  * one for real is gated on human confirmation (redaction policy - captured
@@ -79,6 +136,32 @@ export function buildAgentTools(
     }),
 
     betaZodTool({
+      name: "read_file",
+      description:
+        "Read a file from the target app repo, e.g. cypress/support/commands.ts to see " +
+        "the exact signature/return shape of a custom command (cy.createDevice, " +
+        "cy.getDeviceIdByName, ...), or an existing spec for a house-style example. " +
+        "Read-only, relative to the app repo root. Use this instead of writing a " +
+        "throwaway spec and running it just to learn what a command returns or does - " +
+        "that costs a full Cypress run for something this answers directly and instantly.",
+      inputSchema: z.object({
+        relativePath: z
+          .string()
+          .describe(
+            "Path relative to the app repo, e.g. 'cypress/support/commands.ts'."
+          ),
+      }),
+      run: async ({ relativePath }) => {
+        const result = await readRepoFile({ appRepoPath, relativePath });
+        return truncateForAgent(
+          result.content,
+          MAX_READ_FILE_CHARS,
+          "read a narrower file or a specific section"
+        );
+      },
+    }),
+
+    betaZodTool({
       name: "list_data_cy",
       description:
         "Enumerate every [data-cy] element currently in the DOM: the exact selectors available, with tag, visible text, and visibility. Real selectors, zero hallucination.",
@@ -114,8 +197,17 @@ export function buildAgentTools(
         pathname: z.string().optional(),
         method: z.string().optional(),
       }),
-      run: async ({ pathname, method }) =>
-        JSON.stringify(await browser.captureNetwork({ pathname, method }), null, 2),
+      run: async ({ pathname, method }) => {
+        const exchanges = await browser.captureNetwork({ pathname, method });
+        const shown = exchanges.slice(-MAX_NETWORK_EXCHANGES_SHOWN).map(shapeExchangeForDisplay);
+        const omitted = exchanges.length - shown.length;
+        const note =
+          omitted > 0
+            ? `\n\n(showing the most recent ${shown.length} of ${exchanges.length} matching ` +
+              "exchanges - narrow with pathname/method for an earlier one)"
+            : "";
+        return JSON.stringify(shown, null, 2) + note;
+      },
     }),
 
     betaZodTool({
@@ -211,7 +303,7 @@ export function buildAgentTools(
       run: async ({ specRelativePath, baseUrl }) => {
         const specPath = path.resolve(appRepoPath, specRelativePath);
         const result = await runCypressSpec({ appRepoPath, specPath, baseUrl });
-        return JSON.stringify(result, null, 2);
+        return JSON.stringify(shapeCypressResultForDisplay(result), null, 2);
       },
     }),
   ];

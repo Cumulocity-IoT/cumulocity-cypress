@@ -9,7 +9,7 @@ import type { Scenario } from "../scenario/scenarioContract.js";
  * claude-opus-4-8 if quality requires it. One config field, tuned empirically.
  */
 export const DEFAULT_MODEL = "claude-sonnet-5";
-export const DEFAULT_MAX_ITERATIONS = 30;
+export const DEFAULT_MAX_ITERATIONS = 50;
 
 export interface GenerationLoopOptions {
   scenario: Scenario;

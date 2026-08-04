@@ -68,16 +68,33 @@ export function evaluateSelfHealAttempt(
     : { status: "retry", feedback };
 }
 
+/**
+ * A Cypress assertion failure's diff can be enormous (e.g. asserting against
+ * full page HTML) - and unlike the run_cypress tool's own output, this text
+ * becomes the literal next USER TURN on a retry, permanently part of history
+ * from then on. Uncapped, a single failure here can be as large as many
+ * turns of normal exploration combined (observed on a live run).
+ */
+const MAX_ERROR_MESSAGE_CHARS = 3000;
+
+function truncateErrorMessage(message: string): string {
+  if (message.length <= MAX_ERROR_MESSAGE_CHARS) return message;
+  return (
+    `${message.slice(0, MAX_ERROR_MESSAGE_CHARS)}` +
+    `...[truncated ${message.length - MAX_ERROR_MESSAGE_CHARS} more characters]`
+  );
+}
+
 function formatCypressFailure(result: CypressRunResult): string {
   const lines = ["Cypress run failed:"];
   for (const failure of result.specFailures) {
     lines.push(
-      `  - [spec] ${failure.specRelativePath || "(whole run)"}: ${failure.errorMessage}`
+      `  - [spec] ${failure.specRelativePath || "(whole run)"}: ${truncateErrorMessage(failure.errorMessage)}`
     );
   }
   for (const failure of result.testFailures) {
     lines.push(
-      `  - [test] ${failure.title.join(" > ")}: ${failure.errorMessage}` +
+      `  - [test] ${failure.title.join(" > ")}: ${truncateErrorMessage(failure.errorMessage)}` +
         (failure.screenshotPath ? ` (screenshot: ${failure.screenshotPath})` : "")
     );
   }

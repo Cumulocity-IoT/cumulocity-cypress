@@ -1,6 +1,18 @@
 import { chromium } from "playwright";
 import type { Browser, BrowserContext, Page, Response } from "playwright";
 import type { AuthSession } from "../auth/authSession.js";
+import { truncateForAgent } from "../util/truncateForAgent.js";
+
+/**
+ * Real, complex apps can render accessibility trees far larger than a few
+ * thousand tokens - uncapped, a long exploration (many snapshot() calls
+ * across many tool-call turns) can grow the running conversation past the
+ * model's context window (observed on a live run: a single attempt's
+ * accumulated turns exceeded 1M tokens). Capping each call bounds growth per
+ * turn; it does not eliminate long-loop growth entirely - full context
+ * management (compaction/context editing) is future work, not this cap.
+ */
+const MAX_SNAPSHOT_CHARS = 20_000;
 
 /** One `[data-cy]` element as enumerated from the live DOM - real selectors, zero hallucination. */
 export interface DataCyElement {
@@ -84,7 +96,12 @@ export async function launchBrowserSession(
       const target = snapshotOptions.selector
         ? page.locator(snapshotOptions.selector)
         : page;
-      return target.ariaSnapshot({ mode: "ai" });
+      const full = await target.ariaSnapshot({ mode: "ai" });
+      return truncateForAgent(
+        full,
+        MAX_SNAPSHOT_CHARS,
+        "scope snapshot() to a selector for more detail instead of the whole page"
+      );
     },
 
     async listDataCy() {

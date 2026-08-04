@@ -289,6 +289,14 @@ async function main(): Promise<void> {
       maxSelfHealAttempts: args["max-self-heal-attempts"],
       anthropicApiKey: args["anthropic-api-key"],
       baseUrlForCypress: args["base-url"],
+      onMessage: (message) => {
+        const usage = message.usage;
+        console.log(
+          `  [turn] stop_reason=${message.stop_reason} ` +
+            `input_tokens=${usage.input_tokens} output_tokens=${usage.output_tokens} ` +
+            `cache_read=${usage.cache_read_input_tokens ?? 0} cache_creation=${usage.cache_creation_input_tokens ?? 0}`
+        );
+      },
       onAttempt: (attempt, verdict) => {
         console.log(`\n--- attempt ${attempt}: ${verdict.status} ---`);
         if (verdict.status !== "healed") console.log(verdict.feedback);
