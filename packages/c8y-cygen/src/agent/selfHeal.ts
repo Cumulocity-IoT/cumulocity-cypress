@@ -230,7 +230,17 @@ export async function runSelfHealLoop(
       thinking: { type: "adaptive" },
       output_config: { effort: "high" },
       max_iterations: options.maxIterationsPerAttempt ?? DEFAULT_MAX_ITERATIONS,
-      system: systemPrompt,
+      // cache_control on the last (only) system block caches tools + system
+      // together (render order is tools -> system -> messages) - system and
+      // tools are identical on every turn and every attempt, so this is a
+      // pure win: full price once, ~10% price on every subsequent turn.
+      system: [
+        {
+          type: "text",
+          text: systemPrompt,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
       tools,
       messages,
     });
