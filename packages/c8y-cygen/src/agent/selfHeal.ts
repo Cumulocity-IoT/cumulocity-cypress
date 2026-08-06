@@ -101,6 +101,63 @@ function formatCypressFailure(result: CypressRunResult): string {
   return lines.join("\n");
 }
 
+/** The subset of a content-block param shared by every cacheable block type. */
+export type CacheableBlock = { cache_control?: unknown };
+
+/**
+ * Moves the message-history prompt-cache breakpoint onto the true end of
+ * the conversation so far, mutating `messages` in place and returning the
+ * block now carrying the marker (pass it back in as `previouslyMarked` on
+ * the next call, so exactly one marker is ever live - well under the API's
+ * 4-breakpoints-per-request cap across arbitrarily many turns and self-heal
+ * attempts; the other is the system-prompt block set up in runAttempt).
+ *
+ * Safe to call after every turn, unconditionally - including the final
+ * turn where the assistant gives its answer with no further tool calls.
+ * This is a plain mutation of the message array already in front of the
+ * caller (e.g. a Tool Runner's own `runner.params.messages`), not a call
+ * through the Tool Runner's `setMessagesParams` - so unlike that route, it
+ * can never interfere with the runner's own "no tool_use -> stop"
+ * termination check (confirmed by reading BetaToolRunner's source: calling
+ * setMessagesParams marks the runner "caller-mutated" for that turn, which
+ * suppresses its auto-break on a final answer with no tool_use, since the
+ * runner then assumes the caller owns that decision).
+ *
+ * By the time a turn's message reaches the caller, the Tool Runner has
+ * already appended the PREVIOUS turn's tool result (it yields, and only
+ * pushes the tool result after the caller's loop body resumes) - so "the
+ * last block of the last message" here is exactly the right, complete
+ * boundary each time this is called.
+ */
+export function moveMessageCacheBreakpoint(
+  messages: Anthropic.Beta.Messages.BetaMessageParam[],
+  previouslyMarked: CacheableBlock | undefined
+): CacheableBlock | undefined {
+  const lastMessage = messages[messages.length - 1];
+  const content = lastMessage?.content;
+  if (!content || typeof content === "string") return previouslyMarked;
+
+  // A handful of block types (thinking/redacted_thinking, the fallback
+  // audit marker) carry no cache_control field - not cacheable breakpoint
+  // targets. None of them should occur as the LAST block of a turn in
+  // practice here (no fallbacks configured; thinking precedes text/
+  // tool_use, never follows), but the type system doesn't know that -
+  // these comparisons narrow the union so the assignment below type-checks.
+  const lastBlock = content[content.length - 1];
+  if (
+    !lastBlock ||
+    lastBlock.type === "thinking" ||
+    lastBlock.type === "redacted_thinking" ||
+    lastBlock.type === "fallback"
+  ) {
+    return previouslyMarked;
+  }
+
+  if (previouslyMarked) delete previouslyMarked.cache_control;
+  lastBlock.cache_control = { type: "ephemeral" };
+  return lastBlock;
+}
+
 export interface AttemptRunResult {
   finalMessage: Anthropic.Beta.Messages.BetaMessage;
   messages: Anthropic.Beta.Messages.BetaMessageParam[];
@@ -221,6 +278,15 @@ export async function runSelfHealLoop(
   let lastCypressResult: CypressRunResult | undefined;
   let lastAssertionTrace: AssertionTraceResult | undefined;
 
+  /**
+   * Tracks the one content block currently carrying the message-history
+   * cache breakpoint, threaded through moveMessageCacheBreakpoint on every
+   * turn - see that function's doc comment for why this is safe to call
+   * unconditionally, every turn, with no risk to the self-heal loop's
+   * termination.
+   */
+  let markedBlock: CacheableBlock | undefined;
+
   const runAttempt = async (
     messages: Anthropic.Beta.Messages.BetaMessageParam[]
   ): Promise<AttemptRunResult> => {
@@ -244,7 +310,10 @@ export async function runSelfHealLoop(
       tools,
       messages,
     });
-    const finalMessage = await runToolRunnerToCompletion(runner, options.onMessage);
+    const finalMessage = await runToolRunnerToCompletion(runner, (message) => {
+      options.onMessage?.(message);
+      markedBlock = moveMessageCacheBreakpoint(runner.params.messages, markedBlock);
+    });
     return { finalMessage, messages: runner.params.messages };
   };
 
