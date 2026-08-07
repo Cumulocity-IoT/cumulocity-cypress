@@ -29,9 +29,9 @@
     "url": "git+https://github.com/Cumulocity-IoT/cumulocity-cypress/issues"
   },
   "dependencies": {
-    "@angular/common": "^22.0.1",
+    "@angular/common": "^22.1.0",
     "@cypress/grep": "^5.0.0",
-    "@c8y/client": "^1022.9.6",
+    "@c8y/client": "^1023.97.8",
     "cumulocity-cypress": "^1.2.3",
     "cypress": "<15.0.0"
   },
