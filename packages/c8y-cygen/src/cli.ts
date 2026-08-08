@@ -21,6 +21,13 @@ import {
 import { DEFAULT_MODEL, DEFAULT_MAX_ITERATIONS } from "./agent/agentLoop.js";
 import { freezeFixture } from "./fixture/fixtureFreezer.js";
 import type { StagedFixture } from "./agent/tools.js";
+import {
+  getModelPricing,
+  ZERO_USAGE_TOTALS,
+  addUsage,
+  computeCostUsd,
+  type UsageTotals,
+} from "./pricing/modelPricing.js";
 
 /** cumulocity-ui-e2e's own convention; .github/instructions/* symlinks to .claude/rules/*. */
 const DEFAULT_HOUSE_RULES_RELATIVE = ".github/instructions/e2e-tests.instructions.md";
@@ -216,6 +223,42 @@ function printDiffAgainstOracle(specAbsolutePath: string, oracleAbsolutePath: st
   }
 }
 
+/**
+ * Printed unconditionally in a `finally` - the run's turns already cost
+ * money whether or not it healed, so cost is reported regardless of the
+ * outcome (including a thrown error partway through).
+ */
+function reportCost(usageByModel: Map<string, UsageTotals>): void {
+  console.log("\n--- cost ---");
+  if (usageByModel.size === 0) {
+    console.log("  (no model turns were made)");
+    return;
+  }
+
+  let totalCostUsd = 0;
+  for (const [model, totals] of usageByModel) {
+    const pricing = getModelPricing(model);
+    if (!pricing) {
+      const tokens =
+        totals.inputTokens +
+        totals.outputTokens +
+        totals.cacheWrite5mTokens +
+        totals.cacheWrite1hTokens +
+        totals.cacheReadTokens;
+      console.log(`  ${model}: no pricing on file - ${tokens} tokens not costed`);
+      continue;
+    }
+    const costUsd = computeCostUsd(totals, pricing);
+    totalCostUsd += costUsd;
+    console.log(
+      `  ${model}: $${costUsd.toFixed(4)} ` +
+        `(input=${totals.inputTokens} output=${totals.outputTokens} ` +
+        `cache_write=${totals.cacheWrite5mTokens + totals.cacheWrite1hTokens} cache_read=${totals.cacheReadTokens})`
+    );
+  }
+  console.log(`  total: $${totalCostUsd.toFixed(4)}`);
+}
+
 function reportVerdict(verdict: SelfHealVerdict, attempts: number, specRelativePath?: string): void {
   if (verdict.status === "healed") {
     console.log(`\nHealed after ${attempts} attempt(s): ${specRelativePath}`);
@@ -273,6 +316,8 @@ async function main(): Promise<void> {
     headless: args.headless,
   });
 
+  const usageByModel = new Map<string, UsageTotals>();
+
   try {
     console.log(
       `Generating a ${style} spec for "${scenario.title ?? "(untitled scenario)"}"...\n`
@@ -296,6 +341,10 @@ async function main(): Promise<void> {
             `input_tokens=${usage.input_tokens} output_tokens=${usage.output_tokens} ` +
             `cache_read=${usage.cache_read_input_tokens ?? 0} cache_creation=${usage.cache_creation_input_tokens ?? 0}`
         );
+        usageByModel.set(
+          message.model,
+          addUsage(usageByModel.get(message.model) ?? ZERO_USAGE_TOTALS, usage)
+        );
       },
       onAttempt: (attempt, verdict) => {
         console.log(`\n--- attempt ${attempt}: ${verdict.status} ---`);
@@ -314,6 +363,7 @@ async function main(): Promise<void> {
 
     reportVerdict(result.verdict, result.attempts, result.specRelativePath);
   } finally {
+    reportCost(usageByModel);
     await browser.close();
   }
 }

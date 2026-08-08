@@ -12,3 +12,4 @@ export * from "./assertion/assertionTraceChecker.js";
 export * from "./agent/tools.js";
 export * from "./agent/agentLoop.js";
 export * from "./agent/selfHeal.js";
+export * from "./pricing/modelPricing.js";
