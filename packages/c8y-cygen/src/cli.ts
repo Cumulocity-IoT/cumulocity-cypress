@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import type Anthropic from "@anthropic-ai/sdk";
 import { execFileSync } from "node:child_process";
 import * as readline from "node:readline/promises";
 import yargs from "yargs";
@@ -28,6 +29,28 @@ import {
   computeCostUsd,
   type UsageTotals,
 } from "./pricing/modelPricing.js";
+import { truncateForAgent } from "./util/truncateForAgent.js";
+
+/**
+ * Per-turn tool-call/text visibility. The [turn] line alone (stop_reason +
+ * token counts) gives no way to tell exploration-in-progress apart from a
+ * stuck loop - observed on a live run that burned all 3 self-heal attempts'
+ * full iteration budgets without ever calling write_spec, with nothing in
+ * the log to say why. Caps each block so a huge write_spec `content` or
+ * browser_snapshot echo doesn't flood the terminal.
+ */
+const MAX_LOGGED_BLOCK_CHARS = 300;
+
+function logMessageContent(message: Anthropic.Beta.Messages.BetaMessage): void {
+  for (const block of message.content) {
+    if (block.type === "tool_use") {
+      const input = truncateForAgent(JSON.stringify(block.input), MAX_LOGGED_BLOCK_CHARS);
+      console.log(`    -> ${block.name} ${input}`);
+    } else if (block.type === "text" && block.text.trim()) {
+      console.log(`    (text) ${truncateForAgent(block.text, MAX_LOGGED_BLOCK_CHARS)}`);
+    }
+  }
+}
 
 /** cumulocity-ui-e2e's own convention; .github/instructions/* symlinks to .claude/rules/*. */
 const DEFAULT_HOUSE_RULES_RELATIVE = ".github/instructions/e2e-tests.instructions.md";
@@ -341,6 +364,7 @@ async function main(): Promise<void> {
             `input_tokens=${usage.input_tokens} output_tokens=${usage.output_tokens} ` +
             `cache_read=${usage.cache_read_input_tokens ?? 0} cache_creation=${usage.cache_creation_input_tokens ?? 0}`
         );
+        logMessageContent(message);
         usageByModel.set(
           message.model,
           addUsage(usageByModel.get(message.model) ?? ZERO_USAGE_TOTALS, usage)

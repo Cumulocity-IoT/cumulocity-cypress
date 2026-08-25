@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 import { assembleSystemPrompt } from "../prompt/promptAssembly.js";
 import { buildAgentTools, type AgentSessionRecord, type StagedFixture } from "./tools.js";
 import {
@@ -21,7 +22,20 @@ export const DEFAULT_MAX_SELF_HEAL_ATTEMPTS = 3;
 
 export type SelfHealVerdict =
   | { status: "healed" }
-  | { status: "retry"; feedback: string }
+  | {
+      status: "retry";
+      feedback: string;
+      /**
+       * Failure screenshot(s), pre-loaded as image blocks - a text-only diff
+       * (e.g. "expected 9, found 1") tells the model THAT an assertion failed
+       * but not WHY, when the cause is only visible on the page (a clipped
+       * widget, a wrong display mode, an unrelated dialog covering the
+       * target). Optional and I/O-free by the time it reaches here: real
+       * file reads happen in runSelfHealLoop's evaluateAttempt, keeping this
+       * type (and driveSelfHealLoop below) pure and unit-testable with fakes.
+       */
+      images?: Anthropic.Beta.Messages.BetaImageBlockParam[];
+    }
   | { status: "exhausted"; feedback: string };
 
 export interface EvaluateSelfHealAttemptInput {
@@ -83,6 +97,39 @@ function truncateErrorMessage(message: string): string {
     `${message.slice(0, MAX_ERROR_MESSAGE_CHARS)}` +
     `...[truncated ${message.length - MAX_ERROR_MESSAGE_CHARS} more characters]`
   );
+}
+
+/** Bounds how many failure screenshots get embedded in one retry turn - each is a real image, unlike the capped text above. */
+const MAX_SCREENSHOTS_PER_RETRY = 2;
+
+/**
+ * Loads each failing test's auto-captured screenshot (if any) as an image
+ * block, most useful failure first, capped at MAX_SCREENSHOTS_PER_RETRY.
+ * Best-effort: a missing/unreadable file (screenshotOnRunFailure disabled,
+ * path stale, etc.) is silently skipped rather than failing the whole
+ * self-heal attempt over an inessential artifact.
+ */
+export function loadScreenshotImageBlocks(
+  result: CypressRunResult
+): Anthropic.Beta.Messages.BetaImageBlockParam[] {
+  const paths = result.testFailures
+    .map((failure) => failure.screenshotPath)
+    .filter((p): p is string => Boolean(p))
+    .slice(0, MAX_SCREENSHOTS_PER_RETRY);
+
+  const blocks: Anthropic.Beta.Messages.BetaImageBlockParam[] = [];
+  for (const screenshotPath of paths) {
+    try {
+      const data = readFileSync(screenshotPath).toString("base64");
+      blocks.push({
+        type: "image",
+        source: { type: "base64", media_type: "image/png", data },
+      });
+    } catch {
+      // Screenshot unavailable - the text feedback alone still reaches the agent.
+    }
+  }
+  return blocks;
 }
 
 function formatCypressFailure(result: CypressRunResult): string {
@@ -205,7 +252,13 @@ export async function driveSelfHealLoop(
       return { attempts: attempt, verdict, finalMessage: attemptResult.finalMessage };
     }
 
-    messages = [...messages, { role: "user", content: verdict.feedback }];
+    // Plain string when there's nothing to show (the common case, and every
+    // existing caller/test's shape) - only becomes a content-block array
+    // when a screenshot is actually attached.
+    const content = verdict.images?.length
+      ? [{ type: "text" as const, text: verdict.feedback }, ...verdict.images]
+      : verdict.feedback;
+    messages = [...messages, { role: "user", content }];
   }
 
   throw new AgentLoopError(
@@ -345,12 +398,16 @@ export async function runSelfHealLoop(
       baseUrl: options.baseUrlForCypress,
     });
 
-    return evaluateSelfHealAttempt({
+    const verdict = evaluateSelfHealAttempt({
       cypressResult: lastCypressResult,
       assertionTrace: lastAssertionTrace,
       attempt,
       maxAttempts,
     });
+
+    if (verdict.status !== "retry") return verdict;
+    const images = loadScreenshotImageBlocks(lastCypressResult);
+    return images.length > 0 ? { ...verdict, images } : verdict;
   };
 
   const initialMessages: Anthropic.Beta.Messages.BetaMessageParam[] = [

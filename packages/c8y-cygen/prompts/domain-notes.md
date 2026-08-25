@@ -23,6 +23,22 @@ is discovered during a generation run — it is meant to accumulate.
   component from element; single hyphens connect element type to descriptive detail).
 - Always prefer `[data-cy]` even if surrounding/older specs in the target app mix
   patterns — the app team is actively migrating toward it.
+- **A component's `[data-cy]` value can differ per rendered branch** (e.g. a widget
+  that shows a different `data-cy` in "Grid" vs "List" display mode). If a scenario
+  step changes state (a toggle, a mode switch, opening a different dialog) *after*
+  you've already observed a selector, re-verify with `list_data_cy`/`browser_snapshot`
+  in the new state rather than reusing the old selector — it may no longer match, or
+  may now match something unrelated left over from before the change. When an
+  assertion is meant to hold across such a change (e.g. "the same items are still
+  there after switching modes"), prefer a selector that's stable across the branches
+  (an attribute prefix match, `[data-cy^="component--element-"]`, or a class applied
+  unconditionally in the template) over the exact value from one specific branch.
+- **Don't derive a "did X render" check from a data-driven value.** E.g. an icon
+  input can arrive in more than one shape (a CSS-class-style string vs. a plain
+  icon-font name) — asserting a class computed from that value (like
+  `i.${iconName}`) only holds for one shape. Assert against a class the template
+  applies unconditionally instead (read the component's own `.html` to find one),
+  or just check the element `.should('be.visible')` without keying off the data.
 
 ## Page load & navigation
 
@@ -55,6 +71,23 @@ is discovered during a generation run — it is meant to accumulate.
 - Every `describe` must carry `{ tags: '@teamName' }` from the app's valid team-tag
   set. Not lint-enforced but treated as a hard rule — omitting it breaks CI grep
   filters.
+
+## Visibility vs. presence
+
+- A size-constrained container (fixed height/width, `overflow: hidden`, a compact
+  card/panel/cell) is not guaranteed to simultaneously show every item of an
+  arbitrarily long list without scrolling — items past its rendered area exist in
+  the DOM but are effectively 0×0, i.e. not `.should('be.visible')`. This is normal
+  layout behavior, not a bug, whenever a scenario's data set size isn't fixed by the
+  scenario itself.
+- The same component can render in more than one context with different size
+  constraints (e.g. an editing/preview surface vs. its final saved/real placement) —
+  an assertion that "every item is visible" holds in one context does not
+  automatically transfer to the other.
+- When a data set might exceed a container's rendered size, prefer asserting DOM
+  presence/content (`.should('have.length', n)`, `.should('have.attr', 'href', ...)`)
+  over strict `.should('be.visible')` on every item, unless the scenario specifically
+  cares about what's visible without scrolling.
 
 ## `cy.request()`
 

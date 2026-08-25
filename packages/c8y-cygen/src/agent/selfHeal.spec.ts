@@ -1,7 +1,11 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import {
   evaluateSelfHealAttempt,
   driveSelfHealLoop,
   moveMessageCacheBreakpoint,
+  loadScreenshotImageBlocks,
   type SelfHealVerdict,
   type AttemptRunResult,
   type CacheableBlock,
@@ -153,6 +157,36 @@ describe("driveSelfHealLoop", () => {
     expect(secondCallMessages[2]).toEqual({
       role: "user",
       content: "please fix the time assertion",
+    });
+  });
+
+  it("attaches images as a text+image content array when the retry verdict carries them", async () => {
+    const imageBlock: Anthropic.Beta.Messages.BetaImageBlockParam = {
+      type: "image",
+      source: { type: "base64", media_type: "image/png", data: "ZmFrZQ==" },
+    };
+    const runAttempt = jest.fn(async (messages: unknown[]) => fakeAttempt("1", messages));
+    const evaluateAttempt = jest.fn(async (attempt: number): Promise<SelfHealVerdict> =>
+      attempt === 1
+        ? { status: "retry", feedback: "found 1, expected 9 - see screenshot", images: [imageBlock] }
+        : { status: "healed" }
+    );
+
+    const result = await driveSelfHealLoop({
+      initialMessages: [{ role: "user", content: "task" }],
+      maxAttempts: 3,
+      runAttempt,
+      evaluateAttempt,
+    });
+
+    expect(result.attempts).toBe(2);
+    const secondCallMessages = runAttempt.mock.calls[1][0] as Array<{
+      role: string;
+      content: unknown;
+    }>;
+    expect(secondCallMessages[2]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "found 1, expected 9 - see screenshot" }, imageBlock],
     });
   });
 
@@ -354,5 +388,76 @@ describe("moveMessageCacheBreakpoint", () => {
   it("does nothing and does not throw on an empty messages array", () => {
     const marked = moveMessageCacheBreakpoint([], undefined);
     expect(marked).toBeUndefined();
+  });
+});
+
+describe("loadScreenshotImageBlocks", () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(path.join(tmpdir(), "c8y-cygen-screenshot-"));
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  function resultWith(screenshotPaths: Array<string | undefined>): CypressRunResult {
+    return {
+      pass: false,
+      testFailures: screenshotPaths.map((screenshotPath, i) => ({
+        title: [`test-${i}`],
+        errorMessage: "boom",
+        screenshotPath,
+      })),
+      specFailures: [],
+    };
+  }
+
+  it("loads a screenshot as a base64 image block", async () => {
+    const shotPath = path.join(dir, "shot.png");
+    await writeFile(shotPath, Buffer.from("fake-png-bytes"));
+
+    const blocks = loadScreenshotImageBlocks(resultWith([shotPath]));
+
+    expect(blocks).toEqual([
+      {
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: "image/png",
+          data: Buffer.from("fake-png-bytes").toString("base64"),
+        },
+      },
+    ]);
+  });
+
+  it("skips failures with no screenshotPath", async () => {
+    expect(loadScreenshotImageBlocks(resultWith([undefined]))).toEqual([]);
+  });
+
+  it("silently skips a screenshotPath that doesn't resolve to a real file", async () => {
+    const blocks = loadScreenshotImageBlocks(resultWith([path.join(dir, "missing.png")]));
+    expect(blocks).toEqual([]);
+  });
+
+  it("caps at MAX_SCREENSHOTS_PER_RETRY even when more failures have screenshots", async () => {
+    const paths = await Promise.all(
+      [0, 1, 2].map(async (i) => {
+        const p = path.join(dir, `shot${i}.png`);
+        await writeFile(p, Buffer.from(`bytes-${i}`));
+        return p;
+      })
+    );
+
+    const blocks = loadScreenshotImageBlocks(resultWith(paths));
+
+    expect(blocks).toHaveLength(2);
+    expect((blocks[0].source as { data: string }).data).toEqual(
+      Buffer.from("bytes-0").toString("base64")
+    );
+    expect((blocks[1].source as { data: string }).data).toEqual(
+      Buffer.from("bytes-1").toString("base64")
+    );
   });
 });
