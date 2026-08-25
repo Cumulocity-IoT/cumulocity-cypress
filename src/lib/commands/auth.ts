@@ -90,10 +90,12 @@ const getAuthEnvVariables = () => {
       key.endsWith("_username") ||
       key.endsWith("_password") ||
       key.endsWith("_token") ||
+      key.endsWith("_tenant") ||
       key === "C8Y_USERNAME" ||
       key === "C8Y_USER" ||
       key === "C8Y_PASSWORD" ||
       key === "C8Y_TOKEN" ||
+      key === "C8Y_TENANT" ||
       key === "C8Y_XSRF_TOKEN" ||
       key === "C8Y_AUTHORIZATION"
     ) {
