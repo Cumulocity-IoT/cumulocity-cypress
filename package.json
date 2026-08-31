@@ -119,7 +119,7 @@
     "chokidar": "^5.0.0",
     "cookie": "^1.0.2",
     "cookie-parser": "^1.4.6",
-    "cosmiconfig": "^9.0.0",
+    "cosmiconfig": "^10.0.0",
     "cosmiconfig-typescript-loader": "^6.1.0",
     "cross-fetch": "^4.1.0",
     "cypress-file-upload": "^5.0.8",
