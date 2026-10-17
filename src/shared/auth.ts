@@ -196,7 +196,10 @@ export function authWithTenant(env: any, options: C8yAuthOptions) {
     return options;
   }
 
-  const tenant = env[`C8Y_TENANT`];
+  let tenant = env[`C8Y_TENANT`];
+  if (options.userAlias != null) {
+    tenant = env[`${options.userAlias}_tenant`] || tenant;
+  }
   if (tenant && !options?.tenant) {
     _.extend(options, { tenant });
   }
