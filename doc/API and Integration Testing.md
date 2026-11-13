@@ -460,6 +460,21 @@ module.exports = defineConfig({
 });
 ```
 
+#### Failing on `$ref` errors
+
+Pact files can use `$ref` to reference templates and other definitions. If resolving these references fails, for example because a referenced template does not exist, the plugin by default logs the error to the `c8y:plugin` debug logger and runs the pact with the unresolved `$ref` objects.
+
+To fail the test instead, enable `failOnPactRefError`. The error message then contains the pact id and the individual resolver errors with their path in the pact. The default is `false`.
+
+```typescript
+configureC8yPlugin(on, config, {
+  pactFolder: "recordings",
+  failOnPactRefError: true,
+});
+```
+
+If you call `resolvePactRefs` directly, for example in a custom setup, pass `{ failOnError: true }` as fourth argument to get the same behavior.
+
 #### C8yPact file format
 
 The default file format for recorded pacts is JSON using the `C8yPact` object structure. To store recorded pacts in files, use `C8yPactDefaultFileAdapter` as in the following example.
