@@ -5,6 +5,7 @@ import {
   C8yPactDefaultFileAdapter,
   configureC8yPlugin,
   getFileUploadOptions,
+  resolvePactRefs,
 } from "./index";
 import path from "path";
 import { vol } from "memfs";
@@ -84,6 +85,148 @@ describe("plugin", () => {
         path.resolve("/home/user/test/cypress/fixtures/c8ypact2")
       );
       expect((config.env as any).C8Y_PLUGIN_LOADED).toBe("true");
+    });
+  });
+
+  describe("resolvePactRefs", () => {
+    const log = jest.fn();
+
+    const validPact = () => ({
+      id: "my-pact",
+      info: {},
+      templates: { reload: { request: { method: "POST", url: "/reload" } } },
+      records: [{ $ref: "#/templates/reload" }],
+    });
+
+    // the template "doesNotExist" is not defined in templates
+    const pactWithMissingTemplate = () => ({
+      id: "my-pact",
+      info: {},
+      templates: { reload: { request: { method: "POST", url: "/reload" } } },
+      records: [
+        { $ref: "#/templates/reload" },
+        { $ref: "#/templates/doesNotExist" },
+      ],
+    });
+
+    beforeEach(() => {
+      log.mockClear();
+    });
+
+    it("should resolve refs", async () => {
+      const result = await resolvePactRefs(validPact(), undefined, log);
+      expect(result.records[0].request).toEqual({
+        method: "POST",
+        url: "/reload",
+      });
+    });
+
+    it("should resolve refs with failOnError enabled", async () => {
+      const result = await resolvePactRefs(validPact(), undefined, log, {
+        failOnError: true,
+      });
+      expect(result.records[0].request).toEqual({
+        method: "POST",
+        url: "/reload",
+      });
+    });
+
+    it("should return the original pact on error by default", async () => {
+      const pact = pactWithMissingTemplate();
+      const result = await resolvePactRefs(pact, undefined, log);
+      expect(result).toBe(pact);
+      expect(result.records[1]).toEqual({ $ref: "#/templates/doesNotExist" });
+    });
+
+    it("should return the original pact on error if failOnError is false", async () => {
+      const pact = pactWithMissingTemplate();
+      const result = await resolvePactRefs(pact, undefined, log, {
+        failOnError: false,
+      });
+      expect(result).toBe(pact);
+    });
+
+    it("should throw on error if failOnError is enabled", async () => {
+      const promise = resolvePactRefs(
+        pactWithMissingTemplate(),
+        undefined,
+        log,
+        { failOnError: true }
+      );
+      await expect(promise).rejects.toThrow(
+        "Failed to resolve $ref references for pact with id: 'my-pact'"
+      );
+      await expect(promise).rejects.toThrow("doesNotExist");
+      await expect(promise).rejects.toThrow("records/1");
+    });
+
+    it("should still log the error if failOnError is enabled", async () => {
+      await resolvePactRefs(pactWithMissingTemplate(), undefined, log, {
+        failOnError: true,
+      }).catch((): void => undefined);
+      expect(log).toHaveBeenCalledWith(
+        expect.stringContaining("Error during $ref resolving")
+      );
+    });
+
+    it("should return invalid json string by default", async () => {
+      const result = await resolvePactRefs("{ invalid", undefined, log);
+      expect(result).toBe("{ invalid");
+    });
+
+    it("should throw for invalid json string if failOnError is enabled", async () => {
+      await expect(
+        resolvePactRefs("{ invalid", undefined, log, { failOnError: true })
+      ).rejects.toThrow("Error parsing pact from string");
+    });
+
+    it("should return stringified result for string input", async () => {
+      const result = await resolvePactRefs(
+        JSON.stringify(validPact()),
+        undefined,
+        log,
+        { failOnError: true }
+      );
+      expect(typeof result).toBe("string");
+      expect(JSON.parse(result).records[0].request.method).toBe("POST");
+    });
+  });
+
+  describe("c8ypact:resolve task", () => {
+    const getResolveTask = (options: any) => {
+      const tasks: Record<string, (pact: any) => Promise<any>> = {};
+      const on = jest.fn((event: string, handlers: any) => {
+        if (event === "task") Object.assign(tasks, handlers);
+      });
+      configureC8yPlugin(on as any, { env: {} } as any, {
+        pactFolder: "cypress/fixtures/c8ypact",
+        ...options,
+      });
+      return tasks["c8ypact:resolve"];
+    };
+
+    const pactWithMissingTemplate = () => ({
+      id: "my-pact",
+      info: {},
+      records: [{ $ref: "#/templates/doesNotExist" }],
+    });
+
+    it("should return unresolved pact by default", async () => {
+      const pact = pactWithMissingTemplate();
+      await expect(getResolveTask({})(pact)).resolves.toBe(pact);
+    });
+
+    it("should return unresolved pact if failOnPactRefError is false", async () => {
+      const pact = pactWithMissingTemplate();
+      await expect(
+        getResolveTask({ failOnPactRefError: false })(pact)
+      ).resolves.toBe(pact);
+    });
+
+    it("should fail if failOnPactRefError is enabled", async () => {
+      await expect(
+        getResolveTask({ failOnPactRefError: true })(pactWithMissingTemplate())
+      ).rejects.toThrow("Failed to resolve $ref references");
     });
   });
 
