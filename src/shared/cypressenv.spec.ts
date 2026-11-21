@@ -71,10 +71,25 @@ describe("cypressenv", () => {
       global.Cypress = { expose: accessor(exposed), env: accessor(env) };
     });
 
-    it("should prefer Cypress.expose() and fall back to Cypress.env()", () => {
-      expect(c8yEnv("C8Y_TENANT")).toBe("exposed");
+    it("should prefer Cypress.env() and fall back to Cypress.expose()", () => {
+      exposed.C8Y_SHELL_NAME = "cockpit";
+      expect(c8yEnv("C8Y_TENANT")).toBe("env");
       expect(c8yEnv("C8Y_USERNAME")).toBe("admin");
-      expect(c8yEnv()).toEqual({ C8Y_TENANT: "exposed", C8Y_USERNAME: "admin" });
+      expect(c8yEnv("C8Y_SHELL_NAME")).toBe("cockpit");
+      expect(c8yEnv()).toEqual({
+        C8Y_TENANT: "env",
+        C8Y_USERNAME: "admin",
+        C8Y_SHELL_NAME: "cockpit",
+      });
+    });
+
+    it("should see values set with Cypress.env() after the plugin exposed config.env", () => {
+      // the plugin exposed the configured value, the test changes it with Cypress.env()
+      exposed.C8Y_PACT_MODE = "apply";
+      env.C8Y_PACT_MODE = "apply";
+      global.Cypress.env("C8Y_PACT_MODE", "recording");
+      expect(c8yEnv("C8Y_PACT_MODE")).toBe("recording");
+      expect(c8yEnv().C8Y_PACT_MODE).toBe("recording");
     });
 
     it("should write to Cypress.expose() and Cypress.env()", () => {
@@ -106,7 +121,10 @@ describe("cypressenv", () => {
       expect(c8yEnv("C8Y_TENANT")).toBe("t123");
       c8yEnv("C8Y_LOGGED_IN_USER", "admin");
       expect(env.C8Y_LOGGED_IN_USER).toBe("admin");
-      expect(c8yEnv()).toEqual({ C8Y_TENANT: "t123", C8Y_LOGGED_IN_USER: "admin" });
+      expect(c8yEnv()).toEqual({
+        C8Y_TENANT: "t123",
+        C8Y_LOGGED_IN_USER: "admin",
+      });
     });
   });
 });

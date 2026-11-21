@@ -31,7 +31,9 @@ describe("c8ypact intercept", () => {
   };
 
   afterEach(() => {
-    // delete recorded pacts after each test
+    // delete recorded pacts after each test. loadCurrent() first writes a pact recorded
+    // outside of the command queue (Cypress 16+), so it isn't written after the removal
+    Cypress.c8ypact.loadCurrent();
     cy.task("c8ypact:remove", Cypress.c8ypact.getCurrentTestId()).then(() => {
       Cypress.c8ypact.loadCurrent().then((pact) => {
         expect(pact).to.be.null;
@@ -358,6 +360,58 @@ describe("c8ypact intercept", () => {
             expect(r?.response.body).to.have.property("managedObjects");
             expect(r?.modifiedResponse?.body).to.have.property("fixtureTest");
           });
+        });
+    });
+
+    it("should load the pact of an interception after a queued wait", () => {
+      cy.intercept("/inventory/managedObjects*", testBody)
+        .as("inventory")
+        .then(fetchInventory);
+      cy.wait("@inventory");
+      // called while queueing, the interception is recorded only when the queue runs
+      Cypress.c8ypact.loadCurrent().then((pact) => {
+        expect(pact?.records).to.have.length(1);
+      });
+    });
+
+    it("should intercept with RouteHandler from fixture without extension", () => {
+      cy.intercept("/inventory/managedObjects*", {
+        fixture: "c8ypact-managedobject-02",
+      })
+        .as("inventory")
+        .then(() => {
+          return $.get(url(`/inventory/managedObjects?fragmentType=abcd`));
+        })
+        .then((data) => {
+          expect(data).to.have.property("fixtureTest");
+        })
+        .wait("@inventory")
+        .then(() => {
+          const spy = Cypress.c8ypact.savePact as sinon.SinonSpy;
+          expect(spy).to.have.been.calledOnce;
+          const args = spy.getCall(0).args;
+          expect(args[2].modifiedResponse.body).to.be.an("object");
+          expect(args[2].modifiedResponse.body).to.have.property("fixtureTest");
+        });
+    });
+
+    it("should intercept with RouteHandler from fixture with encoding", () => {
+      cy.intercept("/inventory/managedObjects*", {
+        fixture: "c8ypact-managedobject-02.json,utf8",
+      })
+        .as("inventory")
+        .then(() => {
+          return $.get(url(`/inventory/managedObjects?fragmentType=abcd`));
+        })
+        .wait("@inventory")
+        .then(() => {
+          const spy = Cypress.c8ypact.savePact as sinon.SinonSpy;
+          expect(spy).to.have.been.calledOnce;
+          const args = spy.getCall(0).args;
+          const body = args[2].modifiedResponse.body;
+          const content =
+            typeof body === "string" ? body : JSON.stringify(body);
+          expect(content).to.contain("fixtureTest");
         });
     });
 

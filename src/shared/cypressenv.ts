@@ -7,10 +7,12 @@
  * `configureC8yPlugin` and `configureC8yScreenshotPlugin` plugins copy `config.env` into
  * `config.expose`, so the variables configured for cumulocity-cypress stay available.
  *
- * - Reads use `Cypress.expose()` if it exists, and fall back to `Cypress.env()` for
- *   Cypress versions before 15.10 and for values that have not been exposed.
- * - Writes go to `Cypress.expose()` and, if it still exists, to `Cypress.env()`, so code
- *   that still reads `Cypress.env()` with Cypress 15 sees the same values.
+ * - Reads use `Cypress.env()` as long as it exists (Cypress 15 and before), so values
+ *   that tests still set with `Cypress.env()` are seen, and fall back to
+ *   `Cypress.expose()` for values that are only exposed. With Cypress 16, or if
+ *   `Cypress.env()` throws (`allowCypressEnv: false`), reads use `Cypress.expose()`.
+ * - Writes go to `Cypress.expose()` and, if it still exists, to `Cypress.env()`, so both
+ *   return the same values.
  */
 
 type CypressEnvAccessor = {
@@ -76,8 +78,8 @@ export function c8yEnv(
 
   if (keyOrObject == null) {
     return {
-      ...(env ? callSafe(() => env()) : {}),
       ...(expose ? expose() : {}),
+      ...(env ? callSafe(() => env()) : {}),
     };
   }
 
@@ -90,9 +92,9 @@ export function c8yEnv(
     return undefined;
   }
 
-  const exposed = expose ? expose(keyOrObject) : undefined;
-  if (exposed !== undefined || env == null) {
-    return exposed;
+  const fromEnv = env ? callSafe(() => env(keyOrObject)) : undefined;
+  if (fromEnv !== undefined) {
+    return fromEnv;
   }
-  return callSafe(() => env(keyOrObject));
+  return expose ? expose(keyOrObject) : undefined;
 }

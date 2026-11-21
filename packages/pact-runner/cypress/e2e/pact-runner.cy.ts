@@ -18,7 +18,22 @@ beforeEach(() => {
   }
 });
 
-const pacts: string[] = Cypress.env("_pacts");
+// Cypress 16 removed Cypress.env(): read with Cypress.env() if available, otherwise with
+// Cypress.expose(). configureC8yPlugin() exposes config.env, including _pacts.
+function envValue(key: string): any {
+  const cypress = Cypress as any;
+  if (typeof cypress.env === "function") {
+    try {
+      const value = cypress.env(key);
+      if (value !== undefined) return value;
+    } catch {
+      // Cypress 15.10+ throws if allowCypressEnv is false
+    }
+  }
+  return typeof cypress.expose === "function" ? cypress.expose(key) : undefined;
+}
+
+const pacts: string[] = envValue("_pacts");
 if (!pacts || !_.isArray(pacts) || _.isEmpty(pacts)) {
   throw new Error("No pact records to run.");
 }

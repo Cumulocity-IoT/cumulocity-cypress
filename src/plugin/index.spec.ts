@@ -36,7 +36,10 @@ describe("plugin", () => {
     it("should copy config.env into config.expose", () => {
       const config: any = { env: { C8Y_TENANT: "t123", admin_password: "pw" } };
       expect(exposeC8yEnv(config)).toBe(config);
-      expect(config.expose).toEqual({ C8Y_TENANT: "t123", admin_password: "pw" });
+      expect(config.expose).toEqual({
+        C8Y_TENANT: "t123",
+        admin_password: "pw",
+      });
       expect(config.expose).not.toBe(config.env);
     });
 
@@ -50,6 +53,24 @@ describe("plugin", () => {
         C8Y_TENANT: "fromExpose",
         C8Y_VERSION: "1025.0.0",
         other: "value",
+      });
+    });
+
+    it("should update copied values when called again", () => {
+      const config: any = {
+        env: { C8Y_TENANT: "old-tenant", C8Y_VERSION: "1025.0.0" },
+        expose: { other: "explicit" },
+      };
+      exposeC8yEnv(config);
+      config.env.C8Y_TENANT = "new-tenant";
+      config.env.C8Y_USER = "admin";
+      config.expose.C8Y_VERSION = "explicit-version";
+      exposeC8yEnv(config);
+      expect(config.expose).toEqual({
+        C8Y_TENANT: "new-tenant",
+        C8Y_USER: "admin",
+        C8Y_VERSION: "explicit-version",
+        other: "explicit",
       });
     });
 

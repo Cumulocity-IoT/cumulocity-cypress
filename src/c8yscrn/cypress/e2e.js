@@ -1,11 +1,25 @@
 require("cypress-wait-until");
 
+// reads a variable of the Cypress environment like c8yEnv() of src/shared/cypressenv.ts:
+// Cypress.env() if available, Cypress.expose() with Cypress 16, which removed Cypress.env()
+function envValue(key) {
+  if (typeof Cypress.env === "function") {
+    try {
+      const value = Cypress.env(key);
+      if (value !== undefined) return value;
+    } catch {
+      // Cypress 15.10+ throws if allowCypressEnv is false
+    }
+  }
+  return typeof Cypress.expose === "function" ? Cypress.expose(key) : undefined;
+}
+
 const enabledValues = ["true", "TRUE", true, "1", 1];
-const isEnabled = !enabledValues.includes(Cypress.env("C8Y_DISABLE_WEBSOCKET"));
+const isEnabled = !enabledValues.includes(envValue("C8Y_DISABLE_WEBSOCKET"));
 
 if (
   Cypress.config("isInteractive") &&
-  Cypress.env("_c8yscrnCli") === true &&
+  envValue("_c8yscrnCli") === true &&
   isEnabled
 ) {
   const ws = new WebSocket("ws://localhost:9345");
