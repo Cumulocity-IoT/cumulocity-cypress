@@ -180,15 +180,37 @@ before(() => {
   cy.getAuth("admin")
     .getCurrentTenant()
     .then((tenant) => {
-      Cypress.env("C8Y_TENANT", tenant.body.name);
+      Cypress.expose("C8Y_TENANT", tenant.body.name);
     })
     .then(() => {
-      expect(Cypress.env("C8Y_TENANT")).not.be.undefined;
+      expect(Cypress.expose("C8Y_TENANT")).not.be.undefined;
     });
   // or just simply call getTenantId() as this sets the tenant id env variable automatically
   cy.getAuth("admin").getTenantId();
 });
 ```
+
+#### Cypress 16 and later
+
+Cypress 16 removed `Cypress.env()`. Values that are read synchronously in the browser are set with `Cypress.expose()` and the `expose` configuration object instead (see [Upgrade Cypress](https://docs.cypress.io/app/references/migration-guide)). The examples in this document use `Cypress.expose()`; with older Cypress versions, use `Cypress.env()`.
+
+`cumulocity-cypress` reads and writes its variables with `Cypress.expose()` if it is available, and with `Cypress.env()` for older Cypress versions. The plugins `configureC8yPlugin` and `configureC8yScreenshotPlugin` copy all variables of `config.env` into `config.expose`, so variables from `cypress.env.json`, `CYPRESS_*` environment variables or `--env` keep working without changes. If you set `config.env` variables after the plugin has been configured, call `exposeC8yEnv(config)` at the end of `setupNodeEvents`:
+
+```typescript
+import { configureC8yPlugin, exposeC8yEnv } from "cumulocity-cypress/plugin";
+
+module.exports = defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {
+      configureC8yPlugin(on, config);
+      config.env.C8Y_TENANT = "t12345";
+      return exposeC8yEnv(config);
+    },
+  },
+});
+```
+
+Exposed variables, including credentials, are readable in the browser, as they were with `Cypress.env()`.
 
 ### Environment variables from go-c8y-cli
 
@@ -317,22 +339,22 @@ Example for setting environment variables in your tests:
 
 ```typescript
 // Bearer authentication (preferred)
-Cypress.env("C8Y_TOKEN", "your-jwt-token");
+Cypress.expose("C8Y_TOKEN", "your-jwt-token");
 
 // Or Basic authentication
-Cypress.env("C8Y_USERNAME", "admin");
-Cypress.env("C8Y_PASSWORD", "password");
+Cypress.expose("C8Y_USERNAME", "admin");
+Cypress.expose("C8Y_PASSWORD", "password");
 ```
 
 You can also use user aliases to configure authentication for specific users. User aliases support both token-based and username/password authentication:
 
 ```typescript
 // Token-based authentication for admin user
-Cypress.env("admin_token", "admin-jwt-token");
+Cypress.expose("admin_token", "admin-jwt-token");
 
 // Or username/password authentication for admin user
-Cypress.env("admin_username", "admin");
-Cypress.env("admin_password", "password");
+Cypress.expose("admin_username", "admin");
+Cypress.expose("admin_password", "password");
 ```
 
 When using user aliases, token authentication takes precedence over username/password if both are configured.
@@ -520,7 +542,7 @@ it.only("debugging test", () => {
       // to debug result of getCurrentTenant, place debugger in then()
       debugger;
       expect(tenant.name).to.equal("mytenant");
-      expect(Cypress.env("C8Y_TENANT")).to.deep.equal({ name: "mytenant" });
+      expect(Cypress.expose("C8Y_TENANT")).to.deep.equal({ name: "mytenant" });
     });
 });
 ```
@@ -576,7 +598,7 @@ cy.getAuth("admin")
       auth: { user: "admin", password: "password" },
     });
     expect(tenant.name).to.equal("mytenant");
-    expect(Cypress.env("C8Y_TENANT")).to.deep.equal({ name: "mytenant" });
+    expect(Cypress.expose("C8Y_TENANT")).to.deep.equal({ name: "mytenant" });
   });
 ```
 

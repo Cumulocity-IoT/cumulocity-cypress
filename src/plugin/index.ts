@@ -145,6 +145,9 @@ export function configureC8yPlugin(
   // use C8Y_PACT_FOLDER to find out where the pact files have been loaded from
   config.env.C8Y_PACT_FOLDER = adapter.getFolder();
 
+  // Cypress 16 removed Cypress.env(): make config.env readable with Cypress.expose()
+  exposeC8yEnv(config);
+
   function savePact(pact: C8yPactObject): null {
     const { id, info, records } = pact;
     log(`savePact() - ${pact.id} (${records?.length || 0} records)`);
@@ -618,6 +621,37 @@ export function configureC8yScreenshotPlugin(
     });
   }
 
+  // Cypress 16 removed Cypress.env(): make config.env readable with Cypress.expose()
+  exposeC8yEnv(config);
+  return config;
+}
+
+/**
+ * Copies the variables of `config.env` into `config.expose`, so they can be read
+ * synchronously in the browser with `Cypress.expose()`. Cypress 16 removed
+ * `Cypress.env()`, and `config.env` is only readable with the asynchronous `cy.env()`
+ * command there. Values already set in `config.expose` are kept.
+ *
+ * `configureC8yPlugin` and `configureC8yScreenshotPlugin` call this function. Call it
+ * again at the end of `setupNodeEvents` if you set `config.env` variables after the
+ * plugin has been configured.
+ *
+ * Note: all variables of `config.env` are exposed to the browser, including
+ * credentials, as `Cypress.env()` did before Cypress 16.
+ *
+ * @param config Cypress plugin config
+ * @returns The given config
+ */
+export function exposeC8yEnv(
+  config: Cypress.PluginConfigOptions
+): Cypress.PluginConfigOptions {
+  const configWithExpose = config as Cypress.PluginConfigOptions & {
+    expose?: Record<string, any>;
+  };
+  configWithExpose.expose = {
+    ...(config.env ?? {}),
+    ...(configWithExpose.expose ?? {}),
+  };
   return config;
 }
 

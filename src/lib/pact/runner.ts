@@ -16,6 +16,7 @@ import { Client } from "@c8y/client";
 import { buildTestHierarchy, to_array } from "../../shared/util";
 import { getAuthType } from "../../shared/auth";
 import type { C8yAuthOptionType } from "../../shared/auth";
+import { c8yEnv } from "../../shared/cypressenv";
 
 const { _ } = Cypress;
 
@@ -152,7 +153,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
         };
 
         beforeEach(() => {
-          if (!Cypress.env("C8Y_TENANT")) {
+          if (!c8yEnv("C8Y_TENANT")) {
             cy.getAuth().getTenantId({ ignorePact: true });
           }
         });
@@ -286,8 +287,8 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           ) {
             const { username, password } = response.body;
             if (username && password) {
-              Cypress.env(`${username}_username`, username);
-              Cypress.env(`${username}_password`, password);
+              c8yEnv(`${username}_username`, username);
+              c8yEnv(`${username}_password`, password);
             }
           }
 
@@ -331,7 +332,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
           }
         };
 
-        const envAuth = getAuthType(Cypress.env("C8Y_PACT_RUNNER_AUTH"));
+        const envAuth = getAuthType(c8yEnv("C8Y_PACT_RUNNER_AUTH"));
         const pactAuth = record.authType();
         const optionsAuth = getAuthType(options.authType);
         // Priority for auth type: options, env, pact record
@@ -472,7 +473,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
     const baseUrl = getBaseUrlFromEnv();
     if (baseUrl && info.baseUrl) {
       const infoUrl = tenantUrl(info.baseUrl, info?.tenant);
-      const url = tenantUrl(baseUrl, Cypress.env("C8Y_TENANT"));
+      const url = tenantUrl(baseUrl, c8yEnv("C8Y_TENANT"));
 
       if (infoUrl && url) {
         const regexp = new RegExp(`${infoUrl.href}`, "g");
@@ -484,9 +485,9 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
         result = result.replace(regexp, baseUrl);
       }
     }
-    if (info.tenant && Cypress.env("C8Y_TENANT")) {
+    if (info.tenant && c8yEnv("C8Y_TENANT")) {
       const regexp = new RegExp(`${info.tenant}`, "g");
-      result = result.replace(regexp, Cypress.env("C8Y_TENANT"));
+      result = result.replace(regexp, c8yEnv("C8Y_TENANT"));
     }
     return result;
   }
@@ -503,7 +504,7 @@ export class C8yDefaultPactRunner implements C8yPactRunner {
 }
 
 export function getOptionsFromEnvironment(): C8yPactRunnerOptions {
-  let methods = Cypress.env("C8Y_PACT_RUNNER_METHODS");
+  let methods = c8yEnv("C8Y_PACT_RUNNER_METHODS");
   if (methods != null) {
     if (_.isString(methods)) {
       methods = methods.split(",");
@@ -515,7 +516,7 @@ export function getOptionsFromEnvironment(): C8yPactRunnerOptions {
     }
   }
 
-  let paths = Cypress.env("C8Y_PACT_RUNNER_PATHS");
+  let paths = c8yEnv("C8Y_PACT_RUNNER_PATHS");
   if (paths != null) {
     if (_.isString(paths)) {
       paths = paths.split(",");
@@ -527,7 +528,7 @@ export function getOptionsFromEnvironment(): C8yPactRunnerOptions {
     }
   }
 
-  let authType = Cypress.env(
+  let authType = c8yEnv(
     "C8Y_PACT_RUNNER_AUTH"
   ) as C8yPactRunnerOptions["authType"];
   if (

@@ -20,7 +20,7 @@ describe("c8ypactmatcher", () => {
   let obj1: C8yPactRecord, obj2: C8yPactRecord;
 
   beforeEach(() => {
-    Cypress.env("C8Y_PACT_MODE", "apply");
+    Cypress.expose("C8Y_PACT_MODE", "apply");
 
     Cypress.c8ypact.config.strictMatching = true;
     cy.fixture("c8ypact-managedobject-01.json").then((pacts) => {
@@ -272,7 +272,7 @@ describe("c8ypactmatcher", () => {
     };
 
     beforeEach(() => {
-      Cypress.env("C8Y_PACT_MODE", undefined);
+      Cypress.expose("C8Y_PACT_MODE", undefined);
     });
 
     it("should match schema", function () {

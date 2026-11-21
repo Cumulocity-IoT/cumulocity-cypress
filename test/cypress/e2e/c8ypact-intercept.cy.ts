@@ -47,7 +47,7 @@ describe("c8ypact intercept", () => {
   context("setup", () => {
     beforeEach(() => {
       cy.spy(Cypress.c8ypact, "savePact").log(false);
-      Cypress.env("C8Y_PACT_MODE", undefined);
+      Cypress.expose("C8Y_PACT_MODE", undefined);
     });
 
     afterEach(() => {
@@ -71,13 +71,13 @@ describe("c8ypact intercept", () => {
     );
 
     it("should set env variable if imported", () => {
-      expect(Cypress.env("C8Y_PACT_INTERCEPT_IMPORTED")).to.be.true;
+      expect(Cypress.expose("C8Y_PACT_INTERCEPT_IMPORTED")).to.be.true;
     });
   });
 
   context("record interceptions", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_PACT_MODE", "recording");
+      Cypress.expose("C8Y_PACT_MODE", "recording");
       cy.spy(Cypress.c8ypact, "savePact").log(false);
     });
 
@@ -499,7 +499,7 @@ describe("c8ypact intercept", () => {
 
   context("recording and mocking disabled", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_PACT_MODE", "disabled");
+      Cypress.expose("C8Y_PACT_MODE", "disabled");
       expect(Cypress.c8ypact.mode()).to.eq("disabled");
       expect(Cypress.c8ypact.isRecordingEnabled()).to.be.false;
       expect(Cypress.c8ypact.isMockingEnabled()).to.be.false;
@@ -622,7 +622,7 @@ describe("c8ypact intercept", () => {
   context("mock interceptions", () => {
     beforeEach(() => {
       cy.spy(Cypress.c8ypact, "savePact").log(false);
-      Cypress.env("C8Y_PACT_MODE", "apply");
+      Cypress.expose("C8Y_PACT_MODE", "apply");
     });
 
     const response: Cypress.Response<any> = {
@@ -817,7 +817,7 @@ describe("c8ypact intercept", () => {
   context("suite ignore", { c8ypact: { ignore: true } }, () => {
     beforeEach(() => {
       cy.spy(Cypress.c8ypact, "savePact").log(false);
-      Cypress.env("C8Y_PACT_MODE", undefined);
+      Cypress.expose("C8Y_PACT_MODE", undefined);
     });
 
     it("should not intercept", () => {

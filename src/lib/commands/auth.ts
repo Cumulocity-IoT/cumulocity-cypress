@@ -9,6 +9,7 @@ import {
   C8yAuthentication,
   isAuthOptions,
 } from "../../shared/auth";
+import { c8yEnv } from "../../shared/cypressenv";
 
 export {
   C8yAuthOptions,
@@ -83,7 +84,7 @@ declare global {
 }
 
 const getAuthEnvVariables = () => {
-  const env = Cypress.env();
+  const env = c8yEnv();
   const filteredKeysAndValues: any = {};
   Object.keys(env).forEach((key) => {
     if (

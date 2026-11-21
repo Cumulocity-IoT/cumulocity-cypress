@@ -25,11 +25,11 @@ describe("c8yclient matching", () => {
   const auth = { user: "admin", password: "mypassword", tenant: "t12345678" };
 
   beforeEach(() => {
-    Cypress.env("C8Y_USERNAME", undefined);
-    Cypress.env("C8Y_PASSWORD", undefined);
-    Cypress.env("C8Y_TENANT", undefined);
-    Cypress.env("C8Y_PLUGIN_LOADED", undefined);
-    Cypress.env("C8Y_C8YCLIENT_TIMEOUT", undefined);
+    Cypress.expose("C8Y_USERNAME", undefined);
+    Cypress.expose("C8Y_PASSWORD", undefined);
+    Cypress.expose("C8Y_TENANT", undefined);
+    Cypress.expose("C8Y_PLUGIN_LOADED", undefined);
+    Cypress.expose("C8Y_C8YCLIENT_TIMEOUT", undefined);
 
     Cypress.c8ypact.schemaMatcher = new C8yAjvJson6SchemaMatcher();
     C8yDefaultPactMatcher.schemaMatcher = Cypress.c8ypact.schemaMatcher;
@@ -129,7 +129,7 @@ describe("c8yclient matching", () => {
     });
 
     it("should use schema if pact mode is disabled with default schema matcher", () => {
-      Cypress.env("C8Y_PACT_MODE", undefined);
+      Cypress.expose("C8Y_PACT_MODE", undefined);
       expect(Cypress.c8ypact.isEnabled()).to.be.false;
 
       cy.stub(Cypress.c8ypact, "schemaMatcher").value(undefined);
@@ -150,7 +150,7 @@ describe("c8yclient matching", () => {
     });
 
     it("should use custom schema matcher if pact mode is disabled", () => {
-      Cypress.env("C8Y_PACT_MODE", undefined);
+      Cypress.expose("C8Y_PACT_MODE", undefined);
       expect(Cypress.c8ypact.isEnabled()).to.be.false;
 
       const logSpy: sinon.SinonSpy = cy.spy(Cypress, "log").log(false);
@@ -173,8 +173,8 @@ describe("c8yclient matching", () => {
 
   context("object matching", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_PLUGIN_LOADED", "true");
-      Cypress.env("C8Y_PACT_MODE", "apply");
+      Cypress.expose("C8Y_PLUGIN_LOADED", "true");
+      Cypress.expose("C8Y_PACT_MODE", "apply");
     });
 
     it("should call matcher.match and advance cursor when pact record exists", () => {
@@ -197,7 +197,7 @@ describe("c8yclient matching", () => {
     });
 
     it("should not call matcher when pact mode is not apply", () => {
-      Cypress.env("C8Y_PACT_MODE", "mock");
+      Cypress.expose("C8Y_PACT_MODE", "mock");
 
       Cypress.c8ypact.matcher = new AcceptAllMatcher();
       Cypress.c8ypact.current = new C8yDefaultPact(
@@ -297,8 +297,8 @@ describe("c8yclient matching", () => {
     };
 
     beforeEach(() => {
-      Cypress.env("C8Y_PLUGIN_LOADED", "true");
-      Cypress.env("C8Y_PACT_MODE", "apply");
+      Cypress.expose("C8Y_PLUGIN_LOADED", "true");
+      Cypress.expose("C8Y_PACT_MODE", "apply");
     });
 
     it("should call both schema and object matching via static options", () => {
@@ -532,7 +532,7 @@ describe("c8yclient matching", () => {
     };
 
     beforeEach(() => {
-      Cypress.env("C8Y_PLUGIN_LOADED", "true");
+      Cypress.expose("C8Y_PLUGIN_LOADED", "true");
     });
 
     it("should pick up strictMatching=true from global config when no per-call option is set", () => {
@@ -602,8 +602,8 @@ describe("c8yclient matching", () => {
 
   context("ignorePact option", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_PLUGIN_LOADED", "true");
-      Cypress.env("C8Y_PACT_MODE", "apply");
+      Cypress.expose("C8Y_PLUGIN_LOADED", "true");
+      Cypress.expose("C8Y_PACT_MODE", "apply");
 
       Cypress.c8ypact.matcher = new AcceptAllMatcher();
       Cypress.c8ypact.current = new C8yDefaultPact(
@@ -658,8 +658,8 @@ describe("c8yclient matching", () => {
 
   context("failOnPactValidation option", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_PLUGIN_LOADED", "true");
-      Cypress.env("C8Y_PACT_MODE", "apply");
+      Cypress.expose("C8Y_PLUGIN_LOADED", "true");
+      Cypress.expose("C8Y_PACT_MODE", "apply");
     });
 
     it("should default to true and throw on pact record mismatch", (done) => {
@@ -717,8 +717,8 @@ describe("c8yclient matching", () => {
 
   context("array responses", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_PLUGIN_LOADED", "true");
-      Cypress.env("C8Y_PACT_MODE", "apply");
+      Cypress.expose("C8Y_PLUGIN_LOADED", "true");
+      Cypress.expose("C8Y_PACT_MODE", "apply");
     });
 
     it("should call nextRecord once per response in array", () => {
@@ -1225,8 +1225,8 @@ describe("c8yclient matching", () => {
 
   context("mixed schema and object matching in sequence", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_PLUGIN_LOADED", "true");
-      Cypress.env("C8Y_PACT_MODE", "apply");
+      Cypress.expose("C8Y_PLUGIN_LOADED", "true");
+      Cypress.expose("C8Y_PACT_MODE", "apply");
     });
 
     it("should advance cursor for schema-only call so subsequent object-matching call uses the next record", () => {
