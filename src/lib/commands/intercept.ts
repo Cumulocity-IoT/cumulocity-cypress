@@ -7,6 +7,7 @@ import {
 import { getBaseUrlFromEnv } from "../utils";
 import { isAbsoluteURL } from "../../shared/url";
 import { normalizeAuthHeaders } from "../../shared/auth";
+import { c8yEnv } from "../../shared/cypressenv";
 
 const { _ } = Cypress;
 
@@ -73,7 +74,7 @@ Cypress.Commands.overwrite("intercept", (originalFn, ...args) => {
   return originalFn(...updatedArgs);
 });
 
-Cypress.env("C8Y_PACT_INTERCEPT_IMPORTED", true);
+c8yEnv("C8Y_PACT_INTERCEPT_IMPORTED", true);
 
 Cypress.on("log:intercept", (options) => {
   if (!Cypress.c8ypact.isRecordingEnabled()) return;
@@ -91,7 +92,7 @@ Cypress.on("log:intercept", (options) => {
 });
 
 function responseFrom(req: any, res: any): Cypress.Response<any> {
-  const isBody = res != null && !("body" in res);
+  const isBody = res != null && (!_.isObjectLike(res) || !("body" in res));
   const statusCode = isBody ? 200 : res?.statusCode;
   const result: Cypress.Response<any> = {
     body: isBody ? res : res?.body,
@@ -267,9 +268,14 @@ function processReply(req: any, obj: any, replyFn: any, continueFn: any) {
         if (_.isObjectLike(obj) && "fixture" in obj) {
           const [path, encoding] = obj.fixture.split(",");
           // @ts-expect-error
-          modifiedResponse = await Cypress.backend("get:fixture", path, {
+          const fixture = await Cypress.backend("get:fixture", path, {
             encoding: encoding || "utf-8",
           });
+          // Cypress 15 returns the content of JSON fixtures as a string
+          modifiedResponse =
+            typeof fixture === "string" && path.trim().endsWith(".json")
+              ? JSON.parse(fixture)
+              : fixture;
         }
         emitInterceptionEvent(req, _.cloneDeep(res), modifiedResponse);
 

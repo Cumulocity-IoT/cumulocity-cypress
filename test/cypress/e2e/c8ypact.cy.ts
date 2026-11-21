@@ -37,7 +37,7 @@ class AcceptAllMatcher implements C8yPactMatcher {
 describe("c8ypact", () => {
   before(() => {
     // do not skip tests with unsatisfied version requirements
-    Cypress.env("C8Y_IGNORE_REQUIRES_SKIP", "1");
+    Cypress.expose("C8Y_IGNORE_REQUIRES_SKIP", "1");
   });
 
   beforeEach(() => {
@@ -47,24 +47,24 @@ describe("c8ypact", () => {
     Cypress.c8ypact.preprocessor = new C8yCypressEnvPreprocessor();
     C8yDefaultPactMatcher.schemaMatcher = Cypress.c8ypact.schemaMatcher;
 
-    Cypress.env("C8Y_USERNAME", undefined);
-    Cypress.env("C8Y_PASSWORD", undefined);
-    Cypress.env("C8Y_TENANT", undefined);
-    Cypress.env("C8Y_LOGGED_IN_USER", undefined);
-    Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", undefined);
-    Cypress.env("C8Y_PACT_IGNORE", undefined);
-    Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE", undefined);
-    Cypress.env("C8Y_PACT_PREPROCESSOR_PATTERN", undefined);
-    Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE", undefined);
-    Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE_CASE", undefined);
+    Cypress.expose("C8Y_USERNAME", undefined);
+    Cypress.expose("C8Y_PASSWORD", undefined);
+    Cypress.expose("C8Y_TENANT", undefined);
+    Cypress.expose("C8Y_LOGGED_IN_USER", undefined);
+    Cypress.expose("C8Y_LOGGED_IN_USER_ALIAS", undefined);
+    Cypress.expose("C8Y_PACT_IGNORE", undefined);
+    Cypress.expose("C8Y_PACT_PREPROCESSOR_OBFUSCATE", undefined);
+    Cypress.expose("C8Y_PACT_PREPROCESSOR_PATTERN", undefined);
+    Cypress.expose("C8Y_PACT_PREPROCESSOR_IGNORE", undefined);
+    Cypress.expose("C8Y_PACT_PREPROCESSOR_IGNORE_CASE", undefined);
 
-    Cypress.env("admin_username", "admin");
-    Cypress.env("admin_password", "password");
+    Cypress.expose("admin_username", "admin");
+    Cypress.expose("admin_password", "password");
 
-    Cypress.env("C8Y_PACT_MODE", "apply");
-    Cypress.env("C8Y_PACT_RECORDING_MODE", undefined);
-    Cypress.env("C8Y_BASEURL", undefined);
-    Cypress.env("C8Y_HOST", undefined);
+    Cypress.expose("C8Y_PACT_MODE", "apply");
+    Cypress.expose("C8Y_PACT_RECORDING_MODE", undefined);
+    Cypress.expose("C8Y_BASEURL", undefined);
+    Cypress.expose("C8Y_HOST", undefined);
     Cypress.c8ypact.on = {};
 
     initRequestStub();
@@ -332,8 +332,8 @@ describe("c8ypact", () => {
             log: false,
           });
           expect(Cypress.c8ypact.current).to.deep.eq(pact);
-          expect(Cypress.env("C8Y_TENANT")).to.eq(pact.info.tenant);
-          expect(Cypress.env("C8Y_BASEURL")).to.eq(pact.info.baseUrl);
+          expect(Cypress.expose("C8Y_TENANT")).to.eq(pact.info.tenant);
+          expect(Cypress.expose("C8Y_BASEURL")).to.eq(pact.info.baseUrl);
           expect(isPact(Cypress.c8ypact.current)).to.be.true;
         });
       }
@@ -433,14 +433,14 @@ describe("c8ypact", () => {
     });
 
     it("from() should create C8yDefaultPactRecord with auth", function () {
-      Cypress.env("C8Y_LOGGED_IN_USER", "admin");
-      Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", "alias");
+      Cypress.expose("C8Y_LOGGED_IN_USER", "admin");
+      Cypress.expose("C8Y_LOGGED_IN_USER_ALIAS", "alias");
 
       // @ts-expect-error
       let response: Cypress.Response<any> = {};
       let pactRecord = createPactRecord(response, undefined, {
-        loggedInUser: Cypress.env("C8Y_LOGGED_IN_USER"),
-        loggedInUserAlias: Cypress.env("C8Y_LOGGED_IN_USER_ALIAS"),
+        loggedInUser: Cypress.expose("C8Y_LOGGED_IN_USER"),
+        loggedInUserAlias: Cypress.expose("C8Y_LOGGED_IN_USER_ALIAS"),
       });
       expect(pactRecord.auth).to.deep.equal({
         user: "admin",
@@ -451,8 +451,8 @@ describe("c8ypact", () => {
 
     it("from() should use C8yClient auth", function () {
       // setting env variables to ensure client auth overrides env auth
-      Cypress.env("C8Y_LOGGED_IN_USER", "admin");
-      Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", "alias");
+      Cypress.expose("C8Y_LOGGED_IN_USER", "admin");
+      Cypress.expose("C8Y_LOGGED_IN_USER_ALIAS", "alias");
       const auth: C8yAuthentication & { userAlias?: string } = new BasicAuth({
         user: "admin2",
         password: "mypassword",
@@ -565,31 +565,31 @@ describe("c8ypact", () => {
 
   context("c8ypact config and environment variables", function () {
     beforeEach(() => {
-      Cypress.env("C8Y_PACT_MODE", "recording");
+      Cypress.expose("C8Y_PACT_MODE", "recording");
     });
 
     it("recording should be enabled", function () {
-      Cypress.env("C8Y_PLUGIN_LOADED", "true");
+      Cypress.expose("C8Y_PLUGIN_LOADED", "true");
       expect(Cypress.c8ypact.isRecordingEnabled()).to.be.true;
     });
 
     it("recording should be disabled", function () {
-      const isEnabled = Cypress.env("C8Y_PLUGIN_LOADED");
-      Cypress.env("C8Y_PLUGIN_LOADED", "true");
-      Cypress.env("C8Y_PACT_MODE", undefined);
+      const isEnabled = Cypress.expose("C8Y_PLUGIN_LOADED");
+      Cypress.expose("C8Y_PLUGIN_LOADED", "true");
+      Cypress.expose("C8Y_PACT_MODE", undefined);
       expect(Cypress.c8ypact.isRecordingEnabled()).to.be.false;
-      Cypress.env("C8Y_PLUGIN_LOADED", isEnabled.toString());
+      Cypress.expose("C8Y_PLUGIN_LOADED", isEnabled.toString());
     });
 
     it("recording should be disabled if plugin is disabled", function () {
-      const isEnabled = Cypress.env("C8Y_PLUGIN_LOADED");
-      Cypress.env("C8Y_PLUGIN_LOADED", undefined);
+      const isEnabled = Cypress.expose("C8Y_PLUGIN_LOADED");
+      Cypress.expose("C8Y_PLUGIN_LOADED", undefined);
       expect(Cypress.c8ypact.isRecordingEnabled()).to.be.false;
-      Cypress.env("C8Y_PLUGIN_LOADED", isEnabled.toString());
+      Cypress.expose("C8Y_PLUGIN_LOADED", isEnabled.toString());
     });
 
     it("plugin should be enabled", function () {
-      expect(Cypress.env("C8Y_PLUGIN_LOADED")).to.eq("true");
+      expect(Cypress.expose("C8Y_PLUGIN_LOADED")).to.eq("true");
     });
   });
 
@@ -778,8 +778,8 @@ describe("c8ypact", () => {
 
   context("c8ypact recording", function () {
     beforeEach(() => {
-      Cypress.env("C8Y_TENANT", undefined);
-      Cypress.env("C8Y_PACT_MODE", "recording");
+      Cypress.expose("C8Y_TENANT", undefined);
+      Cypress.expose("C8Y_PACT_MODE", "recording");
     });
 
     it("should have required recording setup", function () {
@@ -815,7 +815,7 @@ describe("c8ypact", () => {
           expect(pact?.records).to.have.length(2);
           const pactId = Cypress.c8ypact.getCurrentTestId();
           // check recorded file exists
-          cy.readFile(`${Cypress.env("C8Y_PACT_FOLDER")}/${pactId}.json`);
+          cy.readFile(`${Cypress.expose("C8Y_PACT_FOLDER")}/${pactId}.json`);
 
           expect(isPactRecord(pact?.records[0])).to.be.true;
           expect(pact?.records[0].auth).to.deep.equal({
@@ -858,8 +858,8 @@ describe("c8ypact", () => {
     });
 
     it("should record options and auth with alias", function () {
-      Cypress.env("admin_username", "admin");
-      Cypress.env("admin_password", "mypassword");
+      Cypress.expose("admin_username", "admin");
+      Cypress.expose("admin_password", "mypassword");
 
       cy.spy(Cypress.c8ypact, "savePact").log(false);
 
@@ -1058,7 +1058,7 @@ describe("c8ypact", () => {
     // requires afterEach to check recorded pact as in Cypress.once("fail")
     // Cypress.c8ypact.loadCurrent() can not be used
     it("should record last failing request", function (done) {
-      Cypress.env("C8Y_PACT_MODE", "recording");
+      Cypress.expose("C8Y_PACT_MODE", "recording");
       stubResponses([
         new window.Response(JSON.stringify({ name: "t123456789" }), {
           status: 200,
@@ -1111,7 +1111,7 @@ describe("c8ypact", () => {
 
     context("c8ypact on.suiteStart", function () {
       before(() => {
-        Cypress.env("MY_SUITE_START", "true");
+        Cypress.expose("MY_SUITE_START", "true");
       });
 
       it("should call suiteStart callback", function () {
@@ -1122,7 +1122,7 @@ describe("c8ypact", () => {
           "c8ypact callback handlers",
           "c8ypact on.suiteStart",
         ]);
-        expect(Cypress.env("MY_SUITE_START")).to.eq("true");
+        expect(Cypress.expose("MY_SUITE_START")).to.eq("true");
       });
     });
   });
@@ -1211,7 +1211,7 @@ describe("c8ypact", () => {
       { c8ypact: { id: "non-existing-pact-id" }, auth: "admin" },
       function (done) {
         stubEnv({ C8Y_PACT_MODE: "apply" });
-        Cypress.env("C8Y_TENANT", "t1234");
+        Cypress.expose("C8Y_TENANT", "t1234");
 
         Cypress.c8ypact.config.failOnMissingPacts = true;
         Cypress.c8ypact.current = new C8yDefaultPact(
@@ -1462,7 +1462,7 @@ describe("c8ypact", () => {
         },
       };
 
-      Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE", [
+      Cypress.expose("C8Y_PACT_PREPROCESSOR_IGNORE", [
         "request.headers",
         "response.isOkStatusCode",
       ]);
@@ -1488,7 +1488,7 @@ describe("c8ypact", () => {
 
   context("C8yCypressEnvPreprocessor", function () {
     beforeEach(() => {
-      Cypress.env("C8Y_PACT_MODE", "recording");
+      Cypress.expose("C8Y_PACT_MODE", "recording");
       Cypress.c8ypact.config.preprocessor = {};
     });
 
@@ -1532,20 +1532,20 @@ describe("c8ypact", () => {
     });
 
     it("should use env variables if no options provided", function () {
-      Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE", [
+      Cypress.expose("C8Y_PACT_PREPROCESSOR_OBFUSCATE", [
         "requestHeaders.Authorization",
         "body.password",
       ]);
-      Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE", [
+      Cypress.expose("C8Y_PACT_PREPROCESSOR_IGNORE", [
         "requestHeaders.date",
         "body.creationTime",
       ]);
-      Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE_CASE", "true");
+      Cypress.expose("C8Y_PACT_PREPROCESSOR_IGNORE_CASE", "true");
       const obj = _.cloneDeep(cypressResponse);
       const preprocessor = new C8yCypressEnvPreprocessor();
       expect(preprocessor.resolveOptions()).to.deep.eq({
-        obfuscate: Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
-        ignore: Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE"),
+        obfuscate: Cypress.expose("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
+        ignore: Cypress.expose("C8Y_PACT_PREPROCESSOR_IGNORE"),
         obfuscationPattern:
           C8yDefaultPactPreprocessor.defaultObfuscationPattern,
         ignoreCase: true,
@@ -1560,15 +1560,15 @@ describe("c8ypact", () => {
     });
 
     it("should use config from env variables over options", function () {
-      Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE", [
+      Cypress.expose("C8Y_PACT_PREPROCESSOR_OBFUSCATE", [
         "requestHeaders.Authorization",
         "body.password",
       ]);
-      Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE", [
+      Cypress.expose("C8Y_PACT_PREPROCESSOR_IGNORE", [
         "requestHeaders.date",
         "body.creationTime",
       ]);
-      Cypress.env("C8Y_PACT_PREPROCESSOR_PATTERN", "xxxxxxxx");
+      Cypress.expose("C8Y_PACT_PREPROCESSOR_PATTERN", "xxxxxxxx");
 
       const obj = _.cloneDeep(cypressResponse);
       const preprocessor = new C8yCypressEnvPreprocessor({
@@ -1578,9 +1578,9 @@ describe("c8ypact", () => {
       });
 
       expect(preprocessor.resolveOptions()).to.deep.eq({
-        obfuscate: Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
-        ignore: Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE"),
-        obfuscationPattern: Cypress.env("C8Y_PACT_PREPROCESSOR_PATTERN"),
+        obfuscate: Cypress.expose("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
+        ignore: Cypress.expose("C8Y_PACT_PREPROCESSOR_IGNORE"),
+        obfuscationPattern: Cypress.expose("C8Y_PACT_PREPROCESSOR_PATTERN"),
         ignoreCase: true,
       });
       preprocessor.apply(obj);
@@ -1718,7 +1718,7 @@ describe("c8ypact", () => {
 
     it("should not add preprocessed properties and store options in info", function () {
       cy.setCookie("XSRF-TOKEN", "fsETfgIBdAnEyOLbADTu22");
-      Cypress.env("C8Y_TENANT", "t1234");
+      Cypress.expose("C8Y_TENANT", "t1234");
       Cypress.c8ypact.config.preprocessor = {
         obfuscationPattern: "asdasd",
         obfuscate: ["body.password"],

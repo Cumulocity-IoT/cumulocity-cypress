@@ -11,6 +11,7 @@ import { C8yPactAuthObject } from "../auth";
 import { C8yBaseUrl, C8yTenant } from "../types";
 import { isAbsoluteURL } from "../url";
 import { get_i } from "../util";
+import { c8yEnv } from "../cypressenv";
 
 export const C8yPactModeValues = [
   "record",
@@ -572,8 +573,9 @@ export type C8yPactSaveKeys = "id" | "info" | "records";
 
 /**
  * Returns the value of the environment variable with the given name. The function
- * tries to find the value in the global `process.env` or `Cypress.env()`. If `env`
- * is provided, the function uses the given object as environment.
+ * tries to find the value in the global `process.env` or the Cypress environment
+ * (`Cypress.expose()`, or `Cypress.env()` before Cypress 16). If `env` is provided,
+ * the function uses the given object as environment.
  *
  * The function tries to find the value in the following order:
  * - `name`
@@ -584,7 +586,7 @@ export type C8yPactSaveKeys = "id" | "info" | "records";
  * - `CYPRESS_camelCase(name.replace(/^C8Y_/i, ""))`
  *
  * @param name The name of the environment variable.
- * @param env The environment object to use. Default is `process.env` or `Cypress.env()`
+ * @param env The environment object to use. Default is `process.env` or the Cypress environment
  *
  * @returns The value of the environment variable or `undefined` if not found.
  */
@@ -597,7 +599,7 @@ export function getEnvVar(
   const e: { [key: string]: string } =
     env ||
     (typeof window !== "undefined" && window.Cypress
-      ? Cypress.env()
+      ? c8yEnv()
       : process.env);
 
   function getFromEnv(key: string): string | undefined {

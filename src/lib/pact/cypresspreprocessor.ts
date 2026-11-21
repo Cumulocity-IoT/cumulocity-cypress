@@ -6,6 +6,7 @@ import {
   C8yPactPreprocessorOptions,
   C8yPactRecord,
 } from "../../shared/c8ypact";
+import { c8yEnv } from "../../shared/cypressenv";
 
 /**
  * The C8yCypressEnvPreprocessor is a preprocessor implementation that uses
@@ -36,22 +37,22 @@ export class C8yCypressEnvPreprocessor extends C8yDefaultPactPreprocessor {
 
     // Build env options, filtering out undefined values
     const envOptions: Partial<C8yPactPreprocessorOptions> = {};
-    if (Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE") !== undefined) {
-      envOptions.ignore = to_array(Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE"));
+    if (c8yEnv("C8Y_PACT_PREPROCESSOR_IGNORE") !== undefined) {
+      envOptions.ignore = to_array(c8yEnv("C8Y_PACT_PREPROCESSOR_IGNORE"));
     }
-    if (Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE") !== undefined) {
+    if (c8yEnv("C8Y_PACT_PREPROCESSOR_OBFUSCATE") !== undefined) {
       envOptions.obfuscate = to_array(
-        Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE")
+        c8yEnv("C8Y_PACT_PREPROCESSOR_OBFUSCATE")
       );
     }
-    if (Cypress.env("C8Y_PACT_PREPROCESSOR_PATTERN") !== undefined) {
-      envOptions.obfuscationPattern = Cypress.env(
+    if (c8yEnv("C8Y_PACT_PREPROCESSOR_PATTERN") !== undefined) {
+      envOptions.obfuscationPattern = c8yEnv(
         "C8Y_PACT_PREPROCESSOR_PATTERN"
       );
     }
-    if (Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE_CASE") !== undefined) {
+    if (c8yEnv("C8Y_PACT_PREPROCESSOR_IGNORE_CASE") !== undefined) {
       envOptions.ignoreCase = to_boolean(
-        Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE_CASE"),
+        c8yEnv("C8Y_PACT_PREPROCESSOR_IGNORE_CASE"),
         true
       );
     }

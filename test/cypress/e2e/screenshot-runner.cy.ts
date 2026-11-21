@@ -67,11 +67,11 @@ describe("C8yScreenshotRunner", () => {
     });
 
     it("should initialize with config from env", () => {
-      Cypress.env("_c8yscrnyaml", workflow);
+      Cypress.expose("_c8yscrnyaml", workflow);
       const runner = new C8yScreenshotRunner();
       expect(runner).to.be.an.instanceOf(C8yScreenshotRunner);
       expect(runner.config).to.deep.eq(workflow);
-      Cypress.env("_c8yscrnyaml", undefined);
+      Cypress.expose("_c8yscrnyaml", undefined);
     });
 
     it("throws with invalid config", function (done) {

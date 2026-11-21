@@ -4,6 +4,7 @@ import {
   appendCountIfPathExists,
   C8yPactDefaultFileAdapter,
   configureC8yPlugin,
+  exposeC8yEnv,
   getFileUploadOptions,
 } from "./index";
 import path from "path";
@@ -31,6 +32,38 @@ jest.mock("ws", () => ({
 }));
 
 describe("plugin", () => {
+  describe("exposeC8yEnv", () => {
+    it("should copy config.env into config.expose", () => {
+      const config: any = { env: { C8Y_TENANT: "t123", admin_password: "pw" } };
+      expect(exposeC8yEnv(config)).toBe(config);
+      expect(config.expose).toEqual({ C8Y_TENANT: "t123", admin_password: "pw" });
+      expect(config.expose).not.toBe(config.env);
+    });
+
+    it("should keep values already set in config.expose", () => {
+      const config: any = {
+        env: { C8Y_TENANT: "fromEnv", C8Y_VERSION: "1025.0.0" },
+        expose: { C8Y_TENANT: "fromExpose", other: "value" },
+      };
+      exposeC8yEnv(config);
+      expect(config.expose).toEqual({
+        C8Y_TENANT: "fromExpose",
+        C8Y_VERSION: "1025.0.0",
+        other: "value",
+      });
+    });
+
+    it("should be called by configureC8yPlugin", () => {
+      const config: any = { env: { C8Y_TENANT: "t123" } };
+      configureC8yPlugin(undefined as any, config, {
+        pactFolder: "cypress/fixtures/c8ypact",
+      });
+      expect(config.expose.C8Y_TENANT).toBe("t123");
+      expect(config.expose.C8Y_PLUGIN_LOADED).toBe("true");
+      expect(config.expose.C8Y_PACT_FOLDER).toBe(config.env.C8Y_PACT_FOLDER);
+    });
+  });
+
   describe("configurePlugin ", () => {
     it("should use pact folder from config", () => {
       const config = { env: {} };

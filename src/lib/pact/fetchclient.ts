@@ -17,6 +17,7 @@ import {
 import { C8yBaseUrl } from "../../shared/types";
 import { get_i } from "../../shared/util";
 import { getCookieValue } from "../../shared/cookies";
+import { c8yEnv } from "../../shared/cypressenv";
 
 const { _ } = Cypress;
 
@@ -51,8 +52,8 @@ export class C8yPactFetchClient extends FetchClient {
 
     const [user, userAlias] = [
       // @ts-expect-error
-      authOptions?.user || auth?.user || Cypress.env("C8Y_LOGGED_IN_USER"),
-      authOptions?.userAlias || Cypress.env("C8Y_LOGGED_IN_USER_ALIAS"),
+      authOptions?.user || auth?.user || c8yEnv("C8Y_LOGGED_IN_USER"),
+      authOptions?.userAlias || c8yEnv("C8Y_LOGGED_IN_USER_ALIAS"),
     ];
     super(auth, url);
 
@@ -72,8 +73,8 @@ export class C8yPactFetchClient extends FetchClient {
     fetchOptions?: IFetchOptions
   ): Promise<IFetchResponse> {
     const setUserEnv = () => {
-      Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", this.userAlias);
-      Cypress.env("C8Y_LOGGED_IN_USER", this.user);
+      c8yEnv("C8Y_LOGGED_IN_USER_ALIAS", this.userAlias);
+      c8yEnv("C8Y_LOGGED_IN_USER", this.user);
     };
 
     const isRecordingEnabled = this.cypresspact?.isRecordingEnabled() === true;
