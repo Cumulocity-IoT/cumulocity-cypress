@@ -44,5 +44,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # the latest stable Chrome (for Testing) instead of the version of the runner image, to
+      # find incompatibilities of new Chrome versions early (e.g. Chrome 158 with Cypress < 15.21.2)
+      - name: Set up Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: stable
+
       - name: Run Cypress tests
-        run: npm run cypress
+        run: |
+          "${{ steps.setup-chrome.outputs.chrome-path }}" --version
+          npx cross-env TZ=Europe/Berlin start-server-and-test start:cypress:server http://localhost:8080 \
+            "cypress run --project test --browser '${{ steps.setup-chrome.outputs.chrome-path }}' --config video=false"
