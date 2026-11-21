@@ -4,6 +4,7 @@ import {
   C8yHighlightOptions,
   C8yHighlightStyleDefaults,
 } from "../../shared/types";
+import { c8yEnv } from "../../shared/cypressenv";
 
 declare global {
   namespace Cypress {
@@ -62,9 +63,9 @@ Cypress.Commands.add(
   { prevSubject: "element" },
   (subject, highlightStyle, options) => {
     let customizedElements: Array<[JQuery<HTMLElement>, any]> =
-      Cypress.env("_c8yscrnCustomizedElements") || [];
+      c8yEnv("_c8yscrnCustomizedElements") || [];
     let highlightElements: Array<JQuery<HTMLElement>> =
-      Cypress.env("_c8yscrnHighlightElements") || [];
+      c8yEnv("_c8yscrnHighlightElements") || [];
 
     if (_.isObject(options) && (options?.clear ?? false) === true) {
       customizedElements.forEach(([$element, styles]) => $element.css(styles));
@@ -179,8 +180,8 @@ Cypress.Commands.add(
     });
 
     cy.then(() => {
-      Cypress.env("_c8yscrnCustomizedElements", customizedElements);
-      Cypress.env("_c8yscrnHighlightElements", highlightElements);
+      c8yEnv("_c8yscrnCustomizedElements", customizedElements);
+      c8yEnv("_c8yscrnHighlightElements", highlightElements);
       logger.end();
       return subject;
     });
@@ -189,9 +190,9 @@ Cypress.Commands.add(
 
 Cypress.Commands.add("clearHighlights", () => {
   let customizedElements: Array<[JQuery<HTMLElement>, any]> =
-    Cypress.env("_c8yscrnCustomizedElements") || [];
+    c8yEnv("_c8yscrnCustomizedElements") || [];
   let highlightElements: Array<JQuery<HTMLElement>> =
-    Cypress.env("_c8yscrnHighlightElements") || [];
+    c8yEnv("_c8yscrnHighlightElements") || [];
 
   const consoleProps: any = {
     customizedElements: customizedElements || null,

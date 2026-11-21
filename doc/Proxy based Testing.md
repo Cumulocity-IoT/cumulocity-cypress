@@ -316,7 +316,7 @@ function getSuiteTitles(suite) {
 
 // sample wrapper for c8yctrl REST interface. extend as needed.
 function c8yctrl(title: string | string[] = Cypress.currentTest.titlePath) {
-  const recording = Cypress.env('C8YCTRL_MODE') === 'record';
+  const recording = Cypress.expose('C8YCTRL_MODE') === 'record';
   const parameter: string = recording ? '?recording=true&clear' : '?recording=false';
 
   return (cy.state('window') as Cypress.AUTWindow).fetch(

@@ -56,7 +56,7 @@ export function initLoginRequestStub(
   tenant?: C8yTenant
 ): void {
   cypressBackendStub = cy.stub(Cypress, "backend").callThrough();
-  Cypress.env("C8Y_TENANT", tenant);
+  Cypress.expose("C8Y_TENANT", tenant);
   const headers = new Headers();
   if (authorization) {
     headers.append(
@@ -469,18 +469,18 @@ export function getMessageForLogSpy(spy: sinon.SinonSpy, name: string): any {
 }
 
 /**
- * Stub Cypress.env() with the given env object. Use when testing different values of
+ * Stub Cypress.expose() with the given env object. Use when testing different values of
  * env variables in your tests.
  * @param env The env object to stub
  */
 export function stubEnv(env: any, log: boolean = false): void {
-  const cypressEnv = Cypress.env();
+  const cypressEnv = Cypress.expose();
   if (envStub != null) {
     envStub.restore();
     envStub = undefined;
   }
   envStub = cy
-    .stub(Cypress, "env")
+    .stub(Cypress, "expose")
     .log(log)
     .callsFake((key: string, value: any) => {
       if (key != null && value == null) {

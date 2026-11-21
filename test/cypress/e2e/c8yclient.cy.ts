@@ -40,11 +40,11 @@ declare global {
 
 describe("c8yclient", () => {
   beforeEach(() => {
-    Cypress.env("C8Y_USERNAME", undefined);
-    Cypress.env("C8Y_PASSWORD", undefined);
-    Cypress.env("C8Y_TENANT", undefined);
-    Cypress.env("C8Y_PLUGIN_LOADED", undefined);
-    Cypress.env("C8Y_C8YCLIENT_TIMEOUT", undefined);
+    Cypress.expose("C8Y_USERNAME", undefined);
+    Cypress.expose("C8Y_PASSWORD", undefined);
+    Cypress.expose("C8Y_TENANT", undefined);
+    Cypress.expose("C8Y_PLUGIN_LOADED", undefined);
+    Cypress.expose("C8Y_C8YCLIENT_TIMEOUT", undefined);
 
     Cypress.c8ypact.schemaMatcher = new C8yAjvJson6SchemaMatcher();
     C8yDefaultPactMatcher.schemaMatcher = Cypress.c8ypact.schemaMatcher;
@@ -341,7 +341,7 @@ describe("c8yclient", () => {
     });
 
     it("should use cookie with undefined wrapped previous subject", () => {
-      Cypress.env("C8Y_TENANT", "t1234");
+      Cypress.expose("C8Y_TENANT", "t1234");
       cy.setCookie("XSRF-TOKEN", "fsETfgIBdAnEyOLbADTu22");
 
       const expectedOptions = _.cloneDeep(_.omit(requestOptions, "auth"));
@@ -384,7 +384,7 @@ describe("c8yclient", () => {
     });
 
     it("should use tenant from environment", () => {
-      Cypress.env("C8Y_TENANT", "t1234");
+      Cypress.expose("C8Y_TENANT", "t1234");
 
       cy.getAuth({ user: "admin", password: "mypassword" })
         .c8yclient<ICurrentTenant>((client) => {
@@ -398,7 +398,7 @@ describe("c8yclient", () => {
     });
 
     it("should use tenant from client authentication", () => {
-      Cypress.env("C8Y_TENANT", undefined);
+      Cypress.expose("C8Y_TENANT", undefined);
 
       const expectedOptions = [
         {
@@ -466,7 +466,7 @@ describe("c8yclient", () => {
   context("debug logging", () => {
     it("should log username of basic auth and cookie auth users", () => {
       cy.setCookie("XSRF-TOKEN", "fsETfgIBdAnEyOLbADTu22");
-      Cypress.env("C8Y_LOGGED_IN_USER", "testuser");
+      Cypress.expose("C8Y_LOGGED_IN_USER", "testuser");
 
       const logSpy = cy.spy(Cypress, "log").log(false);
       const cleanup = setupLoggerSetSpy("c8yclient");
@@ -485,7 +485,7 @@ describe("c8yclient", () => {
     });
 
     it("should log successful cookie auth request", () => {
-      Cypress.env("C8Y_TENANT", "t12345");
+      Cypress.expose("C8Y_TENANT", "t12345");
       cy.setCookie("XSRF-TOKEN", "test-token");
 
       const logSpy = cy.spy(Cypress, "log").log(false);
@@ -524,7 +524,7 @@ describe("c8yclient", () => {
     it("should log error details on failed requests", (done) => {
       restoreRequestStubs();
 
-      Cypress.env("C8Y_TENANT", "t12345");
+      Cypress.expose("C8Y_TENANT", "t12345");
       cy.setCookie("XSRF-TOKEN", "test-token");
 
       // Stub fetch to reject with a network error (TypeError)
@@ -570,7 +570,7 @@ describe("c8yclient", () => {
     });
 
     it("should update console props during request lifecycle", () => {
-      Cypress.env("C8Y_TENANT", "t12345");
+      Cypress.expose("C8Y_TENANT", "t12345");
       cy.setCookie("XSRF-TOKEN", "lifecycle-token");
 
       const logSpy = cy.spy(Cypress, "log").log(false);
@@ -597,7 +597,7 @@ describe("c8yclient", () => {
     });
 
     it("should not log when log option is disabled logging", () => {
-      Cypress.env("C8Y_TENANT", "t12345");
+      Cypress.expose("C8Y_TENANT", "t12345");
       cy.setCookie("XSRF-TOKEN", "no-log-token");
 
       const logSpy = cy.spy(Cypress, "log").log(false);
@@ -618,7 +618,7 @@ describe("c8yclient", () => {
 
   context("chaining of c8yclient requests", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_TENANT", "t123456789");
+      Cypress.expose("C8Y_TENANT", "t123456789");
     });
 
     it("should recreate client instance when chaining", () => {
@@ -650,7 +650,7 @@ describe("c8yclient", () => {
           headers: { "content-type": "application/json" },
         }),
       ]);
-      Cypress.env("C8Y_TENANT", undefined);
+      Cypress.expose("C8Y_TENANT", undefined);
       cy.getAuth({ user: "admin", password: "mypassword" })
         .c8yclient<IManagedObject>((c) => {
           expect(c.core.tenant).to.equal("t123456");
@@ -679,7 +679,7 @@ describe("c8yclient", () => {
           headers: { "content-type": "application/json" },
         }),
       ]);
-      Cypress.env("C8Y_TENANT", "t123456");
+      Cypress.expose("C8Y_TENANT", "t123456");
       cy.getAuth({ user: "admin", password: "mypassword" })
         .c8yclient<IManagedObject>((c) => {
           expect(c.core.tenant).to.equal("t123456");
@@ -696,7 +696,7 @@ describe("c8yclient", () => {
     });
 
     it("should pass result of previous client request as optional argument", () => {
-      Cypress.env("C8Y_TENANT", undefined);
+      Cypress.expose("C8Y_TENANT", undefined);
       cy.getAuth({ user: "admin", password: "mypassword" })
         .c8yclient((c) => c.tenant.current())
         .c8yclient(
@@ -727,7 +727,7 @@ describe("c8yclient", () => {
     });
 
     it("should save client in state", () => {
-      Cypress.env("C8Y_TENANT", undefined);
+      Cypress.expose("C8Y_TENANT", undefined);
       stubResponses([
         new window.Response(JSON.stringify({ name: "t123456" }), {
           status: 200,
@@ -759,7 +759,7 @@ describe("c8yclient", () => {
 
   context("promise array client functions", () => {
     beforeEach(() => {
-      // Cypress.env("C8Y_TENANT", "t123456789");
+      // Cypress.expose("C8Y_TENANT", "t123456789");
     });
 
     it("should resolve array of promises from service function", () => {
@@ -806,7 +806,7 @@ describe("c8yclient", () => {
     };
 
     beforeEach(() => {
-      Cypress.env("C8Y_TENANT", "t123456789");
+      Cypress.expose("C8Y_TENANT", "t123456789");
     });
 
     it("should catch and process Cumulocity error response", (done) => {
@@ -911,7 +911,7 @@ describe("c8yclient", () => {
       headers: { UseXBasic: true },
     };
     beforeEach(() => {
-      Cypress.env("C8Y_TENANT", "t123456789");
+      Cypress.expose("C8Y_TENANT", "t123456789");
     });
 
     it("should return cy.request response object", () => {
@@ -1028,7 +1028,7 @@ describe("c8yclient", () => {
 
   context("fetch requests", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_TENANT", "t123456789");
+      Cypress.expose("C8Y_TENANT", "t123456789");
       stubResponse(
         new window.Response(JSON.stringify({ test: "test" }), {
           status: 299,
@@ -1383,9 +1383,9 @@ describe("c8yclient", () => {
 
 describe("c8yclient - network error handling", () => {
   beforeEach(() => {
-    Cypress.env("C8Y_TENANT", "t123456789");
-    Cypress.env("C8Y_USERNAME", "admin");
-    Cypress.env("C8Y_PASSWORD", "mypassword");
+    Cypress.expose("C8Y_TENANT", "t123456789");
+    Cypress.expose("C8Y_USERNAME", "admin");
+    Cypress.expose("C8Y_PASSWORD", "mypassword");
   });
 
   it("should throw C8yClientError for TypeError (network issues)", (done) => {
