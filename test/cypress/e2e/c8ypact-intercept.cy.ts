@@ -361,6 +361,47 @@ describe("c8ypact intercept", () => {
         });
     });
 
+    it("should intercept with RouteHandler from fixture without extension", () => {
+      cy.intercept("/inventory/managedObjects*", {
+        fixture: "c8ypact-managedobject-02",
+      })
+        .as("inventory")
+        .then(() => {
+          return $.get(url(`/inventory/managedObjects?fragmentType=abcd`));
+        })
+        .then((data) => {
+          expect(data).to.have.property("fixtureTest");
+        })
+        .wait("@inventory")
+        .then(() => {
+          const spy = Cypress.c8ypact.savePact as sinon.SinonSpy;
+          expect(spy).to.have.been.calledOnce;
+          const args = spy.getCall(0).args;
+          expect(args[2].modifiedResponse.body).to.be.an("object");
+          expect(args[2].modifiedResponse.body).to.have.property("fixtureTest");
+        });
+    });
+
+    it("should intercept with RouteHandler from fixture with encoding", () => {
+      cy.intercept("/inventory/managedObjects*", {
+        fixture: "c8ypact-managedobject-02.json,utf8",
+      })
+        .as("inventory")
+        .then(() => {
+          return $.get(url(`/inventory/managedObjects?fragmentType=abcd`));
+        })
+        .wait("@inventory")
+        .then(() => {
+          const spy = Cypress.c8ypact.savePact as sinon.SinonSpy;
+          expect(spy).to.have.been.calledOnce;
+          const args = spy.getCall(0).args;
+          const body = args[2].modifiedResponse.body;
+          const content =
+            typeof body === "string" ? body : JSON.stringify(body);
+          expect(content).to.contain("fixtureTest");
+        });
+    });
+
     it("should intercept and call savePact callback", () => {
       Cypress.c8ypact.on.savePact = (pact) => {
         pact.records[0].response.status = 299;
