@@ -669,7 +669,8 @@ function flushPendingSave() {
     writePendingSave();
     return;
   }
-  cy.then(() => Promise.all(savesInProgress)).then(() => {
+  // a failed save must not fail the hook, which would skip the remaining tests
+  cy.then(() => Promise.allSettled(savesInProgress)).then(() => {
     writePendingSave();
   });
 }
