@@ -37,7 +37,7 @@ import { loadConfigFile } from "../c8yscrn/helper";
 import { C8yBaseUrl } from "../shared/types";
 import { logJSONParserErrorGroup, resolveRefs } from "./c8yresolver";
 import { JSONParserErrorGroup } from "@apidevtools/json-schema-ref-parser";
-import '../shared/global';
+import "../shared/global";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter, C8yPactHARFileAdapter };
 export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
@@ -62,6 +62,24 @@ export type C8yPluginConfig = {
    * the Cypress config baseUrl is overwritten. Default is true.
    */
   forwardEnvVariables?: boolean;
+  /**
+   * If enabled, a failing resolution of $ref references in a pact fails the
+   * c8ypact:resolve task, and with it the test, instead of continuing with the
+   * unresolved pact. The error message lists the individual resolver errors.
+   * Default is false.
+   */
+  failOnPactRefError?: boolean;
+};
+
+/**
+ * Options for {@link resolvePactRefs}.
+ */
+export type C8yResolvePactRefsOptions = {
+  /**
+   * If enabled, resolvePactRefs throws an error if resolving the $ref references
+   * fails instead of returning the original pact. Default is false.
+   */
+  failOnError?: boolean;
 };
 
 /**
@@ -275,7 +293,9 @@ export function configureC8yPlugin(
       "c8ypact:oauthLogin": login,
       "c8ypact:fetch": fetchRequest,
       "c8ypact:resolve": (pact: any) => {
-        return resolvePactRefs(pact, adapter.getFolder(), log);
+        return resolvePactRefs(pact, adapter.getFolder(), log, {
+          failOnError: options.failOnPactRefError === true,
+        });
       },
     });
   }
@@ -701,7 +721,8 @@ export function getFileUploadOptions(
 export async function resolvePactRefs(
   pact: any | string,
   baseFolder?: string,
-  log: (message: string) => void = debug("c8y:pact:resolve")
+  log: (message: string) => void = debug("c8y:pact:resolve"),
+  resolveOptions: C8yResolvePactRefsOptions = {}
 ): Promise<any | null> {
   if (!pact) {
     log(
@@ -717,6 +738,11 @@ export async function resolvePactRefs(
       pactObject = JSON.parse(pact);
     } catch (e: any) {
       log(`Error parsing pact from string (expected valid JSON): ${e.message}`);
+      if (resolveOptions.failOnError) {
+        throw new Error(
+          `Failed to resolve $ref references. Error parsing pact from string (expected valid JSON): ${e.message}`
+        );
+      }
       log(`Returning original document due to error dereferencing refs.`);
 
       return pact; // Return original pact on parse error
@@ -736,12 +762,22 @@ export async function resolvePactRefs(
     }
     return result;
   } catch (e: any) {
+    const details: string[] = [];
+    const logDetail = (message: string) => {
+      details.push(message);
+      log(message);
+    };
     log(`Error during $ref resolving for pact with id: '${pactObject.id}':`);
     if (e instanceof JSONParserErrorGroup) {
-      logJSONParserErrorGroup(e, log);
+      logJSONParserErrorGroup(e, logDetail);
     } else {
-      log(`  Error Type: ${e?.constructor?.name || "UnknownError"}`);
-      log(`  Message: ${e.message || String(e)}`);
+      logDetail(`  Error Type: ${e?.constructor?.name || "UnknownError"}`);
+      logDetail(`  Message: ${e.message || String(e)}`);
+    }
+    if (resolveOptions.failOnError) {
+      throw new Error(
+        `Failed to resolve $ref references for pact with id: '${pactObject.id}'.\n${details.join("\n")}`
+      );
     }
     log(`Returning original document due to error dereferencing refs.`);
   }
