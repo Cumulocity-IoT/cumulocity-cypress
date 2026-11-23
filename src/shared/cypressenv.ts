@@ -33,6 +33,8 @@ type CypressWithEnv = {
 };
 
 const SYNCED = "__c8yEnvSyncedToExpose";
+// the original Cypress.env() replaced by syncEnvToExpose()
+const UNSYNCED = "__c8yEnvUnsynced";
 
 /**
  * The exposed variable with the names of the credentials the plugin did not expose
@@ -128,6 +130,7 @@ export function syncEnvToExpose(): void {
     return env.reset.apply(this, args);
   };
   synced[SYNCED] = true;
+  synced[UNSYNCED] = env;
   cypress.env = synced;
 }
 
@@ -215,7 +218,10 @@ export function c8yEnv(
     const args = [keyOrObject, ...value] as [any, any];
     expose?.(...args);
     if (env) {
-      callSafe(() => env(...args));
+      // c8yEnv() writes Cypress.expose() itself, which might be stubbed in a test. Write
+      // Cypress.env() without mirroring the write into the original Cypress.expose().
+      const unsynced = (env as any)[UNSYNCED] ?? env;
+      callSafe(() => unsynced(...args));
     }
     return undefined;
   }
