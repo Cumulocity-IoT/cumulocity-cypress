@@ -4,6 +4,7 @@ import {
   appendCountIfPathExists,
   C8yPactDefaultFileAdapter,
   configureC8yPlugin,
+  configureC8yScreenshotPlugin,
   exposeC8yEnv,
   getFileUploadOptions,
   resolvePactRefs,
@@ -54,6 +55,24 @@ describe("plugin", () => {
       });
     });
 
+    it("should update copied values when called again", () => {
+      const config: any = {
+        env: { C8Y_TENANT: "old-tenant", C8Y_VERSION: "1025.0.0" },
+        expose: { other: "explicit" },
+      };
+      exposeC8yEnv(config);
+      config.env.C8Y_TENANT = "new-tenant";
+      config.env.C8Y_USER = "admin";
+      config.expose.C8Y_VERSION = "explicit-version";
+      exposeC8yEnv(config);
+      expect(config.expose).toEqual({
+        C8Y_TENANT: "new-tenant",
+        C8Y_USER: "admin",
+        C8Y_VERSION: "explicit-version",
+        other: "explicit",
+      });
+    });
+
     it("should be called by configureC8yPlugin", () => {
       const config: any = { env: { C8Y_TENANT: "t123" } };
       configureC8yPlugin(undefined as any, config, {
@@ -62,6 +81,19 @@ describe("plugin", () => {
       expect(config.expose.C8Y_TENANT).toBe("t123");
       expect(config.expose.C8Y_PLUGIN_LOADED).toBe("true");
       expect(config.expose.C8Y_PACT_FOLDER).toBe(config.env.C8Y_PACT_FOLDER);
+    });
+
+    it("should be called by configureC8yScreenshotPlugin with the websocket disabled", () => {
+      const config: any = {
+        configFile: "/home/user/test/cypress.config.ts",
+        env: { C8Y_TENANT: "t123", C8Y_DISABLE_WEBSOCKET: "true" },
+      };
+      const result = configureC8yScreenshotPlugin(jest.fn() as any, config, {
+        baseUrl: "http://localhost:8080",
+        screenshots: [],
+      } as any);
+      expect(result).toBe(config);
+      expect(config.expose?.C8Y_TENANT).toBe("t123");
     });
   });
 

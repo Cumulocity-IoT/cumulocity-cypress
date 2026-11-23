@@ -106,7 +106,7 @@ npm install --save-dev cumulocity-cypress
 
 Make sure the following dependencies are installed in your project:
 
-- `cypress`
+- `cypress` 15.10.0 or later (the first version with `Cypress.expose()`), up to Cypress 16
 - `@c8y/client`
 - `angular-common`
 
@@ -194,7 +194,7 @@ before(() => {
 
 Cypress 16 removed `Cypress.env()`. Values that are read synchronously in the browser are set with `Cypress.expose()` and the `expose` configuration object instead (see [Upgrade Cypress](https://docs.cypress.io/app/references/migration-guide)). The examples in this document use `Cypress.expose()`; with older Cypress versions, use `Cypress.env()`.
 
-`cumulocity-cypress` reads and writes its variables with `Cypress.expose()` if it is available, and with `Cypress.env()` for older Cypress versions. The plugins `configureC8yPlugin` and `configureC8yScreenshotPlugin` copy all variables of `config.env` into `config.expose`, so variables from `cypress.env.json`, `CYPRESS_*` environment variables or `--env` keep working without changes. If you set `config.env` variables after the plugin has been configured, call `exposeC8yEnv(config)` at the end of `setupNodeEvents`:
+`cumulocity-cypress` reads and writes its variables with `Cypress.expose()` if it is available, and with `Cypress.env()` for older Cypress versions. With Cypress 15, where both exist, variables set with either of them, also in test overrides, are used. The plugins `configureC8yPlugin` and `configureC8yScreenshotPlugin` copy all variables of `config.env` into `config.expose`, so variables from `cypress.env.json`, `CYPRESS_*` environment variables or `--env` keep working without changes. If you set `config.env` variables after the plugin has been configured, call `exposeC8yEnv(config)` at the end of `setupNodeEvents`:
 
 ```typescript
 import { configureC8yPlugin, exposeC8yEnv } from "cumulocity-cypress/plugin";
@@ -211,6 +211,8 @@ module.exports = defineConfig({
 ```
 
 Exposed variables, including credentials, are readable in the browser, as they were with `Cypress.env()`.
+
+If your project registers [`@cypress/grep`](https://www.npmjs.com/package/@cypress/grep) itself, use `@cypress/grep` 6 or later with Cypress 16. Older versions read their options with `Cypress.env()` and fail when the spec is loaded. As the plugin exposes `config.env`, `--env grepTags=...` keeps working; with Cypress 16 you can also use `--expose grepTags=...`.
 
 ### Environment variables from go-c8y-cli
 

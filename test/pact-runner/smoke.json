@@ -1,0 +1,44 @@
+{
+  "id": "pact_runner_smoke__get_managed_object",
+  "info": {
+    "id": "pact_runner_smoke__get_managed_object",
+    "title": [
+      "pact runner smoke",
+      "get managed object"
+    ],
+    "baseUrl": "http://localhost:8080",
+    "tenant": "t123456",
+    "strictMatching": false,
+    "version": {
+      "c8ypact": "1"
+    }
+  },
+  "records": [
+    {
+      "request": {
+        "url": "/inventory/managedObjects/12345",
+        "method": "GET",
+        "headers": {
+          "accept": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "body": {
+          "request": {
+            "method": "GET",
+            "headers": {
+              "accept": "application/json",
+              "authorization": "Basic dDEyMzQ1Ni9hZG1pbjpzbW9rZQ=="
+            }
+          }
+        }
+      },
+      "auth": {
+        "userAlias": "admin",
+        "type": "BasicAuth"
+      }
+    }
+  ]
+}
