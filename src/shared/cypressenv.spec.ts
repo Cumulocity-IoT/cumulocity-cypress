@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 
-import { c8yEnv, syncEnvToExpose } from "./cypressenv";
+import { c8yEnv, loadC8yCredentials, syncEnvToExpose } from "./cypressenv";
 
 type Store = Record<string, any>;
 
@@ -48,6 +48,7 @@ describe("cypressenv", () => {
 
   afterEach(() => {
     delete global.Cypress;
+    delete global.cy;
   });
 
   it("should return an empty object and undefined without Cypress", () => {
@@ -265,6 +266,82 @@ describe("cypressenv", () => {
         cypress.env(globalEnv);
       };
     }
+  });
+
+  // with exposeCredentials: false, the plugin does not copy credentials into
+  // config.expose, but exposes their names in _c8yCredentialKeys. loadC8yCredentials()
+  // reads them with cy.env() before each test.
+  describe("credentials read with cy.env()", () => {
+    let exposed: Store;
+    let env: Store;
+    beforeEach(() => {
+      exposed = {
+        C8Y_TENANT: "t123",
+        admin_username: "admin",
+        _c8yCredentialKeys: ["admin_password", "C8Y_TOKEN"],
+      };
+      env = { admin_password: "pw", C8Y_TOKEN: "token", other: "value" };
+      global.Cypress = { expose: accessor(exposed) };
+      global.cy = {
+        env: jest.fn((keys: string[]) => ({
+          then: (fn: (values: Store) => any) =>
+            fn(Object.fromEntries(keys.map((key) => [key, env[key]]))),
+        })),
+      };
+    });
+
+    it("should read the credentials with cy.env()", () => {
+      loadC8yCredentials();
+      expect(global.cy.env).toHaveBeenCalledWith(
+        ["admin_password", "C8Y_TOKEN"],
+        { log: false }
+      );
+      expect(c8yEnv("admin_password")).toBe("pw");
+      expect(c8yEnv("C8Y_TOKEN")).toBe("token");
+      expect(c8yEnv()).toEqual({
+        C8Y_TENANT: "t123",
+        admin_username: "admin",
+        admin_password: "pw",
+        C8Y_TOKEN: "token",
+        _c8yCredentialKeys: ["admin_password", "C8Y_TOKEN"],
+      });
+    });
+
+    it("should not expose the credentials", () => {
+      loadC8yCredentials();
+      expect(global.Cypress.expose("admin_password")).toBeUndefined();
+      expect(exposed).not.toHaveProperty("admin_password");
+    });
+
+    it("should prefer values set with Cypress.expose()", () => {
+      loadC8yCredentials();
+      global.Cypress.expose("admin_password", "exposed");
+      expect(c8yEnv("admin_password")).toBe("exposed");
+      global.Cypress.expose("admin_password", undefined);
+      expect(c8yEnv("admin_password")).toBeUndefined();
+    });
+
+    it("should replace the credentials read before", () => {
+      loadC8yCredentials();
+      delete env.C8Y_TOKEN;
+      loadC8yCredentials();
+      expect(c8yEnv("admin_password")).toBe("pw");
+      expect(c8yEnv("C8Y_TOKEN")).toBeUndefined();
+      expect(c8yEnv()).not.toHaveProperty("C8Y_TOKEN");
+    });
+
+    it("should not call cy.env() without credential keys", () => {
+      delete exposed._c8yCredentialKeys;
+      loadC8yCredentials();
+      expect(global.cy.env).not.toHaveBeenCalled();
+      expect(c8yEnv("admin_password")).toBeUndefined();
+    });
+
+    it("should not call cy.env() if it is not available", () => {
+      global.cy = {};
+      expect(() => loadC8yCredentials()).not.toThrow();
+      expect(c8yEnv("admin_password")).toBeUndefined();
+    });
   });
 
   describe("Cypress 14 (env only)", () => {
