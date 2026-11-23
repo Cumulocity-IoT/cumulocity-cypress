@@ -365,8 +365,12 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
     }
   });
 
+  // write a pact recorded outside of the command queue (Cypress 16 and later), also
+  // after the last test of the spec
   afterEach(function () {
-    // writes a pact recorded outside of the command queue (Cypress 16 and later)
+    flushPendingSave();
+  });
+  after(function () {
     flushPendingSave();
   });
 
@@ -500,7 +504,32 @@ function recordingMode() {
   return pactutils.recordingMode("C8Y_PACT_RECORDING_MODE");
 }
 
-async function savePact(
+/**
+ * Saves started outside of the Cypress command queue with Cypress 16 or later, e.g. for
+ * an intercepted response, that have not finished yet. See `flushPendingSave()`.
+ */
+const savesInProgress = new Set<Promise<void>>();
+
+function savePact(
+  response: Cypress.Response<any> | C8yPact | Pick<C8yPact, C8yPactSaveKeys>,
+  client?: C8yClient,
+  options: C8yPactSaveOptions = { noqueue: false }
+): Promise<void> {
+  const promise = savePactRecords(response, client, options);
+  if (
+    options?.noqueue === true &&
+    Cypress.semver.gte(Cypress.version, "16.0.0")
+  ) {
+    savesInProgress.add(promise);
+    const done = () => {
+      savesInProgress.delete(promise);
+    };
+    promise.then(done, done);
+  }
+  return promise;
+}
+
+async function savePactRecords(
   response: Cypress.Response<any> | C8yPact | Pick<C8yPact, C8yPactSaveKeys>,
   client?: C8yClient,
   options: C8yPactSaveOptions = { noqueue: false }
@@ -623,15 +652,29 @@ async function savePact(
 
 /**
  * Pact saved outside of the Cypress command queue with Cypress 16 or later. It is written
- * with `cy.task` by the next `loadCurrent()` or after the test.
+ * with `cy.task` by the next `loadCurrent()`, after the test, or after the spec.
  */
 let pendingSave: any = undefined;
 
 /**
- * Writes a pact that was saved outside of the Cypress command queue. Must be called
- * from within the command queue, e.g. a hook or a command.
+ * Writes a pact that was saved outside of the Cypress command queue, after waiting for
+ * saves still in progress, e.g. of a response that has just been intercepted. Must be
+ * called from within the command queue, e.g. a hook or a command.
+ *
+ * Responses intercepted after the last test of the spec are not recorded. Wait for
+ * them in the test, e.g. with `cy.wait()` for the alias of the interception.
  */
 function flushPendingSave() {
+  if (savesInProgress.size === 0) {
+    writePendingSave();
+    return;
+  }
+  cy.then(() => Promise.all(savesInProgress)).then(() => {
+    writePendingSave();
+  });
+}
+
+function writePendingSave() {
   if (pendingSave == null) return;
   const pact = pendingSave;
   pendingSave = undefined;
