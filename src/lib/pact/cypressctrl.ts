@@ -11,6 +11,7 @@ import {
 } from "../../shared/c8ypact";
 import { to_boolean } from "../../shared/util";
 import * as pactutils from "./pactutils";
+import { c8yEnv } from "../../shared/cypressenv";
 
 const { _ } = Cypress;
 
@@ -142,7 +143,7 @@ if (_.get(Cypress, "__c8yctrl.initialized") === undefined) {
         url: Cypress.c8yctrl.url() || null,
         recordingMode: Cypress.c8yctrl.recordingMode(),
         debugLog: Cypress.c8yctrl.debugLog,
-        cypressEnv: Cypress.env(),
+        cypressEnv: c8yEnv(),
       };
       logger = Cypress.log({
         name: "c8yctrl",
@@ -158,8 +159,8 @@ if (_.get(Cypress, "__c8yctrl.initialized") === undefined) {
     }
 
     try {
-      validatePactMode(Cypress.env("C8YCTRL_MODE"));
-      validatePactRecordingMode(Cypress.env("C8YCTRL_RECORDING_MODE"));
+      validatePactMode(c8yEnv("C8YCTRL_MODE"));
+      validatePactRecordingMode(c8yEnv("C8YCTRL_RECORDING_MODE"));
     } catch (error) {
       logger?.end();
       throw error;
@@ -212,7 +213,7 @@ function recordingMode() {
 function isEnabled() {
   if (url() == null) return false;
 
-  const ignore = to_boolean(Cypress.env("C8YCTRL_IGNORE"), false);
+  const ignore = to_boolean(c8yEnv("C8YCTRL_IGNORE"), false);
   if (ignore === true) return false;
 
   return pactutils.isEnabled("C8YCTRL_MODE");
@@ -237,7 +238,7 @@ function setCurrent(options: {
   );
 
   const values = ["recording", "record"];
-  if (values.includes(Cypress.env("C8YCTRL_MODE"))) {
+  if (values.includes(c8yEnv("C8YCTRL_MODE"))) {
     o.mode = "record";
   }
 
@@ -292,7 +293,7 @@ function resetCurrent() {
 }
 
 function url() {
-  const u = Cypress.env("C8YCTRL_URL");
+  const u = c8yEnv("C8YCTRL_URL");
   if (u != null && isAbsoluteURL(u)) {
     return normalizeUrl(u);
   }

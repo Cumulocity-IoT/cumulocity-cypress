@@ -734,6 +734,8 @@ Recording of interceptions during E2E or UI tests is directly built into `cy.int
 cy.intercept("GET", "/inventory/managedObjects/*").as("managedObject");
 ```
 
+With Cypress 16 and later, recorded interceptions are written to the pact file by the next `Cypress.c8ypact.loadCurrent()`, after the test, and after the spec. A response that arrives after the last test of the spec has ended is not recorded. Wait for the interception in the test to record it, e.g. with `cy.wait("@managedObject")`.
+
 Interceptions with static RouteHandlers will also record the actual request and response. This means `cy.intercept` will send the request and store it's actual response as `body`. The mocked response passed as static RouteHandler to `cy.intercept` will be stored as `modifiedResponse`, including headers and body. This allows matching of a schema against the actual response as well as the modified response. This is meant to fail tests even if the mocked responses do not match the current schema of the API. 
 
 ```typescript

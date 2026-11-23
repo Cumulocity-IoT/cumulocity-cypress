@@ -1,11 +1,13 @@
 require("cypress-wait-until");
+// Cypress 16 removed Cypress.env()
+const { c8yEnv } = require("../../shared/cypressenv");
 
 const enabledValues = ["true", "TRUE", true, "1", 1];
-const isEnabled = !enabledValues.includes(Cypress.env("C8Y_DISABLE_WEBSOCKET"));
+const isEnabled = !enabledValues.includes(c8yEnv("C8Y_DISABLE_WEBSOCKET"));
 
 if (
   Cypress.config("isInteractive") &&
-  Cypress.env("_c8yscrnCli") === true &&
+  c8yEnv("_c8yscrnCli") === true &&
   isEnabled
 ) {
   const ws = new WebSocket("ws://localhost:9345");

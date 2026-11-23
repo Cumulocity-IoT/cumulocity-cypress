@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import {
   C8yDefaultPactRunner,
   C8yDefaultPact,
@@ -15,12 +16,12 @@ describe("pact runner", () => {
   const serverAuthorizationCookie = "eyJhbGciOiJ";
 
   beforeEach(() => {
-    Cypress.env("C8Y_USERNAME", undefined);
-    Cypress.env("C8Y_PASSWORD", undefined);
-    Cypress.env("C8Y_TOKEN", undefined);
-    Cypress.env("C8Y_TENANT", "t1234567");
-    Cypress.env("C8Y_PACT_RUNNER_AUTH", undefined);
-    Cypress.env("C8Y_PACT_MODE", "apply");
+    c8yEnv("C8Y_USERNAME", undefined);
+    c8yEnv("C8Y_PASSWORD", undefined);
+    c8yEnv("C8Y_TOKEN", undefined);
+    c8yEnv("C8Y_TENANT", "t1234567");
+    c8yEnv("C8Y_PACT_RUNNER_AUTH", undefined);
+    c8yEnv("C8Y_PACT_MODE", "apply");
     runner = new C8yDefaultPactRunner();
   });
 
@@ -519,8 +520,8 @@ describe("pact runner", () => {
 
       cy.wait("@deviceRequest").then(() => {
         // Verify device credentials were stored in environment
-        expect(Cypress.env("device_test_username")).to.eq("device_test");
-        expect(Cypress.env("device_test_password")).to.eq("devicepassword");
+        expect(c8yEnv("device_test_username")).to.eq("device_test");
+        expect(c8yEnv("device_test_password")).to.eq("devicepassword");
       });
     });
 

@@ -10,6 +10,7 @@ import {
   pactId,
 } from "../../shared/c8ypact";
 import { getShellVersionFromEnv, getSystemVersionFromEnv } from "../utils";
+import { c8yEnv } from "../../shared/cypressenv";
 
 const { _ } = Cypress;
 
@@ -21,7 +22,7 @@ export function mode(
   envVar: string,
   defaultValue: string = "disabled"
 ): C8yPactMode {
-  let mode = Cypress.env(envVar) || defaultValue;
+  let mode = c8yEnv(envVar) || defaultValue;
   if (!_.isString(mode) || _.isEmpty(mode)) {
     mode = defaultValue;
   }
@@ -34,7 +35,7 @@ export function mode(
  */
 export function recordingMode(envVar: string): C8yPactRecordingMode {
   const mode: string =
-    Cypress.env(envVar) ||
+    c8yEnv(envVar) ||
     Cypress.config().c8ypact?.recordingMode ||
     C8yPactRecordingModeValues[0];
 
@@ -50,7 +51,7 @@ export function recordingMode(envVar: string): C8yPactRecordingMode {
  * @param envVar The environment variable to check for enabling the pact.
  */
 export function isEnabled(envVar: string): boolean {
-  if (Cypress.env("C8Y_PLUGIN_LOADED") == null) return false;
+  if (c8yEnv("C8Y_PLUGIN_LOADED") == null) return false;
   if (mode(envVar) === "disabled") return false;
 
   if (Cypress.config().c8ypact?.ignore === true) {
