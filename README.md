@@ -16,6 +16,7 @@ Contribute by raising pull requests. All commands must be documented and, if pos
   - [Import commands](#import-commands)
   - [Environment variables](#environment-variables)
   - [Environment variables from go-c8y-cli](#environment-variables-from-go-c8y-cli)
+  - [Self-signed certificates](#self-signed-certificates)
 - [Additional frameworks](#additional-frameworks)
 - [Concepts](#concepts)
   - [Authentication and credentials](#authentication-and-credentials)
@@ -109,6 +110,8 @@ Make sure the following dependencies are installed in your project:
 - `cypress` up to Cypress 16, tested with Cypress 13, 14, 15 and 16
 - `@c8y/client`
 - `angular-common`
+
+`cumulocity-cypress` requires Node.js 20 or later. Cypress 16 requires Node.js 22, 24, or 26 and later, so use one of these versions with Cypress 16. Use Cypress 15.21.2 or 16.3.0 and later. These versions fix security issues of the Cypress Test Runner (see the [Cypress changelog](https://docs.cypress.io/app/references/changelog)).
 
 ### Load plugin
 
@@ -232,6 +235,14 @@ Passwords and tokens of `config.env` (`C8Y_PASSWORD`, `C8Y_TOKEN`, `C8Y_AUTHORIZ
 
 If your project registers [`@cypress/grep`](https://www.npmjs.com/package/@cypress/grep) itself, use `@cypress/grep` 6 or later with Cypress 16. Older versions read their options with `Cypress.env()` and fail when the spec is loaded. `cumulocity-cypress` itself depends on `@cypress/grep` 5, as later versions don't install with Cypress 13 and 14, and makes it work with Cypress 16 for `c8yscrn`. As the plugin exposes `config.env`, `--env grepTags=...` keeps working; with Cypress 16 you can also use `--expose grepTags=...`.
 
+Cypress 16 also removed the `env` key of the test and suite configuration. To set variables for a single test or suite, use `expose` instead. This requires Cypress 15.17 or later:
+
+```typescript
+it("uses another tenant", { expose: { C8Y_TENANT: "t12345" } }, () => {
+  // ...
+});
+```
+
 ### Environment variables from go-c8y-cli
 
 If you are using [go-c8y-cli](https://goc8ycli.netlify.app) to manage your Cumulocity IoT environments, you can use the `set-session` command to set environment variables for your Cypress tests. This allows you to easily switch between different environments and configurations using `go-c8y-cli` session providers.
@@ -257,6 +268,12 @@ module.exports = defineConfig({
   },
 });
 ```
+
+### Self-signed certificates
+
+With Cypress 16, Chrome, Chromium, and Edge load the tested application with their own network stack and verify the certificate of the tenant themselves. If your tenant or Cumulocity Edge uses a self-signed certificate, or a certificate of an internal certificate authority, add it to the `trustedCertificates` configuration option. This requires Cypress 16.1 or later (see [Configuration](https://docs.cypress.io/app/references/configuration)).
+
+With Cypress 16.2.1 and later, the Node.js process of `setupNodeEvents` also verifies certificates. This affects the tasks of `configureC8yPlugin` that connect to the tenant, such as the login of `cy.oauthLogin()`. Set `NODE_EXTRA_CA_CERTS` to the certificate file of your certificate authority before you start Cypress.
 
 ## Additional frameworks
 
