@@ -660,8 +660,10 @@ const exposeEnvState = new WeakMap<
 >();
 
 function toBoolean(value: any): boolean | undefined {
-  if (value === true || value === "true") return true;
-  if (value === false || value === "false") return false;
+  if (typeof value === "boolean") return value;
+  const normalized = String(value ?? "").toLowerCase();
+  if (normalized === "true" || normalized === "1") return true;
+  if (normalized === "false" || normalized === "0") return false;
   return undefined;
 }
 
@@ -699,8 +701,11 @@ export function exposeC8yEnv(
   const copied = state?.copied ?? {};
   const exposeCredentialsOption =
     options.exposeCredentials ?? state?.exposeCredentials;
+  // as for other plugin options, e.g. C8Y_PACT_MODE, the process environment is
+  // preferred over config.env, which only has CYPRESS_* variables of the process
   const exposeCredentials =
     exposeCredentialsOption ??
+    toBoolean(getEnvVar("C8Y_EXPOSE_CREDENTIALS")) ??
     toBoolean(config.env?.C8Y_EXPOSE_CREDENTIALS) ??
     true;
 

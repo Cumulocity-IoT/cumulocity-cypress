@@ -210,11 +210,13 @@ module.exports = defineConfig({
 });
 ```
 
-By default, exposed variables, including credentials, are readable in the browser, as they were with `Cypress.env()`. To keep credentials out of `Cypress.expose()`, disable `exposeCredentials`, or set the `C8Y_EXPOSE_CREDENTIALS` environment variable to `false`, e.g. for `c8yscrn` or the pact runner:
+By default, exposed variables, including credentials, are readable in the browser, as they were with `Cypress.env()`. To keep credentials out of `Cypress.expose()`, disable `exposeCredentials`, or set `C8Y_EXPOSE_CREDENTIALS` to `false`, e.g. for `c8yscrn` or the pact runner:
 
 ```typescript
 configureC8yPlugin(on, config, { exposeCredentials: false });
 ```
+
+The plugin reads `C8Y_EXPOSE_CREDENTIALS` from the environment of the process, also as `CYPRESS_C8Y_EXPOSE_CREDENTIALS`, and from `config.env`, e.g. set with `--env`. The `exposeCredentials` option is preferred over both.
 
 Passwords and tokens of `config.env` (`C8Y_PASSWORD`, `C8Y_TOKEN`, `C8Y_AUTHORIZATION`, `C8Y_XSRF_TOKEN`, and variables ending with `_password` or `_token`, such as `admin_password`) are then not copied into `config.expose`. `cumulocity-cypress` reads them with `cy.env()` before each spec and test, so commands such as `cy.getAuth()`, `cy.login()` and `cy.c8yclient()` use them as before. Usernames and all other variables are still exposed. Credentials set with `Cypress.expose()` are preferred. This requires Cypress 15.10 or later. With older versions, which have no `Cypress.expose()` and `cy.env()`, all variables are read with `Cypress.env()`, and the option has no effect.
 

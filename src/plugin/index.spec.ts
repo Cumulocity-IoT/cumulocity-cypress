@@ -38,7 +38,10 @@ describe("plugin", () => {
     it("should copy config.env into config.expose", () => {
       const config: any = { env: { C8Y_TENANT: "t123", admin_password: "pw" } };
       expect(exposeC8yEnv(config)).toBe(config);
-      expect(config.expose).toEqual({ C8Y_TENANT: "t123", admin_password: "pw" });
+      expect(config.expose).toEqual({
+        C8Y_TENANT: "t123",
+        admin_password: "pw",
+      });
       expect(config.expose).not.toBe(config.env);
     });
 
@@ -57,7 +60,11 @@ describe("plugin", () => {
 
     it("should remove copied variables removed from config.env when called again", () => {
       const config: any = {
-        env: { C8Y_PACT_MODE: "recording", admin_password: "pw", C8Y_TENANT: "t1" },
+        env: {
+          C8Y_PACT_MODE: "recording",
+          admin_password: "pw",
+          C8Y_TENANT: "t1",
+        },
       };
       exposeC8yEnv(config);
       delete config.env.C8Y_PACT_MODE;
@@ -135,15 +142,68 @@ describe("plugin", () => {
 
       it("should not copy credentials with C8Y_EXPOSE_CREDENTIALS false", () => {
         for (const value of [false, "false"]) {
-          const config: any = { env: { ...env(), C8Y_EXPOSE_CREDENTIALS: value } };
+          const config: any = {
+            env: { ...env(), C8Y_EXPOSE_CREDENTIALS: value },
+          };
           exposeC8yEnv(config);
           expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
           expect(config.expose._c8yCredentialKeys).toEqual(credentialKeys);
         }
       });
 
+      describe("C8Y_EXPOSE_CREDENTIALS environment variable", () => {
+        const names = [
+          "C8Y_EXPOSE_CREDENTIALS",
+          "CYPRESS_C8Y_EXPOSE_CREDENTIALS",
+        ];
+        afterEach(() => {
+          names.forEach((name) => delete process.env[name]);
+        });
+
+        it("should not copy credentials with the variable set to false", () => {
+          for (const name of names) {
+            for (const value of ["false", "FALSE", "0"]) {
+              process.env[name] = value;
+              const config: any = { env: env() };
+              exposeC8yEnv(config);
+              expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
+              expect(config.expose._c8yCredentialKeys).toEqual(credentialKeys);
+              delete process.env[name];
+            }
+          }
+        });
+
+        it("should prefer the variable over config.env", () => {
+          process.env.C8Y_EXPOSE_CREDENTIALS = "false";
+          const config: any = {
+            env: { ...env(), C8Y_EXPOSE_CREDENTIALS: true },
+          };
+          exposeC8yEnv(config);
+          expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
+        });
+
+        it("should prefer exposeCredentials over the variable", () => {
+          process.env.C8Y_EXPOSE_CREDENTIALS = "false";
+          const config: any = { env: env() };
+          exposeC8yEnv(config, { exposeCredentials: true });
+          expect(config.expose.C8Y_PASSWORD).toBe("pw");
+        });
+
+        it("should be used by configureC8yPlugin", () => {
+          process.env.C8Y_EXPOSE_CREDENTIALS = "false";
+          const config: any = { env: env() };
+          configureC8yPlugin(undefined as any, config, {
+            pactFolder: "cypress/fixtures/c8ypact",
+          });
+          expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
+          expect(config.expose.C8Y_USERNAME).toBe("admin");
+        });
+      });
+
       it("should prefer exposeCredentials over C8Y_EXPOSE_CREDENTIALS", () => {
-        const config: any = { env: { ...env(), C8Y_EXPOSE_CREDENTIALS: "false" } };
+        const config: any = {
+          env: { ...env(), C8Y_EXPOSE_CREDENTIALS: "false" },
+        };
         exposeC8yEnv(config, { exposeCredentials: true });
         expect(config.expose.C8Y_PASSWORD).toBe("pw");
         expect(config.expose).not.toHaveProperty("_c8yCredentialKeys");
