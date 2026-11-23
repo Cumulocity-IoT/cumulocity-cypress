@@ -122,6 +122,27 @@ describe("c8ypact intercept", () => {
         });
     });
 
+    it("should intercept with the HTTP QUERY method", function () {
+      // cy.intercept() accepts the QUERY method with Cypress 15.20 and later
+      if (Cypress.semver.lt(Cypress.version, "15.20.0")) {
+        this.skip();
+      }
+      // the Method type of Cypress 15.19 and older has no QUERY
+      cy.intercept("QUERY" as any, "/inventory/managedObjects*", (req) => {
+        req.reply(testResponse);
+      })
+        .as("inventory")
+        .then(() => $.ajax({ url: url(inventoryPath), method: "QUERY" }))
+        .then((data) => {
+          expect(data).to.deep.eq(testBody);
+        })
+        .wait("@inventory")
+        .then((interception) => {
+          expect(interception.request.method).to.eq("QUERY");
+          expect(interception.response?.statusCode).to.eq(201);
+        });
+    });
+
     it("should intercept RouteHandler object", () => {
       cy.intercept("/inventory/managedObjects*", testResponse)
         .as("inventory")
