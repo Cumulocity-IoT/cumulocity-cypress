@@ -192,7 +192,7 @@ before(() => {
 
 #### Cypress 16 and later
 
-Cypress 16 removed `Cypress.env()`. Values that are read synchronously in the browser are set with `Cypress.expose()` and the `expose` configuration object instead (see [Upgrade Cypress](https://docs.cypress.io/app/references/migration-guide)). The examples in this document use `Cypress.expose()`; with older Cypress versions, use `Cypress.env()`.
+Cypress 16 removed `Cypress.env()`. Values that are read synchronously in the browser are set with `Cypress.expose()` and the `expose` configuration object instead (see [Upgrade Cypress](https://docs.cypress.io/app/references/migration-guide)). The examples in this document use `Cypress.expose()`; with older Cypress versions, use `Cypress.env()`, or `c8yEnv()` with all versions (see below).
 
 `cumulocity-cypress` reads and writes its variables with `Cypress.expose()` if it is available, and with `Cypress.env()` for older Cypress versions. With Cypress 15.10 and later 15.x versions, where both exist, variables set with either of them, also in test overrides, are used. The plugins `configureC8yPlugin` and `configureC8yScreenshotPlugin` copy all variables of `config.env` into `config.expose`, so variables from `cypress.env.json`, `CYPRESS_*` environment variables or `--env` keep working without changes. If you set `config.env` variables after the plugin has been configured, call `exposeC8yEnv(config)` at the end of `setupNodeEvents`:
 
@@ -208,6 +208,16 @@ module.exports = defineConfig({
     },
   },
 });
+```
+
+To read and write variables in your own tests and support code with all supported Cypress versions, use `c8yEnv()`. It works like `Cypress.expose()` with Cypress 16, and like `Cypress.env()` with older versions, and also returns credentials read with `cy.env()` (see `exposeCredentials` below):
+
+```typescript
+import { c8yEnv } from "cumulocity-cypress";
+
+const tenant = c8yEnv("C8Y_TENANT");
+c8yEnv("C8Y_SHELL_NAME", "cockpit");
+const all = c8yEnv();
 ```
 
 By default, exposed variables, including credentials, are readable in the browser, as they were with `Cypress.env()`. To keep credentials out of `Cypress.expose()`, disable `exposeCredentials`, or set `C8Y_EXPOSE_CREDENTIALS` to `false`, e.g. for `c8yscrn` or the pact runner:
