@@ -131,7 +131,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
-    "glob": "^13.0.0",
+    "glob": "^14.0.6",
     "http-proxy-middleware": "^3.0.3",
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
@@ -204,6 +204,31 @@
         "node-fetch": {
           "whatwg-url": "^13.0.0"
         }
+      }
+    },
+    "@jest/reporters": {
+      "glob": "^14.0.6"
+    },
+    "jest-config": {
+      "glob": "^14.0.6"
+    },
+    "jest-runtime": {
+      "glob": "^14.0.6"
+    },
+    "rimraf": {
+      "glob": "^14.0.6"
+    },
+    "typescript-json-schema": {
+      "glob": "^14.0.6"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.9"
+    },
+    "babel-plugin-istanbul": {
+      "test-exclude": {
+        ".": "^8.0.0",
+        "glob": "^14.0.6",
+        "minimatch": "^11.0.9"
       }
     }
   }
