@@ -158,6 +158,23 @@ export function normalizeAuthHeaders(headers: { [key: string]: any }) {
   return headers;
 }
 
+/**
+ * Checks if the given environment variable holds credentials: a password or a token,
+ * e.g. `C8Y_PASSWORD`, `C8Y_TOKEN` or `admin_password`. Usernames are no credentials.
+ *
+ * @param key The name of the environment variable.
+ * @returns True if the variable holds credentials.
+ */
+export function isC8yCredentialKey(key: string): boolean {
+  return (
+    key.endsWith("_password") ||
+    key.endsWith("_token") ||
+    ["C8Y_PASSWORD", "C8Y_TOKEN", "C8Y_AUTHORIZATION", "C8Y_XSRF_TOKEN"].includes(
+      key
+    )
+  );
+}
+
 export function getAuthOptionsFromEnv(env: any): C8yAuthOptions | undefined {
   if (env == null || !_.isObjectLike(env)) {
     return undefined;

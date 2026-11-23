@@ -330,6 +330,15 @@ describe("cypressenv", () => {
       expect(c8yEnv()).not.toHaveProperty("C8Y_TOKEN");
     });
 
+    it("should share the credentials with other copies of the module", () => {
+      loadC8yCredentials();
+      jest.isolateModules(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const copy = require("./cypressenv");
+        expect(copy.c8yEnv("admin_password")).toBe("pw");
+      });
+    });
+
     it("should not call cy.env() without credential keys", () => {
       delete exposed._c8yCredentialKeys;
       loadC8yCredentials();

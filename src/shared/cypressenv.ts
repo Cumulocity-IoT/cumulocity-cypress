@@ -14,6 +14,9 @@
  * - With Cypress 15.10 to 15.x, `Cypress.env()` and `Cypress.expose()` are separate
  *   stores. Values set with `Cypress.env()`, including `env` test overrides, are also
  *   set in `Cypress.expose()` (see {@link syncEnvToExpose}), so they are seen as well.
+ * - With the plugin option `exposeCredentials: false`, credentials of `config.env` are
+ *   not exposed. They are read with `cy.env()` before each spec and test instead (see
+ *   {@link loadC8yCredentials}), and returned for variables that are not exposed.
  */
 
 type CypressEnvAccessor = {
@@ -30,6 +33,25 @@ type CypressWithEnv = {
 };
 
 const SYNCED = "__c8yEnvSyncedToExpose";
+
+/**
+ * The exposed variable with the names of the credentials the plugin did not expose
+ * (`exposeCredentials: false`). Their values are read with `cy.env()`.
+ */
+export const C8Y_CREDENTIAL_KEYS = "_c8yCredentialKeys";
+
+// the credentials read with cy.env() (see loadC8yCredentials), stored on the Cypress
+// instance to share them if this module is bundled more than once, e.g. by a spec
+const CREDENTIALS = "__c8yCredentials";
+
+function credentials(): Record<string, any> {
+  return (cypressInstance() as any)?.[CREDENTIALS] ?? {};
+}
+
+function setCredentials(values: Record<string, any>): void {
+  const cypress = cypressInstance() as any;
+  if (cypress != null) cypress[CREDENTIALS] = values;
+}
 
 function cypressInstance(): CypressWithEnv | undefined {
   return typeof Cypress === "undefined"
@@ -110,6 +132,42 @@ export function syncEnvToExpose(): void {
 }
 
 /**
+ * Reads the credentials the plugin did not expose (`exposeCredentials: false`) with
+ * `cy.env()`, so {@link c8yEnv} returns them synchronously. Values set with
+ * `Cypress.expose()` are preferred. Replaces the credentials read before, and does
+ * nothing if there are no such credentials or `cy.env()` is not available (before
+ * Cypress 15.10).
+ *
+ * Called before each spec and test by cumulocity-cypress.
+ *
+ * @returns The chainable of `cy.env()`, or undefined if not called.
+ */
+export function loadC8yCredentials(): any {
+  const cypress = cypressInstance();
+  const keys =
+    typeof cypress?.expose === "function"
+      ? callSafe(() => cypress.expose!(C8Y_CREDENTIAL_KEYS))
+      : undefined;
+  const cyEnv =
+    typeof cy !== "undefined" ? (cy as any).env : undefined;
+  if (!Array.isArray(keys) || keys.length === 0 || typeof cyEnv !== "function") {
+    setCredentials({});
+    return undefined;
+  }
+  return cyEnv(keys, { log: false }).then((values: Record<string, any>) => {
+    setCredentials(pickDefined(values));
+  });
+}
+
+function pickDefined(values: Record<string, any> | undefined) {
+  const result: Record<string, any> = {};
+  Object.entries(values ?? {}).forEach(([key, value]) => {
+    if (value !== undefined) result[key] = value;
+  });
+  return result;
+}
+
+/**
  * Returns all variables of the Cypress environment.
  */
 export function c8yEnv(): Record<string, any>;
@@ -148,6 +206,7 @@ export function c8yEnv(
   if (keyOrObject == null) {
     return {
       ...(env ? callSafe(() => env()) : {}),
+      ...credentials(),
       ...(expose ? expose() : {}),
     };
   }
@@ -166,6 +225,10 @@ export function c8yEnv(
   const exposed = expose ? expose() : undefined;
   if (exposed != null && keyOrObject in exposed) {
     return exposed[keyOrObject];
+  }
+  const loaded = credentials();
+  if (keyOrObject in loaded) {
+    return loaded[keyOrObject];
   }
   return env ? callSafe(() => env(keyOrObject)) : undefined;
 }

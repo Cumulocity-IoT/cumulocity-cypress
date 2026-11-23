@@ -9,7 +9,7 @@ import {
   C8yAuthentication,
   isAuthOptions,
 } from "../../shared/auth";
-import { c8yEnv } from "../../shared/cypressenv";
+import { c8yEnv, loadC8yCredentials } from "../../shared/cypressenv";
 
 export {
   C8yAuthOptions,
@@ -103,6 +103,15 @@ const getAuthEnvVariables = () => {
   });
   return filteredKeysAndValues;
 };
+
+// With exposeCredentials: false, credentials are not exposed and read with cy.env().
+// Read them before each spec, for before() hooks, and before each test, to see env
+// test overrides. Registered once, even if this file is bundled more than once.
+if ((Cypress as any).__c8yCredentialHooks !== true) {
+  (Cypress as any).__c8yCredentialHooks = true;
+  before(() => loadC8yCredentials());
+  beforeEach(() => loadC8yCredentials());
+}
 
 Cypress.Commands.add("getAuth", { prevSubject: "optional" }, (...args) => {
   const auth = authFn("getAuth", args);

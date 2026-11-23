@@ -91,6 +91,7 @@ jobs:
 
       # runs the pact runner built with the package of this branch against the test server:
       # replays test/pact-runner/smoke.json, which expects the echo of a request with basic
-      # auth credentials read from the Cypress environment
+      # auth credentials read from the Cypress environment. The credentials are not
+      # exposed (C8Y_EXPOSE_CREDENTIALS=false), and read with cy.env().
       - name: Run pact runner smoke test
         run: npm run test:pact-runner

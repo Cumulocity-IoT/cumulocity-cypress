@@ -23,7 +23,12 @@ import {
   getEnvVar,
   validatePactMode,
 } from "../shared/c8ypact/c8ypact";
-import { C8yAuthOptions, getAuthOptionsFromJWT } from "../shared/auth";
+import {
+  C8yAuthOptions,
+  getAuthOptionsFromJWT,
+  isC8yCredentialKey,
+} from "../shared/auth";
+import { C8Y_CREDENTIAL_KEYS } from "../shared/cypressenv";
 import { oauthLogin } from "../shared/oauthlogin";
 import { normalizeBaseUrl, validateBaseUrl } from "../shared/url";
 import { getPackageVersion } from "../shared/util-node";
@@ -69,6 +74,25 @@ export type C8yPluginConfig = {
    * Default is false.
    */
   failOnPactRefError?: boolean;
+  /**
+   * If disabled, credentials of `config.env` (passwords and tokens, e.g. `C8Y_PASSWORD`,
+   * `C8Y_TOKEN` or `admin_password`) are not copied into `config.expose`, and are read
+   * with `cy.env()` before each spec and test instead. Can also be set with the
+   * `C8Y_EXPOSE_CREDENTIALS` environment variable. Default is true.
+   * See {@link exposeC8yEnv}.
+   */
+  exposeCredentials?: boolean;
+};
+
+/**
+ * Options for {@link exposeC8yEnv}.
+ */
+export type C8yExposeEnvOptions = {
+  /**
+   * If disabled, credentials of `config.env` are not copied into `config.expose`. Can
+   * also be set with the `C8Y_EXPOSE_CREDENTIALS` environment variable. Default is true.
+   */
+  exposeCredentials?: boolean;
 };
 
 /**
@@ -146,7 +170,7 @@ export function configureC8yPlugin(
   config.env.C8Y_PACT_FOLDER = adapter.getFolder();
 
   // Cypress 16 removed Cypress.env(): make config.env readable with Cypress.expose()
-  exposeC8yEnv(config);
+  exposeC8yEnv(config, { exposeCredentials: options.exposeCredentials });
 
   function savePact(pact: C8yPactObject): null {
     const { id, info, records } = pact;
@@ -627,9 +651,19 @@ export function configureC8yScreenshotPlugin(
 }
 
 /**
- * The values `exposeC8yEnv()` copied from `config.env` into `config.expose`, per config.
+ * The values `exposeC8yEnv()` copied from `config.env` into `config.expose`, and the
+ * `exposeCredentials` option it was called with, per config.
  */
-const exposedFromEnv = new WeakMap<object, Record<string, any>>();
+const exposeEnvState = new WeakMap<
+  object,
+  { copied: Record<string, any>; exposeCredentials?: boolean }
+>();
+
+function toBoolean(value: any): boolean | undefined {
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  return undefined;
+}
 
 /**
  * Copies the variables of `config.env` into `config.expose`, so they can be read
@@ -644,33 +678,68 @@ const exposedFromEnv = new WeakMap<object, Record<string, any>>();
  * Values copied by a previous call are updated, so calling it again after changing
  * `config.env` exposes the new values.
  *
- * Note: all variables of `config.env` are exposed to the browser, including
- * credentials, as `Cypress.env()` did before Cypress 16.
+ * By default, all variables of `config.env` are exposed to the browser, including
+ * credentials, as `Cypress.env()` did before Cypress 16. With `exposeCredentials: false`
+ * or the `C8Y_EXPOSE_CREDENTIALS` environment variable set to false, credentials
+ * (passwords and tokens) are not exposed. cumulocity-cypress then reads them with
+ * `cy.env()` before each spec and test. The option is kept for later calls.
  *
  * @param config Cypress plugin config
+ * @param options Options, e.g. to not expose credentials
  * @returns The given config
  */
 export function exposeC8yEnv(
-  config: Cypress.PluginConfigOptions
+  config: Cypress.PluginConfigOptions,
+  options: C8yExposeEnvOptions = {}
 ): Cypress.PluginConfigOptions {
   const configWithExpose = config as Cypress.PluginConfigOptions & {
     expose?: Record<string, any>;
   };
-  const expose = { ...(configWithExpose.expose ?? {}) };
-  const copied = exposedFromEnv.get(config) ?? {};
-  const nowCopied: Record<string, any> = {};
+  const state = exposeEnvState.get(config);
+  const copied = state?.copied ?? {};
+  const exposeCredentialsOption =
+    options.exposeCredentials ?? state?.exposeCredentials;
+  const exposeCredentials =
+    exposeCredentialsOption ??
+    toBoolean(config.env?.C8Y_EXPOSE_CREDENTIALS) ??
+    true;
 
+  const expose = { ...(configWithExpose.expose ?? {}) };
+  if (!exposeCredentials) {
+    // remove credentials copied by a previous call with exposeCredentials enabled
+    Object.entries(copied).forEach(([key, value]) => {
+      if (isC8yCredentialKey(key) && expose[key] === value) {
+        delete expose[key];
+      }
+    });
+  }
+
+  const nowCopied: Record<string, any> = {};
+  const credentialKeys: string[] = [];
   Object.entries(config.env ?? {}).forEach(([key, value]) => {
     // a value in config.expose that was not copied from config.env has been set
     // explicitly and is kept
     const isExplicit =
       key in expose && !(key in copied && copied[key] === expose[key]);
     if (isExplicit) return;
+    if (!exposeCredentials && isC8yCredentialKey(key)) {
+      credentialKeys.push(key);
+      return;
+    }
     expose[key] = value;
     nowCopied[key] = value;
   });
 
-  exposedFromEnv.set(config, nowCopied);
+  if (credentialKeys.length > 0) {
+    expose[C8Y_CREDENTIAL_KEYS] = credentialKeys.sort();
+  } else {
+    delete expose[C8Y_CREDENTIAL_KEYS];
+  }
+
+  exposeEnvState.set(config, {
+    copied: nowCopied,
+    exposeCredentials: exposeCredentialsOption,
+  });
   configWithExpose.expose = expose;
   return config;
 }

@@ -7,6 +7,12 @@ import {
 
 const { _, $ } = Cypress;
 
+// variables of the auth env variables logged by getAuth() and useAuth(), without the
+// credentials test/cypress.config.ts configures for env-credentials.cy.ts
+function authEnv(env: any) {
+  return _.omitBy(env, (_value, key) => key.startsWith("envcredentials_"));
+}
+
 describe("auth", () => {
   const testToken =
     "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3NTU5Nzc0NzUsImV4cCI6MTc4NzUxMzQ3NSwiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsInhzcmZUb2tlbiI6IjIzNG5tMjM0bm0yMzQyMzQiLCJ0ZW4iOiJ0MTIzNDU2NyIsInVzZXIiOiJ0b2tlbnVzZXIiLCJiYXNlVXJsIjoiaHR0cHM6Ly9teXRlc3QuYzh5LmlvIn0.wKGIxJrUnT0NNyd198mfxegV6kncYsNFhGa6MFSSKCE";
@@ -237,8 +243,8 @@ describe("auth", () => {
           token: testToken,
           tenant: "t1234567",
         });
-        expect(Object.keys(props.env)).to.have.length(7);
-        expect(props.env).to.deep.eq({
+        expect(Object.keys(authEnv(props.env))).to.have.length(7);
+        expect(authEnv(props.env)).to.deep.eq({
           C8Y_USERNAME: "myusername",
           C8Y_PASSWORD: "mypassword",
           C8Y_TOKEN: testToken,
@@ -433,7 +439,7 @@ describe("auth", () => {
           userAlias: "admin",
           tenant: "t1234567",
         });
-        expect(props.env).to.deep.eq({
+        expect(authEnv(props.env)).to.deep.eq({
           C8Y_USERNAME: "myusername",
           C8Y_PASSWORD: "mypassword",
           admin_username: "admin",
