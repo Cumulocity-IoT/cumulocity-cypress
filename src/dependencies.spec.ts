@@ -25,14 +25,36 @@ const manifests = [
     supported: ["13.0.0", "14.5.4", "15.21.2", "16.3.0"],
   },
   {
-    // the pact runner installs its own Cypress version
+    // the pact runner installs its own Cypress version, and the published
+    // cumulocity-cypress (see "pact runner Cypress 16" below)
     name: "pact runner",
     file: "packages/pact-runner/package.json",
     lockfile: "packages/pact-runner/package-lock.json",
     cypressRange: (pkg: any) => pkg.dependencies?.cypress,
-    supported: ["15.21.2", "16.3.0"],
+    supported: ["15.21.2"],
   },
 ];
+
+// the latest published cumulocity-cypress version without Cypress 16 support
+const LAST_RELEASE_WITHOUT_CYPRESS_16 = "1.9.0";
+
+describe("pact runner Cypress 16", () => {
+  const pkg = readJson("packages/pact-runner/package.json");
+
+  // The pact runner installs cumulocity-cypress from npm, not the version of this
+  // branch. Versions up to 1.9.0 use Cypress.env(), which Cypress 16 removed, so the
+  // runner fails with Cypress 16 unless it requires a cumulocity-cypress release with
+  // Cypress 16 support. Raise its cumulocity-cypress range together with Cypress.
+  it("should only allow Cypress 16 with a cumulocity-cypress release supporting it", () => {
+    const cypressRange: string = pkg.dependencies.cypress;
+    if (!semver.intersects(cypressRange, ">=16.0.0")) return;
+    const minVersion = semver.minVersion(
+      pkg.dependencies["cumulocity-cypress"]
+    );
+    expect(minVersion).not.toBeNull();
+    expect(semver.gt(minVersion!, LAST_RELEASE_WITHOUT_CYPRESS_16)).toBe(true);
+  });
+});
 
 describe.each(manifests)("$name dependencies", (manifest) => {
   const pkg = readJson(manifest.file);
