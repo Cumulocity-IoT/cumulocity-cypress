@@ -36,6 +36,9 @@
     "cypress": "<16.0.0"
   },
   "overrides": {
-    "@cypress/request": "4.0.1"
+    "@cypress/request": "4.0.1",
+    "cumulocity-cypress": {
+      "glob": "^14.0.6"
+    }
   }
 }
