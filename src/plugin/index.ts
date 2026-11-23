@@ -586,7 +586,7 @@ export function configureC8yScreenshotPlugin(
     log(
       `Websocket server disabled. Config file will not be watched and reloaded.`
     );
-    return;
+    return exposeC8yEnv(config);
   }
 
   // only create websocket server if not in text terminal (run) and started from c8yscrn cli
@@ -627,6 +627,11 @@ export function configureC8yScreenshotPlugin(
 }
 
 /**
+ * The values `exposeC8yEnv()` copied from `config.env` into `config.expose`, per config.
+ */
+const exposedFromEnv = new WeakMap<object, Record<string, any>>();
+
+/**
  * Copies the variables of `config.env` into `config.expose`, so they can be read
  * synchronously in the browser with `Cypress.expose()`. Cypress 16 removed
  * `Cypress.env()`, and `config.env` is only readable with the asynchronous `cy.env()`
@@ -635,6 +640,9 @@ export function configureC8yScreenshotPlugin(
  * `configureC8yPlugin` and `configureC8yScreenshotPlugin` call this function. Call it
  * again at the end of `setupNodeEvents` if you set `config.env` variables after the
  * plugin has been configured.
+ *
+ * Values copied by a previous call are updated, so calling it again after changing
+ * `config.env` exposes the new values.
  *
  * Note: all variables of `config.env` are exposed to the browser, including
  * credentials, as `Cypress.env()` did before Cypress 16.
@@ -648,10 +656,22 @@ export function exposeC8yEnv(
   const configWithExpose = config as Cypress.PluginConfigOptions & {
     expose?: Record<string, any>;
   };
-  configWithExpose.expose = {
-    ...(config.env ?? {}),
-    ...(configWithExpose.expose ?? {}),
-  };
+  const expose = { ...(configWithExpose.expose ?? {}) };
+  const copied = exposedFromEnv.get(config) ?? {};
+  const nowCopied: Record<string, any> = {};
+
+  Object.entries(config.env ?? {}).forEach(([key, value]) => {
+    // a value in config.expose that was not copied from config.env has been set
+    // explicitly and is kept
+    const isExplicit =
+      key in expose && !(key in copied && copied[key] === expose[key]);
+    if (isExplicit) return;
+    expose[key] = value;
+    nowCopied[key] = value;
+  });
+
+  exposedFromEnv.set(config, nowCopied);
+  configWithExpose.expose = expose;
   return config;
 }
 

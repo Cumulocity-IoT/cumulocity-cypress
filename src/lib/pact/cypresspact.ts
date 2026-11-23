@@ -296,12 +296,16 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
       if (!isEnabled()) {
         return cy.wrap<C8yPact | null>(null, debugLogger());
       }
-      flushPendingSave();
+      // checks for a pact recorded outside of the command queue when the command runs,
+      // not when it is queued, e.g. after a queued cy.wait() for an interception
       return cy
-        .task<C8yPact | null>(
-          "c8ypact:get",
-          Cypress.c8ypact.getCurrentTestId(),
-          debugLogger()
+        .then(() => flushPendingSave())
+        .then(() =>
+          cy.task<C8yPact | null>(
+            "c8ypact:get",
+            Cypress.c8ypact.getCurrentTestId(),
+            debugLogger()
+          )
         )
         .then((pact) => {
           if (pact == null) return cy.wrap<C8yPact | null>(null, debugLogger());
