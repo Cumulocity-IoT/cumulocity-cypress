@@ -105,12 +105,20 @@ export function syncEnvToExpose(): void {
     return;
   }
 
+  // exposed values that differed from Cypress.env() when it was reset, see synced.reset
+  let preserved: Record<string, any> | undefined;
+
   const synced: any = function (this: any, ...args: any[]) {
     const result = env.apply(this, args);
+    const toPreserve = preserved;
+    preserved = undefined;
     if (isWrite(args)) {
       // the original Cypress.expose(), not the current one, which might be stubbed in a
       // test, e.g. when Cypress restores env test overrides before the stubs of the test
       callSafe(() => expose(...args));
+      if (toPreserve != null) {
+        callSafe(() => expose(toPreserve));
+      }
     }
     return result;
   };
@@ -118,15 +126,22 @@ export function syncEnvToExpose(): void {
   // Restoring env test overrides resets Cypress.env() and sets the variables of before
   // the test again. Variables only set by the override must be deleted from
   // Cypress.expose() as well: delete all variables that have the same value in both,
-  // the variables to restore are set again right after.
+  // the variables to restore are set again right after. Exposed values that differ from
+  // Cypress.env(), e.g. set explicitly in config.expose or with Cypress.expose(), are
+  // set again after the next write, which would overwrite them.
   synced.reset = function (this: any, ...args: any[]) {
     const all = env();
     const exposed = expose();
+    const differing: Record<string, any> = {};
     Object.keys(all).forEach((key) => {
-      if (key in exposed && exposed[key] === all[key]) {
+      if (!(key in exposed)) return;
+      if (exposed[key] === all[key]) {
         delete exposed[key];
+      } else {
+        differing[key] = exposed[key];
       }
     });
+    preserved = Object.keys(differing).length > 0 ? differing : undefined;
     return env.reset.apply(this, args);
   };
   synced[SYNCED] = true;

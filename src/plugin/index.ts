@@ -676,7 +676,7 @@ function toBoolean(value: any): boolean | undefined {
  * plugin has been configured.
  *
  * Values copied by a previous call are updated, so calling it again after changing
- * `config.env` exposes the new values.
+ * `config.env` exposes the new values, and removes variables removed from `config.env`.
  *
  * By default, all variables of `config.env` are exposed to the browser, including
  * credentials, as `Cypress.env()` did before Cypress 16. With `exposeCredentials: false`
@@ -704,19 +704,21 @@ export function exposeC8yEnv(
     toBoolean(config.env?.C8Y_EXPOSE_CREDENTIALS) ??
     true;
 
+  const env = config.env ?? {};
   const expose = { ...(configWithExpose.expose ?? {}) };
-  if (!exposeCredentials) {
-    // remove credentials copied by a previous call with exposeCredentials enabled
-    Object.entries(copied).forEach(([key, value]) => {
-      if (isC8yCredentialKey(key) && expose[key] === value) {
-        delete expose[key];
-      }
-    });
-  }
+  // remove variables copied by a previous call that have been removed from config.env,
+  // or that are credentials not to expose anymore, unless changed in config.expose
+  Object.entries(copied).forEach(([key, value]) => {
+    const removed = !(key in env);
+    const hidden = !exposeCredentials && isC8yCredentialKey(key);
+    if ((removed || hidden) && expose[key] === value) {
+      delete expose[key];
+    }
+  });
 
   const nowCopied: Record<string, any> = {};
   const credentialKeys: string[] = [];
-  Object.entries(config.env ?? {}).forEach(([key, value]) => {
+  Object.entries(env).forEach(([key, value]) => {
     // a value in config.expose that was not copied from config.env has been set
     // explicitly and is kept
     const isExplicit =
