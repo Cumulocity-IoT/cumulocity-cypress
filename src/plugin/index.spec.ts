@@ -55,6 +55,26 @@ describe("plugin", () => {
       });
     });
 
+    it("should remove copied variables removed from config.env when called again", () => {
+      const config: any = {
+        env: { C8Y_PACT_MODE: "recording", admin_password: "pw", C8Y_TENANT: "t1" },
+      };
+      exposeC8yEnv(config);
+      delete config.env.C8Y_PACT_MODE;
+      delete config.env.admin_password;
+      exposeC8yEnv(config);
+      expect(config.expose).toEqual({ C8Y_TENANT: "t1" });
+    });
+
+    it("should keep variables changed in config.expose when removed from config.env", () => {
+      const config: any = { env: { C8Y_PACT_MODE: "recording" } };
+      exposeC8yEnv(config);
+      config.expose.C8Y_PACT_MODE = "apply";
+      delete config.env.C8Y_PACT_MODE;
+      exposeC8yEnv(config);
+      expect(config.expose).toEqual({ C8Y_PACT_MODE: "apply" });
+    });
+
     it("should update copied values when called again", () => {
       const config: any = {
         env: { C8Y_TENANT: "old-tenant", C8Y_VERSION: "1025.0.0" },

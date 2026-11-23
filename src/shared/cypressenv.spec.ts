@@ -218,6 +218,24 @@ describe("cypressenv", () => {
       expect(c8yEnv("C8Y_PACT_MODE")).toBeUndefined();
     });
 
+    it("should keep exposed values different from Cypress.env() when restoring env test overrides", () => {
+      // e.g. a value set explicitly in config.expose, which the plugin doesn't overwrite
+      exposed.C8Y_TENANT = "t2";
+      const restore = applyOverrides({ env: { C8Y_PACT_MODE: "recording" } });
+      restore();
+      expect(global.Cypress.expose("C8Y_TENANT")).toBe("t2");
+      expect(c8yEnv("C8Y_TENANT")).toBe("t2");
+      expect(c8yEnv("C8Y_PACT_MODE")).toBeUndefined();
+    });
+
+    it("should keep values set with Cypress.expose() when restoring env test overrides", () => {
+      const restore = applyOverrides({ env: { C8Y_PACT_MODE: "recording" } });
+      global.Cypress.expose("C8Y_TENANT", "t3");
+      restore();
+      expect(global.Cypress.expose("C8Y_TENANT")).toBe("t3");
+      expect(c8yEnv("C8Y_TENANT")).toBe("t3");
+    });
+
     it("should restore test overrides while Cypress.expose() is stubbed", () => {
       // Cypress restores the test overrides before the stubs of the test
       const restore = applyOverrides({});
