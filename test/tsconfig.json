@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "rootDir": ".",
+    "rootDir": "..",
     "strictNullChecks": true,
     "target": "ES2020",
     "lib": ["dom", "dom.iterable", "ES2020"],
