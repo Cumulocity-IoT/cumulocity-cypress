@@ -31,7 +31,9 @@ describe("c8ypact intercept", () => {
   };
 
   afterEach(() => {
-    // delete recorded pacts after each test
+    // delete recorded pacts after each test. loadCurrent() first writes a pact recorded
+    // outside of the command queue (Cypress 16+), so it isn't written after the removal
+    Cypress.c8ypact.loadCurrent();
     cy.task("c8ypact:remove", Cypress.c8ypact.getCurrentTestId()).then(() => {
       Cypress.c8ypact.loadCurrent().then((pact) => {
         expect(pact).to.be.null;
@@ -359,6 +361,17 @@ describe("c8ypact intercept", () => {
             expect(r?.modifiedResponse?.body).to.have.property("fixtureTest");
           });
         });
+    });
+
+    it("should load the pact of an interception after a queued wait", () => {
+      cy.intercept("/inventory/managedObjects*", testBody)
+        .as("inventory")
+        .then(fetchInventory);
+      cy.wait("@inventory");
+      // called while queueing, the interception is recorded only when the queue runs
+      Cypress.c8ypact.loadCurrent().then((pact) => {
+        expect(pact?.records).to.have.length(1);
+      });
     });
 
     it("should intercept with RouteHandler from fixture without extension", () => {
