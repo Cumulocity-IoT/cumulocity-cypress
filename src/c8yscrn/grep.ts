@@ -12,6 +12,12 @@ const { register } = require("@cypress/grep");
  * with Cypress 15.10 and later if `allowCypressEnv` is false. `Cypress.env()` is then
  * replaced by a function using `Cypress.expose()`, where the plugin exposes the
  * variables of `config.env`, such as `grepTags`.
+ *
+ * The replacement is kept for the rest of the spec, and not restored after `register()`:
+ * `Cypress.grep()` of `@cypress/grep` writes its options with `Cypress.env()` whenever
+ * the tests are filtered again. cumulocity-cypress ignores it if `allowCypressEnv` is
+ * false, and otherwise reads and writes the same values with it as with
+ * `Cypress.expose()`.
  */
 export function registerCypressGrep(): void {
   const cypress = Cypress as any;
