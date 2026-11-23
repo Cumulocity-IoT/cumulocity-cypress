@@ -201,8 +201,30 @@
         }
       }
     },
-    "glob@^13": "^14.0.6",
-    "minimatch@>=7 <=11.0.0": "^11.0.9",
-    "test-exclude@^7": "^8.0.0"
+    "@jest/reporters": {
+      "glob": "^14.0.6"
+    },
+    "jest-config": {
+      "glob": "^14.0.6"
+    },
+    "jest-runtime": {
+      "glob": "^14.0.6"
+    },
+    "rimraf": {
+      "glob": "^14.0.6"
+    },
+    "typescript-json-schema": {
+      "glob": "^14.0.6"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.9"
+    },
+    "babel-plugin-istanbul": {
+      "test-exclude": {
+        ".": "^8.0.0",
+        "glob": "^14.0.6",
+        "minimatch": "^11.0.9"
+      }
+    }
   }
 }
