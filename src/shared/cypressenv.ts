@@ -35,6 +35,8 @@ type CypressWithEnv = {
 const SYNCED = "__c8yEnvSyncedToExpose";
 // the original Cypress.env() replaced by syncEnvToExpose()
 const UNSYNCED = "__c8yEnvUnsynced";
+// if Cypress.env() can be called, see usableEnv()
+const USABLE = "__c8yEnvUsable";
 
 /**
  * The exposed variable with the names of the credentials the plugin did not expose
@@ -70,6 +72,38 @@ function callSafe<T>(fn: () => T): T | undefined {
   }
 }
 
+/**
+ * Returns `Cypress.env()`, or undefined if it doesn't exist (Cypress 16) or is not
+ * allowed (Cypress 15.10 to 15.x with `allowCypressEnv: false`). If not allowed,
+ * Cypress logs a warning with `console.warn()` for every call before it throws, so it
+ * is called at most once to find out, and the result is kept on the function.
+ */
+function usableEnv(cypress: any): CypressEnvAccessor | undefined {
+  const env = cypress?.env;
+  if (typeof env !== "function") return undefined;
+  if (env[USABLE] === true || env[SYNCED] === true) return env;
+  if (env[USABLE] === false) return undefined;
+
+  const allowed =
+    typeof cypress.config === "function"
+      ? callSafe(() => cypress.config("allowCypressEnv"))
+      : undefined;
+  let usable = allowed !== false;
+  if (usable) {
+    try {
+      env();
+    } catch {
+      usable = false;
+    }
+  }
+  try {
+    env[USABLE] = usable;
+  } catch {
+    // ignore, e.g. if env is frozen
+  }
+  return usable ? env : undefined;
+}
+
 // the arguments of a write: (key, value) or (object), as in Cypress' setter_getter
 function isWrite(args: any[]): boolean {
   return (
@@ -95,15 +129,10 @@ function isWrite(args: any[]): boolean {
 export function syncEnvToExpose(): void {
   const cypress = cypressInstance() as any;
   if (cypress == null) return;
-  const env = cypress.env;
+  const env: any = usableEnv(cypress);
   const expose = cypress.expose;
-  if (typeof env !== "function" || typeof expose !== "function") return;
+  if (env == null || typeof expose !== "function") return;
   if (env[SYNCED] === true) return;
-  try {
-    env();
-  } catch {
-    return;
-  }
 
   // exposed values that differed from Cypress.env() when it was reset, see synced.reset
   let preserved: Record<string, any> | undefined;
@@ -219,7 +248,7 @@ export function c8yEnv(
 
   const expose =
     typeof cypress.expose === "function" ? cypress.expose : undefined;
-  const env = typeof cypress.env === "function" ? cypress.env : undefined;
+  const env = usableEnv(cypress);
 
   if (keyOrObject == null) {
     return {

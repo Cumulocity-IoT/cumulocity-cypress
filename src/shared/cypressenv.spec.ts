@@ -134,6 +134,39 @@ describe("cypressenv", () => {
       expect(() => c8yEnv("C8Y_LOGGED_IN_USER", "admin")).not.toThrow();
       expect(exposed.C8Y_LOGGED_IN_USER).toBe("admin");
     });
+
+    // With allowCypressEnv false, Cypress' Cypress.env() logs a warning with
+    // console.warn() before it throws, for every call
+    it("should call a throwing Cypress.env() only once", () => {
+      const throwing = jest.fn(() => {
+        throw new Error("Cypress.env() is not allowed");
+      });
+      global.Cypress.env = throwing;
+      c8yEnv("C8Y_TENANT");
+      c8yEnv("C8Y_USERNAME");
+      c8yEnv();
+      c8yEnv("C8Y_LOGGED_IN_USER", "admin");
+      syncEnvToExpose();
+      expect(throwing).toHaveBeenCalledTimes(1);
+      expect(c8yEnv("C8Y_LOGGED_IN_USER")).toBe("admin");
+    });
+
+    it("should not call Cypress.env() with allowCypressEnv false", () => {
+      const throwing = jest.fn(() => {
+        throw new Error("Cypress.env() is not allowed");
+      });
+      global.Cypress.env = throwing;
+      global.Cypress.config = jest.fn((key: string) =>
+        key === "allowCypressEnv" ? false : undefined
+      );
+      expect(c8yEnv("C8Y_TENANT")).toBe("exposed");
+      expect(c8yEnv("C8Y_USERNAME")).toBeUndefined();
+      expect(c8yEnv()).toEqual({ C8Y_TENANT: "exposed" });
+      c8yEnv("C8Y_LOGGED_IN_USER", "admin");
+      syncEnvToExpose();
+      expect(throwing).not.toHaveBeenCalled();
+      expect(exposed.C8Y_LOGGED_IN_USER).toBe("admin");
+    });
   });
 
   // Cypress 15.10 to 15.x have two separate stores. The plugin copies config.env into
