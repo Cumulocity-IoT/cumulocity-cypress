@@ -35,6 +35,8 @@ export const HTTP_METHODS = [
   "PROPPATCH",
   "PURGE",
   "PUT",
+  // supported by cy.intercept() and cy.request() with Cypress 15.20 and later
+  "QUERY",
   "REBIND",
   "REPORT",
   "SEARCH",
