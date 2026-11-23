@@ -3,6 +3,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as semver from "semver";
+import * as yaml from "yaml";
 
 // Checks that cumulocity-cypress and the pact runner support the Cypress versions they
 // are tested with, and that the dependencies used with them in the browser install and
@@ -14,15 +15,34 @@ function readJson(file: string): any {
   return JSON.parse(fs.readFileSync(path.join(root, file), "utf8"));
 }
 
+function lockedCypressVersion(lockfile: string): string {
+  return readJson(lockfile).packages?.["node_modules/cypress"]?.version;
+}
+
+// the Cypress versions of the cypress-compatibility job of the CI tests, e.g. "13" for
+// the latest 13.x version, as installed with npm install cypress@13
+function compatibilityTestedCypressVersions(): string[] {
+  const workflow = yaml.parse(
+    fs.readFileSync(path.join(root, ".github/workflows/test.yml"), "utf8")
+  );
+  const versions =
+    workflow?.jobs?.["cypress-compatibility"]?.strategy?.matrix?.cypress;
+  return Array.isArray(versions) ? versions.map(String) : [];
+}
+
 const manifests = [
   {
     name: "cumulocity-cypress",
     file: "package.json",
     lockfile: "package-lock.json",
     cypressRange: (pkg: any) => pkg.peerDependencies?.cypress,
-    // the versions the CI tests run with (.github/workflows/test.yml), adding Cypress
-    // 16 must not drop older versions
-    supported: ["13.0.0", "14.5.4", "15.21.2", "16.3.0"],
+    // the versions the CI tests run with (.github/workflows/test.yml): the locked
+    // version in the cypress job, and older versions in the cypress-compatibility job.
+    // Adding Cypress 16 must not drop older versions.
+    supported: [
+      ...compatibilityTestedCypressVersions(),
+      lockedCypressVersion("package-lock.json"),
+    ],
   },
   {
     // the pact runner installs its own Cypress version, and the published
@@ -31,7 +51,7 @@ const manifests = [
     file: "packages/pact-runner/package.json",
     lockfile: "packages/pact-runner/package-lock.json",
     cypressRange: (pkg: any) => pkg.dependencies?.cypress,
-    supported: ["15.21.2"],
+    supported: [lockedCypressVersion("packages/pact-runner/package-lock.json")],
   },
 ];
 
@@ -56,6 +76,18 @@ describe("pact runner Cypress 16", () => {
   });
 });
 
+describe("CI tests", () => {
+  // the dependency tests below would pass without checking older versions
+  it("should test Cypress 13, 14 and 15 in the cypress-compatibility job", () => {
+    const versions = compatibilityTestedCypressVersions();
+    for (const major of [13, 14, 15]) {
+      expect(versions.some((v) => semver.minVersion(v)?.major === major)).toBe(
+        true
+      );
+    }
+  });
+});
+
 describe.each(manifests)("$name dependencies", (manifest) => {
   const pkg = readJson(manifest.file);
   const lock = readJson(manifest.lockfile);
@@ -67,8 +99,10 @@ describe.each(manifests)("$name dependencies", (manifest) => {
     expect(semver.validRange(cypressRange)).not.toBeNull();
   });
 
+  // a version of the CI tests can be a range, e.g. "13" for the latest 13.x version
   it.each(manifest.supported)("should support Cypress %s", (version) => {
-    expect(semver.satisfies(version, cypressRange)).toBe(true);
+    expect(semver.validRange(version)).not.toBeNull();
+    expect(semver.subset(version, cypressRange)).toBe(true);
   });
 
   it("should lock Cypress within the supported range", () => {
@@ -82,7 +116,7 @@ describe.each(manifests)("$name dependencies", (manifest) => {
     (version) => {
       expect(lockedGrep?.version).toBeDefined();
       const grepPeerRange = lockedGrep.peerDependencies?.cypress ?? "*";
-      expect(semver.satisfies(version, grepPeerRange)).toBe(true);
+      expect(semver.subset(version, grepPeerRange)).toBe(true);
     }
   );
 });
