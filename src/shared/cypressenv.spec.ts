@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 
-import { c8yEnv } from "./cypressenv";
+import { c8yEnv, syncEnvToExpose } from "./cypressenv";
 
 type Store = Record<string, any>;
 
@@ -92,12 +92,29 @@ describe("cypressenv", () => {
       exposed = { C8Y_TENANT: "exposed" };
       env = { C8Y_TENANT: "env", C8Y_USERNAME: "admin" };
       global.Cypress = { expose: accessor(exposed), env: accessor(env) };
+      // as when cumulocity-cypress is loaded
+      syncEnvToExpose();
     });
 
     it("should prefer Cypress.expose() and fall back to Cypress.env()", () => {
+      exposed.C8Y_SHELL_NAME = "cockpit";
       expect(c8yEnv("C8Y_TENANT")).toBe("exposed");
       expect(c8yEnv("C8Y_USERNAME")).toBe("admin");
-      expect(c8yEnv()).toEqual({ C8Y_TENANT: "exposed", C8Y_USERNAME: "admin" });
+      expect(c8yEnv("C8Y_SHELL_NAME")).toBe("cockpit");
+      expect(c8yEnv()).toEqual({
+        C8Y_TENANT: "exposed",
+        C8Y_USERNAME: "admin",
+        C8Y_SHELL_NAME: "cockpit",
+      });
+    });
+
+    it("should see values set with Cypress.env() after the plugin exposed config.env", () => {
+      // the plugin exposed the configured value, the test changes it with Cypress.env()
+      exposed.C8Y_PACT_MODE = "apply";
+      env.C8Y_PACT_MODE = "apply";
+      global.Cypress.env("C8Y_PACT_MODE", "recording");
+      expect(c8yEnv("C8Y_PACT_MODE")).toBe("recording");
+      expect(c8yEnv().C8Y_PACT_MODE).toBe("recording");
     });
 
     it("should write to Cypress.expose() and Cypress.env()", () => {
@@ -131,6 +148,8 @@ describe("cypressenv", () => {
       env = { C8Y_TENANT: "t1", C8Y_PLUGIN_LOADED: "true" };
       exposed = { ...env };
       global.Cypress = { env: setterGetter(env), expose: setterGetter(exposed) };
+      // as when cumulocity-cypress is loaded
+      syncEnvToExpose();
     });
 
     it("should see values set with Cypress.expose()", () => {
@@ -171,6 +190,22 @@ describe("cypressenv", () => {
       expect(c8yEnv("C8Y_TENANT")).toBe("t1");
     });
 
+    it("should apply and restore an expose test override of a new variable", () => {
+      const restore = applyOverrides({ expose: { C8Y_PACT_MODE: "recording" } });
+      expect(c8yEnv("C8Y_PACT_MODE")).toBe("recording");
+      restore();
+      expect(c8yEnv("C8Y_PACT_MODE")).toBeUndefined();
+      expect(c8yEnv()).not.toHaveProperty("C8Y_PACT_MODE");
+    });
+
+    it("should keep values written in a test with an env test override", () => {
+      const restore = applyOverrides({ env: { C8Y_PACT_MODE: "recording" } });
+      c8yEnv("C8Y_LOGGED_IN_USER", "admin");
+      restore();
+      expect(c8yEnv("C8Y_LOGGED_IN_USER")).toBe("admin");
+      expect(c8yEnv("C8Y_PACT_MODE")).toBeUndefined();
+    });
+
     it("should apply and restore an env test override", () => {
       const restore = applyOverrides({
         env: { C8Y_TENANT: "t2", C8Y_PACT_MODE: "recording" },
@@ -180,6 +215,19 @@ describe("cypressenv", () => {
       restore();
       expect(c8yEnv("C8Y_TENANT")).toBe("t1");
       expect(c8yEnv("C8Y_PACT_MODE")).toBeUndefined();
+    });
+
+    it("should restore test overrides while Cypress.expose() is stubbed", () => {
+      // Cypress restores the test overrides before the stubs of the test
+      const restore = applyOverrides({});
+      const original = global.Cypress.expose;
+      global.Cypress.expose = (key?: string) => (key ? exposed[key] : exposed);
+      restore();
+      global.Cypress.expose = original;
+      expect(c8yEnv("C8Y_TENANT")).toBe("t1");
+      // tests and plugins might read Cypress.expose() directly
+      expect(global.Cypress.expose("C8Y_TENANT")).toBe("t1");
+      expect(global.Cypress.expose("C8Y_PLUGIN_LOADED")).toBe("true");
     });
 
     it("should write values readable with Cypress.env() and Cypress.expose()", () => {
@@ -230,7 +278,10 @@ describe("cypressenv", () => {
       expect(c8yEnv("C8Y_TENANT")).toBe("t123");
       c8yEnv("C8Y_LOGGED_IN_USER", "admin");
       expect(env.C8Y_LOGGED_IN_USER).toBe("admin");
-      expect(c8yEnv()).toEqual({ C8Y_TENANT: "t123", C8Y_LOGGED_IN_USER: "admin" });
+      expect(c8yEnv()).toEqual({
+        C8Y_TENANT: "t123",
+        C8Y_LOGGED_IN_USER: "admin",
+      });
     });
   });
 });

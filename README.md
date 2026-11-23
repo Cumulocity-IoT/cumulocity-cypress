@@ -194,7 +194,7 @@ before(() => {
 
 Cypress 16 removed `Cypress.env()`. Values that are read synchronously in the browser are set with `Cypress.expose()` and the `expose` configuration object instead (see [Upgrade Cypress](https://docs.cypress.io/app/references/migration-guide)). The examples in this document use `Cypress.expose()`; with older Cypress versions, use `Cypress.env()`.
 
-`cumulocity-cypress` reads and writes its variables with `Cypress.expose()` if it is available, and with `Cypress.env()` for older Cypress versions. The plugins `configureC8yPlugin` and `configureC8yScreenshotPlugin` copy all variables of `config.env` into `config.expose`, so variables from `cypress.env.json`, `CYPRESS_*` environment variables or `--env` keep working without changes. If you set `config.env` variables after the plugin has been configured, call `exposeC8yEnv(config)` at the end of `setupNodeEvents`:
+`cumulocity-cypress` reads and writes its variables with `Cypress.expose()` if it is available, and with `Cypress.env()` for older Cypress versions. With Cypress 15, where both exist, variables set with either of them, also in test overrides, are used. The plugins `configureC8yPlugin` and `configureC8yScreenshotPlugin` copy all variables of `config.env` into `config.expose`, so variables from `cypress.env.json`, `CYPRESS_*` environment variables or `--env` keep working without changes. If you set `config.env` variables after the plugin has been configured, call `exposeC8yEnv(config)` at the end of `setupNodeEvents`:
 
 ```typescript
 import { configureC8yPlugin, exposeC8yEnv } from "cumulocity-cypress/plugin";
