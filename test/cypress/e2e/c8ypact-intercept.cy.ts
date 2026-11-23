@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import { C8yDefaultPact } from "cumulocity-cypress/c8ypact";
 import { stubCypressPactConfig, url } from "../support/testutils";
 
@@ -49,7 +50,7 @@ describe("c8ypact intercept", () => {
   context("setup", () => {
     beforeEach(() => {
       cy.spy(Cypress.c8ypact, "savePact").log(false);
-      Cypress.expose("C8Y_PACT_MODE", undefined);
+      c8yEnv("C8Y_PACT_MODE", undefined);
     });
 
     afterEach(() => {
@@ -73,13 +74,13 @@ describe("c8ypact intercept", () => {
     );
 
     it("should set env variable if imported", () => {
-      expect(Cypress.expose("C8Y_PACT_INTERCEPT_IMPORTED")).to.be.true;
+      expect(c8yEnv("C8Y_PACT_INTERCEPT_IMPORTED")).to.be.true;
     });
   });
 
   context("record interceptions", () => {
     beforeEach(() => {
-      Cypress.expose("C8Y_PACT_MODE", "recording");
+      c8yEnv("C8Y_PACT_MODE", "recording");
       cy.spy(Cypress.c8ypact, "savePact").log(false);
     });
 
@@ -512,7 +513,7 @@ describe("c8ypact intercept", () => {
 
   context("recording and mocking disabled", () => {
     beforeEach(() => {
-      Cypress.expose("C8Y_PACT_MODE", "disabled");
+      c8yEnv("C8Y_PACT_MODE", "disabled");
       expect(Cypress.c8ypact.mode()).to.eq("disabled");
       expect(Cypress.c8ypact.isRecordingEnabled()).to.be.false;
       expect(Cypress.c8ypact.isMockingEnabled()).to.be.false;
@@ -635,7 +636,7 @@ describe("c8ypact intercept", () => {
   context("mock interceptions", () => {
     beforeEach(() => {
       cy.spy(Cypress.c8ypact, "savePact").log(false);
-      Cypress.expose("C8Y_PACT_MODE", "apply");
+      c8yEnv("C8Y_PACT_MODE", "apply");
     });
 
     const response: Cypress.Response<any> = {
@@ -830,7 +831,7 @@ describe("c8ypact intercept", () => {
   context("suite ignore", { c8ypact: { ignore: true } }, () => {
     beforeEach(() => {
       cy.spy(Cypress.c8ypact, "savePact").log(false);
-      Cypress.expose("C8Y_PACT_MODE", undefined);
+      c8yEnv("C8Y_PACT_MODE", undefined);
     });
 
     it("should not intercept", () => {

@@ -3,8 +3,13 @@ import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import { basicAuthorization } from "../support/testutils";
 
 // test/cypress.config.ts configures envcredentials_username and envcredentials_password
-// in config.env, and the plugin with exposeCredentials: false
-describe("credentials configured in config.env", () => {
+// in config.env, and the plugin with exposeCredentials: false. Before Cypress 15.10,
+// there is no Cypress.expose() and cy.env(), and all variables are read with
+// Cypress.env(), so exposeCredentials has no effect.
+const describeWithExpose =
+  typeof (Cypress as any).expose === "function" ? describe : describe.skip;
+
+describeWithExpose("credentials configured in config.env", () => {
   let authInBefore: C8yAuthOptions | undefined;
 
   before(() => {

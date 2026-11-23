@@ -1,5 +1,6 @@
 /// <reference types="cypress" />
 
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import {
   ScreenshotSetup,
   C8yScreenshotRunner,
@@ -67,11 +68,11 @@ describe("C8yScreenshotRunner", () => {
     });
 
     it("should initialize with config from env", () => {
-      Cypress.expose("_c8yscrnyaml", workflow);
+      c8yEnv("_c8yscrnyaml", workflow);
       const runner = new C8yScreenshotRunner();
       expect(runner).to.be.an.instanceOf(C8yScreenshotRunner);
       expect(runner.config).to.deep.eq(workflow);
-      Cypress.expose("_c8yscrnyaml", undefined);
+      c8yEnv("_c8yscrnyaml", undefined);
     });
 
     it("throws with invalid config", function (done) {

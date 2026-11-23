@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import {
   C8yAuthOptions,
   C8yDefaultPact,
@@ -15,10 +16,10 @@ import {
 
 describe("c8ypact fetchclient", () => {
   beforeEach(() => {
-    Cypress.expose("C8Y_PACT_MODE", undefined);
-    Cypress.expose("C8Y_TENANT", undefined);
-    Cypress.expose("C8Y_LOGGED_IN_USER", undefined);
-    Cypress.expose("C8Y_LOGGED_IN_USER_ALIAS", undefined);
+    c8yEnv("C8Y_PACT_MODE", undefined);
+    c8yEnv("C8Y_TENANT", undefined);
+    c8yEnv("C8Y_LOGGED_IN_USER", undefined);
+    c8yEnv("C8Y_LOGGED_IN_USER_ALIAS", undefined);
   });
 
   afterEach(() => {
@@ -40,8 +41,8 @@ describe("c8ypact fetchclient", () => {
       cy.setCookie("XSRF-TOKEN", "pQWAHZQfh")
         .setCookie("Authorization", "eyJhbGciOiJ")
         .then(() => {
-          Cypress.expose("C8Y_LOGGED_IN_USER", "test");
-          Cypress.expose("C8Y_LOGGED_IN_USER_ALIAS", "admin");
+          c8yEnv("C8Y_LOGGED_IN_USER", "test");
+          c8yEnv("C8Y_LOGGED_IN_USER_ALIAS", "admin");
           const client = new C8yPactFetchClient({
             cypresspact: Cypress.c8ypact,
           });
@@ -139,7 +140,7 @@ describe("c8ypact fetchclient", () => {
     });
 
     it("should use auth from authOptions with alias from env", () => {
-      Cypress.expose("C8Y_LOGGED_IN_USER_ALIAS", "admin3");
+      c8yEnv("C8Y_LOGGED_IN_USER_ALIAS", "admin3");
       const u = {
         user: "test3",
         password: "pvtpassword3",
@@ -171,8 +172,8 @@ describe("c8ypact fetchclient", () => {
     const log = { log: false };
 
     beforeEach(() => {
-      Cypress.expose("C8Y_PACT_MODE", "recording");
-      Cypress.expose("C8Y_LOGGED_IN_USER_ALIAS", user.userAlias);
+      c8yEnv("C8Y_PACT_MODE", "recording");
+      c8yEnv("C8Y_LOGGED_IN_USER_ALIAS", user.userAlias);
     });
 
     it("should record pact objects", () => {
@@ -396,9 +397,9 @@ describe("c8ypact fetchclient", () => {
     };
 
     beforeEach(() => {
-      Cypress.expose("C8Y_PACT_MODE", "apply");
+      c8yEnv("C8Y_PACT_MODE", "apply");
       expect(Cypress.c8ypact.isMockingEnabled()).to.be.true;
-      Cypress.expose("C8Y_LOGGED_IN_USER_ALIAS", user.userAlias);
+      c8yEnv("C8Y_LOGGED_IN_USER_ALIAS", user.userAlias);
       Cypress.c8ypact.current = C8yDefaultPact.from(response, {
         id: "123",
         baseUrl: Cypress.config("baseUrl") || "",

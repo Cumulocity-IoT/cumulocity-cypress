@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import { ICurrentTenant } from "@c8y/client";
 import {
   initRequestStub,
@@ -11,10 +12,10 @@ const auth = { user: "admin", password: "mypassword", tenant: "t12345678" };
 
 describe("c8yclient options", () => {
   beforeEach(() => {
-    Cypress.expose("C8Y_USERNAME", undefined);
-    Cypress.expose("C8Y_PASSWORD", undefined);
-    Cypress.expose("C8Y_TENANT", undefined);
-    Cypress.expose("C8Y_C8YCLIENT_TIMEOUT", undefined);
+    c8yEnv("C8Y_USERNAME", undefined);
+    c8yEnv("C8Y_PASSWORD", undefined);
+    c8yEnv("C8Y_TENANT", undefined);
+    c8yEnv("C8Y_C8YCLIENT_TIMEOUT", undefined);
 
     initRequestStub();
     stubResponses([
@@ -32,7 +33,7 @@ describe("c8yclient options", () => {
     });
 
     it("should use C8Y_C8YCLIENT_TIMEOUT env as timeout when set", () => {
-      Cypress.expose("C8Y_C8YCLIENT_TIMEOUT", 7500);
+      c8yEnv("C8Y_C8YCLIENT_TIMEOUT", 7500);
       expect(defaultClientOptions().timeout).to.eq(7500);
     });
 
@@ -202,7 +203,7 @@ describe("c8yclient options", () => {
     });
 
     it("should fail with timeout", (done) => {
-      Cypress.expose("C8Y_C8YCLIENT_TIMEOUT", 1000);
+      c8yEnv("C8Y_C8YCLIENT_TIMEOUT", 1000);
       expect(defaultClientOptions().timeout).to.eq(1000);
 
       stubResponse(
@@ -231,7 +232,7 @@ describe("c8yclient options", () => {
     });
 
     it("should not fail with timeout", () => {
-      Cypress.expose("C8Y_C8YCLIENT_TIMEOUT", 3000);
+      c8yEnv("C8Y_C8YCLIENT_TIMEOUT", 3000);
       expect(defaultClientOptions().timeout).to.eq(3000);
 
       stubResponse(
@@ -260,7 +261,7 @@ describe("c8yclient options", () => {
     it("should use per-call timeout overriding env variable (per-call > env > Cypress.config)", () => {
       // env sets a 500 ms global; the 1000 ms delayed stub would fail under that.
       // Passing { timeout: 3000 } per-call wins over the env global and the request succeeds.
-      Cypress.expose("C8Y_C8YCLIENT_TIMEOUT", 500);
+      c8yEnv("C8Y_C8YCLIENT_TIMEOUT", 500);
       expect(defaultClientOptions().timeout).to.eq(500);
 
       stubResponse(
@@ -287,7 +288,7 @@ describe("c8yclient options", () => {
 
   context("preferBasicAuth", () => {
     beforeEach(() => {
-      Cypress.expose("C8Y_TENANT", "t12345678");
+      c8yEnv("C8Y_TENANT", "t12345678");
       cy.setCookie("XSRF-TOKEN", "testxsrftoken");
     });
 
@@ -362,10 +363,10 @@ describe("c8yclient options", () => {
 
 context("c8yclientf", () => {
   beforeEach(() => {
-    Cypress.expose("C8Y_USERNAME", undefined);
-    Cypress.expose("C8Y_PASSWORD", undefined);
-    Cypress.expose("C8Y_TENANT", undefined);
-    Cypress.expose("C8Y_C8YCLIENT_TIMEOUT", undefined);
+    c8yEnv("C8Y_USERNAME", undefined);
+    c8yEnv("C8Y_PASSWORD", undefined);
+    c8yEnv("C8Y_TENANT", undefined);
+    c8yEnv("C8Y_C8YCLIENT_TIMEOUT", undefined);
 
     initRequestStub();
     stubResponses([

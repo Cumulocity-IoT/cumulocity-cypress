@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import { IUser, IUserGroup } from "@c8y/client";
 import {
   expectC8yClientRequest,
@@ -17,14 +18,14 @@ declare global {
 
 describe("administration", () => {
   beforeEach(() => {
-    Cypress.expose("C8Y_USERNAME", undefined);
-    Cypress.expose("C8Y_PASSWORD", undefined);
-    Cypress.expose("C8Y_TENANT", undefined);
-    Cypress.expose("C8Y_PLUGIN_LOADED", undefined);
-    Cypress.expose("C8Y_VERSION", undefined);
-    Cypress.expose("C8Y_SYSTEM_VERSION", undefined);
-    Cypress.expose("C8Y_SHELL_VERSION", undefined);
-    Cypress.expose("C8Y_SHELL_NAME", undefined);
+    c8yEnv("C8Y_USERNAME", undefined);
+    c8yEnv("C8Y_PASSWORD", undefined);
+    c8yEnv("C8Y_TENANT", undefined);
+    c8yEnv("C8Y_PLUGIN_LOADED", undefined);
+    c8yEnv("C8Y_VERSION", undefined);
+    c8yEnv("C8Y_SYSTEM_VERSION", undefined);
+    c8yEnv("C8Y_SHELL_VERSION", undefined);
+    c8yEnv("C8Y_SHELL_NAME", undefined);
 
     Cypress.c8ypact.current = null;
 
@@ -1305,7 +1306,7 @@ describe("administration", () => {
     });
 
     it("should use tenant id from env variable", function () {
-      Cypress.expose("C8Y_TENANT", "t232447652");
+      c8yEnv("C8Y_TENANT", "t232447652");
       cy.getAuth({ user: "admin", password: "mypassword" })
         .getTenantId()
         .then((id) => {
@@ -1315,7 +1316,7 @@ describe("administration", () => {
     });
 
     it("should prefer tenant id from auth", function () {
-      Cypress.expose("C8Y_TENANT", "t232447652");
+      c8yEnv("C8Y_TENANT", "t232447652");
       cy.getAuth({ user: "admin", password: "mypassword", tenant: "t324678" })
         .getTenantId()
         .then((id) => {
@@ -1351,7 +1352,7 @@ describe("administration", () => {
       cy.getTenantId().then((id) => {
         expect(id).to.equal("t987654321");
         expect(window.fetchStub.callCount).to.equal(0);
-        expect(Cypress.expose("C8Y_TENANT")).to.equal("t987654321");
+        expect(c8yEnv("C8Y_TENANT")).to.equal("t987654321");
       });
     });
   });
@@ -1362,7 +1363,7 @@ describe("administration", () => {
       cy.getSystemVersion().then((version) => {
         expect(version).to.equal("10.6.0");
         expect(window.fetchStub.callCount).to.equal(0);
-        expect(Cypress.expose("C8Y_VERSION")).to.equal("10.6.0");
+        expect(c8yEnv("C8Y_VERSION")).to.equal("10.6.0");
       });
     });
 
@@ -1371,7 +1372,7 @@ describe("administration", () => {
       cy.getSystemVersion().then((version) => {
         expect(version).to.equal("10.6.1");
         expect(window.fetchStub.callCount).to.equal(0);
-        expect(Cypress.expose("C8Y_SYSTEM_VERSION")).to.equal("10.6.1");
+        expect(c8yEnv("C8Y_SYSTEM_VERSION")).to.equal("10.6.1");
       });
     });
 
@@ -1393,8 +1394,8 @@ describe("administration", () => {
         .then((version) => {
           expect(version).to.equal("10.1.11");
           expect(window.fetchStub.callCount).to.equal(1);
-          expect(Cypress.expose("C8Y_SYSTEM_VERSION")).to.equal("10.1.11");
-          expect(Cypress.expose("C8Y_VERSION")).to.equal("10.1.11");
+          expect(c8yEnv("C8Y_SYSTEM_VERSION")).to.equal("10.1.11");
+          expect(c8yEnv("C8Y_VERSION")).to.equal("10.1.11");
         });
     });
 
@@ -1410,8 +1411,8 @@ describe("administration", () => {
       cy.getSystemVersion().then((version) => {
         expect(version).to.equal("10.8.1");
         expect(window.fetchStub.callCount).to.equal(0);
-        expect(Cypress.expose("C8Y_SYSTEM_VERSION")).to.equal("10.8.1");
-        expect(Cypress.expose("C8Y_VERSION")).to.equal("10.8.1");
+        expect(c8yEnv("C8Y_SYSTEM_VERSION")).to.equal("10.8.1");
+        expect(c8yEnv("C8Y_VERSION")).to.equal("10.8.1");
       });
     });
   });
@@ -1446,8 +1447,8 @@ describe("administration", () => {
         .then((version) => {
           expect(version).to.equal("10.2.11");
           expect(window.fetchStub.callCount).to.equal(1);
-          expect(Cypress.expose("C8Y_SHELL_VERSION")).to.equal("10.2.11");
-          expect(Cypress.expose("C8Y_SHELL_NAME")).to.equal("cockpit2");
+          expect(c8yEnv("C8Y_SHELL_VERSION")).to.equal("10.2.11");
+          expect(c8yEnv("C8Y_SHELL_NAME")).to.equal("cockpit2");
           expectC8yClientRequest({
             url: `${Cypress.config().baseUrl}/apps/cockpit2/cumulocity.json`,
             auth,
@@ -1478,8 +1479,8 @@ describe("administration", () => {
             url: `${Cypress.config().baseUrl}/apps/mycockpit/cumulocity.json`,
             auth,
           });
-          expect(Cypress.expose("C8Y_SHELL_VERSION")).to.equal("10.1.11");
-          expect(Cypress.expose("C8Y_SHELL_NAME")).to.equal("mycockpit");
+          expect(c8yEnv("C8Y_SHELL_VERSION")).to.equal("10.1.11");
+          expect(c8yEnv("C8Y_SHELL_NAME")).to.equal("mycockpit");
         });
     });
   });

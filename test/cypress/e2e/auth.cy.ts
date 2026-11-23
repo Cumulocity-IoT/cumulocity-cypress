@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import { BearerAuthFromSessionStorage, IDeviceCredentials } from "@c8y/client";
 import {
   url as _url,
@@ -18,9 +19,9 @@ describe("auth", () => {
     "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3NTU5Nzc0NzUsImV4cCI6MTc4NzUxMzQ3NSwiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsInhzcmZUb2tlbiI6IjIzNG5tMjM0bm0yMzQyMzQiLCJ0ZW4iOiJ0MTIzNDU2NyIsInVzZXIiOiJ0b2tlbnVzZXIiLCJiYXNlVXJsIjoiaHR0cHM6Ly9teXRlc3QuYzh5LmlvIn0.wKGIxJrUnT0NNyd198mfxegV6kncYsNFhGa6MFSSKCE";
 
   beforeEach(() => {
-    Object.keys(Cypress.expose()).forEach((key) => Cypress.expose(key, undefined));
-    Cypress.expose("C8Y_TENANT", "t1234567");
-    Cypress.expose("myauthuser_password", "myadminpassword");
+    Object.keys(c8yEnv()).forEach((key) => c8yEnv(key, undefined));
+    c8yEnv("C8Y_TENANT", "t1234567");
+    c8yEnv("myauthuser_password", "myadminpassword");
   });
 
   context("getAuth", () => {
@@ -59,7 +60,7 @@ describe("auth", () => {
           expect(result?.password).to.eq("other");
           expect(result?.tenant).to.eq("t1234567");
         });
-      Cypress.expose("admin_password", "password");
+      c8yEnv("admin_password", "password");
       cy.wrap("admin")
         .getAuth()
         .then((result) => {
@@ -115,7 +116,7 @@ describe("auth", () => {
     });
 
     it("should work without tenant environment variable", () => {
-      Cypress.expose("C8Y_TENANT", undefined);
+      c8yEnv("C8Y_TENANT", undefined);
       cy.wrap({ user: "admin", password: "password" })
         .getAuth()
         .then((result) => {

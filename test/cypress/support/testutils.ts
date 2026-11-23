@@ -1,6 +1,7 @@
 import { IncomingMessage } from "http";
 import { getBaseUrlFromEnv } from "../../../src/lib/utils";
 import { encodeBase64 } from "../../../src/shared/auth";
+import { c8yEnv } from "../../../src/shared/cypressenv";
 import * as setCookieParser from "set-cookie-parser";
 import { C8yTenant } from "../../../src/shared/types";
 
@@ -56,7 +57,7 @@ export function initLoginRequestStub(
   tenant?: C8yTenant
 ): void {
   cypressBackendStub = cy.stub(Cypress, "backend").callThrough();
-  Cypress.expose("C8Y_TENANT", tenant);
+  c8yEnv("C8Y_TENANT", tenant);
   const headers = new Headers();
   if (authorization) {
     headers.append(
@@ -469,18 +470,23 @@ export function getMessageForLogSpy(spy: sinon.SinonSpy, name: string): any {
 }
 
 /**
- * Stub Cypress.expose() with the given env object. Use when testing different values of
- * env variables in your tests.
+ * Stub the Cypress environment with the given env object: `Cypress.expose()`, or
+ * `Cypress.env()` before Cypress 15.10, which `c8yEnv()` reads from. Use when testing
+ * different values of env variables in your tests.
  * @param env The env object to stub
  */
 export function stubEnv(env: any, log: boolean = false): void {
-  const cypressEnv = Cypress.expose();
   if (envStub != null) {
     envStub.restore();
     envStub = undefined;
   }
+  const accessor =
+    typeof (Cypress as any).expose === "function" ? "expose" : "env";
+  // the store of the stubbed function, not a copy, so values written while stubbed are
+  // kept after the stub is restored
+  const cypressEnv = (Cypress as any)[accessor]();
   envStub = cy
-    .stub(Cypress, "expose")
+    .stub(Cypress, accessor as any)
     .log(log)
     .callsFake((key: string, value: any) => {
       if (key != null && value == null) {

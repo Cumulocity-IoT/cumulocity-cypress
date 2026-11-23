@@ -231,6 +231,16 @@ describe("cypressenv", () => {
       expect(global.Cypress.expose("C8Y_PLUGIN_LOADED")).toBe("true");
     });
 
+    it("should write to a stubbed Cypress.expose() only through the stub", () => {
+      // e.g. stubEnv() of the test project, which ignores writes of undefined
+      const stub = jest.fn();
+      global.Cypress.expose = stub;
+      c8yEnv("C8Y_TENANT", undefined);
+      expect(stub).toHaveBeenCalledWith("C8Y_TENANT", undefined);
+      expect(exposed.C8Y_TENANT).toBe("t1");
+      expect(env).toHaveProperty("C8Y_TENANT", undefined);
+    });
+
     it("should write values readable with Cypress.env() and Cypress.expose()", () => {
       c8yEnv("C8Y_LOGGED_IN_USER", "admin");
       expect(global.Cypress.env("C8Y_LOGGED_IN_USER")).toBe("admin");

@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import {
   C8yDefaultPactRunner,
   C8yDefaultPactRecord,
@@ -44,16 +45,16 @@ class C8yTestPactRunner extends C8yDefaultPactRunner {
 
 describe("c8ypactrunner", () => {
   beforeEach(() => {
-    Cypress.expose("C8Y_USERNAME", undefined);
-    Cypress.expose("C8Y_PASSWORD", undefined);
-    Cypress.expose("C8Y_TENANT", undefined);
+    c8yEnv("C8Y_USERNAME", undefined);
+    c8yEnv("C8Y_PASSWORD", undefined);
+    c8yEnv("C8Y_TENANT", undefined);
   });
 
   context("C8yDefaultPactRunner", function () {
     let runner: C8yTestPactRunner;
 
     beforeEach(() => {
-      Cypress.expose("C8Y_PACT_MODE", "apply");
+      c8yEnv("C8Y_PACT_MODE", "apply");
       runner = new C8yTestPactRunner();
       runner.addReplacementId("68124542292", "57124692250");
       runner.addReplacementId("75117556935", "87117556934");
@@ -148,7 +149,7 @@ describe("c8ypactrunner", () => {
     });
 
     it("should update tenants in body with baseUrl and C8Y_TENANT", function () {
-      Cypress.expose("C8Y_TENANT", "t123456789");
+      c8yEnv("C8Y_TENANT", "t123456789");
       Cypress.config().baseUrl = "https://test.eu-latest.cumulocity.com";
       expect(
         runner.test_updateURLs(
@@ -182,7 +183,7 @@ describe("c8ypactrunner", () => {
     });
 
     it("should update tenants with different instance", function () {
-      Cypress.expose("C8Y_TENANT", "t123456789");
+      c8yEnv("C8Y_TENANT", "t123456789");
       Cypress.config().baseUrl = "https://test.us.cumulocity.com";
       expect(
         runner.test_updateURLs(
