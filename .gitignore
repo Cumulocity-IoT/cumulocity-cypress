@@ -4,3 +4,4 @@ test/cypress/fixtures/c8ypact
 .env
 yalc.lock
 .yalc
+test/c8yscrn/out

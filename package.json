@@ -10,6 +10,8 @@
     "cypress:run": "cross-env TZ=Europe/Berlin cypress run --project test --browser chrome --config video=false",
     "cypress:open": "cross-env TZ=Europe/Berlin start-server-and-test start:cypress:server http://localhost:8080 cypress:debug",
     "cypress:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 cypress open --project test",
+    "test:c8yscrn": "start-server-and-test start:cypress:server http://localhost:8080 c8yscrn:smoke",
+    "c8yscrn:smoke": "cross-env C8Y_DISABLE_WEBSOCKET=true node dist/c8yscrn/c8yscrn.js run --config test/c8yscrn/smoke.config.yaml --folder test/c8yscrn/out --clear --browser chrome",
     "jest": "npm run jest:run",
     "jest:run": "jest --config jest.config.mjs",
     "clean": "rimraf dist/ && rimraf 'packages/**/dist/' && rimraf 'packages/**/.yalc' && rimraf 'packages/pactrunner/yalc.lock'",

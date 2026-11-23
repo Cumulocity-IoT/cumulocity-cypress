@@ -58,6 +58,11 @@ jobs:
             fi
           done
 
+      # runs the c8yscrn CLI of the build with the installed Cypress version, including the
+      # plugins it loads in the browser (e.g. @cypress/grep)
+      - name: Run c8yscrn smoke test
+        run: npm run test:c8yscrn
+
   pact-runner:
     runs-on: ubuntu-latest
 

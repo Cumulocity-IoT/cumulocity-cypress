@@ -1,0 +1,15 @@
+# Smoke test of the c8yscrn CLI (npm run test:c8yscrn): takes one screenshot of a page of
+# the test server. Fails if the CLI can't run with the installed Cypress version, e.g. if
+# a plugin it loads, such as @cypress/grep, doesn't support it.
+title: "c8yscrn smoke test"
+baseUrl: "http://localhost:8080"
+
+global:
+  viewportWidth: 800
+  viewportHeight: 600
+  # the test page is no Cumulocity application, wait for an element of the page instead
+  visitWaitSelector: "#foo"
+
+screenshots:
+  - image: "/smoke/highlight.png"
+    visit: "/highlight.html"
