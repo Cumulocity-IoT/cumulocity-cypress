@@ -6,6 +6,10 @@ on:
       - main
       - develop
       - merge/*
+  push:
+    branches:
+      - main
+      - develop
 
 permissions:
   contents: read
@@ -47,11 +51,18 @@ jobs:
       - name: Run Cypress tests
         run: npm run cypress
 
-  # cumulocity-cypress supports Cypress >=15.10.0 <17.0.0 (peerDependencies), the job above
-  # runs the tests with the locked Cypress 16. 15.21.2 is the first Cypress 15 version that
-  # runs with Chrome 158 and later.
-  cypress-15:
+  # The cypress job tests the Cypress version from package-lock.json (Cypress 16). This
+  # job tests the older major versions within the supported peer dependency range
+  # (>=15.10.0 <17.0.0). 15.21.2 is the first Cypress 15 version that runs with Chrome 158
+  # and later. Node 24, as the locked Cypress 16 requires Node 22 or later to install.
+  cypress-compatibility:
+    name: cypress ${{ matrix.cypress }}
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        cypress: ["15.21.2"]
 
     steps:
       - name: Checkout code
@@ -63,10 +74,13 @@ jobs:
           node-version: 24
 
       - name: Install dependencies
-        run: |
-          npm ci
-          npm install --no-save --no-audit --no-fund cypress@15.21.2
-          npx cypress version
+        run: npm ci
+
+      - name: Install Cypress ${{ matrix.cypress }}
+        run: npm install --no-save --no-audit --no-fund cypress@${{ matrix.cypress }}
+
+      - name: Verify Cypress version
+        run: npx cypress verify && npx cypress version
 
       - name: Run Cypress tests
         run: npm run cypress
