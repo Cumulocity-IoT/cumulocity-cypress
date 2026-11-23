@@ -8,6 +8,8 @@
     "test": "npm run jest:run && npm run cypress",
     "cypress": "cross-env TZ=Europe/Berlin start-server-and-test start:cypress:server http://localhost:8080 cypress:run",
     "cypress:run": "cross-env TZ=Europe/Berlin cypress run --project test --browser chrome --config video=false",
+    "cypress:exposed": "cross-env C8Y_EXPOSE_CREDENTIALS=true start-server-and-test start:cypress:server http://localhost:8080 cypress:run:exposed",
+    "cypress:run:exposed": "cross-env TZ=Europe/Berlin cypress run --project test --browser chrome --config video=false --spec test/cypress/e2e/env-credentials.cy.ts",
     "cypress:open": "cross-env TZ=Europe/Berlin start-server-and-test start:cypress:server http://localhost:8080 cypress:debug",
     "cypress:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 cypress open --project test",
     "test:c8yscrn": "start-server-and-test start:cypress:server http://localhost:8080 c8yscrn:smoke",

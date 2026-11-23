@@ -3,13 +3,45 @@ import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import { basicAuthorization } from "../support/testutils";
 
 // test/cypress.config.ts configures envcredentials_username and envcredentials_password
-// in config.env, and the plugin with exposeCredentials: false. Before Cypress 15.10,
-// there is no Cypress.expose() and cy.env(), and all variables are read with
-// Cypress.env(), so exposeCredentials has no effect.
-const describeWithExpose =
-  typeof (Cypress as any).expose === "function" ? describe : describe.skip;
+// in config.env, and the plugin with exposeCredentials: false, or, with
+// npm run cypress:exposed, the default exposeCredentials: true (_testExposeCredentials).
+// Before Cypress 15.10, there is no Cypress.expose() and cy.env(), and all variables are
+// read with Cypress.env(), so exposeCredentials has no effect.
+const hasExpose = typeof (Cypress as any).expose === "function";
+const exposeCredentials = c8yEnv("_testExposeCredentials") === true;
+const describeNotExposed =
+  hasExpose && !exposeCredentials ? describe : describe.skip;
+const describeExposed =
+  hasExpose && exposeCredentials ? describe : describe.skip;
 
-describeWithExpose("credentials configured in config.env", () => {
+describeExposed("credentials exposed from config.env", () => {
+  it("should expose credentials", () => {
+    expect(Cypress.expose("envcredentials_password")).to.eq("envpassword");
+    expect(Cypress.expose("envcredentials_username")).to.eq("envuser");
+    expect(Cypress.expose("_c8yCredentialKeys")).to.be.undefined;
+  });
+
+  it("should use exposed credentials", () => {
+    expect(c8yEnv("envcredentials_password")).to.eq("envpassword");
+    cy.getAuth("envcredentials").then((auth) => {
+      expect(auth).to.deep.include({
+        user: "envuser",
+        password: "envpassword",
+        userAlias: "envcredentials",
+      });
+    });
+  });
+
+  it("should send exposed credentials", { auth: "envcredentials" }, () => {
+    cy.request("/my/test/request").then((response) => {
+      expect(response.body.request.auth).to.eq(
+        basicAuthorization("envuser", "envpassword")
+      );
+    });
+  });
+});
+
+describeNotExposed("credentials configured in config.env", () => {
   let authInBefore: C8yAuthOptions | undefined;
 
   before(() => {

@@ -51,6 +51,10 @@ jobs:
       - name: Run Cypress tests
         run: npm run cypress
 
+      # the tests run with exposeCredentials false, this tests the default
+      - name: Run Cypress tests with exposed credentials
+        run: npm run cypress:exposed
+
   # The cypress job tests the Cypress version from package-lock.json (Cypress 16). This
   # job tests the older major versions within the supported peer dependency range, and
   # runs the c8yscrn CLI with them. 15.21.2 is the first Cypress 15 version that runs
@@ -85,6 +89,11 @@ jobs:
 
       - name: Run Cypress tests
         run: npm run cypress
+
+      # Cypress 13 and 14 have no Cypress.expose(), so the option has no effect
+      - name: Run Cypress tests with exposed credentials
+        if: matrix.cypress == '15.21.2'
+        run: npm run cypress:exposed
 
       - name: Run c8yscrn smoke test
         run: |
