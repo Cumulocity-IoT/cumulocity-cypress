@@ -88,3 +88,9 @@ jobs:
         run: |
           cd packages/pact-runner
           npm run package:dev
+
+      # runs the pact runner built with the package of this branch against the test server:
+      # replays test/pact-runner/smoke.json, which expects the echo of a request with basic
+      # auth credentials read from the Cypress environment
+      - name: Run pact runner smoke test
+        run: npm run test:pact-runner

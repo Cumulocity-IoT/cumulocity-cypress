@@ -12,6 +12,8 @@
     "cypress:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 cypress open --project test",
     "test:c8yscrn": "start-server-and-test start:cypress:server http://localhost:8080 c8yscrn:smoke",
     "c8yscrn:smoke": "cross-env C8Y_DISABLE_WEBSOCKET=true node dist/c8yscrn/c8yscrn.js run --config test/c8yscrn/smoke.config.yaml --folder test/c8yscrn/out --clear --browser chrome",
+    "test:pact-runner": "start-server-and-test start:cypress:server http://localhost:8080 pact-runner:smoke",
+    "pact-runner:smoke": "npm --prefix packages/pact-runner run cypress -- --browser chrome --config video=false,screenshotOnRunFailure=false --env C8Y_PACT_MODE=apply,C8Y_PACT_RUNNER_FOLDER=../../test/pact-runner,C8Y_PACT_RUNNER_AUTH=BasicAuth,baseUrl=http://localhost:8080,C8Y_TENANT=t123456,admin_username=admin,admin_password=smoke",
     "jest": "npm run jest:run",
     "jest:run": "jest --config jest.config.mjs",
     "clean": "rimraf dist/ && rimraf 'packages/**/dist/' && rimraf 'packages/**/.yalc' && rimraf 'packages/pactrunner/yalc.lock'",
