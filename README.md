@@ -106,7 +106,7 @@ npm install --save-dev cumulocity-cypress
 
 Make sure the following dependencies are installed in your project:
 
-- `cypress` 15.10.0 or later (the first version with `Cypress.expose()`), up to Cypress 16
+- `cypress` up to Cypress 16, tested with Cypress 13, 14, 15 and 16
 - `@c8y/client`
 - `angular-common`
 
@@ -216,9 +216,9 @@ By default, exposed variables, including credentials, are readable in the browse
 configureC8yPlugin(on, config, { exposeCredentials: false });
 ```
 
-Passwords and tokens of `config.env` (`C8Y_PASSWORD`, `C8Y_TOKEN`, `C8Y_AUTHORIZATION`, `C8Y_XSRF_TOKEN`, and variables ending with `_password` or `_token`, such as `admin_password`) are then not copied into `config.expose`. `cumulocity-cypress` reads them with `cy.env()` before each spec and test, so commands such as `cy.getAuth()`, `cy.login()` and `cy.c8yclient()` use them as before. Usernames and all other variables are still exposed. Credentials set with `Cypress.expose()` are preferred. This requires Cypress 15.10 or later.
+Passwords and tokens of `config.env` (`C8Y_PASSWORD`, `C8Y_TOKEN`, `C8Y_AUTHORIZATION`, `C8Y_XSRF_TOKEN`, and variables ending with `_password` or `_token`, such as `admin_password`) are then not copied into `config.expose`. `cumulocity-cypress` reads them with `cy.env()` before each spec and test, so commands such as `cy.getAuth()`, `cy.login()` and `cy.c8yclient()` use them as before. Usernames and all other variables are still exposed. Credentials set with `Cypress.expose()` are preferred. This requires Cypress 15.10 or later. With older versions, which have no `Cypress.expose()` and `cy.env()`, all variables are read with `Cypress.env()`, and the option has no effect.
 
-If your project registers [`@cypress/grep`](https://www.npmjs.com/package/@cypress/grep) itself, use `@cypress/grep` 6 or later with Cypress 16. Older versions read their options with `Cypress.env()` and fail when the spec is loaded. As the plugin exposes `config.env`, `--env grepTags=...` keeps working; with Cypress 16 you can also use `--expose grepTags=...`.
+If your project registers [`@cypress/grep`](https://www.npmjs.com/package/@cypress/grep) itself, use `@cypress/grep` 6 or later with Cypress 16. Older versions read their options with `Cypress.env()` and fail when the spec is loaded. `cumulocity-cypress` itself depends on `@cypress/grep` 5, as later versions don't install with Cypress 13 and 14, and makes it work with Cypress 16 for `c8yscrn`. As the plugin exposes `config.env`, `--env grepTags=...` keeps working; with Cypress 16 you can also use `--expose grepTags=...`.
 
 ### Environment variables from go-c8y-cli
 

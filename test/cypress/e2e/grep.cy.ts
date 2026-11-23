@@ -1,14 +1,13 @@
-import { register as registerCypressGrep } from "@cypress/grep";
+import { registerCypressGrep } from "cumulocity-cypress/c8yscrn/grep";
 
-// c8yscrn (src/c8yscrn/cypress/screenshots.cy.js) and the pact runner
-// (packages/pact-runner/cypress/e2e/pact-runner.cy.ts) register @cypress/grep in the
-// same way, when the spec is loaded. If the installed @cypress/grep doesn't support the
-// installed Cypress version, e.g. @cypress/grep 5 with Cypress 16, which removed
-// Cypress.env(), registering throws and no test of the spec runs.
+// c8yscrn (src/c8yscrn/cypress/screenshots.cy.js) registers @cypress/grep in the same
+// way, when the spec is loaded. If @cypress/grep doesn't work with the installed
+// Cypress version, e.g. @cypress/grep 5 with Cypress 16, which removed Cypress.env(),
+// registering throws and no test of the spec runs.
 registerCypressGrep();
 
 describe("@cypress/grep", () => {
   it("should register with the installed Cypress version", () => {
-    expect(Cypress.grep).to.be.a("function");
+    expect((Cypress as any).grep).to.be.a("function");
   });
 });
