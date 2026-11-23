@@ -603,8 +603,11 @@ async function savePactRecords(
       }
       if (!r) {
         consoleProps.discarded = "on.saveRecord()";
+        logger?.end();
         return;
       }
+      // save the returned record, which can be a new object
+      pact = { ...pact, records: [r, ...pact.records.slice(1)] };
     }
 
     if (Cypress.c8ypact.current == null) {
@@ -641,8 +644,9 @@ async function savePactRecords(
       logger?.end();
       return;
     }
-    consoleProps.pact = Cypress.c8ypact.current;
-    save(Cypress.c8ypact.current, options);
+    // save the returned pact, which can be a new object
+    consoleProps.pact = pactToSave;
+    save(pactToSave, options);
   } catch (error) {
     consoleProps.error = error;
     console.error("Failed to save pact. ", error);

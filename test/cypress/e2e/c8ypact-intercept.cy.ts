@@ -80,6 +80,8 @@ describe("c8ypact intercept", () => {
 
   context("record interceptions", () => {
     beforeEach(() => {
+      // callbacks set by a test must not be used by the following tests
+      Cypress.c8ypact.on = {};
       c8yEnv("C8Y_PACT_MODE", "recording");
       cy.spy(Cypress.c8ypact, "savePact").log(false);
     });
@@ -462,6 +464,50 @@ describe("c8ypact intercept", () => {
             expect(pact?.records).to.have.length(1);
             const r = pact?.records[0];
             expect(r?.response.status).to.eq(299);
+          });
+        });
+    });
+
+    // the callbacks return the pact and record to save, which can be new objects
+    it("should save the pact returned by the savePact callback", () => {
+      Cypress.c8ypact.on.savePact = (pact) => {
+        return {
+          ...pact,
+          records: pact.records.map((r) => ({
+            ...r,
+            response: { ...r.response, status: 298 },
+          })),
+        } as any;
+      };
+
+      cy.intercept("/inventory/managedObjects*", testBody)
+        .as("inventory")
+        .then(fetchInventory)
+        .wait("@inventory")
+        .then(() => {
+          Cypress.c8ypact.loadCurrent().then((pact) => {
+            expect(pact?.records).to.have.length(1);
+            expect(pact?.records[0].response.status).to.eq(298);
+          });
+        });
+    });
+
+    it("should save the record returned by the saveRecord callback", () => {
+      Cypress.c8ypact.on.saveRecord = (record) => {
+        return {
+          ...record,
+          response: { ...record.response, status: 298 },
+        } as any;
+      };
+
+      cy.intercept("/inventory/managedObjects*", testBody)
+        .as("inventory")
+        .then(fetchInventory)
+        .wait("@inventory")
+        .then(() => {
+          Cypress.c8ypact.loadCurrent().then((pact) => {
+            expect(pact?.records).to.have.length(1);
+            expect(pact?.records[0].response.status).to.eq(298);
           });
         });
     });
