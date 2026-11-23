@@ -106,7 +106,7 @@ npm install --save-dev cumulocity-cypress
 
 Make sure the following dependencies are installed in your project:
 
-- `cypress`
+- `cypress` 15.10.0 or later (the first version with `Cypress.expose()`), up to Cypress 16
 - `@c8y/client`
 - `angular-common`
 
@@ -211,6 +211,8 @@ module.exports = defineConfig({
 ```
 
 Exposed variables, including credentials, are readable in the browser, as they were with `Cypress.env()`.
+
+If your project registers [`@cypress/grep`](https://www.npmjs.com/package/@cypress/grep) itself, use `@cypress/grep` 6 or later with Cypress 16. Older versions read their options with `Cypress.env()` and fail when the spec is loaded. As the plugin exposes `config.env`, `--env grepTags=...` keeps working; with Cypress 16 you can also use `--expose grepTags=...`.
 
 ### Environment variables from go-c8y-cli
 
