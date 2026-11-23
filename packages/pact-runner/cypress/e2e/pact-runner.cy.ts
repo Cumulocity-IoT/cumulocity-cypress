@@ -20,7 +20,7 @@ beforeEach(() => {
 
 // Cypress 16 removed Cypress.env(). Reads like c8yEnv() of cumulocity-cypress, which
 // the installed version might not have yet: Cypress.expose() first, Cypress.env() for
-// variables that are not exposed. configureC8yPlugin() exposes config.env, incl. _pacts.
+// variables that are not exposed. cypress.config.ts exposes _pacts.
 function envValue(key: string): any {
   const cypress = Cypress as any;
   if (typeof cypress.expose === "function") {
