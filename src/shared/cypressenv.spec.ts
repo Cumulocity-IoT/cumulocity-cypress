@@ -1,6 +1,11 @@
 /// <reference types="jest" />
 
-import { c8yEnv, loadC8yCredentials, syncEnvToExpose } from "./cypressenv";
+import {
+  c8yEnv,
+  loadC8yCredentials,
+  registerC8yCredentialHooks,
+  syncEnvToExpose,
+} from "./cypressenv";
 
 type Store = Record<string, any>;
 
@@ -411,6 +416,43 @@ describe("cypressenv", () => {
       global.cy = {};
       expect(() => loadC8yCredentials()).not.toThrow();
       expect(c8yEnv("admin_password")).toBeUndefined();
+    });
+  });
+
+  describe("registerC8yCredentialHooks", () => {
+    afterEach(() => {
+      delete global.before;
+      delete global.beforeEach;
+    });
+
+    it("should register before and beforeEach hooks once", () => {
+      global.Cypress = { expose: accessor({}) };
+      global.before = jest.fn();
+      global.beforeEach = jest.fn();
+      registerC8yCredentialHooks();
+      registerC8yCredentialHooks();
+      expect(global.before).toHaveBeenCalledTimes(1);
+      expect(global.beforeEach).toHaveBeenCalledTimes(1);
+    });
+
+    it("should register the hooks again for a new Cypress instance", () => {
+      global.before = jest.fn();
+      global.beforeEach = jest.fn();
+      global.Cypress = { expose: accessor({}) };
+      registerC8yCredentialHooks();
+      global.Cypress = { expose: accessor({}) };
+      registerC8yCredentialHooks();
+      expect(global.before).toHaveBeenCalledTimes(2);
+    });
+
+    it("should do nothing without Cypress or mocha hooks", () => {
+      expect(() => registerC8yCredentialHooks()).not.toThrow();
+      global.Cypress = { expose: accessor({}) };
+      expect(() => registerC8yCredentialHooks()).not.toThrow();
+      global.before = jest.fn();
+      global.beforeEach = jest.fn();
+      registerC8yCredentialHooks();
+      expect(global.before).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -19,9 +19,14 @@ import { getEnvVar } from "../shared/c8ypact/c8ypact";
 import { toSemverVersion } from "../shared/versioning";
 import { get_i } from "../shared/util";
 import { normalizeBaseUrl } from "../shared/url";
-import { c8yEnv } from "../shared/cypressenv";
+import { c8yEnv, registerC8yCredentialHooks } from "../shared/cypressenv";
 
 const { _ } = Cypress;
+
+// With exposeCredentials: false, credentials are not exposed, and read with cy.env()
+// before each spec and test. Registered here, as all commands and pact modules that
+// read credentials use this module, also if loaded without cumulocity-cypress/commands.
+registerC8yCredentialHooks();
 
 /**
  * Helper to normalize any given arguments and Cypress `prevSubject`.

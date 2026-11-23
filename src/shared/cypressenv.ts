@@ -206,6 +206,33 @@ export function loadC8yCredentials(): any {
   });
 }
 
+// set on the Cypress instance when the hooks of registerC8yCredentialHooks() are
+// registered, to register them once if this module is bundled more than once
+const CREDENTIAL_HOOKS = "__c8yCredentialHooks";
+
+/**
+ * Registers `before` and `beforeEach` hooks that read the credentials the plugin did
+ * not expose (`exposeCredentials: false`) with {@link loadC8yCredentials}: before each
+ * spec, for `before()` hooks, and before each test, to see test overrides. Registers
+ * them once per spec, and does nothing outside of a spec.
+ *
+ * Called when a module of cumulocity-cypress that reads credentials is loaded.
+ */
+export function registerC8yCredentialHooks(): void {
+  const cypress = cypressInstance() as any;
+  const global = globalThis as any;
+  if (cypress == null || cypress[CREDENTIAL_HOOKS] === true) return;
+  if (
+    typeof global.before !== "function" ||
+    typeof global.beforeEach !== "function"
+  ) {
+    return;
+  }
+  cypress[CREDENTIAL_HOOKS] = true;
+  global.before(() => loadC8yCredentials());
+  global.beforeEach(() => loadC8yCredentials());
+}
+
 function pickDefined(values: Record<string, any> | undefined) {
   const result: Record<string, any> = {};
   Object.entries(values ?? {}).forEach(([key, value]) => {
