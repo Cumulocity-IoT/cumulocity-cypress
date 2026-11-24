@@ -93,7 +93,7 @@ export class C8yDefaultPactMatcher implements C8yPactMatcher {
    * These should be treated as regular object properties.
    * @see https://json-schema.org/understanding-json-schema/reference
    */
-  private static readonly JSON_SCHEMA_KEYWORDS = new Set([
+  static readonly JSON_SCHEMA_KEYWORDS: ReadonlySet<string> = new Set([
     "$schema",
     "$id",
     "$ref",

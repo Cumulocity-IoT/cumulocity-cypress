@@ -1045,6 +1045,338 @@ describe("resolvePact", () => {
     });
   });
 
+  describe("JSON Schema $refs to files", () => {
+    const PACTS = path.join(CWD, "pacts");
+
+    const deviceSchema = {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        c8y_Position: { $ref: "#/definitions/position" },
+      },
+      required: ["id"],
+      definitions: {
+        position: { type: "object", properties: { lat: { type: "number" } } },
+      },
+    };
+
+    const pactWithResponse = (response: any, options?: any) => ({
+      records: [
+        {
+          request: { url: "/inventory/managedObjects/1", method: "GET" },
+          response: { status: 200, ...response },
+          ...(options ? { options } : {}),
+        },
+      ],
+      id: defaultPactId,
+      info: defaultPactInfo,
+    });
+
+    beforeEach(() => {
+      jest.spyOn(process, "cwd").mockReturnValue(CWD);
+      vol.fromNestedJSON({
+        [PACTS]: {
+          schemas: {
+            "device.json": JSON.stringify(deviceSchema),
+            "common.json": JSON.stringify({
+              definitions: {
+                device: {
+                  type: "object",
+                  properties: {
+                    position: { $ref: "#/definitions/position" },
+                    childDevices: {
+                      type: "array",
+                      items: { $ref: "#/definitions/device" },
+                    },
+                  },
+                },
+                position: {
+                  type: "object",
+                  properties: { lat: { type: "number" } },
+                },
+              },
+            }),
+            "alarm.json": JSON.stringify({
+              type: "object",
+              properties: { source: { $ref: "source.json" } },
+            }),
+            "source.json": JSON.stringify({
+              type: "object",
+              properties: { id: { type: "string" } },
+            }),
+            "event.yaml":
+              "type: object\nproperties:\n  text:\n    type: string\n",
+          },
+          templates: {
+            "device.json": JSON.stringify({
+              device: { id: "{{id}}", name: "Device {{id}}" },
+            }),
+          },
+        },
+      });
+    });
+
+    afterEach(() => {
+      vol.reset();
+      jest.restoreAllMocks();
+    });
+
+    it("should inline a file in $body and keep its internal $refs", async () => {
+      const doc = pactWithResponse({
+        body: { $ref: "templates/device.json#/device?id=1" },
+        $body: { $ref: "schemas/device.json" },
+      });
+      const resolved = await resolveRefs(doc, PACTS);
+      expect(resolved.records[0].response.body).toEqual({
+        id: "1",
+        name: "Device 1",
+      });
+      expect(resolved.records[0].response.$body).toEqual(deviceSchema);
+    });
+
+    it("should inline a file in options.schema", async () => {
+      const doc = pactWithResponse(
+        { body: { id: "1" } },
+        { schema: { $ref: "schemas/device.json" } }
+      );
+      const resolved = await resolveRefs(doc, PACTS);
+      expect(resolved.records[0].options.schema).toEqual(deviceSchema);
+    });
+
+    it("should inline a file in jsonSchema", async () => {
+      const doc = pactWithResponse({
+        jsonSchema: { $ref: "schemas/device.json" },
+      });
+      const resolved = await resolveRefs(doc, PACTS);
+      expect(resolved.records[0].response.jsonSchema).toEqual(deviceSchema);
+    });
+
+    it("should inline a file in a nested schema matcher key", async () => {
+      const doc = pactWithResponse({
+        body: { id: "1", $source: { $ref: "schemas/source.json" } },
+      });
+      const resolved = await resolveRefs(doc, PACTS);
+      expect(resolved.records[0].response.body.$source).toEqual({
+        type: "object",
+        properties: { id: { type: "string" } },
+      });
+    });
+
+    it("should inline a file with an absolute path and a file URL", async () => {
+      const file = path.join(PACTS, "schemas", "device.json");
+      const doc = pactWithResponse(
+        { $body: { $ref: file } },
+        { schema: { $ref: url.pathToFileURL(file).href } }
+      );
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.$body).toEqual(deviceSchema);
+      expect(resolved.records[0].options.schema).toEqual(deviceSchema);
+    });
+
+    it("should resolve relative paths against the current folder without baseFolder", async () => {
+      const doc = pactWithResponse({
+        $body: { $ref: "pacts/schemas/device.json" },
+      });
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.$body).toEqual(deviceSchema);
+    });
+
+    it("should inline a YAML file", async () => {
+      const doc = pactWithResponse({ $body: { $ref: "schemas/event.yaml" } });
+      const resolved = await resolveRefs(doc, PACTS);
+      expect(resolved.records[0].response.$body).toEqual({
+        type: "object",
+        properties: { text: { type: "string" } },
+      });
+    });
+
+    it("should inline a $ref within the file relative to the file", async () => {
+      const doc = pactWithResponse({ $body: { $ref: "schemas/alarm.json" } });
+      const resolved = await resolveRefs(doc, PACTS);
+      expect(resolved.records[0].response.$body).toEqual({
+        type: "object",
+        properties: {
+          source: { type: "object", properties: { id: { type: "string" } } },
+        },
+      });
+    });
+
+    it("should inline a fragment of a file and rewrite its internal $refs", async () => {
+      const doc = pactWithResponse({
+        $body: { $ref: "schemas/common.json#/definitions/device" },
+      });
+      const resolved = await resolveRefs(doc, PACTS);
+      expect(resolved.records[0].response.$body).toEqual({
+        type: "object",
+        properties: {
+          position: {
+            type: "object",
+            properties: { lat: { type: "number" } },
+          },
+          // schema refers to itself
+          childDevices: { type: "array", items: { $ref: "#" } },
+        },
+      });
+    });
+
+    it("should rewrite internal $refs of a file inlined within a schema", async () => {
+      const doc = pactWithResponse({
+        $body: {
+          type: "object",
+          properties: {
+            device: { $ref: "schemas/device.json" },
+            name: { $ref: "#/definitions/name" },
+          },
+          definitions: { name: { type: "string" } },
+        },
+      });
+      const resolved = await resolveRefs(doc, PACTS);
+      const schema = resolved.records[0].response.$body;
+      expect(schema.properties.name).toEqual({ $ref: "#/definitions/name" });
+      expect(schema.properties.device.properties.c8y_Position).toEqual({
+        $ref: "#/properties/device/definitions/position",
+      });
+      expect(schema.definitions).toEqual({ name: { type: "string" } });
+    });
+
+    it("should inline a file in a schema of a pact template", async () => {
+      const doc = {
+        definitions: {
+          deviceResponse: {
+            status: 200,
+            $body: { $ref: "schemas/device.json" },
+          },
+        },
+        records: [
+          {
+            request: { url: "/inventory/managedObjects/1", method: "GET" },
+            response: { $ref: "#/definitions/deviceResponse" },
+          },
+        ],
+        id: defaultPactId,
+        info: defaultPactInfo,
+      };
+      const resolved = await resolveRefs(doc, PACTS);
+      expect(resolved.records[0].response).toEqual({
+        status: 200,
+        $body: deviceSchema,
+      });
+    });
+
+    it("should match a response with the inlined schema", async () => {
+      const { C8yAjvJson6SchemaMatcher } = await import("../contrib/ajv");
+      const doc = pactWithResponse({ $body: { $ref: "schemas/device.json" } });
+      const resolved = await resolveRefs(doc, PACTS);
+      const matcher = new C8yAjvJson6SchemaMatcher();
+      const schema = resolved.records[0].response.$body;
+      expect(matcher.match({ id: "1", c8y_Position: { lat: 1 } }, schema)).toBe(
+        true
+      );
+      expect(() =>
+        matcher.match({ id: "1", c8y_Position: { lat: "x" } }, schema)
+      ).toThrow();
+    });
+
+    it("should keep $refs that can not be inlined as they are", async () => {
+      const $body = {
+        type: "object",
+        properties: {
+          missing: { $ref: "schemas/missing.json" },
+          folder: { $ref: "schemas" },
+          params: { $ref: "schemas/device.json?id=1" },
+          anchor: { $ref: "schemas/device.json#position" },
+          urn: { $ref: "urn:example:device" },
+          internal: { $ref: "#/definitions/missing" },
+        },
+      };
+      const doc = pactWithResponse({
+        body: { $ref: "templates/device.json#/device?id=1" },
+        $body: _.cloneDeep($body),
+      });
+      const resolved = await resolveRefs(doc, PACTS);
+      expect(resolved.records[0].response.$body).toEqual($body);
+      // other $refs of the pact are still resolved
+      expect(resolved.records[0].response.body).toEqual({
+        id: "1",
+        name: "Device 1",
+      });
+    });
+
+    it("should log the $refs that are kept", async () => {
+      const log = jest.fn();
+      const doc = pactWithResponse({
+        $body: { $ref: "schemas/missing.json" },
+      });
+      await resolveRefs(doc, PACTS, undefined, log);
+      expect(log).toHaveBeenCalledWith(
+        'Keeping $ref "schemas/missing.json" at records/0/response/$body as it does not refer to a file.'
+      );
+    });
+
+    it("should not rewrite $refs in JSON Schema keywords outside of schemas", async () => {
+      const doc = pactWithResponse({
+        $defs: { device: { $ref: "schemas/device.json" } },
+      });
+      const resolved = await resolveRefs(doc, PACTS);
+      expect(resolved.records[0].response.$defs).toEqual({
+        device: { $ref: "schemas/device.json" },
+      });
+    });
+
+    it("should fail for a missing pointer in an existing file", async () => {
+      const doc = pactWithResponse({
+        $body: { $ref: "schemas/common.json#/definitions/nope" },
+      });
+      const error = await resolveRefs(doc, PACTS).catch((e) => e);
+      expect(error.errors[0].name).toBe("MissingPointerError");
+    });
+  });
+
+  describe("file $refs with a global window", () => {
+    // The plugin loads @c8y/client, whose cometd-nodejs-client defines a global
+    // window. The built-in file resolver of $RefParser then does not read files.
+    const FIXTURES = path.join(CWD, "fixtures");
+
+    beforeEach(() => {
+      (globalThis as any).window = {};
+      jest.spyOn(process, "cwd").mockReturnValue(CWD);
+      vol.fromNestedJSON({
+        [FIXTURES]: {
+          "x.json": JSON.stringify({ def: { message: "from file" } }),
+          "schema.json": JSON.stringify({ type: "string" }),
+        },
+      });
+    });
+
+    afterEach(() => {
+      delete (globalThis as any).window;
+      vol.reset();
+      jest.restoreAllMocks();
+    });
+
+    it("should resolve file $refs", async () => {
+      const doc = {
+        records: [
+          {
+            request: { url: "/x", method: "GET" },
+            response: {
+              status: 200,
+              body: { $ref: "x.json#/def" },
+              $body: { $ref: "schema.json" },
+            },
+          },
+        ],
+        id: defaultPactId,
+        info: defaultPactInfo,
+      };
+      const resolved = await resolveRefs(doc, FIXTURES);
+      expect(resolved.records[0].response.body).toEqual({
+        message: "from file",
+      });
+      expect(resolved.records[0].response.$body).toEqual({ type: "string" });
+    });
+  });
+
   describe("literal $refs in recorded bodies", () => {
     const schemaBody = () => ({
       $schema: "http://json-schema.org/draft-07/schema#",
