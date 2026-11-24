@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import { isSystemVersionSatisfyingCurrentTestRequirements } from "cumulocity-cypress/lib/commands/requires";
 import { stubEnv } from "cypress/support/testutils";
 
@@ -11,7 +12,7 @@ function p(v: string) {
 describe("c8ypact versions", function () {
   before(() => {
     // do not skip tests with unsatisfied version requirements
-    Cypress.env("C8Y_IGNORE_REQUIRES_SKIP", "1");
+    c8yEnv("C8Y_IGNORE_REQUIRES_SKIP", "1");
   });
 
   context("semver", function () {
@@ -22,13 +23,13 @@ describe("c8ypact versions", function () {
 
   context("isSystemVersionSatisfyingCurrentTestRequirements", function () {
     before(() => {
-      Cypress.env("C8Y_SYSTEM_VERSION", "1.2.3");
-      Cypress.env("C8Y_SHELL_VERSION", "2.5.0");
+      c8yEnv("C8Y_SYSTEM_VERSION", "1.2.3");
+      c8yEnv("C8Y_SHELL_VERSION", "2.5.0");
     });
 
     after(() => {
-      Cypress.env("C8Y_SYSTEM_VERSION", undefined);
-      Cypress.env("C8Y_SHELL_VERSION", undefined);
+      c8yEnv("C8Y_SYSTEM_VERSION", undefined);
+      c8yEnv("C8Y_SHELL_VERSION", undefined);
     });
 
     it(

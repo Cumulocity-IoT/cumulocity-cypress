@@ -1,6 +1,7 @@
 import { getAuthOptions, getBaseUrlFromEnv } from "../utils";
 import { C8yAuthOptions } from "../../shared/auth";
 import { BearerAuthFromSessionStorage } from "@c8y/client";
+import { c8yEnv } from "../../shared/cypressenv";
 
 declare global {
   namespace Cypress {
@@ -66,8 +67,8 @@ Cypress.Commands.add(
       consoleProps.token = a.token || null;
       consoleProps.xsrfToken = a.xsrfToken || null;
 
-      Cypress.env("C8Y_LOGGED_IN_USER", auth.user);
-      Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", auth.userAlias);
+      c8yEnv("C8Y_LOGGED_IN_USER", auth.user);
+      c8yEnv("C8Y_LOGGED_IN_USER_ALIAS", auth.userAlias);
 
       if (a.token && a.xsrfToken && Cypress.testingType !== "component") {
         // must be upper case so CookieAuth does use it

@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import { C8yDefaultPact } from "cumulocity-cypress/c8ypact";
 import { stubCypressPactConfig, url } from "../support/testutils";
 
@@ -31,7 +32,9 @@ describe("c8ypact intercept", () => {
   };
 
   afterEach(() => {
-    // delete recorded pacts after each test
+    // delete recorded pacts after each test. loadCurrent() first writes a pact recorded
+    // outside of the command queue (Cypress 16+), so it isn't written after the removal
+    Cypress.c8ypact.loadCurrent();
     cy.task("c8ypact:remove", Cypress.c8ypact.getCurrentTestId()).then(() => {
       Cypress.c8ypact.loadCurrent().then((pact) => {
         expect(pact).to.be.null;
@@ -47,7 +50,7 @@ describe("c8ypact intercept", () => {
   context("setup", () => {
     beforeEach(() => {
       cy.spy(Cypress.c8ypact, "savePact").log(false);
-      Cypress.env("C8Y_PACT_MODE", undefined);
+      c8yEnv("C8Y_PACT_MODE", undefined);
     });
 
     afterEach(() => {
@@ -71,13 +74,15 @@ describe("c8ypact intercept", () => {
     );
 
     it("should set env variable if imported", () => {
-      expect(Cypress.env("C8Y_PACT_INTERCEPT_IMPORTED")).to.be.true;
+      expect(c8yEnv("C8Y_PACT_INTERCEPT_IMPORTED")).to.be.true;
     });
   });
 
   context("record interceptions", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_PACT_MODE", "recording");
+      // callbacks set by a test must not be used by the following tests
+      Cypress.c8ypact.on = {};
+      c8yEnv("C8Y_PACT_MODE", "recording");
       cy.spy(Cypress.c8ypact, "savePact").log(false);
     });
 
@@ -114,6 +119,27 @@ describe("c8ypact intercept", () => {
             expect(r?.response.body).to.have.property("managedObjects");
             expect(r?.modifiedResponse?.body).to.deep.eq(testBody);
           });
+        });
+    });
+
+    it("should intercept with the HTTP QUERY method", function () {
+      // cy.intercept() accepts the QUERY method with Cypress 15.20 and later
+      if (Cypress.semver.lt(Cypress.version, "15.20.0")) {
+        this.skip();
+      }
+      // the Method type of Cypress 15.19 and older has no QUERY
+      cy.intercept("QUERY" as any, "/inventory/managedObjects*", (req) => {
+        req.reply(testResponse);
+      })
+        .as("inventory")
+        .then(() => $.ajax({ url: url(inventoryPath), method: "QUERY" }))
+        .then((data) => {
+          expect(data).to.deep.eq(testBody);
+        })
+        .wait("@inventory")
+        .then((interception) => {
+          expect(interception.request.method).to.eq("QUERY");
+          expect(interception.response?.statusCode).to.eq(201);
         });
     });
 
@@ -361,6 +387,17 @@ describe("c8ypact intercept", () => {
         });
     });
 
+    it("should load the pact of an interception after a queued wait", () => {
+      cy.intercept("/inventory/managedObjects*", testBody)
+        .as("inventory")
+        .then(fetchInventory);
+      cy.wait("@inventory");
+      // called while queueing, the interception is recorded only when the queue runs
+      Cypress.c8ypact.loadCurrent().then((pact) => {
+        expect(pact?.records).to.have.length(1);
+      });
+    });
+
     it("should intercept with RouteHandler from fixture without extension", () => {
       cy.intercept("/inventory/managedObjects*", {
         fixture: "c8ypact-managedobject-02",
@@ -452,6 +489,50 @@ describe("c8ypact intercept", () => {
         });
     });
 
+    // the callbacks return the pact and record to save, which can be new objects
+    it("should save the pact returned by the savePact callback", () => {
+      Cypress.c8ypact.on.savePact = (pact) => {
+        return {
+          ...pact,
+          records: pact.records.map((r) => ({
+            ...r,
+            response: { ...r.response, status: 298 },
+          })),
+        } as any;
+      };
+
+      cy.intercept("/inventory/managedObjects*", testBody)
+        .as("inventory")
+        .then(fetchInventory)
+        .wait("@inventory")
+        .then(() => {
+          Cypress.c8ypact.loadCurrent().then((pact) => {
+            expect(pact?.records).to.have.length(1);
+            expect(pact?.records[0].response.status).to.eq(298);
+          });
+        });
+    });
+
+    it("should save the record returned by the saveRecord callback", () => {
+      Cypress.c8ypact.on.saveRecord = (record) => {
+        return {
+          ...record,
+          response: { ...record.response, status: 298 },
+        } as any;
+      };
+
+      cy.intercept("/inventory/managedObjects*", testBody)
+        .as("inventory")
+        .then(fetchInventory)
+        .wait("@inventory")
+        .then(() => {
+          Cypress.c8ypact.loadCurrent().then((pact) => {
+            expect(pact?.records).to.have.length(1);
+            expect(pact?.records[0].response.status).to.eq(298);
+          });
+        });
+    });
+
     it("should intercept but not record pact object when savePact callback returns undefined", () => {
       Cypress.c8ypact.on.savePact = (record) => {
         return undefined;
@@ -499,7 +580,7 @@ describe("c8ypact intercept", () => {
 
   context("recording and mocking disabled", () => {
     beforeEach(() => {
-      Cypress.env("C8Y_PACT_MODE", "disabled");
+      c8yEnv("C8Y_PACT_MODE", "disabled");
       expect(Cypress.c8ypact.mode()).to.eq("disabled");
       expect(Cypress.c8ypact.isRecordingEnabled()).to.be.false;
       expect(Cypress.c8ypact.isMockingEnabled()).to.be.false;
@@ -622,7 +703,7 @@ describe("c8ypact intercept", () => {
   context("mock interceptions", () => {
     beforeEach(() => {
       cy.spy(Cypress.c8ypact, "savePact").log(false);
-      Cypress.env("C8Y_PACT_MODE", "apply");
+      c8yEnv("C8Y_PACT_MODE", "apply");
     });
 
     const response: Cypress.Response<any> = {
@@ -817,7 +898,7 @@ describe("c8ypact intercept", () => {
   context("suite ignore", { c8ypact: { ignore: true } }, () => {
     beforeEach(() => {
       cy.spy(Cypress.c8ypact, "savePact").log(false);
-      Cypress.env("C8Y_PACT_MODE", undefined);
+      c8yEnv("C8Y_PACT_MODE", undefined);
     });
 
     it("should not intercept", () => {

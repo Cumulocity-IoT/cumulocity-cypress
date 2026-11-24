@@ -18,7 +18,25 @@ beforeEach(() => {
   }
 });
 
-const pacts: string[] = Cypress.env("_pacts");
+// Cypress 16 removed Cypress.env(). Reads like c8yEnv() of cumulocity-cypress, which
+// the installed version might not have yet: Cypress.expose() first, Cypress.env() for
+// variables that are not exposed. cypress.config.ts exposes _pacts.
+function envValue(key: string): any {
+  const cypress = Cypress as any;
+  if (typeof cypress.expose === "function") {
+    const exposed = cypress.expose();
+    if (exposed != null && key in exposed) return exposed[key];
+  }
+  if (typeof cypress.env !== "function") return undefined;
+  try {
+    return cypress.env(key);
+  } catch {
+    // Cypress 15.10+ throws if allowCypressEnv is false
+    return undefined;
+  }
+}
+
+const pacts: string[] = envValue("_pacts");
 if (!pacts || !_.isArray(pacts) || _.isEmpty(pacts)) {
   throw new Error("No pact records to run.");
 }

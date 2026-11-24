@@ -16,6 +16,7 @@ Contribute by raising pull requests. All commands must be documented and, if pos
   - [Import commands](#import-commands)
   - [Environment variables](#environment-variables)
   - [Environment variables from go-c8y-cli](#environment-variables-from-go-c8y-cli)
+  - [Self-signed certificates](#self-signed-certificates)
 - [Additional frameworks](#additional-frameworks)
 - [Concepts](#concepts)
   - [Authentication and credentials](#authentication-and-credentials)
@@ -106,9 +107,11 @@ npm install --save-dev cumulocity-cypress
 
 Make sure the following dependencies are installed in your project:
 
-- `cypress`
+- `cypress` up to Cypress 16, tested with Cypress 13, 14, 15 and 16
 - `@c8y/client`
 - `angular-common`
+
+`cumulocity-cypress` requires Node.js 20 or later. Cypress 16 requires Node.js 22, 24, or 26 and later, so use one of these versions with Cypress 16. Use Cypress 15.21.2 or 16.3.0 and later. These versions fix security issues of the Cypress Test Runner (see the [Cypress changelog](https://docs.cypress.io/app/references/changelog)).
 
 ### Load plugin
 
@@ -180,13 +183,63 @@ before(() => {
   cy.getAuth("admin")
     .getCurrentTenant()
     .then((tenant) => {
-      Cypress.env("C8Y_TENANT", tenant.body.name);
+      Cypress.expose("C8Y_TENANT", tenant.body.name);
     })
     .then(() => {
-      expect(Cypress.env("C8Y_TENANT")).not.be.undefined;
+      expect(Cypress.expose("C8Y_TENANT")).not.be.undefined;
     });
   // or just simply call getTenantId() as this sets the tenant id env variable automatically
   cy.getAuth("admin").getTenantId();
+});
+```
+
+#### Cypress 16 and later
+
+Cypress 16 removed `Cypress.env()`. Values that are read synchronously in the browser are set with `Cypress.expose()` and the `expose` configuration object instead (see [Upgrade Cypress](https://docs.cypress.io/app/references/migration-guide)). The examples in this document use `Cypress.expose()`; with older Cypress versions, use `Cypress.env()`, or `c8yEnv()` with all versions (see below).
+
+`cumulocity-cypress` reads and writes its variables with `Cypress.expose()` if it is available, and with `Cypress.env()` for older Cypress versions. With Cypress 15.10 and later 15.x versions, where both exist, variables set with either of them, also in test overrides, are used. The plugins `configureC8yPlugin` and `configureC8yScreenshotPlugin` copy all variables of `config.env` into `config.expose`, so variables from `cypress.env.json`, `CYPRESS_*` environment variables or `--env` keep working without changes. If you set `config.env` variables after the plugin has been configured, call `exposeC8yEnv(config)` at the end of `setupNodeEvents`:
+
+```typescript
+import { configureC8yPlugin, exposeC8yEnv } from "cumulocity-cypress/plugin";
+
+module.exports = defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {
+      configureC8yPlugin(on, config);
+      config.env.C8Y_TENANT = "t12345";
+      return exposeC8yEnv(config);
+    },
+  },
+});
+```
+
+To read and write variables in your own tests and support code with all supported Cypress versions, use `c8yEnv()`. It works like `Cypress.expose()` with Cypress 16, and like `Cypress.env()` with older versions, and also returns credentials read with `cy.env()` (see `exposeCredentials` below):
+
+```typescript
+import { c8yEnv } from "cumulocity-cypress";
+
+const tenant = c8yEnv("C8Y_TENANT");
+c8yEnv("C8Y_SHELL_NAME", "cockpit");
+const all = c8yEnv();
+```
+
+By default, exposed variables, including credentials, are readable in the browser, as they were with `Cypress.env()`. To keep credentials out of `Cypress.expose()`, disable `exposeCredentials`, or set `C8Y_EXPOSE_CREDENTIALS` to `false`, e.g. for `c8yscrn` or the pact runner:
+
+```typescript
+configureC8yPlugin(on, config, { exposeCredentials: false });
+```
+
+The plugin reads `C8Y_EXPOSE_CREDENTIALS` from the environment of the process, also as `CYPRESS_C8Y_EXPOSE_CREDENTIALS`, and from `config.env`, e.g. set with `--env`. The `exposeCredentials` option is preferred over both.
+
+Passwords and tokens of `config.env` (`C8Y_PASSWORD`, `C8Y_TOKEN`, `C8Y_AUTHORIZATION`, `C8Y_XSRF_TOKEN`, and variables ending with `_password` or `_token`, such as `admin_password`) are then not copied into `config.expose`. `cumulocity-cypress` reads them with `cy.env()` before each spec and test, so commands such as `cy.getAuth()`, `cy.login()` and `cy.c8yclient()` use them as before. Usernames and all other variables are still exposed. Credentials set with `Cypress.expose()` are preferred. This requires Cypress 15.10 or later. With older versions, which have no `Cypress.expose()` and `cy.env()`, all variables are read with `Cypress.env()`, and the option has no effect.
+
+If your project registers [`@cypress/grep`](https://www.npmjs.com/package/@cypress/grep) itself, use `@cypress/grep` 6 or later with Cypress 16. Older versions read their options with `Cypress.env()` and fail when the spec is loaded. `cumulocity-cypress` itself depends on `@cypress/grep` 5, as later versions don't install with Cypress 13 and 14, and makes it work with Cypress 16 for `c8yscrn`. As the plugin exposes `config.env`, `--env grepTags=...` keeps working; with Cypress 16 you can also use `--expose grepTags=...`.
+
+Cypress 16 also removed the `env` key of the test and suite configuration. To set variables for a single test or suite, use `expose` instead. This requires Cypress 15.17 or later:
+
+```typescript
+it("uses another tenant", { expose: { C8Y_TENANT: "t12345" } }, () => {
+  // ...
 });
 ```
 
@@ -215,6 +268,12 @@ module.exports = defineConfig({
   },
 });
 ```
+
+### Self-signed certificates
+
+With Cypress 16, Chrome, Chromium, and Edge load the tested application with their own network stack and verify the certificate of the tenant themselves. If your tenant or Cumulocity Edge uses a self-signed certificate, or a certificate of an internal certificate authority, add it to the `trustedCertificates` configuration option. This requires Cypress 16.1 or later (see [Configuration](https://docs.cypress.io/app/references/configuration)).
+
+With Cypress 16.2.1 and later, the Node.js process of `setupNodeEvents` also verifies certificates. This affects the tasks of `configureC8yPlugin` that connect to the tenant, such as the login of `cy.oauthLogin()`. Set `NODE_EXTRA_CA_CERTS` to the certificate file of your certificate authority before you start Cypress.
 
 ## Additional frameworks
 
@@ -317,25 +376,55 @@ Example for setting environment variables in your tests:
 
 ```typescript
 // Bearer authentication (preferred)
-Cypress.env("C8Y_TOKEN", "your-jwt-token");
+Cypress.expose("C8Y_TOKEN", "your-jwt-token");
 
 // Or Basic authentication
-Cypress.env("C8Y_USERNAME", "admin");
-Cypress.env("C8Y_PASSWORD", "password");
+Cypress.expose("C8Y_USERNAME", "admin");
+Cypress.expose("C8Y_PASSWORD", "password");
 ```
 
 You can also use user aliases to configure authentication for specific users. User aliases support both token-based and username/password authentication:
 
 ```typescript
 // Token-based authentication for admin user
-Cypress.env("admin_token", "admin-jwt-token");
+Cypress.expose("admin_token", "admin-jwt-token");
 
 // Or username/password authentication for admin user
-Cypress.env("admin_username", "admin");
-Cypress.env("admin_password", "password");
+Cypress.expose("admin_username", "admin");
+Cypress.expose("admin_password", "password");
 ```
 
 When using user aliases, token authentication takes precedence over username/password if both are configured.
+
+#### Tenant-per-user-alias configuration
+
+User aliases can also be configured with different tenants using the `${userAlias}_tenant` environment variable. This is useful for testing multi-tenant scenarios, such as parent/child tenant relationships, where different users may need to authenticate against different tenants.
+
+```typescript
+// Configure first user with tenant1
+Cypress.expose("user1_username", "user1");
+Cypress.expose("user1_password", "password1");
+Cypress.expose("user1_tenant", "tenant1");
+
+// Configure second user with tenant2
+Cypress.expose("user2_username", "user2");
+Cypress.expose("user2_password", "password2");
+Cypress.expose("user2_tenant", "tenant2");
+
+// Use in tests
+cy.getAuth("user1").c8yclient(...); // Uses tenant1
+cy.getAuth("user2").c8yclient(...); // Uses tenant2
+```
+
+The tenant resolution follows this priority order:
+1. Explicit `tenant` property in auth options (highest priority)
+2. Tenant of the JWT token, if the user alias is configured with a `${userAlias}_token` JWT token
+3. `${userAlias}_tenant` environment variable (if user alias is used)
+4. `C8Y_TENANT` environment variable (fallback, lowest priority)
+
+`cy.getTenantId()` returns the tenant of the user alias. It stores the tenant in `C8Y_TENANT` only if `C8Y_TENANT` is not set yet, and never overwrites an existing `C8Y_TENANT`, so requests of other users keep using `C8Y_TENANT`.
+
+This enables implementing multi-tenant test scenarios where you can test interactions between parent and child tenants in a single test.
 
 #### Using authentication tokens
 
@@ -520,7 +609,7 @@ it.only("debugging test", () => {
       // to debug result of getCurrentTenant, place debugger in then()
       debugger;
       expect(tenant.name).to.equal("mytenant");
-      expect(Cypress.env("C8Y_TENANT")).to.deep.equal({ name: "mytenant" });
+      expect(Cypress.expose("C8Y_TENANT")).to.deep.equal({ name: "mytenant" });
     });
 });
 ```
@@ -576,7 +665,7 @@ cy.getAuth("admin")
       auth: { user: "admin", password: "password" },
     });
     expect(tenant.name).to.equal("mytenant");
-    expect(Cypress.env("C8Y_TENANT")).to.deep.equal({ name: "mytenant" });
+    expect(Cypress.expose("C8Y_TENANT")).to.deep.equal({ name: "mytenant" });
   });
 ```
 

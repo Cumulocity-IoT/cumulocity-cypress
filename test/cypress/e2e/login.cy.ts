@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import {
   expectHttpRequest,
   initRequestStub,
@@ -15,7 +16,7 @@ describe("login", () => {
     Cypress.session.clearAllSavedSessions();
     initRequestStub();
 
-    Cypress.env("C8Y_TENANT", "t702341987");
+    c8yEnv("C8Y_TENANT", "t702341987");
     url = _url(`/tenant/oauth?tenant_id=t702341987`);
 
     // response is mocked with set-cookie headers in test-server.ts
@@ -35,7 +36,7 @@ describe("login", () => {
         // we do not want auth to be returned
         expect(auth).to.be.undefined;
         expect(validationCalled).to.be.true;
-        expect(Cypress.env("C8Y_LOGGED_IN_USER")).to.eq("user");
+        expect(c8yEnv("C8Y_LOGGED_IN_USER")).to.eq("user");
 
         cy.getCookie("authorization").then((cookie) => {
           expect(cookie?.value).to.eq(testAuthorizationCookie);
@@ -59,8 +60,8 @@ describe("login", () => {
     });
 
     it("login with test annotation", { auth: "testadmin" }, () => {
-      Cypress.env("testadmin_username", "testuser");
-      Cypress.env("testadmin_password", "testpasswd");
+      c8yEnv("testadmin_username", "testuser");
+      c8yEnv("testadmin_password", "testpasswd");
 
       cy.getAuth()
         .login({
@@ -76,8 +77,8 @@ describe("login", () => {
             expect(cookie?.value).to.eq(testXsrfTokenCookie);
           });
 
-          expect(Cypress.env("C8Y_LOGGED_IN_USER")).to.eq("testuser");
-          expect(Cypress.env("C8Y_LOGGED_IN_USER_ALIAS")).to.eq("testadmin");
+          expect(c8yEnv("C8Y_LOGGED_IN_USER")).to.eq("testuser");
+          expect(c8yEnv("C8Y_LOGGED_IN_USER_ALIAS")).to.eq("testadmin");
         });
     });
 
@@ -104,7 +105,7 @@ describe("login", () => {
       }).then(() => {
         expectHttpRequest({ url });
         expect(validationCalled).to.be.true;
-        expect(Cypress.env("C8Y_LOGGED_IN_USER")).to.eq("user");
+        expect(c8yEnv("C8Y_LOGGED_IN_USER")).to.eq("user");
         expect(cy.state("c8yclient")).to.be.undefined;
       });
     });
@@ -132,7 +133,7 @@ describe("login", () => {
             },
             form: true,
           });
-          expect(Cypress.env("C8Y_LOGGED_IN_USER")).to.eq("x");
+          expect(c8yEnv("C8Y_LOGGED_IN_USER")).to.eq("x");
           expect(validationCalled).to.be.true;
         });
     });
@@ -163,7 +164,7 @@ describe("login", () => {
         });
 
         expect(auth).to.be.undefined;
-        expect(Cypress.env("C8Y_LOGGED_IN_USER")).to.eq("pvtuser");
+        expect(c8yEnv("C8Y_LOGGED_IN_USER")).to.eq("pvtuser");
       });
     });
 

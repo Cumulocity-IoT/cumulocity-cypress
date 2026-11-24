@@ -1,3 +1,4 @@
+import { c8yEnv } from "cumulocity-cypress/shared/cypressenv";
 import { BearerAuthFromSessionStorage, IDeviceCredentials } from "@c8y/client";
 import {
   url as _url,
@@ -7,14 +8,20 @@ import {
 
 const { _, $ } = Cypress;
 
+// variables of the auth env variables logged by getAuth() and useAuth(), without the
+// credentials test/cypress.config.ts configures for env-credentials.cy.ts
+function authEnv(env: any) {
+  return _.omitBy(env, (_value, key) => key.startsWith("envcredentials_"));
+}
+
 describe("auth", () => {
   const testToken =
     "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3NTU5Nzc0NzUsImV4cCI6MTc4NzUxMzQ3NSwiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsInhzcmZUb2tlbiI6IjIzNG5tMjM0bm0yMzQyMzQiLCJ0ZW4iOiJ0MTIzNDU2NyIsInVzZXIiOiJ0b2tlbnVzZXIiLCJiYXNlVXJsIjoiaHR0cHM6Ly9teXRlc3QuYzh5LmlvIn0.wKGIxJrUnT0NNyd198mfxegV6kncYsNFhGa6MFSSKCE";
 
   beforeEach(() => {
-    Object.keys(Cypress.env()).forEach((key) => Cypress.env(key, undefined));
-    Cypress.env("C8Y_TENANT", "t1234567");
-    Cypress.env("myauthuser_password", "myadminpassword");
+    Object.keys(c8yEnv()).forEach((key) => c8yEnv(key, undefined));
+    c8yEnv("C8Y_TENANT", "t1234567");
+    c8yEnv("myauthuser_password", "myadminpassword");
   });
 
   context("getAuth", () => {
@@ -53,7 +60,7 @@ describe("auth", () => {
           expect(result?.password).to.eq("other");
           expect(result?.tenant).to.eq("t1234567");
         });
-      Cypress.env("admin_password", "password");
+      c8yEnv("admin_password", "password");
       cy.wrap("admin")
         .getAuth()
         .then((result) => {
@@ -109,7 +116,7 @@ describe("auth", () => {
     });
 
     it("should work without tenant environment variable", () => {
-      Cypress.env("C8Y_TENANT", undefined);
+      c8yEnv("C8Y_TENANT", undefined);
       cy.wrap({ user: "admin", password: "password" })
         .getAuth()
         .then((result) => {
@@ -217,6 +224,7 @@ describe("auth", () => {
         C8Y_USERNAME: "myusername",
         C8Y_PASSWORD: "mypassword",
         C8Y_TOKEN: testToken,
+        C8Y_TENANT: "t1234567",
         admin_username: "admin",
         admin_password: "password",
         admin_token: testToken,
@@ -237,11 +245,12 @@ describe("auth", () => {
           token: testToken,
           tenant: "t1234567",
         });
-        expect(Object.keys(props.env)).to.have.length(7);
-        expect(props.env).to.deep.eq({
+        expect(Object.keys(authEnv(props.env))).to.have.length(8);
+        expect(authEnv(props.env)).to.deep.eq({
           C8Y_USERNAME: "myusername",
           C8Y_PASSWORD: "mypassword",
           C8Y_TOKEN: testToken,
+          C8Y_TENANT: "t1234567",
           admin_token: testToken,
           admin_username: "admin",
           admin_password: "password",
@@ -288,6 +297,130 @@ describe("auth", () => {
           expect(result?.tenant).to.eq("t1234567");
           expect(result?.userAlias).to.eq("mytoken");
         });
+    });
+
+    it("should use tenant from userAlias_tenant env variable", () => {
+      stubEnv({
+        admin_username: "admin",
+        admin_password: "password",
+        admin_tenant: "t9876543",
+      });
+      cy.getAuth("admin").then((result) => {
+        expect(result?.user).to.eq("admin");
+        expect(result?.password).to.eq("password");
+        expect(result?.tenant).to.eq("t9876543");
+        expect(result?.userAlias).to.eq("admin");
+      });
+    });
+
+    it("should fallback to C8Y_TENANT when userAlias_tenant is not set", () => {
+      stubEnv({
+        admin_username: "admin",
+        admin_password: "password",
+        // admin_tenant NOT set - should fallback to C8Y_TENANT
+      });
+      cy.getAuth("admin").then((result) => {
+        expect(result?.user).to.eq("admin");
+        expect(result?.password).to.eq("password");
+        expect(result?.tenant).to.eq("t1234567"); // From C8Y_TENANT set in beforeEach
+        expect(result?.userAlias).to.eq("admin");
+      });
+    });
+
+    it("should prefer explicit tenant option over userAlias_tenant", () => {
+      stubEnv({
+        mytenant_username: "user",
+        mytenant_password: "pass",
+        mytenant_tenant: "t9876543",
+      });
+      cy.wrap({ userAlias: "mytenant", tenant: "texplicit" })
+        .getAuth()
+        .then((result) => {
+          expect(result?.user).to.eq("user");
+          expect(result?.password).to.eq("pass");
+          expect(result?.tenant).to.eq("texplicit");
+          expect(result?.userAlias).to.eq("mytenant");
+        });
+    });
+
+    it("should use tenant from userAlias_tenant for tokens that are not JWT", () => {
+      stubEnv({
+        C8Y_TENANT: "t0000000",
+        admin_token: "not-a-jwt-token",
+        admin_tenant: "t9876543",
+      });
+      cy.getAuth("admin").then((result) => {
+        expect(result?.token).to.eq("not-a-jwt-token");
+        expect(result?.tenant).to.eq("t9876543");
+        expect(result?.userAlias).to.eq("admin");
+      });
+    });
+
+    it("should prefer tenant from JWT token over userAlias_tenant", () => {
+      // tenant of testToken is t1234567
+      stubEnv({
+        C8Y_TENANT: "t0000000",
+        admin_token: testToken,
+        admin_tenant: "t9876543",
+      });
+      cy.getAuth("admin").then((result) => {
+        expect(result?.token).to.eq(testToken);
+        expect(result?.tenant).to.eq("t1234567");
+      });
+    });
+
+    it("should prefer tenant from JWT token with username and password", () => {
+      stubEnv({
+        C8Y_TENANT: "t0000000",
+        admin_token: testToken,
+        admin_username: "admin",
+        admin_password: "password",
+        admin_tenant: "t9876543",
+      });
+      cy.getAuth("admin").then((result) => {
+        expect(result?.token).to.eq(testToken);
+        expect(result?.user).to.eq("admin");
+        expect(result?.tenant).to.eq("t1234567");
+      });
+    });
+
+    it("should prefer tenant from JWT token for userAlias in auth options", () => {
+      stubEnv({
+        C8Y_TENANT: "t0000000",
+        admin_token: testToken,
+        admin_tenant: "t9876543",
+      });
+      cy.wrap({ userAlias: "admin" })
+        .getAuth()
+        .then((result) => {
+          expect(result?.token).to.eq(testToken);
+          expect(result?.tenant).to.eq("t1234567");
+        });
+    });
+
+    it("should support multiple users with different tenants", () => {
+      stubEnv({
+        user1_username: "user1",
+        user1_password: "pass1",
+        user1_tenant: "ttenant1",
+        user2_username: "user2",
+        user2_password: "pass2",
+        user2_tenant: "ttenant2",
+      });
+
+      // Test user1
+      cy.getAuth("user1").then((result) => {
+        expect(result?.user).to.eq("user1");
+        expect(result?.password).to.eq("pass1");
+        expect(result?.tenant).to.eq("ttenant1");
+      });
+
+      // Test user2
+      cy.getAuth("user2").then((result) => {
+        expect(result?.user).to.eq("user2");
+        expect(result?.password).to.eq("pass2");
+        expect(result?.tenant).to.eq("ttenant2");
+      });
     });
   });
 
@@ -414,6 +547,7 @@ describe("auth", () => {
       stubEnv({
         C8Y_USERNAME: "myusername",
         C8Y_PASSWORD: "mypassword",
+        C8Y_TENANT: "t1234567",
         admin_username: "admin",
         admin_password: "password",
         abc: "def",
@@ -433,9 +567,10 @@ describe("auth", () => {
           userAlias: "admin",
           tenant: "t1234567",
         });
-        expect(props.env).to.deep.eq({
+        expect(authEnv(props.env)).to.deep.eq({
           C8Y_USERNAME: "myusername",
           C8Y_PASSWORD: "mypassword",
+          C8Y_TENANT: "t1234567",
           admin_username: "admin",
           admin_password: "password",
           // from environment / defined in beforeEach

@@ -31,6 +31,7 @@ import {
 
 import { C8yAjvSchemaMatcher } from "../contrib/ajv";
 import schema from "./schema.json";
+import { c8yEnv } from "../shared/cypressenv";
 
 const { _ } = Cypress;
 
@@ -71,7 +72,7 @@ export class C8yScreenshotRunner {
     this.config =
       config ??
       loadDataFromLocalStorage("_c8yscrnConfig") ??
-      Cypress.env("_c8yscrnyaml");
+      c8yEnv("_c8yscrnyaml");
     if (!this.config) {
       throw new Error(
         "C8yScreenshotRunner requires configuration. You must pass a valid configuration when creating a C8yScreenshotRunner."
@@ -95,7 +96,7 @@ export class C8yScreenshotRunner {
     this.registerActionHandler("focus", this.focus);
     this.registerActionHandler("scrollTo", this.scrollTo);
 
-    if ((Cypress.env("_c8yscrnHighlight") ?? true) === true) {
+    if ((c8yEnv("_c8yscrnHighlight") ?? true) === true) {
       this.registerActionHandler("highlight", this.highlight);
     }
   }
@@ -158,7 +159,7 @@ export class C8yScreenshotRunner {
               .then((version) => {
                 debug(
                   `Set shell version ${version} for ${
-                    this.g()?.shell ?? Cypress.env("C8Y_SHELL_NAME")
+                    this.g()?.shell ?? c8yEnv("C8Y_SHELL_NAME")
                   } `
                 );
               });
@@ -173,12 +174,12 @@ export class C8yScreenshotRunner {
                 ? "Login disabled."
                 : "No login or auth configured.";
             debug(
-              `Skipped setting shellVersion. ${hint} Falling back to C8Y_SHELL_VERSION: ${Cypress.env(
+              `Skipped setting shellVersion. ${hint} Falling back to C8Y_SHELL_VERSION: ${c8yEnv(
                 "C8Y_SHELL_VERSION"
               )}`
             );
             debug(
-              `Skipped setting tenantId. ${hint} Falling back to C8Y_TENANT: ${Cypress.env(
+              `Skipped setting tenantId. ${hint} Falling back to C8Y_TENANT: ${c8yEnv(
                 "C8Y_TENANT"
               )}`
             );
@@ -195,7 +196,7 @@ export class C8yScreenshotRunner {
   ): void {
     beforeEach(() => {
       Cypress.session.clearAllSavedSessions();
-      if (Cypress.env("C8YCTRL_MODE") != null) {
+      if (c8yEnv("C8YCTRL_MODE") != null) {
         // cy.wrap(c8yctrl(), { log: false });
       }
     });
@@ -735,8 +736,8 @@ function debug(message: string, options?: any) {
 
 export function isRecording(): boolean {
   return (
-    Cypress.env("C8YCTRL_MODE") === "recording" ||
-    Cypress.env("C8YCTRL_MODE") === "record"
+    c8yEnv("C8YCTRL_MODE") === "recording" ||
+    c8yEnv("C8YCTRL_MODE") === "record"
   );
 }
 

@@ -24,6 +24,7 @@ import {
   deleteUser,
   DeleteUserInput,
 } from "../../shared/c8yclient/";
+import { c8yEnv } from "../../shared/cypressenv";
 
 const { _ } = Cypress;
 
@@ -257,6 +258,10 @@ declare global {
        * Tenant id is stored in C8Y_TENANT environment variable. C8Y_TENANT is used
        * internally and checked before quering current tenant for it's id.
        *
+       * If the auth options have a tenant, e.g. from the `${userAlias}_tenant` environment
+       * variable, this tenant is returned. It is stored in C8Y_TENANT only if C8Y_TENANT
+       * is not set yet, an existing C8Y_TENANT is never overwritten.
+       *
        * @example
        * cy.getTenantId();
        * cy.getAuth("admin").getTenantId();
@@ -275,7 +280,7 @@ declare global {
        *
        * @example
        * cy.getSystemVersion();
-       * cy.log(Cypress.env("C8Y_SYSTEM_VERSION"));
+       * cy.log(Cypress.expose("C8Y_SYSTEM_VERSION"));
        *
        * cy.getAuth("admin").getSystemVersion().then((version) => {
        *  cy.log(version);
@@ -309,7 +314,7 @@ declare global {
        * });
        *
        * cy.getAuth("admin").getShellVersion("cockpit");
-       * cy.log(Cypress.env("C8Y_SHELL_VERSION"));
+       * cy.log(Cypress.expose("C8Y_SHELL_VERSION"));
        *
        * @param {C8yAuthOptions} options - The authentication options including username and password
        * @param {string} shellName - The name of the shell to get the version for
@@ -637,9 +642,9 @@ Cypress.Commands.add("getTenantId", { prevSubject: "optional" }, (...args) => {
     consoleProps: () => consoleProps,
   });
 
-  if (Cypress.env("C8Y_TENANT") && !auth?.tenant) {
-    consoleProps.C8Y_TENANT = Cypress.env("C8Y_TENANT");
-    return cy.wrap<string>(Cypress.env("C8Y_TENANT"));
+  if (c8yEnv("C8Y_TENANT") && !auth?.tenant) {
+    consoleProps.C8Y_TENANT = c8yEnv("C8Y_TENANT");
+    return cy.wrap<string>(c8yEnv("C8Y_TENANT"));
   }
 
   // isMockingEnabled() also includes apply for matching of pacts with cy.c8ymatch
@@ -649,15 +654,25 @@ Cypress.Commands.add("getTenantId", { prevSubject: "optional" }, (...args) => {
     Cypress.c8ypact.mode() === "mock"
   ) {
     const tenant =
-      Cypress.env("C8Y_TENANT") || Cypress.c8ypact.current?.info.tenant;
-    Cypress.env("C8Y_TENANT", tenant);
+      c8yEnv("C8Y_TENANT") || Cypress.c8ypact.current?.info.tenant;
+    c8yEnv("C8Y_TENANT", tenant);
     return cy.wrap<string>(tenant);
+  }
+
+  // the tenant of the auth, e.g. from ${userAlias}_tenant or a JWT token, might not be
+  // the tenant of C8Y_TENANT. store it only if C8Y_TENANT is not set, never overwrite it.
+  if (auth?.tenant) {
+    consoleProps.tenant = auth.tenant;
+    if (!c8yEnv("C8Y_TENANT")) {
+      c8yEnv("C8Y_TENANT", auth.tenant);
+    }
+    return cy.wrap<string>(auth.tenant);
   }
 
   cy.wrap(auth, { log: false })
     .c8yclient()
     .then((c) => {
-      Cypress.env("C8Y_TENANT", c.core.tenant);
+      c8yEnv("C8Y_TENANT", c.core.tenant);
       cy.wrap(c.core.tenant);
     });
 });
@@ -673,8 +688,8 @@ Cypress.Commands.add(
       args: args || null,
       auth: auth || null,
       clientOptions: clientOptions || null,
-      C8Y_SYSTEM_VERSION: Cypress.env("C8Y_SYSTEM_VERSION") || null,
-      C8Y_VERSION: Cypress.env("C8Y_VERSION") || null,
+      C8Y_SYSTEM_VERSION: c8yEnv("C8Y_SYSTEM_VERSION") || null,
+      C8Y_VERSION: c8yEnv("C8Y_VERSION") || null,
       pactSystemVersion: Cypress.c8ypact.current?.info.version?.system || null,
     };
     Cypress.log({
@@ -685,12 +700,12 @@ Cypress.Commands.add(
     const systemVersion = getSystemVersionFromEnv();
     if (systemVersion) {
       consoleProps.Yields = systemVersion;
-      if (Cypress.env("C8Y_SYSTEM_VERSION") == null) {
-        Cypress.env("C8Y_SYSTEM_VERSION", systemVersion);
+      if (c8yEnv("C8Y_SYSTEM_VERSION") == null) {
+        c8yEnv("C8Y_SYSTEM_VERSION", systemVersion);
       }
       // set C8Y_VERSION for backward compatibility
-      if (Cypress.env("C8Y_VERSION") == null) {
-        Cypress.env("C8Y_VERSION", systemVersion);
+      if (c8yEnv("C8Y_VERSION") == null) {
+        c8yEnv("C8Y_VERSION", systemVersion);
       }
       return cy.wrap<string | undefined>(systemVersion);
     }
@@ -707,8 +722,8 @@ Cypress.Commands.add(
           if (!_.isEmpty(versionOptions)) {
             const version: string | undefined = _.first(versionOptions).value;
             consoleProps.Yields = version || null;
-            Cypress.env("C8Y_SYSTEM_VERSION", version);
-            Cypress.env("C8Y_VERSION", version);
+            c8yEnv("C8Y_SYSTEM_VERSION", version);
+            c8yEnv("C8Y_VERSION", version);
             return cy.wrap<string | undefined>(version);
           }
         }
@@ -734,7 +749,7 @@ Cypress.Commands.add(
       auth: auth || null,
       shellName: shellName || null,
       clientOptions: clientOptions || null,
-      C8Y_SHELL_NAME: Cypress.env("C8Y_SHELL_NAME") || null,
+      C8Y_SHELL_NAME: c8yEnv("C8Y_SHELL_NAME") || null,
     };
     Cypress.log({
       name: "getShellVersion",
@@ -748,7 +763,7 @@ Cypress.Commands.add(
       return cy.wrap<string | undefined>(version);
     }
 
-    const myShell = shellName || Cypress.env("C8Y_SHELL_NAME") || "cockpit";
+    const myShell = shellName || c8yEnv("C8Y_SHELL_NAME") || "cockpit";
     cy.wrap(auth, { log: false })
       .c8yclient(
         (c) => c.core.fetch(`/apps/${myShell}/cumulocity.json`),
@@ -758,9 +773,9 @@ Cypress.Commands.add(
         consoleProps.response = response || null;
         const shellVersion = toSemverVersion(response?.body?.version);
         consoleProps.Yields = version || null;
-        Cypress.env("C8Y_SHELL_VERSION", shellVersion);
-        if (shellVersion != null && !Cypress.env("C8Y_SHELL_NAME")) {
-          Cypress.env("C8Y_SHELL_NAME", myShell);
+        c8yEnv("C8Y_SHELL_VERSION", shellVersion);
+        if (shellVersion != null && !c8yEnv("C8Y_SHELL_NAME")) {
+          c8yEnv("C8Y_SHELL_NAME", myShell);
         }
         cy.wrap<string | undefined>(shellVersion);
       });

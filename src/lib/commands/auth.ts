@@ -9,6 +9,7 @@ import {
   C8yAuthentication,
   isAuthOptions,
 } from "../../shared/auth";
+import { c8yEnv } from "../../shared/cypressenv";
 
 export {
   C8yAuthOptions,
@@ -83,17 +84,19 @@ declare global {
 }
 
 const getAuthEnvVariables = () => {
-  const env = Cypress.env();
+  const env = c8yEnv();
   const filteredKeysAndValues: any = {};
   Object.keys(env).forEach((key) => {
     if (
       key.endsWith("_username") ||
       key.endsWith("_password") ||
       key.endsWith("_token") ||
+      key.endsWith("_tenant") ||
       key === "C8Y_USERNAME" ||
       key === "C8Y_USER" ||
       key === "C8Y_PASSWORD" ||
       key === "C8Y_TOKEN" ||
+      key === "C8Y_TENANT" ||
       key === "C8Y_XSRF_TOKEN" ||
       key === "C8Y_AUTHORIZATION"
     ) {

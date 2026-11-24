@@ -4,6 +4,8 @@ import {
   appendCountIfPathExists,
   C8yPactDefaultFileAdapter,
   configureC8yPlugin,
+  configureC8yScreenshotPlugin,
+  exposeC8yEnv,
   getFileUploadOptions,
   resolvePactRefs,
 } from "./index";
@@ -32,6 +34,247 @@ jest.mock("ws", () => ({
 }));
 
 describe("plugin", () => {
+  describe("exposeC8yEnv", () => {
+    it("should copy config.env into config.expose", () => {
+      const config: any = { env: { C8Y_TENANT: "t123", admin_password: "pw" } };
+      expect(exposeC8yEnv(config)).toBe(config);
+      expect(config.expose).toEqual({
+        C8Y_TENANT: "t123",
+        admin_password: "pw",
+      });
+      expect(config.expose).not.toBe(config.env);
+    });
+
+    it("should keep values already set in config.expose", () => {
+      const config: any = {
+        env: { C8Y_TENANT: "fromEnv", C8Y_VERSION: "1025.0.0" },
+        expose: { C8Y_TENANT: "fromExpose", other: "value" },
+      };
+      exposeC8yEnv(config);
+      expect(config.expose).toEqual({
+        C8Y_TENANT: "fromExpose",
+        C8Y_VERSION: "1025.0.0",
+        other: "value",
+      });
+    });
+
+    it("should remove copied variables removed from config.env when called again", () => {
+      const config: any = {
+        env: {
+          C8Y_PACT_MODE: "recording",
+          admin_password: "pw",
+          C8Y_TENANT: "t1",
+        },
+      };
+      exposeC8yEnv(config);
+      delete config.env.C8Y_PACT_MODE;
+      delete config.env.admin_password;
+      exposeC8yEnv(config);
+      expect(config.expose).toEqual({ C8Y_TENANT: "t1" });
+    });
+
+    it("should keep variables changed in config.expose when removed from config.env", () => {
+      const config: any = { env: { C8Y_PACT_MODE: "recording" } };
+      exposeC8yEnv(config);
+      config.expose.C8Y_PACT_MODE = "apply";
+      delete config.env.C8Y_PACT_MODE;
+      exposeC8yEnv(config);
+      expect(config.expose).toEqual({ C8Y_PACT_MODE: "apply" });
+    });
+
+    it("should update copied values when called again", () => {
+      const config: any = {
+        env: { C8Y_TENANT: "old-tenant", C8Y_VERSION: "1025.0.0" },
+        expose: { other: "explicit" },
+      };
+      exposeC8yEnv(config);
+      config.env.C8Y_TENANT = "new-tenant";
+      config.env.C8Y_USER = "admin";
+      config.expose.C8Y_VERSION = "explicit-version";
+      exposeC8yEnv(config);
+      expect(config.expose).toEqual({
+        C8Y_TENANT: "new-tenant",
+        C8Y_USER: "admin",
+        C8Y_VERSION: "explicit-version",
+        other: "explicit",
+      });
+    });
+
+    describe("credentials", () => {
+      const env = () => ({
+        C8Y_TENANT: "t123",
+        C8Y_USERNAME: "admin",
+        C8Y_USER: "admin",
+        C8Y_PASSWORD: "pw",
+        C8Y_TOKEN: "token",
+        C8Y_AUTHORIZATION: "auth",
+        C8Y_XSRF_TOKEN: "xsrf",
+        admin_username: "admin",
+        admin_password: "pw",
+        device_token: "token",
+      });
+      const credentialKeys = [
+        "C8Y_AUTHORIZATION",
+        "C8Y_PASSWORD",
+        "C8Y_TOKEN",
+        "C8Y_XSRF_TOKEN",
+        "admin_password",
+        "device_token",
+      ];
+
+      it("should copy credentials by default", () => {
+        const config: any = { env: env() };
+        exposeC8yEnv(config);
+        expect(config.expose).toEqual(env());
+      });
+
+      it("should not copy credentials with exposeCredentials false", () => {
+        const config: any = { env: env() };
+        exposeC8yEnv(config, { exposeCredentials: false });
+        expect(config.expose).toEqual({
+          C8Y_TENANT: "t123",
+          C8Y_USERNAME: "admin",
+          C8Y_USER: "admin",
+          admin_username: "admin",
+          _c8yCredentialKeys: credentialKeys,
+        });
+      });
+
+      it("should not copy credentials with C8Y_EXPOSE_CREDENTIALS false", () => {
+        for (const value of [false, "false"]) {
+          const config: any = {
+            env: { ...env(), C8Y_EXPOSE_CREDENTIALS: value },
+          };
+          exposeC8yEnv(config);
+          expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
+          expect(config.expose._c8yCredentialKeys).toEqual(credentialKeys);
+        }
+      });
+
+      describe("C8Y_EXPOSE_CREDENTIALS environment variable", () => {
+        const names = [
+          "C8Y_EXPOSE_CREDENTIALS",
+          "CYPRESS_C8Y_EXPOSE_CREDENTIALS",
+        ];
+        afterEach(() => {
+          names.forEach((name) => delete process.env[name]);
+        });
+
+        it("should not copy credentials with the variable set to false", () => {
+          for (const name of names) {
+            for (const value of ["false", "FALSE", "0"]) {
+              process.env[name] = value;
+              const config: any = { env: env() };
+              exposeC8yEnv(config);
+              expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
+              expect(config.expose._c8yCredentialKeys).toEqual(credentialKeys);
+              delete process.env[name];
+            }
+          }
+        });
+
+        it("should prefer the variable over config.env", () => {
+          process.env.C8Y_EXPOSE_CREDENTIALS = "false";
+          const config: any = {
+            env: { ...env(), C8Y_EXPOSE_CREDENTIALS: true },
+          };
+          exposeC8yEnv(config);
+          expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
+        });
+
+        it("should prefer exposeCredentials over the variable", () => {
+          process.env.C8Y_EXPOSE_CREDENTIALS = "false";
+          const config: any = { env: env() };
+          exposeC8yEnv(config, { exposeCredentials: true });
+          expect(config.expose.C8Y_PASSWORD).toBe("pw");
+        });
+
+        it("should be used by configureC8yPlugin", () => {
+          process.env.C8Y_EXPOSE_CREDENTIALS = "false";
+          const config: any = { env: env() };
+          configureC8yPlugin(undefined as any, config, {
+            pactFolder: "cypress/fixtures/c8ypact",
+          });
+          expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
+          expect(config.expose.C8Y_USERNAME).toBe("admin");
+        });
+      });
+
+      it("should prefer exposeCredentials over C8Y_EXPOSE_CREDENTIALS", () => {
+        const config: any = {
+          env: { ...env(), C8Y_EXPOSE_CREDENTIALS: "false" },
+        };
+        exposeC8yEnv(config, { exposeCredentials: true });
+        expect(config.expose.C8Y_PASSWORD).toBe("pw");
+        expect(config.expose).not.toHaveProperty("_c8yCredentialKeys");
+      });
+
+      it("should keep exposeCredentials when called again", () => {
+        const config: any = { env: env() };
+        exposeC8yEnv(config, { exposeCredentials: false });
+        config.env.other_password = "pw2";
+        exposeC8yEnv(config);
+        expect(config.expose).not.toHaveProperty("other_password");
+        expect(config.expose._c8yCredentialKeys).toEqual([
+          ...credentialKeys,
+          "other_password",
+        ]);
+      });
+
+      it("should remove credentials copied before with exposeCredentials false", () => {
+        const config: any = { env: env() };
+        exposeC8yEnv(config);
+        exposeC8yEnv(config, { exposeCredentials: false });
+        expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
+        expect(config.expose).not.toHaveProperty("admin_password");
+        expect(config.expose.admin_username).toBe("admin");
+      });
+
+      it("should keep credentials set explicitly in config.expose", () => {
+        const config: any = {
+          env: env(),
+          expose: { admin_password: "exposed" },
+        };
+        exposeC8yEnv(config, { exposeCredentials: false });
+        expect(config.expose.admin_password).toBe("exposed");
+        expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
+      });
+
+      it("should be passed by configureC8yPlugin", () => {
+        const config: any = { env: env() };
+        configureC8yPlugin(undefined as any, config, {
+          pactFolder: "cypress/fixtures/c8ypact",
+          exposeCredentials: false,
+        } as any);
+        expect(config.expose).not.toHaveProperty("C8Y_PASSWORD");
+        expect(config.expose.C8Y_PLUGIN_LOADED).toBe("true");
+      });
+    });
+
+    it("should be called by configureC8yPlugin", () => {
+      const config: any = { env: { C8Y_TENANT: "t123" } };
+      configureC8yPlugin(undefined as any, config, {
+        pactFolder: "cypress/fixtures/c8ypact",
+      });
+      expect(config.expose.C8Y_TENANT).toBe("t123");
+      expect(config.expose.C8Y_PLUGIN_LOADED).toBe("true");
+      expect(config.expose.C8Y_PACT_FOLDER).toBe(config.env.C8Y_PACT_FOLDER);
+    });
+
+    it("should be called by configureC8yScreenshotPlugin with the websocket disabled", () => {
+      const config: any = {
+        configFile: "/home/user/test/cypress.config.ts",
+        env: { C8Y_TENANT: "t123", C8Y_DISABLE_WEBSOCKET: "true" },
+      };
+      const result = configureC8yScreenshotPlugin(jest.fn() as any, config, {
+        baseUrl: "http://localhost:8080",
+        screenshots: [],
+      } as any);
+      expect(result).toBe(config);
+      expect(config.expose?.C8Y_TENANT).toBe("t123");
+    });
+  });
+
   describe("configurePlugin ", () => {
     it("should use pact folder from config", () => {
       const config = { env: {} };

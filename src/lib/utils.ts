@@ -19,8 +19,14 @@ import { getEnvVar } from "../shared/c8ypact/c8ypact";
 import { toSemverVersion } from "../shared/versioning";
 import { get_i } from "../shared/util";
 import { normalizeBaseUrl } from "../shared/url";
+import { c8yEnv, registerC8yCredentialHooks } from "../shared/cypressenv";
 
 const { _ } = Cypress;
+
+// With exposeCredentials: false, credentials are not exposed, and read with cy.env()
+// before each spec and test. Registered here, as all commands and pact modules that
+// read credentials use this module, also if loaded without cumulocity-cypress/commands.
+registerC8yCredentialHooks();
 
 /**
  * Helper to normalize any given arguments and Cypress `prevSubject`.
@@ -128,7 +134,7 @@ export function getAuthOptionsFromCypressEnv() {
     return auth;
   }
 
-  return getAuthOptionsFromEnv(Cypress.env());
+  return getAuthOptionsFromEnv(c8yEnv());
 }
 
 export function getAuthOptions(...args: any[]): C8yAuthOptions | undefined {
@@ -146,7 +152,7 @@ export function getAuthOptions(...args: any[]): C8yAuthOptions | undefined {
 
   const auth = getAuthOptionsFromArgs(...args);
   if (isAuthOptions(auth)) {
-    return authWithTenant(Cypress.env(), auth);
+    return authWithTenant(c8yEnv(), auth);
   } else if (args.length === 1 && _.isString(args[0])) {
     return undefined;
   }
@@ -163,6 +169,20 @@ export function userAliasFromArgs(...args: any[]): string | undefined {
     args = _.flatten(args[0]);
   }
   return args.length === 1 && _.isString(args[0]) ? args[0] : undefined;
+}
+
+/**
+ * Gets the tenant from the given JWT token as `{ tenant }`, or an empty object if the
+ * token is not a JWT token or has no tenant.
+ */
+function tenantFromToken(token?: string): { tenant?: string } {
+  if (!token || !_.isString(token)) return {};
+  try {
+    const tenant = getAuthOptionsFromJWT(token)?.tenant;
+    return tenant ? { tenant } : {};
+  } catch {
+    return {};
+  }
 }
 
 function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
@@ -182,17 +202,18 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
   let basicAuth: C8yAuthOptions | undefined = undefined;
 
   if (!_.isEmpty(args) && _.isString(args[0])) {
-    const token = Cypress.env(`${args[0]}_token`);
+    const token = c8yEnv(`${args[0]}_token`);
     if (token) {
-      tokenAuth = authWithTenant(Cypress.env(), {
+      tokenAuth = authWithTenant(c8yEnv(), {
         token,
         userAlias: args[0],
+        ...tenantFromToken(token),
       });
     }
-    const user = Cypress.env(`${args[0]}_username`) || args[0];
-    const password = Cypress.env(`${args[0]}_password`);
+    const user = c8yEnv(`${args[0]}_username`) || args[0];
+    const password = c8yEnv(`${args[0]}_password`);
     if (user && password) {
-      basicAuth = authWithTenant(Cypress.env(), {
+      basicAuth = authWithTenant(c8yEnv(), {
         user,
         password,
         userAlias: args[0],
@@ -201,32 +222,39 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
   }
 
   if (tokenAuth || basicAuth) {
-    return { ...(tokenAuth ?? {}), ...(basicAuth ?? {}) };
+    // the tenant of a token can't be changed, so it has precedence over the tenant
+    // configured for basic auth
+    return {
+      ...(tokenAuth ?? {}),
+      ...(basicAuth ?? {}),
+      ...tenantFromToken(tokenAuth?.token),
+    };
   }
 
   // getAuthOptions({user: "abc", password: "abc"}, ...)
   if (!_.isEmpty(args) && _.isObjectLike(args[0])) {
     if (isAuthOptions(args[0])) {
       return authWithTenant(
-        Cypress.env(),
+        c8yEnv(),
         _.pick(args[0], ["user", ...commonFields])
       );
     }
 
     // getAuthOptions({userAlias: "abc"}, ...)
     if (args[0].userAlias) {
-      const token = Cypress.env(`${args[0].userAlias}_token`);
+      const token = c8yEnv(`${args[0].userAlias}_token`);
       if (token) {
-        return authWithTenant(Cypress.env(), {
+        return authWithTenant(c8yEnv(), {
+          ...tenantFromToken(token),
           ..._.pick(args[0], commonFields),
           token,
         });
       }
       const user =
-        Cypress.env(`${args[0].userAlias}_username`) || args[0].userAlias;
-      const password = Cypress.env(`${args[0].userAlias}_password`);
+        c8yEnv(`${args[0].userAlias}_username`) || args[0].userAlias;
+      const password = c8yEnv(`${args[0].userAlias}_password`);
       if (user && password) {
-        return authWithTenant(Cypress.env(), {
+        return authWithTenant(c8yEnv(), {
           ..._.pick(args[0], commonFields),
           user,
           password,
@@ -240,7 +268,7 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
       if (auth.tenantId && !auth.tenant) {
         delete Object.assign(auth, { tenant: auth.tenantId })["tenantId"];
       }
-      return authWithTenant(Cypress.env(), auth);
+      return authWithTenant(c8yEnv(), auth);
     }
 
     // from IUser: getAuthOptions({userName: "abc", password: "abc"}, ...)
@@ -250,7 +278,7 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
       if (auth.tenantId && !auth.tenant) {
         delete Object.assign(auth, { tenant: auth.tenantId })["tenantId"];
       }
-      return authWithTenant(Cypress.env(), auth);
+      return authWithTenant(c8yEnv(), auth);
     }
 
     // from IUser: getAuthOptions({userName: "abc", password: "abc"}, ...)
@@ -260,13 +288,13 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
       if (auth.tenantId && !auth.tenant) {
         delete Object.assign(auth, { tenant: auth.tenantId })["tenantId"];
       }
-      return authWithTenant(Cypress.env(), auth);
+      return authWithTenant(c8yEnv(), auth);
     }
   }
 
   // getAuthOptions("abc", "abc")
   if (args.length >= 2 && _.isString(args[0]) && _.isString(args[1])) {
-    return authWithTenant(Cypress.env(), {
+    return authWithTenant(c8yEnv(), {
       user: args[0],
       password: args[1],
     });
@@ -337,7 +365,7 @@ export function persistAuth(auth: C8yAuthOptions) {
 
 export function getSystemVersionFromEnv(): string | undefined {
   let result = toSemverVersion(
-    Cypress.env(`C8Y_SYSTEM_VERSION`) || Cypress.env(`C8Y_VERSION`)
+    c8yEnv(`C8Y_SYSTEM_VERSION`) || c8yEnv(`C8Y_VERSION`)
   );
   if (
     result == null &&
@@ -353,7 +381,7 @@ export function getSystemVersionFromEnv(): string | undefined {
 }
 
 export function getShellVersionFromEnv(): string | undefined {
-  return Cypress.env(`C8Y_SHELL_VERSION`);
+  return c8yEnv(`C8Y_SHELL_VERSION`);
 }
 
 /**

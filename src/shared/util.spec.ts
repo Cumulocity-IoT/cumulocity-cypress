@@ -55,6 +55,51 @@ describe("util", () => {
     ).toEqual('{"user":"abcdefg","password":"***"}');
   });
 
+  it("sanitizeStringifiedObject masks credential keys with prefixes", () => {
+    const env = {
+      C8Y_USERNAME: "admin",
+      C8Y_PASSWORD: "secret1",
+      C8Y_TOKEN: "secret2",
+      C8Y_XSRF_TOKEN: "secret3",
+      C8Y_AUTHORIZATION: "Basic secret4",
+      C8Y_TENANT: "t12345",
+      admin_username: "admin",
+      admin_password: "secret5",
+      admin_token: "secret6",
+      admin_tenant: "t67890",
+    };
+    const result = sanitizeStringifiedObject(JSON.stringify(env, null, 2));
+    expect(result).not.toMatch(/secret/);
+    expect(JSON.parse(result)).toEqual({
+      ...env,
+      C8Y_PASSWORD: "***",
+      C8Y_TOKEN: "***",
+      C8Y_XSRF_TOKEN: "***",
+      C8Y_AUTHORIZATION: "***",
+      admin_password: "***",
+      admin_token: "***",
+    });
+  });
+
+  it("sanitizeStringifiedObject masks complete quoted values", () => {
+    expect(
+      sanitizeStringifiedObject(
+        JSON.stringify({ user: "a", token: "x y", xsrfToken: "z" })
+      )
+    ).toEqual('{"user":"a","token":"***","xsrfToken":"***"}');
+    expect(
+      sanitizeStringifiedObject(
+        JSON.stringify({ password: 'ab"c, d}', user: "a" })
+      )
+    ).toEqual('{"password":"***","user":"a"}');
+    expect(sanitizeStringifiedObject("{ 'password': 'a b', user: x }")).toEqual(
+      "{ 'password': '***', user: x }"
+    );
+    expect(sanitizeStringifiedObject('{"password":null}')).toEqual(
+      '{"password":***}'
+    );
+  });
+
   describe("to_boolean", () => {
     it("should return the default value if input is null", () => {
       const defaultValue = true;

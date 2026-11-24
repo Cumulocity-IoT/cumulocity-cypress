@@ -68,6 +68,7 @@ const logEnv = debug("c8y:scrn:env");
           key.startsWith("C8Y_") ||
           key.endsWith("_username") ||
           key.endsWith("_password") ||
+          key.endsWith("_tenant") ||
           key.endsWith("_token")
       ),
     };
