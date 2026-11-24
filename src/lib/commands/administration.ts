@@ -259,7 +259,8 @@ declare global {
        * internally and checked before quering current tenant for it's id.
        *
        * If the auth options have a tenant, e.g. from the `${userAlias}_tenant` environment
-       * variable, this tenant is returned and not stored in C8Y_TENANT.
+       * variable, this tenant is returned. It is stored in C8Y_TENANT only if C8Y_TENANT
+       * is not set yet, an existing C8Y_TENANT is never overwritten.
        *
        * @example
        * cy.getTenantId();
@@ -641,14 +642,7 @@ Cypress.Commands.add("getTenantId", { prevSubject: "optional" }, (...args) => {
     consoleProps: () => consoleProps,
   });
 
-  // the tenant of the auth, e.g. from a user alias with ${userAlias}_tenant, might not
-  // be the tenant of C8Y_TENANT. do not store it in C8Y_TENANT.
-  if (auth?.tenant) {
-    consoleProps.tenant = auth.tenant;
-    return cy.wrap<string>(auth.tenant);
-  }
-
-  if (c8yEnv("C8Y_TENANT")) {
+  if (c8yEnv("C8Y_TENANT") && !auth?.tenant) {
     consoleProps.C8Y_TENANT = c8yEnv("C8Y_TENANT");
     return cy.wrap<string>(c8yEnv("C8Y_TENANT"));
   }
@@ -663,6 +657,16 @@ Cypress.Commands.add("getTenantId", { prevSubject: "optional" }, (...args) => {
       c8yEnv("C8Y_TENANT") || Cypress.c8ypact.current?.info.tenant;
     c8yEnv("C8Y_TENANT", tenant);
     return cy.wrap<string>(tenant);
+  }
+
+  // the tenant of the auth, e.g. from ${userAlias}_tenant or a JWT token, might not be
+  // the tenant of C8Y_TENANT. store it only if C8Y_TENANT is not set, never overwrite it.
+  if (auth?.tenant) {
+    consoleProps.tenant = auth.tenant;
+    if (!c8yEnv("C8Y_TENANT")) {
+      c8yEnv("C8Y_TENANT", auth.tenant);
+    }
+    return cy.wrap<string>(auth.tenant);
   }
 
   cy.wrap(auth, { log: false })

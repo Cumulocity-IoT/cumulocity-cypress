@@ -422,7 +422,7 @@ The tenant resolution follows this priority order:
 3. `${userAlias}_tenant` environment variable (if user alias is used)
 4. `C8Y_TENANT` environment variable (fallback, lowest priority)
 
-`cy.getTenantId()` returns the tenant of the user alias, but does not store it in `C8Y_TENANT`, so requests of other users keep using `C8Y_TENANT`.
+`cy.getTenantId()` returns the tenant of the user alias. It stores the tenant in `C8Y_TENANT` only if `C8Y_TENANT` is not set yet, and never overwrites an existing `C8Y_TENANT`, so requests of other users keep using `C8Y_TENANT`.
 
 This enables implementing multi-tenant test scenarios where you can test interactions between parent and child tenants in a single test.
 

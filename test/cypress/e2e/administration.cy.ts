@@ -1325,7 +1325,7 @@ describe("administration", () => {
         });
     });
 
-    it("should not store tenant id from auth in C8Y_TENANT", function () {
+    it("should not overwrite C8Y_TENANT with tenant id from auth", function () {
       c8yEnv("C8Y_TENANT", "t232447652");
       cy.getAuth({ user: "admin", password: "mypassword", tenant: "t324678" })
         .getTenantId()
@@ -1352,6 +1352,39 @@ describe("administration", () => {
       cy.getTenantId().then((id) => {
         expect(id).to.eq("t1000000");
       });
+    });
+
+    it("should store tenant id from auth if C8Y_TENANT is not set", function () {
+      stubEnv({
+        child_username: "childadmin",
+        child_password: "childpass",
+        child_tenant: "t1000000-child",
+      });
+      expect(c8yEnv("C8Y_TENANT")).to.be.undefined;
+      cy.getAuth("child")
+        .getTenantId()
+        .then((id) => {
+          expect(id).to.eq("t1000000-child");
+          expect(window.fetchStub.callCount).to.equal(0);
+          expect(c8yEnv("C8Y_TENANT")).to.eq("t1000000-child");
+        });
+    });
+
+    it("should store tenant id from JWT token if C8Y_TENANT is not set", function () {
+      // tenant of the token is t1234567. used by the pact runner and c8yscrn to set
+      // C8Y_TENANT before running the tests.
+      stubEnv({
+        C8Y_TOKEN:
+          "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3NTU5Nzc0NzUsImV4cCI6MTc4NzUxMzQ3NSwiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsInhzcmZUb2tlbiI6IjIzNG5tMjM0bm0yMzQyMzQiLCJ0ZW4iOiJ0MTIzNDU2NyIsInVzZXIiOiJ0b2tlbnVzZXIiLCJiYXNlVXJsIjoiaHR0cHM6Ly9teXRlc3QuYzh5LmlvIn0.wKGIxJrUnT0NNyd198mfxegV6kncYsNFhGa6MFSSKCE",
+      });
+      expect(c8yEnv("C8Y_TENANT")).to.be.undefined;
+      cy.getAuth()
+        .getTenantId()
+        .then((id) => {
+          expect(id).to.eq("t1234567");
+          expect(window.fetchStub.callCount).to.equal(0);
+          expect(c8yEnv("C8Y_TENANT")).to.eq("t1234567");
+        });
     });
 
     it("should not fail for CookieAuth", function () {
