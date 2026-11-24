@@ -285,11 +285,15 @@ export interface ScrollToAction {
 
 export interface TypeAction {
   /**
-   * The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.
+   * The value to type into the selected DOM element. The value can be a string, a number, or an array of values. If an array is provided, the text and number input fields and textareas within the selector are filled with the values in the array.
    *
-   * For multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form.
+   * For multistep forms, the value can be an array of arrays. Each array represents a step in the form. The first value in the array is typed into the first input field, the second value into the second input field, and so on. Use null to skip an input field. Configure submit selector to continue to the next step of the form.
    */
-  value: string | (string | null)[] | (string | null)[][];
+  value:
+    | string
+    | number
+    | (string | number | null)[]
+    | (string | number | null)[][];
   /**
    * If true, the text input is cleared before typing. The default is false.
    * @default false

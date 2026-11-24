@@ -1028,9 +1028,13 @@
                       "type": "string"
                     },
                     {
+                      "type": "number"
+                    },
+                    {
                       "items": {
                         "type": [
                           "string",
+                          "number",
                           "null"
                         ]
                       },
@@ -1041,6 +1045,7 @@
                         "items": {
                           "type": [
                             "string",
+                            "number",
                             "null"
                           ]
                         },
@@ -1049,7 +1054,7 @@
                       "type": "array"
                     }
                   ],
-                  "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form."
+                  "description": "The value to type into the selected DOM element. The value can be a string, a number, or an array of values. If an array is provided, the text and number input fields and textareas within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of arrays. Each array represents a step in the form. The first value in the array is typed into the first input field, the second value into the second input field, and so on. Use null to skip an input field. Configure submit selector to continue to the next step of the form."
                 }
               },
               "required": [
@@ -1091,9 +1096,13 @@
                       "type": "string"
                     },
                     {
+                      "type": "number"
+                    },
+                    {
                       "items": {
                         "type": [
                           "string",
+                          "number",
                           "null"
                         ]
                       },
@@ -1104,6 +1113,7 @@
                         "items": {
                           "type": [
                             "string",
+                            "number",
                             "null"
                           ]
                         },
@@ -1112,7 +1122,7 @@
                       "type": "array"
                     }
                   ],
-                  "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form."
+                  "description": "The value to type into the selected DOM element. The value can be a string, a number, or an array of values. If an array is provided, the text and number input fields and textareas within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of arrays. Each array represents a step in the form. The first value in the array is typed into the first input field, the second value into the second input field, and so on. Use null to skip an input field. Configure submit selector to continue to the next step of the form."
                 }
               },
               "required": [
@@ -1172,9 +1182,13 @@
                       "type": "string"
                     },
                     {
+                      "type": "number"
+                    },
+                    {
                       "items": {
                         "type": [
                           "string",
+                          "number",
                           "null"
                         ]
                       },
@@ -1185,6 +1199,7 @@
                         "items": {
                           "type": [
                             "string",
+                            "number",
                             "null"
                           ]
                         },
@@ -1193,7 +1208,7 @@
                       "type": "array"
                     }
                   ],
-                  "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form."
+                  "description": "The value to type into the selected DOM element. The value can be a string, a number, or an array of values. If an array is provided, the text and number input fields and textareas within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of arrays. Each array represents a step in the form. The first value in the array is typed into the first input field, the second value into the second input field, and so on. Use null to skip an input field. Configure submit selector to continue to the next step of the form."
                 }
               },
               "required": [
@@ -1244,9 +1259,13 @@
                       "type": "string"
                     },
                     {
+                      "type": "number"
+                    },
+                    {
                       "items": {
                         "type": [
                           "string",
+                          "number",
                           "null"
                         ]
                       },
@@ -1257,6 +1276,7 @@
                         "items": {
                           "type": [
                             "string",
+                            "number",
                             "null"
                           ]
                         },
@@ -1265,7 +1285,7 @@
                       "type": "array"
                     }
                   ],
-                  "description": "The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form."
+                  "description": "The value to type into the selected DOM element. The value can be a string, a number, or an array of values. If an array is provided, the text and number input fields and textareas within the selector are filled with the values in the array.\n\nFor multistep forms, the value can be an array of arrays. Each array represents a step in the form. The first value in the array is typed into the first input field, the second value into the second input field, and so on. Use null to skip an input field. Configure submit selector to continue to the next step of the form."
                 }
               },
               "required": [
