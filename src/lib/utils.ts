@@ -171,6 +171,20 @@ export function userAliasFromArgs(...args: any[]): string | undefined {
   return args.length === 1 && _.isString(args[0]) ? args[0] : undefined;
 }
 
+/**
+ * Gets the tenant from the given JWT token as `{ tenant }`, or an empty object if the
+ * token is not a JWT token or has no tenant.
+ */
+function tenantFromToken(token?: string): { tenant?: string } {
+  if (!token || !_.isString(token)) return {};
+  try {
+    const tenant = getAuthOptionsFromJWT(token)?.tenant;
+    return tenant ? { tenant } : {};
+  } catch {
+    return {};
+  }
+}
+
 function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
   // do not call getAuthOptionsFromEnv() in here!
   const commonFields = [
@@ -193,6 +207,7 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
       tokenAuth = authWithTenant(c8yEnv(), {
         token,
         userAlias: args[0],
+        ...tenantFromToken(token),
       });
     }
     const user = c8yEnv(`${args[0]}_username`) || args[0];
@@ -207,7 +222,13 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
   }
 
   if (tokenAuth || basicAuth) {
-    return { ...(tokenAuth ?? {}), ...(basicAuth ?? {}) };
+    // the tenant of a token can't be changed, so it has precedence over the tenant
+    // configured for basic auth
+    return {
+      ...(tokenAuth ?? {}),
+      ...(basicAuth ?? {}),
+      ...tenantFromToken(tokenAuth?.token),
+    };
   }
 
   // getAuthOptions({user: "abc", password: "abc"}, ...)
@@ -224,6 +245,7 @@ function getAuthOptionsFromArgs(...args: any[]): C8yAuthOptions | undefined {
       const token = c8yEnv(`${args[0].userAlias}_token`);
       if (token) {
         return authWithTenant(c8yEnv(), {
+          ...tenantFromToken(token),
           ..._.pick(args[0], commonFields),
           token,
         });

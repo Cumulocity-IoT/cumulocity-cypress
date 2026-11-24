@@ -19,13 +19,25 @@ export function safeStringify(obj: any, indent = 2) {
   return retVal;
 }
 
+/**
+ * Masks the values of credentials in a stringified object, e.g. JSON. Credentials are
+ * keys ending with `password`, `token` or `authorization` (case-insensitive), such as
+ * `password`, `C8Y_PASSWORD`, `admin_password`, `C8Y_TOKEN`, `xsrfToken` or
+ * `C8Y_AUTHORIZATION`. Quoted values are masked up to the closing quote, so values with
+ * whitespace, e.g. `Basic abc`, are masked completely.
+ *
+ * @param obj The stringified object. Other types are returned unchanged.
+ * @returns The string with masked credentials.
+ */
 export function sanitizeStringifiedObject(obj: any): any {
   if (!_.isString(obj)) {
     return obj;
   }
   const regex =
-    /((?:"password"|'password'|password|"token"|'token'|token)\s*:\s*["']?)(.*?)(["']|,|\s|}|$)/gi;
-  return obj.replace(regex, "$1***$3");
+    /((["']?)\b[\w$-]*?(?:password|token|authorization)\2\s*:\s*)(?:(["'])(?:\\.|(?!\3)[^\\])*\3|[^,\s}]*)/gi;
+  return obj.replace(regex, (_match, prefix: string, _keyQuote, valueQuote) =>
+    valueQuote ? `${prefix}${valueQuote}***${valueQuote}` : `${prefix}***`
+  );
 }
 
 /**

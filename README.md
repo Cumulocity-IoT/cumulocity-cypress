@@ -396,6 +396,36 @@ Cypress.expose("admin_password", "password");
 
 When using user aliases, token authentication takes precedence over username/password if both are configured.
 
+#### Tenant-per-user-alias configuration
+
+User aliases can also be configured with different tenants using the `${userAlias}_tenant` environment variable. This is useful for testing multi-tenant scenarios, such as parent/child tenant relationships, where different users may need to authenticate against different tenants.
+
+```typescript
+// Configure first user with tenant1
+Cypress.expose("user1_username", "user1");
+Cypress.expose("user1_password", "password1");
+Cypress.expose("user1_tenant", "tenant1");
+
+// Configure second user with tenant2
+Cypress.expose("user2_username", "user2");
+Cypress.expose("user2_password", "password2");
+Cypress.expose("user2_tenant", "tenant2");
+
+// Use in tests
+cy.getAuth("user1").c8yclient(...); // Uses tenant1
+cy.getAuth("user2").c8yclient(...); // Uses tenant2
+```
+
+The tenant resolution follows this priority order:
+1. Explicit `tenant` property in auth options (highest priority)
+2. Tenant of the JWT token, if the user alias is configured with a `${userAlias}_token` JWT token
+3. `${userAlias}_tenant` environment variable (if user alias is used)
+4. `C8Y_TENANT` environment variable (fallback, lowest priority)
+
+`cy.getTenantId()` returns the tenant of the user alias. It stores the tenant in `C8Y_TENANT` only if `C8Y_TENANT` is not set yet, and never overwrites an existing `C8Y_TENANT`, so requests of other users keep using `C8Y_TENANT`.
+
+This enables implementing multi-tenant test scenarios where you can test interactions between parent and child tenants in a single test.
+
 #### Using authentication tokens
 
 To use Bearer instead of Basic authentication, you can get a JWT token from username and password and store it in environment variable for later use. This is best done directly in your `cypress.config.ts`, before any of the tests are executed. This way, you can use the token for authentication in all your tests without having to worry about how to get the token in your tests or to set it up for each test.
