@@ -208,10 +208,202 @@ function replacePlaceholdersInCopy(
   return target; // For numbers, booleans, null, undefined
 }
 
+/**
+ * Key that replaces "$ref" while resolving, for references that are kept as literal
+ * values. $RefParser only processes keys named "$ref", so it neither resolves nor
+ * loads these references.
+ */
+const LITERAL_REF_KEY = "\u0000c8y:literal:$ref";
+
+/**
+ * A $ref in a recorded request or response body that is kept as literal value.
+ */
+interface LiteralRefInfo {
+  keyPath: (string | number)[]; // Path to the object containing this $ref
+  ref: string;
+}
+
+/**
+ * Parses the fragment of a $ref (without the leading "#") into JSON pointer segments.
+ * Returns undefined if the fragment is not a JSON pointer, for example a JSON Schema
+ * anchor like "#foo".
+ */
+function parseJsonPointer(fragment: string): string[] | undefined {
+  if (fragment === "") return [];
+  if (!fragment.startsWith("/")) return undefined;
+  return fragment
+    .substring(1)
+    .split("/")
+    .map((segment) => {
+      let decoded = segment;
+      try {
+        decoded = decodeURIComponent(segment);
+      } catch {
+        // keep the segment as is if it is not valid percent-encoding
+      }
+      return decoded.replace(/~1/g, "/").replace(/~0/g, "~");
+    });
+}
+
+/**
+ * Checks if the JSON pointer segments resolve within root. Returns "ref" if the
+ * pointer leads into an object with a $ref, so the target can only be found by
+ * resolving that reference first.
+ */
+function resolvesPointer(root: any, segments: string[]): boolean | "ref" {
+  let node = root;
+  for (const segment of segments) {
+    if (node == null || typeof node !== "object") return false;
+    if (Object.prototype.hasOwnProperty.call(node, segment)) {
+      node = node[segment];
+    } else {
+      return _.isString(node.$ref) ? "ref" : false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Returns the file path for the location part of a $ref, or undefined if the location
+ * is a URL with a scheme other than file:.
+ */
+function refLocationToFilePath(
+  location: string,
+  baseFolder?: string
+): string | undefined {
+  if (/^file:/i.test(location)) {
+    try {
+      return fileURLToPath(location);
+    } catch {
+      return undefined;
+    }
+  }
+  if (path.isAbsolute(location)) return location;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(location)) return undefined;
+  return path.resolve(baseFolder ?? process.cwd(), location);
+}
+
+function isFile(filePath: string): boolean {
+  try {
+    return fs.statSync(filePath).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Decides if a $ref in a recorded request or response body is a literal value of the
+ * body, for example of a JSON Schema returned by a service, or a pact reference.
+ *
+ * - References to a URL, like https://, are literal.
+ * - Internal references ("#/...") whose target exists within the body are literal,
+ *   as "#" refers to the root of the body. This takes precedence over the pact.
+ * - Internal references whose target exists in the pact, and references to existing
+ *   files, are pact references.
+ * - All other references are literal, as they can not be resolved.
+ */
+function isLiteralRef(
+  ref: string,
+  body: any,
+  pact: any,
+  baseFolder?: string
+): boolean {
+  const queryIndex = ref.indexOf("?");
+  const refWithoutQuery = queryIndex === -1 ? ref : ref.substring(0, queryIndex);
+  const fragmentIndex = refWithoutQuery.indexOf("#");
+  const location =
+    fragmentIndex === -1
+      ? refWithoutQuery
+      : refWithoutQuery.substring(0, fragmentIndex);
+  const fragment =
+    fragmentIndex === -1 ? "" : refWithoutQuery.substring(fragmentIndex + 1);
+
+  if (location === "") {
+    const segments = parseJsonPointer(fragment);
+    if (segments == null) return true;
+    if (resolvesPointer(body, segments) === true) return true;
+    return resolvesPointer(pact, segments) === false;
+  }
+
+  const filePath = refLocationToFilePath(location, baseFolder);
+  return filePath == null || !isFile(filePath);
+}
+
+function collectRefs(
+  node: any,
+  currentPath: (string | number)[],
+  collected: LiteralRefInfo[]
+): void {
+  if (node == null || typeof node !== "object") return;
+  for (const key of Object.keys(node)) {
+    const value = node[key];
+    if (key === "$ref" && _.isString(value)) {
+      collected.push({ keyPath: currentPath, ref: value });
+    } else if (typeof value === "object" && value !== null) {
+      const segment = Array.isArray(node) ? parseInt(key) : key;
+      collectRefs(value, [...currentPath, segment], collected);
+    }
+  }
+}
+
+/**
+ * Finds the $ref references in recorded request and response bodies of the pact
+ * that are literal values. See {@link isLiteralRef}.
+ */
+function findLiteralRefs(pact: any, baseFolder?: string): LiteralRefInfo[] {
+  const literalRefs: LiteralRefInfo[] = [];
+  if (!Array.isArray(pact?.records)) return literalRefs;
+
+  pact.records.forEach((record: any, index: number) => {
+    for (const key of ["request", "response"]) {
+      const body = record?.[key]?.body;
+      if (body == null || typeof body !== "object") continue;
+
+      const refs: LiteralRefInfo[] = [];
+      collectRefs(body, ["records", index, key, "body"], refs);
+      literalRefs.push(
+        ...refs.filter((info) =>
+          isLiteralRef(info.ref, body, pact, baseFolder)
+        )
+      );
+    }
+  });
+  return literalRefs;
+}
+
+/**
+ * Renames a key of an object in place, keeping the order of the keys.
+ */
+function renameKey(obj: Record<string, any>, from: string, to: string): void {
+  const entries = Object.entries(obj);
+  for (const key of Object.keys(obj)) {
+    delete obj[key];
+  }
+  for (const [key, value] of entries) {
+    obj[key === from ? to : key] = value;
+  }
+}
+
+/**
+ * Renames all LITERAL_REF_KEY keys back to "$ref". Objects can be referenced from
+ * more than one location after dereferencing, so the whole document is traversed.
+ */
+function restoreLiteralRefs(node: any, visited = new WeakSet<object>()): void {
+  if (node == null || typeof node !== "object" || visited.has(node)) return;
+  visited.add(node);
+  if (Object.prototype.hasOwnProperty.call(node, LITERAL_REF_KEY)) {
+    renameKey(node, LITERAL_REF_KEY, "$ref");
+  }
+  for (const value of Object.values(node)) {
+    restoreLiteralRefs(value, visited);
+  }
+}
+
 export async function resolveRefs(
   doc: C8yPact,
   baseFolder?: string, // Optional base folder for resolving relative file paths
-  parserOptions?: any // Optional custom options for $RefParser
+  parserOptions?: any, // Optional custom options for $RefParser
+  log?: (message: string) => void
 ): Promise<C8yPact | null> {
   if (doc == null || typeof doc !== "object") {
     return doc;
@@ -224,6 +416,17 @@ export async function resolveRefs(
 
   const parameterizationInfoList: RefParameterizationInfo[] = [];
   const docForProcessing = _.cloneDeep(doc);
+
+  // 0. Hide $refs in recorded bodies that are literal values from $RefParser. The
+  // recorded data itself is not changed, the keys are restored after dereferencing.
+  const literalRefs = findLiteralRefs(doc, baseFolder);
+  for (const info of literalRefs) {
+    log?.(
+      `Keeping $ref "${info.ref}" at ${info.keyPath.join("/")} as literal value.`
+    );
+    const holder = getValueByPath(docForProcessing, info.keyPath);
+    renameKey(holder, "$ref", LITERAL_REF_KEY);
+  }
 
   // 1. Custom "parsing" step: Traverse, transform $refs, collect parameterization info
   traverseAndPreprocessRefs(
@@ -309,6 +512,10 @@ export async function resolveRefs(
       );
       setValueByPath(finalDoc, info.keyPath, replacedAndFinalValue);
     }
+  }
+
+  if (literalRefs.length > 0) {
+    restoreLiteralRefs(finalDoc);
   }
 
   return _.pick(finalDoc, C8yPactObjectKeys) as C8yPact;

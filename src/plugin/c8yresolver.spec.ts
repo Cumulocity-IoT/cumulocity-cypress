@@ -7,6 +7,7 @@ import { vol } from "memfs"; // Import vol
 import path from "path";
 import fs from "fs";
 import url from "url";
+import _ from "lodash";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 jest.mock("fs", () => require("memfs").fs);
@@ -905,6 +906,189 @@ describe("resolvePact", () => {
       );
       expect(resolvedWithFragment.id).toBe("bf-relative-up-down-pact");
       expect(resolvedWithFragment.info).toEqual(defaultPactInfo);
+    });
+  });
+
+  describe("literal $refs in recorded bodies", () => {
+    const schemaBody = () => ({
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "object",
+      definitions: { prop: { type: "string" } },
+      properties: {
+        prop: { $ref: "#/definitions/prop" },
+        self: { $ref: "#" },
+      },
+    });
+
+    const pactWithResponseBody = (body: any, extra: any = {}) => ({
+      ...extra,
+      records: [
+        {
+          request: { url: "/service/example/compose", method: "POST" },
+          response: { status: 200, body },
+        },
+      ],
+      id: defaultPactId,
+      info: defaultPactInfo,
+    });
+
+    let fetchSpy: jest.SpyInstance | undefined;
+
+    beforeEach(() => {
+      fetchSpy = jest
+        .spyOn(globalThis, "fetch")
+        .mockRejectedValue(new Error("fetch must not be called"));
+    });
+
+    afterEach(() => {
+      fetchSpy?.mockRestore();
+      vol.reset();
+    });
+
+    it("should keep a $ref whose target exists within the response body", async () => {
+      const doc = pactWithResponseBody(schemaBody());
+
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.body).toEqual(schemaBody());
+      expect(
+        Object.keys(resolved.records[0].response.body.properties.prop)
+      ).toEqual(["$ref"]);
+    });
+
+    it("should keep the order of keys of an object with a literal $ref", async () => {
+      const doc = pactWithResponseBody({
+        definitions: { a: { type: "string" } },
+        properties: {
+          a: { description: "first", $ref: "#/definitions/a", title: "last" },
+        },
+      });
+
+      const resolved = await resolveRefs(doc);
+      expect(
+        Object.keys(resolved.records[0].response.body.properties.a)
+      ).toEqual(["description", "$ref", "title"]);
+    });
+
+    it("should prefer the body over the pact if the target exists in both", async () => {
+      const doc = pactWithResponseBody(schemaBody(), {
+        definitions: { prop: { message: "from pact" } },
+      });
+
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.body).toEqual(schemaBody());
+    });
+
+    it("should keep a $ref within a request body", async () => {
+      const doc = {
+        records: [
+          {
+            request: { url: "/schemas", method: "POST", body: schemaBody() },
+            response: { status: 201 },
+          },
+        ],
+        id: defaultPactId,
+        info: defaultPactInfo,
+      };
+
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].request.body).toEqual(schemaBody());
+    });
+
+    it("should keep a $ref to a URL without loading it", async () => {
+      const body = {
+        properties: {
+          a: { $ref: "https://example.com/schemas/a.json" },
+          b: { $ref: "http://example.com/schemas/b.json#/definitions/b" },
+          c: { $ref: "urn:example:schema" },
+        },
+      };
+      const doc = pactWithResponseBody(_.cloneDeep(body));
+
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.body).toEqual(body);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("should not load a URL $ref within a jsonSchema property of a body", async () => {
+      const body = {
+        jsonSchema: {
+          properties: { a: { $ref: "https://example.com/schemas/a.json" } },
+        },
+      };
+      const doc = pactWithResponseBody(_.cloneDeep(body));
+
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.body).toEqual(body);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("should keep a $ref that can not be resolved", async () => {
+      const body = {
+        properties: {
+          missing: { $ref: "#/definitions/missing" },
+          anchor: { $ref: "#foo" },
+          file: { $ref: "common.json#/definitions/address" },
+        },
+      };
+      const doc = pactWithResponseBody(_.cloneDeep(body));
+
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.body).toEqual(body);
+    });
+
+    it("should resolve pact refs and keep literal refs in the same body", async () => {
+      jest.spyOn(process, "cwd").mockReturnValue(CWD);
+      vol.fromNestedJSON({
+        [CWD]: {
+          "device.json": JSON.stringify({ name: "Device from file" }),
+        },
+      });
+
+      const doc = pactWithResponseBody(
+        {
+          device: { $ref: "#/templates/device" },
+          deviceFromFile: { $ref: "device.json" },
+          greeting: { $ref: "#/templates/greeting?name=World" },
+          schema: schemaBody(),
+        },
+        {
+          templates: {
+            device: { id: "12345", type: "c8y_Device" },
+            greeting: { message: "Hello {{name}}!" },
+          },
+        }
+      );
+
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.body).toEqual({
+        device: { id: "12345", type: "c8y_Device" },
+        deviceFromFile: { name: "Device from file" },
+        greeting: { message: "Hello World!" },
+        schema: schemaBody(),
+      });
+    });
+
+    it("should log the literal refs", async () => {
+      const log = jest.fn();
+      await resolveRefs(pactWithResponseBody(schemaBody()), undefined, {}, log);
+      expect(log).toHaveBeenCalledWith(
+        'Keeping $ref "#/definitions/prop" at records/0/response/body/properties/prop as literal value.'
+      );
+      expect(log).toHaveBeenCalledWith(
+        'Keeping $ref "#" at records/0/response/body/properties/self as literal value.'
+      );
+    });
+
+    it("should still fail for an unresolved $ref outside of a body", async () => {
+      const doc = {
+        templates: {},
+        records: [{ $ref: "#/templates/doesNotExist" }],
+        id: defaultPactId,
+        info: defaultPactInfo,
+      };
+
+      const error = await resolveRefs(doc).catch((e) => e);
+      expect(error.errors[0].message).toContain("doesNotExist");
     });
   });
 });

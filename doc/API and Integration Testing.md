@@ -475,6 +475,17 @@ configureC8yPlugin(on, config, {
 
 If you call `resolvePactRefs` directly, for example in a custom setup, pass `{ failOnError: true }` as fourth argument to get the same behavior.
 
+#### `$ref` in recorded bodies
+
+A recorded request or response body can contain a `$ref` that is part of the data, for example a JSON Schema returned by a service. The plugin keeps such a `$ref` unchanged and does not report an error for it. For each `$ref` in `records[*].request.body` and `records[*].response.body`, the following rules apply:
+
+- A `$ref` to a URL, such as `https://example.com/schema.json`, is kept and not loaded.
+- A `$ref` such as `#/definitions/prop` whose target exists within the same body is kept. In a JSON Schema, `#` refers to the root of the body, not to the root of the pact. If the target exists in both the body and the pact, the body takes precedence.
+- A `$ref` whose target exists in the pact, such as `#/templates/device`, or a `$ref` to an existing file is resolved.
+- Any other `$ref` is kept, because it cannot be resolved.
+
+The plugin logs each kept `$ref` with its path to the `c8y:plugin` debug logger. If you mistype a template reference in a body, the `$ref` is kept and the test fails when matching the body. A `$ref` outside of recorded bodies is always resolved.
+
 #### C8yPact file format
 
 The default file format for recorded pacts is JSON using the `C8yPact` object structure. To store recorded pacts in files, use `C8yPactDefaultFileAdapter` as in the following example.
