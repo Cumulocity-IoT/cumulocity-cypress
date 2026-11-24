@@ -258,6 +258,9 @@ declare global {
        * Tenant id is stored in C8Y_TENANT environment variable. C8Y_TENANT is used
        * internally and checked before quering current tenant for it's id.
        *
+       * If the auth options have a tenant, e.g. from the `${userAlias}_tenant` environment
+       * variable, this tenant is returned and not stored in C8Y_TENANT.
+       *
        * @example
        * cy.getTenantId();
        * cy.getAuth("admin").getTenantId();
@@ -638,7 +641,14 @@ Cypress.Commands.add("getTenantId", { prevSubject: "optional" }, (...args) => {
     consoleProps: () => consoleProps,
   });
 
-  if (c8yEnv("C8Y_TENANT") && !auth?.tenant) {
+  // the tenant of the auth, e.g. from a user alias with ${userAlias}_tenant, might not
+  // be the tenant of C8Y_TENANT. do not store it in C8Y_TENANT.
+  if (auth?.tenant) {
+    consoleProps.tenant = auth.tenant;
+    return cy.wrap<string>(auth.tenant);
+  }
+
+  if (c8yEnv("C8Y_TENANT")) {
     consoleProps.C8Y_TENANT = c8yEnv("C8Y_TENANT");
     return cy.wrap<string>(c8yEnv("C8Y_TENANT"));
   }

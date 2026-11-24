@@ -343,6 +343,61 @@ describe("auth", () => {
         });
     });
 
+    it("should use tenant from userAlias_tenant for tokens that are not JWT", () => {
+      stubEnv({
+        C8Y_TENANT: "t0000000",
+        admin_token: "not-a-jwt-token",
+        admin_tenant: "t9876543",
+      });
+      cy.getAuth("admin").then((result) => {
+        expect(result?.token).to.eq("not-a-jwt-token");
+        expect(result?.tenant).to.eq("t9876543");
+        expect(result?.userAlias).to.eq("admin");
+      });
+    });
+
+    it("should prefer tenant from JWT token over userAlias_tenant", () => {
+      // tenant of testToken is t1234567
+      stubEnv({
+        C8Y_TENANT: "t0000000",
+        admin_token: testToken,
+        admin_tenant: "t9876543",
+      });
+      cy.getAuth("admin").then((result) => {
+        expect(result?.token).to.eq(testToken);
+        expect(result?.tenant).to.eq("t1234567");
+      });
+    });
+
+    it("should prefer tenant from JWT token with username and password", () => {
+      stubEnv({
+        C8Y_TENANT: "t0000000",
+        admin_token: testToken,
+        admin_username: "admin",
+        admin_password: "password",
+        admin_tenant: "t9876543",
+      });
+      cy.getAuth("admin").then((result) => {
+        expect(result?.token).to.eq(testToken);
+        expect(result?.user).to.eq("admin");
+        expect(result?.tenant).to.eq("t1234567");
+      });
+    });
+
+    it("should prefer tenant from JWT token for userAlias in auth options", () => {
+      stubEnv({
+        C8Y_TENANT: "t0000000",
+        admin_token: testToken,
+        admin_tenant: "t9876543",
+      });
+      cy.wrap({ userAlias: "admin" })
+        .getAuth()
+        .then((result) => {
+          expect(result?.token).to.eq(testToken);
+          expect(result?.tenant).to.eq("t1234567");
+        });
+    });
+
     it("should support multiple users with different tenants", () => {
       stubEnv({
         user1_username: "user1",

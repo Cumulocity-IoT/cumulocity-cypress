@@ -1325,6 +1325,35 @@ describe("administration", () => {
         });
     });
 
+    it("should not store tenant id from auth in C8Y_TENANT", function () {
+      c8yEnv("C8Y_TENANT", "t232447652");
+      cy.getAuth({ user: "admin", password: "mypassword", tenant: "t324678" })
+        .getTenantId()
+        .then((id) => {
+          expect(id).to.eq("t324678");
+          expect(c8yEnv("C8Y_TENANT")).to.eq("t232447652");
+        });
+    });
+
+    it("should use tenant id of user alias without changing C8Y_TENANT", function () {
+      stubEnv({
+        C8Y_TENANT: "t1000000",
+        child_username: "childadmin",
+        child_password: "childpass",
+        child_tenant: "t1000000-child",
+      });
+      cy.getAuth("child")
+        .getTenantId()
+        .then((id) => {
+          expect(id).to.eq("t1000000-child");
+          expect(window.fetchStub.callCount).to.equal(0);
+          expect(c8yEnv("C8Y_TENANT")).to.eq("t1000000");
+        });
+      cy.getTenantId().then((id) => {
+        expect(id).to.eq("t1000000");
+      });
+    });
+
     it("should not fail for CookieAuth", function () {
       cy.setCookie("XSRF-TOKEN", "123");
       cy.setCookie("authorization", "213412");

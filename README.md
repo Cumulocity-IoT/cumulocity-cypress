@@ -394,20 +394,22 @@ Cypress.expose("admin_username", "admin");
 Cypress.expose("admin_password", "password");
 ```
 
+When using user aliases, token authentication takes precedence over username/password if both are configured.
+
 #### Tenant-per-user-alias configuration
 
 User aliases can also be configured with different tenants using the `${userAlias}_tenant` environment variable. This is useful for testing multi-tenant scenarios, such as parent/child tenant relationships, where different users may need to authenticate against different tenants.
 
 ```typescript
 // Configure first user with tenant1
-Cypress.env("user1_username", "user1");
-Cypress.env("user1_password", "password1");
-Cypress.env("user1_tenant", "tenant1");
+Cypress.expose("user1_username", "user1");
+Cypress.expose("user1_password", "password1");
+Cypress.expose("user1_tenant", "tenant1");
 
 // Configure second user with tenant2
-Cypress.env("user2_username", "user2");
-Cypress.env("user2_password", "password2");
-Cypress.env("user2_tenant", "tenant2");
+Cypress.expose("user2_username", "user2");
+Cypress.expose("user2_password", "password2");
+Cypress.expose("user2_tenant", "tenant2");
 
 // Use in tests
 cy.getAuth("user1").c8yclient(...); // Uses tenant1
@@ -416,12 +418,13 @@ cy.getAuth("user2").c8yclient(...); // Uses tenant2
 
 The tenant resolution follows this priority order:
 1. Explicit `tenant` property in auth options (highest priority)
-2. `${userAlias}_tenant` environment variable (if user alias is used)
-3. `C8Y_TENANT` environment variable (fallback, lowest priority)
+2. Tenant of the JWT token, if the user alias is configured with a `${userAlias}_token` JWT token
+3. `${userAlias}_tenant` environment variable (if user alias is used)
+4. `C8Y_TENANT` environment variable (fallback, lowest priority)
+
+`cy.getTenantId()` returns the tenant of the user alias, but does not store it in `C8Y_TENANT`, so requests of other users keep using `C8Y_TENANT`.
 
 This enables implementing multi-tenant test scenarios where you can test interactions between parent and child tenants in a single test.
-
-When using user aliases, token authentication takes precedence over username/password if both are configured.
 
 #### Using authentication tokens
 
