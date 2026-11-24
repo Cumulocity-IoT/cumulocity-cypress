@@ -13,7 +13,7 @@ Summary of capabilities:
 * Diffing of screenshots and diff image generation
 * Tagging of screenshots and version requirements for filtering and grouping
 * Standalone and integrated modes to run without or within existing Cypress projects
-* Supported browsers (Chrome, Firefox, Electron)
+* Supported browsers (Chrome, Firefox, Electron). Cypress 16 deprecates Electron as a test browser.
 * YAML validation and auto-completion for IDEs, e.g., Visual Studio Code
 * Init command to create a default configuration file
 * Environment variables for configuration settings via `.env` files
@@ -242,6 +242,11 @@ const myYamlConfig: ScreenshotSetup = loadConfigFile("my-screenshot-config.yaml"
 configureC8yScreenshotPlugin(on, config, myYamlConfig);
 ```
 
+`configureC8yScreenshotPlugin` registers handlers for the `before:browser:launch` and `after:screenshot` events. The `before:browser:launch` handler sets the window size of the browser, and the `after:screenshot` handler moves the screenshots to their target folders. If you register a handler for one of these events yourself, the result depends on the Cypress version:
+
+- Cypress 16.3 and later run all handlers of an event in the order they were registered. A handler registered after `configureC8yScreenshotPlugin` gets the result of the plugin's handler, e.g. the new `path` of the screenshot.
+- Older Cypress versions run only the handler registered last. Either your handler or the handler of the plugin runs, not both.
+
 #### Add a Test File for Screenshot workflow
 
 Create a new file, e.g. `screenshot.cy.ts`, in your Cypress project folder to host `C8yScreenshotRunner`:
@@ -326,7 +331,7 @@ The following environment variables are supported:
 - `C8Y_USERNAME`: The username to use for authentication.
 - `C8Y_USER`: An alias for `C8Y_USERNAME` for compatibility with Cumulocity standard environment variables.
 - `C8Y_PASSWORD`: The password to use for authentication.
-- `C8Y_BROWSER`: The browser to use for running the screenshot workflows ("chrome", "firefox" or "electron").
+- `C8Y_BROWSER`: The browser to use for running the screenshot workflows ("chrome", "firefox" or "electron"). Cypress 16 deprecates Electron as a test browser, so use Chrome or Firefox.
 - `C8Y_SHELL_VERSION`: The version of the shell application to validate `requires` version dependencies.
 - `C8Y_SHELL_NAME`: The name of the shell application to use for determining the shell version (default is "cockpit").
 - `C8Y_BROWSER_LAUNCH_ARGS`: Additional arguments to pass to the browser when launching.
@@ -891,6 +896,8 @@ Examples:
 ```
 
 Types the specified value into the selected input field. If the `clear` option is set to true, the input field will be cleared before typing the new value. If the `value` is an array, the values will be typed in sequence into the text input fields with the selector.
+
+With Cypress 16, the default delay between keystrokes changed from 10 ms to 0 ms. If an input field of your application needs the delay, set the `keystrokeDelay` option in your `cypress.config.ts`.
 
 ```yaml
 - type:
