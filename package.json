@@ -32,7 +32,7 @@
     "lint": "eslint ./",
     "release": "semantic-release",
     "release:test": "semantic-release --debug --dry-run --no-ci --repositoryUrl git@github.com:Cumulocity-IoT/cumulocity-cypress.git",
-    "screenshot:schema": "npx typescript-json-schema --required --noExtraProps --excludePrivate -o src/c8yscrn/schema.json src/tsconfig.schematypes.json ScreenshotSetup"
+    "screenshot:schema": "ts-json-schema-generator -f src/tsconfig.schematypes.json -t ScreenshotSetup --no-top-ref -o src/c8yscrn/schema.json"
   },
   "repository": {
     "type": "git",
@@ -188,10 +188,10 @@
     "semantic-release": "^25.0.9",
     "start-server-and-test": "^3.0.0",
     "ts-jest": "^29.1.2",
+    "ts-json-schema-generator": "^2.10.0",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.25.0",
-    "typescript-json-schema": "^0.67.1",
     "yalc": "^1.0.0-pre.53"
   },
   "peerDependencies": {
@@ -218,9 +218,6 @@
       "glob": "^14.0.6"
     },
     "rimraf": {
-      "glob": "^14.0.6"
-    },
-    "typescript-json-schema": {
       "glob": "^14.0.6"
     },
     "@typescript-eslint/typescript-estree": {

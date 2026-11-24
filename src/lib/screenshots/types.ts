@@ -141,14 +141,14 @@ export interface ScreenshotSettings {
    * The width in px to use for the browser window
    * @minimum 0
    * @default 1440
-   * @TJS-type integer
+   * @asType integer
    */
   viewportWidth?: number;
   /**
    * The height in px to use for the browser window
    * @minimum 0
    * @default 900
-   * @TJS-type integer
+   * @asType integer
    */
   viewportHeight?: number;
   /**
@@ -161,7 +161,7 @@ export interface ScreenshotSettings {
   /**
    * The padding in px used to alter the dimensions of a screenshot of an element.
    * @minimum 0
-   * @TJS-type integer
+   * @asType integer
    */
   padding?: number;
   /**
@@ -188,21 +188,21 @@ export interface ScreenshotSettings {
      * The time, in milliseconds, to wait until most DOM based commands are considered timed out.
      * @examples [10000]
      * @default 4000
-     * @TJS-type integer
+     * @asType integer
      */
     default?: number;
     /**
      * The time, in milliseconds, to wait for the page to load. This is used for visit actions.
      * @examples [30000]
      * @default 60000
-     * @TJS-type integer
+     * @asType integer
      */
     pageLoad?: number;
     /**
      * The time, in milliseconds, to wait for a response from a network request. Also applies to screenshot action.
      * @examples [60000]
      * @default 30000
-     * @TJS-type integer
+     * @asType integer
      */
     screenshot?: number;
   };
@@ -232,7 +232,7 @@ export interface Visit {
   /**
    * The timeout in ms to wait for the page to load.
    * @examples [30000]
-   * @TJS-type integer
+   * @asType integer
    */
   timeout?: number;
   /**
@@ -316,7 +316,7 @@ export interface TextAction {
 export interface WaitAction {
   /**
    * The timeout in ms to wait for
-   * @TJS-type integer
+   * @asType integer
    * @default 4000
    */
   timeout?: number;
@@ -384,23 +384,23 @@ export interface ScreenshotClipArea {
   /**
    * The x-coordinate of the top-left corner of the clip area
    * @minimum 0
-   * @TJS-type integer
+   * @asType integer
    */
   x: number;
   /**
    * The y-coordinate of the top-left corner of the clip area
    * @minimum 0
-   * @TJS-type integer
+   * @asType integer
    */
   y: number;
   /**
    * The width of the clip area. If negative, the width is subtracted from the viewport width.
-   * @TJS-type integer
+   * @asType integer
    */
   width: number;
   /**
    * The height of the clip area. If negative, the height is subtracted from the viewport height.
-   * @TJS-type integer
+   * @asType integer
    */
   height: number;
 }
