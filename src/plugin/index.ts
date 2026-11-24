@@ -882,7 +882,7 @@ export async function resolvePactRefs(
   try {
     log(`Starting for pact: ${pact?.id}, using base folder: ${baseFolder}`);
 
-    const result = await resolveRefs(pactObject, baseFolder);
+    const result = await resolveRefs(pactObject, baseFolder, undefined, log);
     log(
       `Successfully resolved $ref references in pact with id: ${pactObject.id}`
     );
