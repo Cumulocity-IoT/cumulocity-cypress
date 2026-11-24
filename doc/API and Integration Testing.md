@@ -484,7 +484,11 @@ A recorded request or response body can contain a `$ref` that is part of the dat
 - A `$ref` whose target exists in the pact, such as `#/templates/device`, or a `$ref` to an existing file is resolved.
 - Any other `$ref` is kept, because it cannot be resolved.
 
-The plugin logs each kept `$ref` with its path to the `c8y:plugin` debug logger. If you mistype a template reference in a body, the `$ref` is kept and the test fails when matching the body. A `$ref` outside of recorded bodies is always resolved.
+The plugin logs each kept `$ref` with its path to the `c8y:plugin` debug logger. If you mistype a template reference in a body, the `$ref` is kept and the test fails when matching the body. A `$ref` outside of recorded bodies is always resolved, except a `$ref` to an `http` or `https` URL.
+
+#### `$ref` to a URL
+
+The plugin does not load a `$ref` to an `http` or `https` URL anywhere in a pact, so loading a pact does not send requests to URLs in recorded data. The `$ref` is kept unchanged and logged to the `c8y:plugin` debug logger.
 
 #### C8yPact file format
 
