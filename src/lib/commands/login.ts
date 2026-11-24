@@ -109,7 +109,9 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
         if (options.hideCookieBanner === true) {
           cy.hideCookieBanner();
         }
-        const tenant_id = tenant ? `?tenant_id=${tenant}` : "";
+        const tenant_id = tenant
+          ? `?tenant_id=${encodeURIComponent(tenant)}`
+          : "";
         return cy
           .request({
             method: "POST",
