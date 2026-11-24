@@ -909,6 +909,142 @@ describe("resolvePact", () => {
     });
   });
 
+  describe("file: $refs", () => {
+    const FIXTURES = path.join(CWD, "fixtures");
+    const fileUrl = (p: string) => url.pathToFileURL(p).href;
+
+    const pactWithBodyRef = (ref: string) => ({
+      records: [
+        {
+          request: { url: "/file-ref", method: "GET" },
+          response: { status: 200, body: { value: { $ref: ref } } },
+        },
+      ],
+      id: defaultPactId,
+      info: defaultPactInfo,
+    });
+
+    beforeEach(() => {
+      jest.spyOn(process, "cwd").mockReturnValue(CWD);
+      vol.fromNestedJSON({
+        [FIXTURES]: {
+          "x.json": JSON.stringify({
+            def: { message: "from file" },
+            param: { message: "Hello {{name}}!" },
+          }),
+          "dir with space": {
+            "x.json": JSON.stringify({ def: { message: "from spaced file" } }),
+          },
+          "record.json": JSON.stringify({
+            request: { url: "/r", method: "GET" },
+            response: { status: 200, body: { message: "record from file" } },
+          }),
+        },
+      });
+    });
+
+    afterEach(() => {
+      vol.reset();
+      jest.restoreAllMocks();
+    });
+
+    it("should resolve a file URL with fragment", async () => {
+      const doc = pactWithBodyRef(
+        `${fileUrl(path.join(FIXTURES, "x.json"))}#/def`
+      );
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.body.value).toEqual({
+        message: "from file",
+      });
+    });
+
+    it("should resolve a file URL without fragment", async () => {
+      const doc = pactWithBodyRef(fileUrl(path.join(FIXTURES, "x.json")));
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.body.value).toEqual({
+        def: { message: "from file" },
+        param: { message: "Hello {{name}}!" },
+      });
+    });
+
+    it("should resolve a file URL with parameters", async () => {
+      const doc = pactWithBodyRef(
+        `${fileUrl(path.join(FIXTURES, "x.json"))}#/param?name=World`
+      );
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.body.value).toEqual({
+        message: "Hello World!",
+      });
+    });
+
+    it("should resolve a file URL with percent-encoded path", async () => {
+      const ref = `${fileUrl(path.join(FIXTURES, "dir with space", "x.json"))}#/def`;
+      expect(ref).toContain("dir%20with%20space");
+
+      const resolved = await resolveRefs(pactWithBodyRef(ref));
+      expect(resolved.records[0].response.body.value).toEqual({
+        message: "from spaced file",
+      });
+    });
+
+    it("should resolve a file URL with localhost as host", async () => {
+      const doc = pactWithBodyRef(
+        `file://localhost${path.join(FIXTURES, "x.json")}#/def`
+      );
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0].response.body.value).toEqual({
+        message: "from file",
+      });
+    });
+
+    it("should resolve a file URL for a record", async () => {
+      const doc = {
+        records: [{ $ref: fileUrl(path.join(FIXTURES, "record.json")) }],
+        id: defaultPactId,
+        info: defaultPactInfo,
+      };
+      const resolved = await resolveRefs(doc);
+      expect(resolved.records[0]).toEqual({
+        request: { url: "/r", method: "GET" },
+        response: { status: 200, body: { message: "record from file" } },
+      });
+    });
+
+    it("should resolve a relative file path using baseFolder", async () => {
+      const resolved = await resolveRefs(
+        pactWithBodyRef("x.json#/def"),
+        FIXTURES
+      );
+      expect(resolved.records[0].response.body.value).toEqual({
+        message: "from file",
+      });
+    });
+
+    it("should fail for a missing pointer in an existing file", async () => {
+      const doc = pactWithBodyRef(
+        `${fileUrl(path.join(FIXTURES, "x.json"))}#/nope`
+      );
+      const error = await resolveRefs(doc).catch((e) => e);
+      expect(error.errors[0].name).toBe("MissingPointerError");
+    });
+
+    it("should keep a file URL to a missing file in a body", async () => {
+      const ref = `${fileUrl(path.join(FIXTURES, "missing.json"))}#/def`;
+      const resolved = await resolveRefs(pactWithBodyRef(ref));
+      expect(resolved.records[0].response.body.value).toEqual({ $ref: ref });
+    });
+
+    it("should keep a relative file URL without slashes in a body", async () => {
+      const resolved = await resolveRefs(
+        pactWithBodyRef("file:x.json#/def"),
+        FIXTURES
+      );
+      expect(resolved.records[0].response.body.value).toEqual({
+        $ref: "file:x.json#/def",
+      });
+    });
+  });
+
   describe("literal $refs in recorded bodies", () => {
     const schemaBody = () => ({
       $schema: "http://json-schema.org/draft-07/schema#",
