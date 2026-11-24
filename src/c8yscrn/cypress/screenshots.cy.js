@@ -1,6 +1,7 @@
 // use javascript instead of typescript to avoid typescript compilation
 
-const { register: registerCypressGrep } = require("@cypress/grep");
+// @cypress/grep with all supported Cypress versions, see grep.ts
+const { registerCypressGrep } = require("./../grep");
 registerCypressGrep();
 
 const { C8yScreenshotRunner } = require("./../runner");

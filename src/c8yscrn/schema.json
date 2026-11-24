@@ -3740,7 +3740,7 @@
                 "user": {
                     "anyOf": [
                         {
-                            "$ref": "#/definitions/Partial<Pick<IUser,\"userName\"|\"firstName\"|\"lastName\"|\"email\"|\"phone\"|\"id\"|\"displayName\">>"
+                            "$ref": "#/definitions/Partial%3CPick%3CIUser%2C%22userName%22%7C%22firstName%22%7C%22lastName%22%7C%22email%22%7C%22phone%22%7C%22id%22%7C%22displayName%22%3E%3E"
                         },
                         {
                             "type": "string"
@@ -3899,7 +3899,7 @@
                     "user": {
                         "anyOf": [
                             {
-                                "$ref": "#/definitions/Partial<Pick<IUser,\"userName\"|\"firstName\"|\"lastName\"|\"email\"|\"phone\"|\"id\"|\"displayName\">>"
+                                "$ref": "#/definitions/Partial%3CPick%3CIUser%2C%22userName%22%7C%22firstName%22%7C%22lastName%22%7C%22email%22%7C%22phone%22%7C%22id%22%7C%22displayName%22%3E%3E"
                             },
                             {
                                 "type": "string"

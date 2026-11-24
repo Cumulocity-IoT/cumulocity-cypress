@@ -8,8 +8,14 @@
     "test": "npm run jest:run && npm run cypress",
     "cypress": "cross-env TZ=Europe/Berlin start-server-and-test start:cypress:server http://localhost:8080 cypress:run",
     "cypress:run": "cross-env TZ=Europe/Berlin cypress run --project test --browser chrome --config video=false",
+    "cypress:exposed": "cross-env C8Y_EXPOSE_CREDENTIALS=true start-server-and-test start:cypress:server http://localhost:8080 cypress:run:exposed",
+    "cypress:run:exposed": "cross-env TZ=Europe/Berlin cypress run --project test --browser chrome --config video=false --spec test/cypress/e2e/env-credentials.cy.ts",
     "cypress:open": "cross-env TZ=Europe/Berlin start-server-and-test start:cypress:server http://localhost:8080 cypress:debug",
     "cypress:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 cypress open --project test",
+    "test:c8yscrn": "start-server-and-test start:cypress:server http://localhost:8080 c8yscrn:smoke",
+    "c8yscrn:smoke": "cross-env C8Y_DISABLE_WEBSOCKET=true node dist/c8yscrn/c8yscrn.js run --config test/c8yscrn/smoke.config.yaml --folder test/c8yscrn/out --clear --browser chrome",
+    "test:pact-runner": "start-server-and-test start:cypress:server http://localhost:8080 pact-runner:smoke",
+    "pact-runner:smoke": "npm --prefix packages/pact-runner run cypress -- --browser chrome --config video=false,screenshotOnRunFailure=false --env C8Y_EXPOSE_CREDENTIALS=false,C8Y_PACT_MODE=apply,C8Y_PACT_RUNNER_FOLDER=../../test/pact-runner,C8Y_PACT_RUNNER_AUTH=BasicAuth,baseUrl=http://localhost:8080,C8Y_TENANT=t123456,admin_username=admin,admin_password=smoke",
     "jest": "npm run jest:run",
     "jest:run": "jest --config jest.config.mjs",
     "clean": "rimraf dist/ && rimraf 'packages/**/dist/' && rimraf 'packages/**/.yalc' && rimraf 'packages/pactrunner/yalc.lock'",
@@ -119,7 +125,7 @@
     "chokidar": "^5.0.0",
     "cookie": "^1.0.2",
     "cookie-parser": "^1.4.6",
-    "cosmiconfig": "^9.0.0",
+    "cosmiconfig": "^10.0.1",
     "cosmiconfig-typescript-loader": "^6.1.0",
     "cross-fetch": "^4.1.0",
     "cypress-file-upload": "^5.0.8",
@@ -127,7 +133,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
-    "glob": "^13.0.0",
+    "glob": "^14.0.6",
     "http-proxy-middleware": "^3.0.3",
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
@@ -139,12 +145,12 @@
     "tslib": "^2.6.2",
     "typescript": "^5.7.0",
     "winston": "^3.13.0",
-    "ws": "^8.18.0",
-    "yaml": "^2.7.0",
+    "ws": "^8.21.0",
+    "yaml": "^2.9.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@angular/common": "^19.2.16",
+    "@angular/common": "^22.0.1",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
@@ -169,6 +175,7 @@
     "@types/ws": "^8.5.13",
     "copyfiles": "^2.4.1",
     "cross-env": "^10.0.0",
+    "cypress": "^16.3.0",
     "eslint": "^9.19.0",
     "eslint-plugin-cypress": "^5.1.0",
     "eslint-plugin-import": "^2.31.0",
@@ -178,8 +185,8 @@
     "rollup": "^4.34.8",
     "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-shebang-bin": "^0.1.0",
-    "semantic-release": "^25.0.2",
-    "start-server-and-test": "^2.0.0",
+    "semantic-release": "^25.0.9",
+    "start-server-and-test": "^3.0.0",
     "ts-jest": "^29.1.2",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
@@ -188,16 +195,42 @@
     "yalc": "^1.0.0-pre.53"
   },
   "peerDependencies": {
-    "@angular/common": ">=14.0.0",
+    "@angular/common": ">=19.0.0",
     "@c8y/client": ">=1015.0.0",
-    "cypress": ">=12.0.0"
+    "cypress": "<17.0.0"
   },
   "overrides": {
+    "@cypress/request": "4.0.1",
     "@c8y/client": {
       "cross-fetch": {
         "node-fetch": {
           "whatwg-url": "^13.0.0"
         }
+      }
+    },
+    "@jest/reporters": {
+      "glob": "^14.0.6"
+    },
+    "jest-config": {
+      "glob": "^14.0.6"
+    },
+    "jest-runtime": {
+      "glob": "^14.0.6"
+    },
+    "rimraf": {
+      "glob": "^14.0.6"
+    },
+    "typescript-json-schema": {
+      "glob": "^14.0.6"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.9"
+    },
+    "babel-plugin-istanbul": {
+      "test-exclude": {
+        ".": "^8.0.0",
+        "glob": "^14.0.6",
+        "minimatch": "^11.0.9"
       }
     }
   }

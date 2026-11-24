@@ -24,8 +24,8 @@ declare global {
        *    {
        *      method: "GET",
        *      url: "/service/apama-oeeapp/mon/ping",
-       *      retries: Cypress.env("livenessRetries") || 5,
-       *      retryDelay: Cypress.env("livenessRetryTimeout") || 10000,
+       *      retries: Cypress.expose("livenessRetries") || 5,
+       *      retryDelay: Cypress.expose("livenessRetryTimeout") || 10000,
        *    },
        *    (response) => {
        *      return response.status === 200;

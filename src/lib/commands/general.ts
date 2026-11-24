@@ -1,6 +1,7 @@
 const { _ } = Cypress;
 
 import { to_boolean } from "../../shared/util";
+import { c8yEnv } from "../../shared/cypressenv";
 
 export {};
 
@@ -137,19 +138,19 @@ Cypress.Commands.add(
 
     let remotes =
       options.remotes ??
-      Cypress.env("C8Y_SHELL_REMOTES") ??
-      Cypress.env("C8Y_SHELL_EXTENSION");
+      c8yEnv("C8Y_SHELL_REMOTES") ??
+      c8yEnv("C8Y_SHELL_EXTENSION");
     if (remotes && typeof remotes === "object") {
       remotes = JSON.stringify(remotes);
     }
 
     const shell =
       options.shell ??
-      Cypress.env("C8Y_SHELL_TARGET") ??
-      Cypress.env("C8Y_SHELL_NAME");
+      c8yEnv("C8Y_SHELL_TARGET") ??
+      c8yEnv("C8Y_SHELL_NAME");
 
     let forceUrlRemotes =
-      options.forceUrlRemotes ?? Cypress.env("C8Y_SHELL_REMOTES_FORCE");
+      options.forceUrlRemotes ?? c8yEnv("C8Y_SHELL_REMOTES_FORCE");
     if (forceUrlRemotes != null && typeof forceUrlRemotes !== "boolean") {
       forceUrlRemotes = to_boolean(forceUrlRemotes, false);
     }

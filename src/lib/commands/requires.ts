@@ -5,6 +5,7 @@ import {
 
 import * as semver from "semver";
 import { getShellVersionFromEnv, getSystemVersionFromEnv } from "../utils";
+import { c8yEnv } from "../../shared/cypressenv";
 
 const { _ } = Cypress;
 
@@ -64,9 +65,9 @@ if (Cypress.semver == null) {
 
 beforeEach(function () {
   if (
-    Cypress.env("C8Y_IGNORE_REQUIRES_SKIP") == null &&
+    c8yEnv("C8Y_IGNORE_REQUIRES_SKIP") == null &&
     // backward compatibility
-    Cypress.env("C8Y_PACT_IGNORE_VERSION_SKIP") == null &&
+    c8yEnv("C8Y_PACT_IGNORE_VERSION_SKIP") == null &&
     isSystemVersionSatisfyingCurrentTestRequirements() === false
   ) {
     this.skip();

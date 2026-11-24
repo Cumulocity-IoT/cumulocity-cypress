@@ -9,6 +9,9 @@ import { FetchClient } from "@c8y/client";
 import { getAuthOptionsFromCypressEnv, getBaseUrlFromEnv } from "../utils";
 import { C8yAuthOptions } from "../../shared/auth";
 
+type ProviderLike = { provide?: unknown };
+type MountOptionsWithProviders = { providers?: ProviderLike[] };
+
 declare global {
   namespace Cypress {
     interface Chainable {
@@ -77,13 +80,14 @@ Cypress.Commands.add(
       if (!fetchClient) {
         return;
       }
-      const providers = options.providers || [];
-      if (!providers.some((provider) => provider.provide === FetchClient)) {
+      const optionsWithProviders = options as typeof options & MountOptionsWithProviders;
+      const providers = optionsWithProviders.providers || [];
+      if (!providers.some((provider: ProviderLike) => provider.provide === FetchClient)) {
         providers.push({
           provide: FetchClient,
           useValue: fetchClient,
-        });
-        options.providers = providers;
+        } as ProviderLike);
+        optionsWithProviders.providers = providers;
         consoleProps.providers = providers;
       }
     };

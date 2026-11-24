@@ -69,7 +69,16 @@ module.exports = defineConfig({
           return item;
         })
       );
-      config.env._pacts = pacts;
+      // Exposed directly instead of with config.env, as it can be large: the plugin
+      // copies config.env into config.expose, so with Cypress 15 the browser would load
+      // it twice, with Cypress.env() and Cypress.expose().
+      const configWithExpose = config as typeof config & {
+        expose?: Record<string, any>;
+      };
+      configWithExpose.expose = {
+        ...(configWithExpose.expose ?? {}),
+        _pacts: pacts,
+      };
 
       const baseUrl =
         config.env.baseUrl || config.env.C8Y_PACT_RUNNER_BASEURL || null;

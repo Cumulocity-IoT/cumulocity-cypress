@@ -37,6 +37,7 @@ import { validateBaseUrl } from "../../shared/url";
 import { C8yCypressEnvPreprocessor } from "./cypresspreprocessor";
 import { C8yBaseUrl } from "../../shared/types";
 import { to_boolean } from "../../shared/util";
+import { c8yEnv } from "../../shared/cypressenv";
 
 declare global {
   namespace Cypress {
@@ -244,7 +245,7 @@ declare global {
 // resulting in multiple initializations of the c8ypact object as well as before and beforeEach hooks.
 if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
   _.set(Cypress, "__c8ypact.initialized", true);
-  const globalIgnore = Cypress.env("C8Y_PACT_IGNORE");
+  const globalIgnore = c8yEnv("C8Y_PACT_IGNORE");
   Cypress.c8ypact = {
     current: null,
     mode,
@@ -295,11 +296,16 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
       if (!isEnabled()) {
         return cy.wrap<C8yPact | null>(null, debugLogger());
       }
+      // checks for a pact recorded outside of the command queue when the command runs,
+      // not when it is queued, e.g. after a queued cy.wait() for an interception
       return cy
-        .task<C8yPact | null>(
-          "c8ypact:get",
-          Cypress.c8ypact.getCurrentTestId(),
-          debugLogger()
+        .then(() => flushPendingSave())
+        .then(() =>
+          cy.task<C8yPact | null>(
+            "c8ypact:get",
+            Cypress.c8ypact.getCurrentTestId(),
+            debugLogger()
+          )
         )
         .then((pact) => {
           if (pact == null) return cy.wrap<C8yPact | null>(null, debugLogger());
@@ -324,19 +330,19 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
     },
     env: () => {
       return {
-        tenant: Cypress.env("C8Y_TENANT"),
+        tenant: c8yEnv("C8Y_TENANT"),
         systemVersion: getSystemVersionFromEnv(),
-        loggedInUser: Cypress.env("C8Y_LOGGED_IN_USER"),
-        loggedInUserAlias: Cypress.env("C8Y_LOGGED_IN_USER_ALIAS"),
-        pluginFolder: Cypress.env("C8Y_PACT_FOLDER"),
-        pluginLoaded: Cypress.env("C8Y_PLUGIN_LOADED") === "true",
+        loggedInUser: c8yEnv("C8Y_LOGGED_IN_USER"),
+        loggedInUserAlias: c8yEnv("C8Y_LOGGED_IN_USER_ALIAS"),
+        pluginFolder: c8yEnv("C8Y_PACT_FOLDER"),
+        pluginLoaded: c8yEnv("C8Y_PLUGIN_LOADED") === "true",
         testTitlePath: Cypress.currentTest?.titlePath || [],
         preporcessorOptions: {
-          ignore: Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE"),
-          obfuscate: Cypress.env("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
-          obfuscationPattern: Cypress.env("C8Y_PACT_PREPROCESSOR_PATTERN"),
+          ignore: c8yEnv("C8Y_PACT_PREPROCESSOR_IGNORE"),
+          obfuscate: c8yEnv("C8Y_PACT_PREPROCESSOR_OBFUSCATE"),
+          obfuscationPattern: c8yEnv("C8Y_PACT_PREPROCESSOR_PATTERN"),
           ignoreCase: to_boolean(
-            Cypress.env("C8Y_PACT_PREPROCESSOR_IGNORE_CASE"),
+            c8yEnv("C8Y_PACT_PREPROCESSOR_IGNORE_CASE"),
             true
           ),
         },
@@ -357,6 +363,15 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
     if (_.isFunction(callback)) {
       callback(pactutils.getSuiteTitles(suite));
     }
+  });
+
+  // write a pact recorded outside of the command queue (Cypress 16 and later), also
+  // after the last test of the spec
+  afterEach(function () {
+    flushPendingSave();
+  });
+  after(function () {
+    flushPendingSave();
   });
 
   beforeEach(function () {
@@ -381,7 +396,7 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
         annotations: Cypress.config().c8ypact,
         currentTestId: Cypress.c8ypact.getCurrentTestId(),
         env: Cypress.c8ypact.env(),
-        cypressEnv: Cypress.env(),
+        cypressEnv: c8yEnv(),
         systemVersion: getSystemVersionFromEnv(),
       };
 
@@ -430,8 +445,8 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
 
         // set tenant and baseUrl from pact info if not configured
         // this is needed to not require tenant and baseUrl for fully mocked tests
-        if (!Cypress.env("C8Y_TENANT") && pact?.info?.tenant) {
-          Cypress.env("C8Y_TENANT", pact?.info?.tenant);
+        if (!c8yEnv("C8Y_TENANT") && pact?.info?.tenant) {
+          c8yEnv("C8Y_TENANT", pact?.info?.tenant);
         }
 
         const baseUrl = getBaseUrlFromEnv();
@@ -442,7 +457,7 @@ if (_.get(Cypress, "__c8ypact.initialized") === undefined) {
             baseUrl === Cypress.config().baseUrl &&
             Cypress.c8ypact.config.strictMocking === true)
         ) {
-          Cypress.env("C8Y_BASEURL", pactBaseUrl);
+          c8yEnv("C8Y_BASEURL", pactBaseUrl);
           consoleProps.baseUrl = getBaseUrlFromEnv();
         }
 
@@ -465,7 +480,7 @@ function getCurrentTestId(): C8yPactID {
 }
 
 function isEnabled(): boolean {
-  const ignore = to_boolean(Cypress.env("C8Y_PACT_IGNORE"), false);
+  const ignore = to_boolean(c8yEnv("C8Y_PACT_IGNORE"), false);
   if (ignore === true) return false;
 
   return pactutils.isEnabled("C8Y_PACT_MODE");
@@ -489,7 +504,32 @@ function recordingMode() {
   return pactutils.recordingMode("C8Y_PACT_RECORDING_MODE");
 }
 
-async function savePact(
+/**
+ * Saves started outside of the Cypress command queue with Cypress 16 or later, e.g. for
+ * an intercepted response, that have not finished yet. See `flushPendingSave()`.
+ */
+const savesInProgress = new Set<Promise<void>>();
+
+function savePact(
+  response: Cypress.Response<any> | C8yPact | Pick<C8yPact, C8yPactSaveKeys>,
+  client?: C8yClient,
+  options: C8yPactSaveOptions = { noqueue: false }
+): Promise<void> {
+  const promise = savePactRecords(response, client, options);
+  if (
+    options?.noqueue === true &&
+    Cypress.semver.gte(Cypress.version, "16.0.0")
+  ) {
+    savesInProgress.add(promise);
+    const done = () => {
+      savesInProgress.delete(promise);
+    };
+    promise.then(done, done);
+  }
+  return promise;
+}
+
+async function savePactRecords(
   response: Cypress.Response<any> | C8yPact | Pick<C8yPact, C8yPactSaveKeys>,
   client?: C8yClient,
   options: C8yPactSaveOptions = { noqueue: false }
@@ -516,7 +556,7 @@ async function savePact(
         ...Cypress.c8ypact.getConfigValues(),
         id: Cypress.c8ypact.getCurrentTestId(),
         title: Cypress.currentTest?.titlePath || [],
-        tenant: client?._client?.core.tenant || Cypress.env("C8Y_TENANT"),
+        tenant: client?._client?.core.tenant || c8yEnv("C8Y_TENANT"),
         baseUrl,
         preprocessor: (
           Cypress.c8ypact.preprocessor as C8yCypressEnvPreprocessor
@@ -527,14 +567,14 @@ async function savePact(
         info.version = {
           system: systemVersion,
           shell: getShellVersionFromEnv(),
-          shellName: Cypress.env("C8Y_SHELL_NAME") || "cockpit",
+          shellName: c8yEnv("C8Y_SHELL_NAME") || "cockpit",
         };
       }
       pact = await toPactSerializableObject(response, info, {
         loggedInUser:
-          options?.loggedInUser ?? Cypress.env("C8Y_LOGGED_IN_USER"),
+          options?.loggedInUser ?? c8yEnv("C8Y_LOGGED_IN_USER"),
         loggedInUserAlias:
-          options?.loggedInUserAlias ?? Cypress.env("C8Y_LOGGED_IN_USER_ALIAS"),
+          options?.loggedInUserAlias ?? c8yEnv("C8Y_LOGGED_IN_USER_ALIAS"),
         client,
         modifiedResponse: options?.modifiedResponse,
         preprocessor: Cypress.c8ypact.preprocessor,
@@ -563,8 +603,11 @@ async function savePact(
       }
       if (!r) {
         consoleProps.discarded = "on.saveRecord()";
+        logger?.end();
         return;
       }
+      // save the returned record, which can be a new object
+      pact = { ...pact, records: [r, ...pact.records.slice(1)] };
     }
 
     if (Cypress.c8ypact.current == null) {
@@ -601,8 +644,9 @@ async function savePact(
       logger?.end();
       return;
     }
-    consoleProps.pact = Cypress.c8ypact.current;
-    save(Cypress.c8ypact.current, options);
+    // save the returned pact, which can be a new object
+    consoleProps.pact = pactToSave;
+    save(pactToSave, options);
   } catch (error) {
     consoleProps.error = error;
     console.error("Failed to save pact. ", error);
@@ -610,9 +654,48 @@ async function savePact(
   logger?.end();
 }
 
+/**
+ * Pact saved outside of the Cypress command queue with Cypress 16 or later. It is written
+ * with `cy.task` by the next `loadCurrent()`, after the test, or after the spec.
+ */
+let pendingSave: any = undefined;
+
+/**
+ * Writes a pact that was saved outside of the Cypress command queue, after waiting for
+ * saves still in progress, e.g. of a response that has just been intercepted. Must be
+ * called from within the command queue, e.g. a hook or a command.
+ *
+ * Responses intercepted after the last test of the spec are not recorded. Wait for
+ * them in the test, e.g. with `cy.wait()` for the alias of the interception.
+ */
+function flushPendingSave() {
+  if (savesInProgress.size === 0) {
+    writePendingSave();
+    return;
+  }
+  // a failed save must not fail the hook, which would skip the remaining tests
+  cy.then(() => Promise.allSettled(savesInProgress)).then(() => {
+    writePendingSave();
+  });
+}
+
+function writePendingSave() {
+  if (pendingSave == null) return;
+  const pact = pendingSave;
+  pendingSave = undefined;
+  cy.task("c8ypact:save", pact, debugLogger());
+}
+
 function save(pact: any, options: C8yPactSaveOptions) {
   const taskName = "c8ypact:save";
   if (options?.noqueue === true) {
+    // Cypress 16 changed the internal protocol of privileged commands like cy.task, so
+    // a task can no longer be run outside of the command queue. The pact is written by
+    // the next loadCurrent() or after the test instead.
+    if (Cypress.semver.gte(Cypress.version, "16.0.0")) {
+      pendingSave = pact;
+      return;
+    }
     if (
       Cypress.testingType === "component" &&
       Cypress.semver.gte(Cypress.version, "12.15.0")

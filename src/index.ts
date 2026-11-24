@@ -30,4 +30,7 @@ export {
   C8yClientOptions,
 } from "./shared/c8yclient";
 
+// reads and writes the Cypress environment with all supported Cypress versions
+export { c8yEnv } from "./shared/cypressenv";
+
 import './shared/global';

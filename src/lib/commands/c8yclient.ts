@@ -64,6 +64,7 @@ import {
 import "../pact/c8ymatch";
 import { C8yDefaultPactMatcher } from "../../shared/c8ypact/matcher";
 import { C8yBaseUrl } from "../../shared/types";
+import { c8yEnv } from "../../shared/cypressenv";
 
 declare global {
   namespace Cypress {
@@ -94,7 +95,7 @@ declare global {
        * @example
        * cy.getAuth("admin")
        *   .c8yclient().then((c) => {
-       *     Cypress.env("C8Y_TENANT", c.core.tenant);
+       *     Cypress.expose("C8Y_TENANT", c.core.tenant);
        * });
        *
        * cy.c8yclient((c) => c.user.delete(newuser.username), {
@@ -261,7 +262,7 @@ export const defaultClientOptions = () => {
   return {
     log: true,
     timeout:
-      Cypress.env("C8Y_C8YCLIENT_TIMEOUT") || Cypress.config().responseTimeout,
+      c8yEnv("C8Y_C8YCLIENT_TIMEOUT") || Cypress.config().responseTimeout,
     failOnStatusCode: true,
     preferBasicAuth: false,
     skipClientAuthentication: false,
@@ -277,7 +278,7 @@ const requestContexts = new Map<string, C8yClientRequestContext>();
 let currentRequestContext: C8yClientRequestContext | null = null;
 
 function generateContextId(): string {
-  const prefix = Cypress.env("C8Y_CLIENT_REQUEST_ID_PREFIX") || "c8yclnt-";
+  const prefix = c8yEnv("C8Y_CLIENT_REQUEST_ID_PREFIX") || "c8yclnt-";
   return `${prefix}${_.uniqueId()}`;
 }
 
@@ -314,8 +315,8 @@ globalThis.fetch = async function (
         ...currentRequestContext,
         consoleProps: {},
         loggedInUser:
-          Cypress.env("C8Y_LOGGED_IN_USER") ??
-          Cypress.env("C8Y_LOGGED_IN_USER_ALIAS"),
+          c8yEnv("C8Y_LOGGED_IN_USER") ??
+          c8yEnv("C8Y_LOGGED_IN_USER_ALIAS"),
         contextId: currentRequestContext.contextId,
         startTime: Date.now(),
         onRequestStart: (
@@ -474,7 +475,7 @@ const c8yclientFn = (...args: any[]) => {
   const tenant =
     (basicAuthArg && tenantFromBasicAuth(basicAuthArg)) ||
     (authOptions && authOptions.tenant) ||
-    Cypress.env("C8Y_TENANT");
+    c8yEnv("C8Y_TENANT");
 
   // if client is provided via options, use it
   let c8yclient: C8yClient = { _client: options.client };
@@ -493,8 +494,8 @@ const c8yclientFn = (...args: any[]) => {
   // pass userAlias into the auth so it is part of the pact recording
   if (authOptions && authOptions.userAlias) {
     _.extend(auth, { userAlias: authOptions.userAlias });
-  } else if (Cypress.env("C8Y_LOGGED_IN_USER_ALIAS") && auth) {
-    _.extend(auth, { userAlias: Cypress.env("C8Y_LOGGED_IN_USER_ALIAS") });
+  } else if (c8yEnv("C8Y_LOGGED_IN_USER_ALIAS") && auth) {
+    _.extend(auth, { userAlias: c8yEnv("C8Y_LOGGED_IN_USER_ALIAS") });
   }
 
   if (!auth && !hasAuthentication(c8yclient)) {

@@ -7,6 +7,7 @@ import {
 import { getBaseUrlFromEnv } from "../utils";
 import { isAbsoluteURL } from "../../shared/url";
 import { normalizeAuthHeaders } from "../../shared/auth";
+import { c8yEnv } from "../../shared/cypressenv";
 
 const { _ } = Cypress;
 
@@ -73,7 +74,7 @@ Cypress.Commands.overwrite("intercept", (originalFn, ...args) => {
   return originalFn(...updatedArgs);
 });
 
-Cypress.env("C8Y_PACT_INTERCEPT_IMPORTED", true);
+c8yEnv("C8Y_PACT_INTERCEPT_IMPORTED", true);
 
 Cypress.on("log:intercept", (options) => {
   if (!Cypress.c8ypact.isRecordingEnabled()) return;
@@ -91,7 +92,7 @@ Cypress.on("log:intercept", (options) => {
 });
 
 function responseFrom(req: any, res: any): Cypress.Response<any> {
-  const isBody = res != null && !("body" in res);
+  const isBody = res != null && (!_.isObjectLike(res) || !("body" in res));
   const statusCode = isBody ? 200 : res?.statusCode;
   const result: Cypress.Response<any> = {
     body: isBody ? res : res?.body,
@@ -266,10 +267,15 @@ function processReply(req: any, obj: any, replyFn: any, continueFn: any) {
         let modifiedResponse = obj;
         if (_.isObjectLike(obj) && "fixture" in obj) {
           const [path, encoding] = obj.fixture.split(",");
-          // @ts-expect-error
-          modifiedResponse = await Cypress.backend("get:fixture", path, {
-            encoding: encoding || "utf-8",
-          });
+          // without an encoding, Cypress resolves the fixture (also without extension) and
+          // parses JSON fixtures. With an explicit encoding (e.g. "file.json,base64"),
+          // Cypress 15+ returns the content as a string, which is kept as it is.
+          modifiedResponse = await Cypress.backend(
+            // @ts-expect-error get:fixture is not part of the public typings
+            "get:fixture",
+            path,
+            encoding ? { encoding } : {}
+          );
         }
         emitInterceptionEvent(req, _.cloneDeep(res), modifiedResponse);
 

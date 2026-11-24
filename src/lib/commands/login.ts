@@ -5,6 +5,7 @@ import { C8yAuthOptions, isAuthOptions } from "./auth";
 
 const { _ } = Cypress;
 import { gte } from "semver";
+import { c8yEnv } from "../../shared/cypressenv";
 
 declare global {
   namespace Cypress {
@@ -59,8 +60,8 @@ declare global {
 
 export const defaultLoginOptions = () => {
   return {
-    disableGainsight: Cypress.env("C8Y_DISABLE_GAINSIGHT") ?? true,
-    hideCookieBanner: Cypress.env("C8Y_HIDE_COOKIEBANNER") ?? true,
+    disableGainsight: c8yEnv("C8Y_DISABLE_GAINSIGHT") ?? true,
+    hideCookieBanner: c8yEnv("C8Y_HIDE_COOKIEBANNER") ?? true,
     useSession: gte(Cypress.version, "12.0.0"),
 
     validationFn: () => {
@@ -130,7 +131,7 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
           });
       };
 
-      const tenant: C8yTenant = auth?.tenant || Cypress.env("C8Y_TENANT");
+      const tenant: C8yTenant = auth?.tenant || c8yEnv("C8Y_TENANT");
       consoleProps.tenant = tenant || null;
 
       const cookieOptions = {
@@ -156,8 +157,8 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
               if (_.isFunction(options.validationFn)) {
                 options?.validationFn();
               }
-              Cypress.env("C8Y_LOGGED_IN_USER", auth.user);
-              Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", auth.userAlias);
+              c8yEnv("C8Y_LOGGED_IN_USER", auth.user);
+              c8yEnv("C8Y_LOGGED_IN_USER_ALIAS", auth.userAlias);
             },
             cacheAcrossSpecs: true,
           }
@@ -172,8 +173,8 @@ Cypress.Commands.add("login", { prevSubject: "optional" }, (...args) => {
               options.validationFn();
             }
           });
-          Cypress.env("C8Y_LOGGED_IN_USER", auth.user);
-          Cypress.env("C8Y_LOGGED_IN_USER_ALIAS", auth.userAlias);
+          c8yEnv("C8Y_LOGGED_IN_USER", auth.user);
+          c8yEnv("C8Y_LOGGED_IN_USER_ALIAS", auth.userAlias);
         }
       }
 

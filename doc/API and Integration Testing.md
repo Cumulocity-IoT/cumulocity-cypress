@@ -460,6 +460,21 @@ module.exports = defineConfig({
 });
 ```
 
+#### Failing on `$ref` errors
+
+Pact files can use `$ref` to reference templates and other definitions. If resolving these references fails, for example because a referenced template does not exist, the plugin by default logs the error to the `c8y:plugin` debug logger and runs the pact with the unresolved `$ref` objects.
+
+To fail the test instead, enable `failOnPactRefError`. The error message then contains the pact id and the individual resolver errors with their path in the pact. The default is `false`.
+
+```typescript
+configureC8yPlugin(on, config, {
+  pactFolder: "recordings",
+  failOnPactRefError: true,
+});
+```
+
+If you call `resolvePactRefs` directly, for example in a custom setup, pass `{ failOnError: true }` as fourth argument to get the same behavior.
+
 #### C8yPact file format
 
 The default file format for recorded pacts is JSON using the `C8yPact` object structure. To store recorded pacts in files, use `C8yPactDefaultFileAdapter` as in the following example.
@@ -718,6 +733,8 @@ Recording of interceptions during E2E or UI tests is directly built into `cy.int
 ```typescript
 cy.intercept("GET", "/inventory/managedObjects/*").as("managedObject");
 ```
+
+With Cypress 16 and later, recorded interceptions are written to the pact file by the next `Cypress.c8ypact.loadCurrent()`, after the test, and after the spec. A response that arrives after the last test of the spec has ended is not recorded. Wait for the interception in the test to record it, e.g. with `cy.wait("@managedObject")`.
 
 Interceptions with static RouteHandlers will also record the actual request and response. This means `cy.intercept` will send the request and store it's actual response as `body`. The mocked response passed as static RouteHandler to `cy.intercept` will be stored as `modifiedResponse`, including headers and body. This allows matching of a schema against the actual response as well as the modified response. This is meant to fail tests even if the mocked responses do not match the current schema of the API. 
 

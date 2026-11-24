@@ -23,7 +23,12 @@ import {
   getEnvVar,
   validatePactMode,
 } from "../shared/c8ypact/c8ypact";
-import { C8yAuthOptions, getAuthOptionsFromJWT } from "../shared/auth";
+import {
+  C8yAuthOptions,
+  getAuthOptionsFromJWT,
+  isC8yCredentialKey,
+} from "../shared/auth";
+import { C8Y_CREDENTIAL_KEYS } from "../shared/cypressenv";
 import { oauthLogin } from "../shared/oauthlogin";
 import { normalizeBaseUrl, validateBaseUrl } from "../shared/url";
 import { getPackageVersion } from "../shared/util-node";
@@ -37,7 +42,7 @@ import { loadConfigFile } from "../c8yscrn/helper";
 import { C8yBaseUrl } from "../shared/types";
 import { logJSONParserErrorGroup, resolveRefs } from "./c8yresolver";
 import { JSONParserErrorGroup } from "@apidevtools/json-schema-ref-parser";
-import '../shared/global';
+import "../shared/global";
 
 export { C8yPactFileAdapter, C8yPactDefaultFileAdapter, C8yPactHARFileAdapter };
 export { readYamlFile, loadConfigFile } from "../c8yscrn/helper";
@@ -62,6 +67,43 @@ export type C8yPluginConfig = {
    * the Cypress config baseUrl is overwritten. Default is true.
    */
   forwardEnvVariables?: boolean;
+  /**
+   * If enabled, a failing resolution of $ref references in a pact fails the
+   * c8ypact:resolve task, and with it the test, instead of continuing with the
+   * unresolved pact. The error message lists the individual resolver errors.
+   * Default is false.
+   */
+  failOnPactRefError?: boolean;
+  /**
+   * If disabled, credentials of `config.env` (passwords and tokens, e.g. `C8Y_PASSWORD`,
+   * `C8Y_TOKEN` or `admin_password`) are not copied into `config.expose`, and are read
+   * with `cy.env()` before each spec and test instead. Can also be set with the
+   * `C8Y_EXPOSE_CREDENTIALS` environment variable. Default is true.
+   * See {@link exposeC8yEnv}.
+   */
+  exposeCredentials?: boolean;
+};
+
+/**
+ * Options for {@link exposeC8yEnv}.
+ */
+export type C8yExposeEnvOptions = {
+  /**
+   * If disabled, credentials of `config.env` are not copied into `config.expose`. Can
+   * also be set with the `C8Y_EXPOSE_CREDENTIALS` environment variable. Default is true.
+   */
+  exposeCredentials?: boolean;
+};
+
+/**
+ * Options for {@link resolvePactRefs}.
+ */
+export type C8yResolvePactRefsOptions = {
+  /**
+   * If enabled, resolvePactRefs throws an error if resolving the $ref references
+   * fails instead of returning the original pact. Default is false.
+   */
+  failOnError?: boolean;
 };
 
 /**
@@ -126,6 +168,9 @@ export function configureC8yPlugin(
   config.env.C8Y_PLUGIN_LOADED = "true";
   // use C8Y_PACT_FOLDER to find out where the pact files have been loaded from
   config.env.C8Y_PACT_FOLDER = adapter.getFolder();
+
+  // Cypress 16 removed Cypress.env(): make config.env readable with Cypress.expose()
+  exposeC8yEnv(config, { exposeCredentials: options.exposeCredentials });
 
   function savePact(pact: C8yPactObject): null {
     const { id, info, records } = pact;
@@ -275,7 +320,9 @@ export function configureC8yPlugin(
       "c8ypact:oauthLogin": login,
       "c8ypact:fetch": fetchRequest,
       "c8ypact:resolve": (pact: any) => {
-        return resolvePactRefs(pact, adapter.getFolder(), log);
+        return resolvePactRefs(pact, adapter.getFolder(), log, {
+          failOnError: options.failOnPactRefError === true,
+        });
       },
     });
   }
@@ -563,7 +610,7 @@ export function configureC8yScreenshotPlugin(
     log(
       `Websocket server disabled. Config file will not be watched and reloaded.`
     );
-    return;
+    return exposeC8yEnv(config);
   }
 
   // only create websocket server if not in text terminal (run) and started from c8yscrn cli
@@ -598,6 +645,109 @@ export function configureC8yScreenshotPlugin(
     });
   }
 
+  // Cypress 16 removed Cypress.env(): make config.env readable with Cypress.expose()
+  exposeC8yEnv(config);
+  return config;
+}
+
+/**
+ * The values `exposeC8yEnv()` copied from `config.env` into `config.expose`, and the
+ * `exposeCredentials` option it was called with, per config.
+ */
+const exposeEnvState = new WeakMap<
+  object,
+  { copied: Record<string, any>; exposeCredentials?: boolean }
+>();
+
+function toBoolean(value: any): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  const normalized = String(value ?? "").toLowerCase();
+  if (normalized === "true" || normalized === "1") return true;
+  if (normalized === "false" || normalized === "0") return false;
+  return undefined;
+}
+
+/**
+ * Copies the variables of `config.env` into `config.expose`, so they can be read
+ * synchronously in the browser with `Cypress.expose()`. Cypress 16 removed
+ * `Cypress.env()`, and `config.env` is only readable with the asynchronous `cy.env()`
+ * command there. Values already set in `config.expose` are kept.
+ *
+ * `configureC8yPlugin` and `configureC8yScreenshotPlugin` call this function. Call it
+ * again at the end of `setupNodeEvents` if you set `config.env` variables after the
+ * plugin has been configured.
+ *
+ * Values copied by a previous call are updated, so calling it again after changing
+ * `config.env` exposes the new values, and removes variables removed from `config.env`.
+ *
+ * By default, all variables of `config.env` are exposed to the browser, including
+ * credentials, as `Cypress.env()` did before Cypress 16. With `exposeCredentials: false`
+ * or the `C8Y_EXPOSE_CREDENTIALS` environment variable set to false, credentials
+ * (passwords and tokens) are not exposed. cumulocity-cypress then reads them with
+ * `cy.env()` before each spec and test. The option is kept for later calls.
+ *
+ * @param config Cypress plugin config
+ * @param options Options, e.g. to not expose credentials
+ * @returns The given config
+ */
+export function exposeC8yEnv(
+  config: Cypress.PluginConfigOptions,
+  options: C8yExposeEnvOptions = {}
+): Cypress.PluginConfigOptions {
+  const configWithExpose = config as Cypress.PluginConfigOptions & {
+    expose?: Record<string, any>;
+  };
+  const state = exposeEnvState.get(config);
+  const copied = state?.copied ?? {};
+  const exposeCredentialsOption =
+    options.exposeCredentials ?? state?.exposeCredentials;
+  // as for other plugin options, e.g. C8Y_PACT_MODE, the process environment is
+  // preferred over config.env, which only has CYPRESS_* variables of the process
+  const exposeCredentials =
+    exposeCredentialsOption ??
+    toBoolean(getEnvVar("C8Y_EXPOSE_CREDENTIALS")) ??
+    toBoolean(config.env?.C8Y_EXPOSE_CREDENTIALS) ??
+    true;
+
+  const env = config.env ?? {};
+  const expose = { ...(configWithExpose.expose ?? {}) };
+  // remove variables copied by a previous call that have been removed from config.env,
+  // or that are credentials not to expose anymore, unless changed in config.expose
+  Object.entries(copied).forEach(([key, value]) => {
+    const removed = !(key in env);
+    const hidden = !exposeCredentials && isC8yCredentialKey(key);
+    if ((removed || hidden) && expose[key] === value) {
+      delete expose[key];
+    }
+  });
+
+  const nowCopied: Record<string, any> = {};
+  const credentialKeys: string[] = [];
+  Object.entries(env).forEach(([key, value]) => {
+    // a value in config.expose that was not copied from config.env has been set
+    // explicitly and is kept
+    const isExplicit =
+      key in expose && !(key in copied && copied[key] === expose[key]);
+    if (isExplicit) return;
+    if (!exposeCredentials && isC8yCredentialKey(key)) {
+      credentialKeys.push(key);
+      return;
+    }
+    expose[key] = value;
+    nowCopied[key] = value;
+  });
+
+  if (credentialKeys.length > 0) {
+    expose[C8Y_CREDENTIAL_KEYS] = credentialKeys.sort();
+  } else {
+    delete expose[C8Y_CREDENTIAL_KEYS];
+  }
+
+  exposeEnvState.set(config, {
+    copied: nowCopied,
+    exposeCredentials: exposeCredentialsOption,
+  });
+  configWithExpose.expose = expose;
   return config;
 }
 
@@ -701,7 +851,8 @@ export function getFileUploadOptions(
 export async function resolvePactRefs(
   pact: any | string,
   baseFolder?: string,
-  log: (message: string) => void = debug("c8y:pact:resolve")
+  log: (message: string) => void = debug("c8y:pact:resolve"),
+  resolveOptions: C8yResolvePactRefsOptions = {}
 ): Promise<any | null> {
   if (!pact) {
     log(
@@ -717,6 +868,11 @@ export async function resolvePactRefs(
       pactObject = JSON.parse(pact);
     } catch (e: any) {
       log(`Error parsing pact from string (expected valid JSON): ${e.message}`);
+      if (resolveOptions.failOnError) {
+        throw new Error(
+          `Failed to resolve $ref references. Error parsing pact from string (expected valid JSON): ${e.message}`
+        );
+      }
       log(`Returning original document due to error dereferencing refs.`);
 
       return pact; // Return original pact on parse error
@@ -736,12 +892,22 @@ export async function resolvePactRefs(
     }
     return result;
   } catch (e: any) {
+    const details: string[] = [];
+    const logDetail = (message: string) => {
+      details.push(message);
+      log(message);
+    };
     log(`Error during $ref resolving for pact with id: '${pactObject.id}':`);
     if (e instanceof JSONParserErrorGroup) {
-      logJSONParserErrorGroup(e, log);
+      logJSONParserErrorGroup(e, logDetail);
     } else {
-      log(`  Error Type: ${e?.constructor?.name || "UnknownError"}`);
-      log(`  Message: ${e.message || String(e)}`);
+      logDetail(`  Error Type: ${e?.constructor?.name || "UnknownError"}`);
+      logDetail(`  Message: ${e.message || String(e)}`);
+    }
+    if (resolveOptions.failOnError) {
+      throw new Error(
+        `Failed to resolve $ref references for pact with id: '${pactObject.id}'.\n${details.join("\n")}`
+      );
     }
     log(`Returning original document due to error dereferencing refs.`);
   }
