@@ -239,4 +239,54 @@ describe("C8yScreenshotRunner", () => {
       expect(beforeEachStub).to.have.been.called;
     });
   });
+
+  context("type action", () => {
+    const typeAction = (action: any) => {
+      const runner = new C8yScreenshotRunner(workflow);
+      const screenshot = workflow.screenshots[0];
+      runner.actionHandlers["type"](action, runner, screenshot, {});
+    };
+
+    beforeEach(() => {
+      cy.visit("/type.html");
+    });
+
+    it("should type a number into a single input", () => {
+      typeAction({ selector: "#single", value: 42.5 });
+      cy.get("#single").should("have.value", "42.5");
+    });
+
+    it("should type strings and numbers into form group inputs", () => {
+      typeAction({
+        selector: "#group1",
+        value: ["AZ-54Z Rotor", 12.2233, "Rotor description"],
+      });
+      cy.get("#name1").should("have.value", "AZ-54Z Rotor");
+      cy.get("#value1").should("have.value", "12.2233");
+      cy.get("#description1").should("have.value", "Rotor description");
+      cy.get("#checkbox1").should("not.be.checked");
+    });
+
+    it("should skip inputs for null values", () => {
+      typeAction({ selector: "#group1", value: [null, 7] });
+      cy.get("#name1").should("have.value", "");
+      cy.get("#value1").should("have.value", "7");
+    });
+
+    it("should type values for multiple steps", () => {
+      typeAction({
+        selector: "#group2",
+        value: [["AZ-54Z Rotor", 12.2233], [" Blade"]],
+      });
+      cy.get("#name2").should("have.value", "AZ-54Z Rotor Blade");
+      cy.get("#value2").should("have.value", "12.2233");
+    });
+
+    it("should clear inputs before typing", () => {
+      cy.get("#value2").type("99");
+      typeAction({ selector: "#group2", value: ["Blade", 3], clear: true });
+      cy.get("#name2").should("have.value", "Blade");
+      cy.get("#value2").should("have.value", "3");
+    });
+  });
 });

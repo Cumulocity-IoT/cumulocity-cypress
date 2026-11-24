@@ -68,6 +68,17 @@ describe("c8yscrn schema", () => {
     ).toBe(true);
   });
 
+  it("should accept numbers as type values", () => {
+    const type = (value: any) =>
+      validate(withAction({ type: { selector: "c8y-form-group", value } }));
+    expect(type("abc")).toBe(true);
+    expect(type(12.2233)).toBe(true);
+    expect(type(["AZ-54Z Rotor", 12.2233, null])).toBe(true);
+    expect(type([["AZ-54Z Rotor", 12.2233], ["AZ-54Z Blade"]])).toBe(true);
+    expect(type(true)).toBe(false);
+    expect(type([{ a: 1 }])).toBe(false);
+  });
+
   it("should validate tuples", () => {
     expect(validate(withAction({ screenshot: { padding: [1, 2] } }))).toBe(
       true

@@ -394,22 +394,21 @@ export class C8yScreenshotRunner {
   protected type(action: Action["type"]) {
     const selector = getSelector(action, this.config.selectors);
     if (selector == null || action == null) return;
-    if (_.isString(action.value)) {
+    if (_.isString(action.value) || _.isNumber(action.value)) {
       if (action.clear === true) {
         cy.get(selector).clear();
       }
-      cy.get(selector).type(action.value);
+      cy.get(selector).type(String(action.value));
     } else if (_.isArray(action.value)) {
-      const values: (string | null)[][] = _.isArray(action.value)
-        ? _.isArray(action.value[0])
-          ? (action.value as string[][])
-          : [action.value as string[]]
-        : [[action.value]];
+      type FormValue = string | number | null;
+      const values: FormValue[][] = _.isArray(action.value[0])
+        ? (action.value as FormValue[][])
+        : [action.value as FormValue[]];
 
       values.forEach((formInput) => {
         cy.get(selector).within(($withElement) => {
           const $elements = Cypress.$($withElement).find(
-            "input[type=text], textarea"
+            "input[type=text], input[type=number], textarea"
           );
           const length = Math.min($elements.length, formInput.length);
           formInput.forEach((value, index) => {
@@ -418,7 +417,7 @@ export class C8yScreenshotRunner {
               if (action.clear === true) {
                 cy.wrap($elements[index]).clear();
               }
-              cy.wrap($elements[index]).type(value);
+              cy.wrap($elements[index]).type(String(value));
             }
           });
         });
