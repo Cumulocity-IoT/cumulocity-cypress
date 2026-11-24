@@ -9,6 +9,7 @@ import * as fs from "fs";
 import lodash1 from "lodash";
 import * as lodash2 from "lodash";
 import { C8yPact, C8yPactObjectKeys } from "../shared/c8ypact/c8ypact";
+import { C8yDefaultPactMatcher } from "../shared/c8ypact/matcher";
 const _ = lodash1 || lodash2;
 
 interface RefParameterizationInfo {
@@ -148,6 +149,10 @@ function traverseAndPreprocessRefs(
       }
     } else if (typeof value === "object" && value !== null) {
       const nextPathSegment = Array.isArray(currentNode) ? parseInt(key) : key;
+      // $refs in excluded paths are not resolved, so they must not be rewritten
+      if (isExcludedPath([...currentPath, nextPathSegment].map(String))) {
+        continue;
+      }
       traverseAndPreprocessRefs(
         value,
         [...currentPath, nextPathSegment],
@@ -156,6 +161,53 @@ function traverseAndPreprocessRefs(
       );
     }
   }
+}
+
+/**
+ * Checks if a path in the pact is excluded from dereferencing. Excluded are JSON
+ * Schemas, as their $refs are schema references relative to the root of the schema,
+ * not pact references. See {@link isSchemaKey}. Also excluded are other keys starting
+ * with "$", such as the JSON Schema keyword "$defs".
+ *
+ * @param segments The segments of the path. For paths within external files, the
+ * first segment is not checked unless it is a C8yPact key.
+ */
+function isExcludedPath(segments: string[]): boolean {
+  for (let i = 0; i < segments.length; i++) {
+    const currentSegment = segments[i];
+    if (i === 0 && !C8yPactObjectKeys.includes(currentSegment)) {
+      continue;
+    }
+    // We don't want to exclude based on the "$ref" keyword itself,
+    // only based on its parent/ancestor keys.
+    if (currentSegment === "$ref") {
+      continue;
+    }
+
+    if (
+      isSchemaKey(currentSegment, segments[i - 1]) ||
+      currentSegment.startsWith("$") ||
+      currentSegment.startsWith("%24")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Checks if the value of a key in the pact is a JSON Schema:
+ * - jsonSchema
+ * - options.schema of a record, the schema passed to cy.c8yclient
+ * - keys starting with "$" that are schema matcher keys, like "$body". JSON Schema
+ *   keywords, like "$defs", are not.
+ */
+function isSchemaKey(key: string, parentKey?: string | number): boolean {
+  if (key === "jsonSchema") return true;
+  if (key === "schema" && parentKey === "options") return true;
+  return (
+    key.startsWith("$") && !C8yDefaultPactMatcher.JSON_SCHEMA_KEYWORDS.has(key)
+  );
 }
 
 // Helper: Get value from object by path using lodash
@@ -292,6 +344,29 @@ function isFile(filePath: string): boolean {
 }
 
 /**
+ * Splits a $ref into location, fragment (without "#"), and query (without "?").
+ */
+function splitRef(ref: string): {
+  location: string;
+  fragment: string;
+  query?: string;
+} {
+  const queryIndex = ref.indexOf("?");
+  const refWithoutQuery =
+    queryIndex === -1 ? ref : ref.substring(0, queryIndex);
+  const fragmentIndex = refWithoutQuery.indexOf("#");
+  return {
+    location:
+      fragmentIndex === -1
+        ? refWithoutQuery
+        : refWithoutQuery.substring(0, fragmentIndex),
+    fragment:
+      fragmentIndex === -1 ? "" : refWithoutQuery.substring(fragmentIndex + 1),
+    query: queryIndex === -1 ? undefined : ref.substring(queryIndex + 1),
+  };
+}
+
+/**
  * Decides if a $ref in a recorded request or response body is a literal value of the
  * body, for example of a JSON Schema returned by a service, or a pact reference.
  *
@@ -308,16 +383,7 @@ function isLiteralRef(
   pact: any,
   baseFolder?: string
 ): boolean {
-  const queryIndex = ref.indexOf("?");
-  const refWithoutQuery = queryIndex === -1 ? ref : ref.substring(0, queryIndex);
-  const fragmentIndex = refWithoutQuery.indexOf("#");
-  const location =
-    fragmentIndex === -1
-      ? refWithoutQuery
-      : refWithoutQuery.substring(0, fragmentIndex);
-  const fragment =
-    fragmentIndex === -1 ? "" : refWithoutQuery.substring(fragmentIndex + 1);
-
+  const { location, fragment } = splitRef(ref);
   if (location === "") {
     const segments = parseJsonPointer(fragment);
     if (segments == null) return true;
@@ -418,6 +484,122 @@ function restoreLiteralRefs(node: any, visited = new WeakSet<object>()): void {
   }
 }
 
+/**
+ * Finds the JSON Schemas in the pact, see {@link isSchemaKey}. Schemas within
+ * schemas are not returned.
+ */
+function findSchemas(
+  node: any,
+  currentPath: (string | number)[],
+  collected: (string | number)[][]
+): void {
+  if (node == null || typeof node !== "object") return;
+  for (const key of Object.keys(node)) {
+    const value = node[key];
+    if (value == null || typeof value !== "object") continue;
+    const segment = Array.isArray(node) ? parseInt(key) : key;
+    const keyPath = [...currentPath, segment];
+    if (
+      !Array.isArray(node) &&
+      isSchemaKey(key, currentPath[currentPath.length - 1])
+    ) {
+      collected.push(keyPath);
+    } else {
+      findSchemas(value, keyPath, collected);
+    }
+  }
+}
+
+/**
+ * Inlines the $refs to files in the JSON Schemas of the pact, see {@link isSchemaKey}.
+ * Uses $RefParser.bundle(), so a $ref within a file is rewritten to point to its new
+ * location in the schema, and a schema that refers to itself is kept as a $ref.
+ *
+ * Internal $refs ("#/definitions/x") of the schema are kept, as they refer to the root
+ * of the schema and not of the pact. $refs that can not be inlined, for example to a
+ * missing file, are kept as they are.
+ *
+ * @returns The number of $refs that are hidden with LITERAL_REF_KEY.
+ */
+async function bundleSchemaFileRefs(
+  doc: any,
+  baseFolder: string | undefined,
+  parserOptions: any,
+  log?: (message: string) => void
+): Promise<number> {
+  const schemaPaths: (string | number)[][] = [];
+  findSchemas(doc, [], schemaPaths);
+
+  let hiddenRefs = 0;
+  for (const schemaPath of schemaPaths) {
+    const schema = getValueByPath(doc, schemaPath);
+    const refs: LiteralRefInfo[] = [];
+    collectRefs(schema, [], refs);
+
+    let fileRefs = 0;
+    for (const info of refs) {
+      const holder = info.keyPath.length
+        ? getValueByPath(schema, info.keyPath)
+        : schema;
+      const refPath = [...schemaPath, ...info.keyPath].join("/");
+      const { location, fragment, query } = splitRef(info.ref);
+
+      let fileUrl: string | undefined = undefined;
+      let reason: string | undefined = undefined;
+      if (location !== "") {
+        const filePath = refLocationToFilePath(location, baseFolder);
+        if (query != null) {
+          reason = "parameters are not supported in JSON Schemas";
+        } else if (filePath == null || !isFile(filePath)) {
+          reason = "it does not refer to a file";
+        } else if (parseJsonPointer(fragment) == null) {
+          reason = "its fragment is not a JSON pointer";
+        } else {
+          fileUrl = pathToFileURL(filePath).href;
+        }
+      }
+
+      if (fileUrl != null) {
+        holder.$ref = fragment ? `${fileUrl}#${fragment}` : fileUrl;
+        fileRefs++;
+      } else {
+        // internal $refs of the schema, and $refs that can not be inlined
+        if (reason != null) {
+          log?.(`Keeping $ref "${info.ref}" at ${refPath} as ${reason}.`);
+        }
+        renameKey(holder, "$ref", LITERAL_REF_KEY);
+        hiddenRefs++;
+      }
+    }
+
+    if (fileRefs === 0) continue;
+
+    log?.(`Inlining $refs to files in JSON Schema at ${schemaPath.join("/")}.`);
+    const base = pathToFileURL(
+      path.join(path.resolve(baseFolder ?? process.cwd()), path.sep)
+    ).href;
+    const bundled = await $RefParser.bundle(base, schema, parserOptions);
+    setValueByPath(doc, schemaPath, _.cloneDeep(bundled));
+  }
+  return hiddenRefs;
+}
+
+/**
+ * Resolver for file: URLs. Required, as the plugin loads @c8y/client, which loads
+ * isomorphic-cometd. Its Node.js implementation cometd-nodejs-client defines a global
+ * `window`. The built-in file resolver of $RefParser then assumes it runs in a
+ * browser and does not read any file, failing with "UnmatchedResolverError: Could not
+ * find resolver for file://...". Reading with `fs` also supports a mocked `fs` in tests.
+ */
+const fileResolver = {
+  order: 1,
+  canRead: /^file:/i,
+  read: async (file: any) => {
+    const filePath = fileURLToPath(file.url);
+    return fs.readFileSync(filePath, "utf8");
+  },
+};
+
 export async function resolveRefs(
   doc: C8yPact,
   baseFolder?: string, // Optional base folder for resolving relative file paths
@@ -451,15 +633,6 @@ export async function resolveRefs(
     renameKey(holder, "$ref", LITERAL_REF_KEY);
   }
 
-  // 1. Custom "parsing" step: Traverse, transform $refs, collect parameterization info
-  traverseAndPreprocessRefs(
-    docForProcessing,
-    [],
-    parameterizationInfoList,
-    baseFolder
-  );
-
-  // 2. Dereference using the standard mechanism with the preprocessed document
   const defaultOptions: any = {
     dereference: {
       circular: "ignore",
@@ -471,35 +644,7 @@ export async function resolveRefs(
         const segments = pathFragment
           .split("/")
           .filter((segment) => !_.isEmpty(segment));
-
-        // Iterate through all actual path segments (keys or array indices).
-        // Start from index 1 to skip the initial empty string if path starts with '#/'.
-        for (let i = 0; i < segments.length; i++) {
-          const currentSegment = segments[i];
-          if (i === 0 && !C8yPactObjectKeys.includes(currentSegment)) {
-            continue;
-          }
-          // We don't want to exclude based on the "$ref" keyword itself,
-          // only based on its parent/ancestor keys.
-          if (currentSegment === "$ref") {
-            continue;
-          }
-
-          if (
-            currentSegment === "jsonSchema" ||
-            // options.schema on a C8yPactRecord holds a JSON Schema object.
-            // Its $ref keywords are schema references, not pact refs — exclude
-            // the entire subtree once we see "schema" preceded by "options".
-            (currentSegment === "schema" &&
-              i > 0 &&
-              segments[i - 1] === "options") ||
-            currentSegment.startsWith("$") ||
-            currentSegment.startsWith("%24")
-          ) {
-            return true;
-          }
-        }
-        return false;
+        return isExcludedPath(segments);
       },
     },
     continueOnError: true,
@@ -507,27 +652,36 @@ export async function resolveRefs(
       // Do not load $refs to http(s) URLs. Loading a pact must not make network
       // requests to URLs found in the pact. Enable with parserOptions if needed.
       http: false,
-      file: {
-        order: 1,
-        canRead: /^file:/i,
-        read: async (file: any) => {
-          // Convert file:// URL to path and read using the current fs (which may be mocked)
-          const filePath = fileURLToPath(file.url);
-          return fs.readFileSync(filePath, "utf8");
-        },
-      },
+      file: fileResolver,
     },
   };
 
   // Merge custom options with defaults
   const mergedOptions = _.merge({}, defaultOptions, parserOptions);
 
+  // 1. Inline $refs to files in JSON Schemas, which are excluded from dereferencing
+  const hiddenSchemaRefs = await bundleSchemaFileRefs(
+    docForProcessing,
+    baseFolder,
+    mergedOptions,
+    log
+  );
+
+  // 2. Custom "parsing" step: Traverse, transform $refs, collect parameterization info
+  traverseAndPreprocessRefs(
+    docForProcessing,
+    [],
+    parameterizationInfoList,
+    baseFolder
+  );
+
+  // 3. Dereference using the standard mechanism with the preprocessed document
   const dereferencedDoc = await $RefParser.dereference(
     docForProcessing,
     mergedOptions
   );
 
-  // 3. Post-Dereferencing Replacement
+  // 4. Post-Dereferencing Replacement
   const finalDoc = dereferencedDoc;
   for (const info of parameterizationInfoList) {
     const resolvedValueAtPath = getValueByPath(finalDoc, info.keyPath);
@@ -540,7 +694,7 @@ export async function resolveRefs(
     }
   }
 
-  if (literalRefs.length > 0) {
+  if (literalRefs.length > 0 || hiddenSchemaRefs > 0) {
     restoreLiteralRefs(finalDoc);
   }
 
