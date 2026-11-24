@@ -1227,4 +1227,132 @@ describe("resolvePact", () => {
       expect(error.errors[0].message).toContain("doesNotExist");
     });
   });
+
+  describe("URL $refs", () => {
+    let fetchSpy: jest.SpyInstance | undefined;
+
+    beforeEach(() => {
+      fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ title: "FETCHED-REMOTE" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    });
+
+    afterEach(() => {
+      fetchSpy?.mockRestore();
+    });
+
+    it("should not load an https $ref outside of a body", async () => {
+      const doc = {
+        records: [
+          {
+            request: { url: "/x", method: "GET" },
+            response: {
+              status: 200,
+              headers: { $ref: "https://example.com/headers.json" },
+            },
+          },
+        ],
+        id: defaultPactId,
+        info: defaultPactInfo,
+      };
+
+      const resolved = await resolveRefs(_.cloneDeep(doc));
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(resolved.records[0].response.headers).toEqual({
+        $ref: "https://example.com/headers.json",
+      });
+    });
+
+    it("should not load an http $ref of a record", async () => {
+      const doc = {
+        records: [{ $ref: "http://example.com/record.json#/record" }],
+        id: defaultPactId,
+        info: defaultPactInfo,
+      };
+
+      const resolved = await resolveRefs(_.cloneDeep(doc));
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(resolved.records[0]).toEqual({
+        $ref: "http://example.com/record.json#/record",
+      });
+    });
+
+    it("should not load an https $ref within options.schema of a record", async () => {
+      const schema = {
+        properties: { a: { $ref: "https://example.com/schemas/a.json" } },
+      };
+      const doc = {
+        records: [
+          {
+            request: { url: "/x", method: "GET" },
+            response: { status: 200 },
+            options: { schema: _.cloneDeep(schema) },
+          },
+        ],
+        id: defaultPactId,
+        info: defaultPactInfo,
+      };
+
+      const resolved = await resolveRefs(_.cloneDeep(doc));
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(resolved.records[0].options.schema).toEqual(schema);
+    });
+
+    it("should resolve other $refs of a pact with an https $ref", async () => {
+      const doc = {
+        templates: { device: { id: "12345", type: "c8y_Device" } },
+        records: [
+          {
+            request: { url: "/x", method: "GET" },
+            response: {
+              status: 200,
+              headers: { $ref: "https://example.com/headers.json" },
+              body: { $ref: "#/templates/device" },
+            },
+          },
+        ],
+        id: defaultPactId,
+        info: defaultPactInfo,
+      };
+
+      const log = jest.fn();
+      const resolved = await resolveRefs(_.cloneDeep(doc), undefined, {}, log);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(resolved.records[0].response).toEqual({
+        status: 200,
+        headers: { $ref: "https://example.com/headers.json" },
+        body: { id: "12345", type: "c8y_Device" },
+      });
+      expect(log).toHaveBeenCalledWith(
+        'Keeping $ref "https://example.com/headers.json" at records/0/response/headers as literal value.'
+      );
+    });
+
+    it("should load URL $refs if enabled with parserOptions", async () => {
+      const doc = {
+        records: [
+          {
+            request: { url: "/x", method: "GET" },
+            response: {
+              status: 200,
+              headers: { $ref: "https://example.com/headers.json" },
+            },
+          },
+        ],
+        id: defaultPactId,
+        info: defaultPactInfo,
+      };
+
+      const resolved = await resolveRefs(_.cloneDeep(doc), undefined, {
+        resolve: { http: {} },
+      });
+      expect(fetchSpy).toHaveBeenCalled();
+      expect(resolved.records[0].response.headers).toEqual({
+        title: "FETCHED-REMOTE",
+      });
+    });
+  });
 });

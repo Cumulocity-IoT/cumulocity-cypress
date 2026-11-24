@@ -372,6 +372,25 @@ function findLiteralRefs(pact: any, baseFolder?: string): LiteralRefInfo[] {
 }
 
 /**
+ * Finds the $ref references to http(s) URLs in the pact, outside of recorded bodies
+ * as these are covered by {@link findLiteralRefs}. Without http resolver, $RefParser
+ * can not load these references, so they are kept as literal values.
+ */
+function findUrlRefs(pact: any): LiteralRefInfo[] {
+  const refs: LiteralRefInfo[] = [];
+  collectRefs(pact, [], refs);
+  return refs.filter(
+    (info) =>
+      /^https?:\/\//i.test(info.ref) &&
+      !(
+        info.keyPath[0] === "records" &&
+        ["request", "response"].includes(info.keyPath[2] as string) &&
+        info.keyPath[3] === "body"
+      )
+  );
+}
+
+/**
  * Renames a key of an object in place, keeping the order of the keys.
  */
 function renameKey(obj: Record<string, any>, from: string, to: string): void {
@@ -420,6 +439,10 @@ export async function resolveRefs(
   // 0. Hide $refs in recorded bodies that are literal values from $RefParser. The
   // recorded data itself is not changed, the keys are restored after dereferencing.
   const literalRefs = findLiteralRefs(doc, baseFolder);
+  // http(s) $refs are only loaded if the http resolver is enabled with parserOptions
+  if (!_.get(parserOptions, ["resolve", "http"])) {
+    literalRefs.push(...findUrlRefs(doc));
+  }
   for (const info of literalRefs) {
     log?.(
       `Keeping $ref "${info.ref}" at ${info.keyPath.join("/")} as literal value.`
@@ -481,6 +504,9 @@ export async function resolveRefs(
     },
     continueOnError: true,
     resolve: {
+      // Do not load $refs to http(s) URLs. Loading a pact must not make network
+      // requests to URLs found in the pact. Enable with parserOptions if needed.
+      http: false,
       file: {
         order: 1,
         canRead: /^file:/i,
