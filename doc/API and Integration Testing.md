@@ -475,6 +475,41 @@ configureC8yPlugin(on, config, {
 
 If you call `resolvePactRefs` directly, for example in a custom setup, pass `{ failOnError: true }` as fourth argument to get the same behavior.
 
+#### `$ref` in recorded bodies
+
+A recorded request or response body can contain a `$ref` that is part of the data, for example a JSON Schema returned by a service. The plugin keeps such a `$ref` unchanged and does not report an error for it. For each `$ref` in `records[*].request.body` and `records[*].response.body`, the following rules apply:
+
+- A `$ref` to a URL, such as `https://example.com/schema.json`, is kept and not loaded.
+- A `$ref` such as `#/definitions/prop` whose target exists within the same body is kept. In a JSON Schema, `#` refers to the root of the body, not to the root of the pact. If the target exists in both the body and the pact, the body takes precedence.
+- A `$ref` whose target exists in the pact, such as `#/templates/device`, or a `$ref` to an existing file is resolved.
+- Any other `$ref` is kept, because it cannot be resolved.
+
+The plugin logs each kept `$ref` with its path to the `c8y:plugin` debug logger. If you mistype a template reference in a body, the `$ref` is kept and the test fails when matching the body. A `$ref` outside of recorded bodies is always resolved, except a `$ref` to an `http` or `https` URL and a `$ref` in a JSON Schema (see below).
+
+#### `$ref` to a URL
+
+The plugin does not load a `$ref` to an `http` or `https` URL anywhere in a pact, so loading a pact does not send requests to URLs in recorded data. The `$ref` is kept unchanged and logged to the `c8y:plugin` debug logger.
+
+#### `$ref` in JSON Schemas
+
+JSON Schemas in a pact are used to match bodies: `$body` and other keys starting with `$` (except JSON Schema keywords such as `$defs`), `options.schema` of a record, and `jsonSchema`. In a schema, `#` refers to the root of the schema, not to the root of the pact. The plugin therefore treats a `$ref` in a schema as follows:
+
+- A `$ref` to a file is replaced with the content of the file, so a schema can be shared between pacts. Relative paths are resolved against the pact folder. A `$ref` within the file is resolved relative to the file.
+- A `$ref` such as `#/definitions/position` is kept unchanged.
+- A `$ref` to part of a file, such as `schemas/common.json#/definitions/device`, inlines that part. A `$ref` that points into the file is rewritten to point to its new location in the schema, and a schema that refers to itself is kept as `{ "$ref": "#" }`.
+- A `$ref` that can not be inlined is kept unchanged and logged, for example a `$ref` to a missing file, a `$ref` with parameters such as `?id=1`, or a `$ref` to a URL.
+
+```json
+{
+  "request": { "method": "GET", "url": "/inventory/managedObjects/1" },
+  "response": {
+    "status": 200,
+    "body": { "$ref": "templates/device.json#/device?id=1" },
+    "$body": { "$ref": "schemas/device.json" }
+  }
+}
+```
+
 #### C8yPact file format
 
 The default file format for recorded pacts is JSON using the `C8yPact` object structure. To store recorded pacts in files, use `C8yPactDefaultFileAdapter` as in the following example.

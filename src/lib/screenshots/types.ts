@@ -141,14 +141,14 @@ export interface ScreenshotSettings {
    * The width in px to use for the browser window
    * @minimum 0
    * @default 1440
-   * @TJS-type integer
+   * @asType integer
    */
   viewportWidth?: number;
   /**
    * The height in px to use for the browser window
    * @minimum 0
    * @default 900
-   * @TJS-type integer
+   * @asType integer
    */
   viewportHeight?: number;
   /**
@@ -161,7 +161,7 @@ export interface ScreenshotSettings {
   /**
    * The padding in px used to alter the dimensions of a screenshot of an element.
    * @minimum 0
-   * @TJS-type integer
+   * @asType integer
    */
   padding?: number;
   /**
@@ -188,21 +188,21 @@ export interface ScreenshotSettings {
      * The time, in milliseconds, to wait until most DOM based commands are considered timed out.
      * @examples [10000]
      * @default 4000
-     * @TJS-type integer
+     * @asType integer
      */
     default?: number;
     /**
      * The time, in milliseconds, to wait for the page to load. This is used for visit actions.
      * @examples [30000]
      * @default 60000
-     * @TJS-type integer
+     * @asType integer
      */
     pageLoad?: number;
     /**
      * The time, in milliseconds, to wait for a response from a network request. Also applies to screenshot action.
      * @examples [60000]
      * @default 30000
-     * @TJS-type integer
+     * @asType integer
      */
     screenshot?: number;
   };
@@ -232,7 +232,7 @@ export interface Visit {
   /**
    * The timeout in ms to wait for the page to load.
    * @examples [30000]
-   * @TJS-type integer
+   * @asType integer
    */
   timeout?: number;
   /**
@@ -285,11 +285,15 @@ export interface ScrollToAction {
 
 export interface TypeAction {
   /**
-   * The value to type into the selected DOM element. The value can be a string or an array of strings. If an array is provided, textfields within the selector are filled with the values in the array.
+   * The value to type into the selected DOM element. The value can be a string, a number, or an array of values. If an array is provided, the text and number input fields and textareas within the selector are filled with the values in the array.
    *
-   * For multistep forms, the value can be an array of strings. Each array represents a step in the form. The first value in the array is typed into the first textfield, the second value in the second textfield, and so on. Configure submit selector to continue to the next step of the form.
+   * For multistep forms, the value can be an array of arrays. Each array represents a step in the form. The first value in the array is typed into the first input field, the second value into the second input field, and so on. Use null to skip an input field. Configure submit selector to continue to the next step of the form.
    */
-  value: string | (string | null)[] | (string | null)[][];
+  value:
+    | string
+    | number
+    | (string | number | null)[]
+    | (string | number | null)[][];
   /**
    * If true, the text input is cleared before typing. The default is false.
    * @default false
@@ -316,7 +320,7 @@ export interface TextAction {
 export interface WaitAction {
   /**
    * The timeout in ms to wait for
-   * @TJS-type integer
+   * @asType integer
    * @default 4000
    */
   timeout?: number;
@@ -384,23 +388,23 @@ export interface ScreenshotClipArea {
   /**
    * The x-coordinate of the top-left corner of the clip area
    * @minimum 0
-   * @TJS-type integer
+   * @asType integer
    */
   x: number;
   /**
    * The y-coordinate of the top-left corner of the clip area
    * @minimum 0
-   * @TJS-type integer
+   * @asType integer
    */
   y: number;
   /**
    * The width of the clip area. If negative, the width is subtracted from the viewport width.
-   * @TJS-type integer
+   * @asType integer
    */
   width: number;
   /**
    * The height of the clip area. If negative, the height is subtracted from the viewport height.
-   * @TJS-type integer
+   * @asType integer
    */
   height: number;
 }
